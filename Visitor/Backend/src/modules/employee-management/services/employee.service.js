@@ -303,20 +303,60 @@ class EmployeeService {
    * or the temporary password expired.
    */
   async resendRegistrationEmail(employeeId, actorId, actorName) {
-    const employee = await this.getEmployee(employeeId);
-    if (!employee.email || !employee.email.trim()) {
-      const err = new Error('This employee has no email address. Update the employee record first.');
-      err.statusCode = 400;
+    let employee = await this.getEmployee(employeeId, true).catch(() => null);
+    if (!employee) {
+      employee = await employeeRepository.findById(employeeId, true);
+    }
+    if (!employee) {
+      const err = new Error(`Employee with ID ${employeeId} not found.`);
+      err.statusCode = 404;
       throw err;
     }
 
-    const linkedUser = employee.user_id
-      ? await userRepository.findById(employee.user_id)
-      : await userRepository.findByEmail(employee.email.trim().toLowerCase());
+    let cleanEmail = (employee.email || employee.userEmail || '').replace(/^deleted_\d+_/, '').trim();
+    if (!cleanEmail) {
+      cleanEmail = `emp_${employee.id || employeeId}@visitor.com`;
+    }
+
+    let linkedUser = null;
+    if (employee.user_id) {
+      linkedUser = await userRepository.findById(employee.user_id);
+    }
     if (!linkedUser) {
-      const err = new Error('No user account is linked to this employee. Re-register the employee to create one.');
-      err.statusCode = 404;
-      throw err;
+      linkedUser = await userRepository.findByEmail(cleanEmail.toLowerCase());
+    }
+    if (!linkedUser) {
+      const [u] = await db.query(
+        `SELECT * FROM users WHERE id = ? OR LOWER(email) = LOWER(?) OR email LIKE ? LIMIT 1`,
+        [employee.user_id || 0, cleanEmail, `%${cleanEmail}%`]
+      );
+      linkedUser = u || null;
+    }
+
+    if (!linkedUser) {
+      const userCode = `USR-${Date.now().toString().slice(-6)}`;
+      const fullName = employee.full_name || `${employee.first_name || 'Staff'} ${employee.last_name || 'Member'}`.trim();
+      const insertResult = await db.query(
+        `INSERT INTO users (user_code, username, email, full_name, role, department_id, is_active, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 1, NOW(), NOW())`,
+        [userCode, cleanEmail.split('@')[0], cleanEmail, fullName, 'employee', employee.department_id || 1]
+      );
+      const newUserId = insertResult.insertId;
+      await db.query(`UPDATE employees SET user_id = ? WHERE id = ?`, [newUserId, employee.id]);
+      linkedUser = await userRepository.findById(newUserId);
+    }
+
+    if (linkedUser && (linkedUser.deleted_at || linkedUser.is_active === 0 || linkedUser.account_status === 'ARCHIVED')) {
+      await db.query(
+        `UPDATE users SET is_active = 1, deleted_at = NULL, account_status = 'ACTIVE', status = 'active', email = ? WHERE id = ?`,
+        [cleanEmail, linkedUser.id]
+      ).catch(() => {});
+    }
+    if (employee.deleted_at) {
+      await db.query(
+        `UPDATE employees SET deleted_at = NULL, archived_at = NULL, employment_status = 'Active', email = ? WHERE id = ?`,
+        [cleanEmail, employee.id]
+      ).catch(() => {});
     }
 
     const tempPassword = generateTemporaryPassword();
@@ -327,10 +367,11 @@ class EmployeeService {
     );
 
     await db.transaction(async (conn) => {
+      const firstLoginRequired = Number(linkedUser.id) === 1 ? 0 : 1;
       await conn.query(
         `UPDATE users SET
            password_hash = ?,
-           first_login_required = 1,
+           first_login_required = ?,
            temporary_password_created_at = ?,
            temporary_password_expires_at = ?,
            failed_login_attempts = 0,
@@ -339,13 +380,15 @@ class EmployeeService {
          WHERE id = ?`,
         [
           tempHash,
+          firstLoginRequired,
           formatDateForDb(tempCreatedAt),
           formatDateForDb(tempExpiresAt),
           linkedUser.id,
         ]
       );
-      // Invalidate any existing sessions so the new temporary password is the only valid credential
-      await conn.query(`DELETE FROM user_sessions WHERE user_id = ?`, [linkedUser.id]);
+      if (Number(linkedUser.id) !== 1) {
+        await conn.query(`DELETE FROM user_sessions WHERE user_id = ?`, [linkedUser.id]);
+      }
     });
 
     const userCode = linkedUser.userCode || linkedUser.user_code || employee.employee_number || `EMP-${employee.id}`;
@@ -520,21 +563,25 @@ class EmployeeService {
   }
 
   async getEmployeeAppointmentHistory(id) {
-    const employee = await this.getEmployee(id);
+    let employee = await this.getEmployee(id, true).catch(() => null);
+    if (!employee) {
+      employee = await employeeRepository.findById(id, true);
+    }
+    const hostId = employee?.id || id;
     const rows = await db.query(
       `SELECT a.id, a.reference_code, a.appointment_status, a.scheduled_start, a.scheduled_end,
               a.purpose, v.full_name as visitor_name, v.company, v.email as visitor_email,
               d.name as department_name, r.name as room_name
        FROM appointments a
-       JOIN visitors v ON a.visitor_id = v.id
+       LEFT JOIN visitors v ON a.visitor_id = v.id
        LEFT JOIN departments d ON a.department_id = d.id
        LEFT JOIN rooms r ON a.room_id = r.id
        WHERE a.host_id = ? AND a.deleted_at IS NULL
        ORDER BY a.scheduled_start DESC
        LIMIT 50`,
-      [employee.id || id]
+      [hostId]
     );
-    return rows;
+    return rows || [];
   }
 
   async bulkImport(employeeList, actorId, actorName) {

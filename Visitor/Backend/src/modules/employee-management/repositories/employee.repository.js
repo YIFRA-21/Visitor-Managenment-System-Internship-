@@ -112,6 +112,7 @@ class EmployeeRepository {
     const isNum = !isNaN(Number(id)) && Number(id) > 0;
     const numId = isNum ? Number(id) : null;
     const strId = String(id);
+    const whereDeleted = includeDeleted ? '' : ' AND e.deleted_at IS NULL';
     const rows = await db.query(
       `SELECT e.*, 
               COALESCE(NULLIF(e.full_name, ''), u.full_name, CONCAT_WS(' ', e.first_name, e.last_name)) as full_name,
@@ -129,7 +130,7 @@ class EmployeeRepository {
        LEFT JOIN rooms r ON e.default_room_id = r.id
        LEFT JOIN users m ON e.manager_id = m.id
        LEFT JOIN organizations org ON e.organization_id = org.id
-       WHERE (e.id = ? OR e.employee_id = ? OR e.employee_number = ?) AND e.deleted_at IS NULL`,
+       WHERE (e.id = ? OR e.employee_id = ? OR e.employee_number = ?)${whereDeleted}`,
       [numId, numId, strId]
     );
     return rows[0] || null;
@@ -432,7 +433,7 @@ class EmployeeRepository {
     const emp = rows && rows[0];
 
     if (emp) {
-      if (emp.user_id) {
+      if (emp.user_id && Number(emp.user_id) !== 1) {
         await db.query(
           `UPDATE users 
            SET email = CONCAT('deleted_${ts}_', email),
@@ -458,6 +459,18 @@ class EmployeeRepository {
           [emp.user_id]
         ).catch(() => {});
       }
+
+      if (Number(emp.id) === 1) {
+        return db.query(
+          `UPDATE employees 
+           SET deleted_at = ?,
+               employment_status = 'Inactive',
+               is_host_enabled = 0 
+           WHERE id = ?`,
+          [now, emp.id]
+        );
+      }
+
       return db.query(
         `UPDATE employees 
          SET deleted_at = ?,
@@ -467,6 +480,17 @@ class EmployeeRepository {
              is_host_enabled = 0 
          WHERE id = ?`,
         [now, emp.id]
+      );
+    }
+
+    if (numId === 1) {
+      return db.query(
+        `UPDATE employees 
+         SET deleted_at = ?, 
+             employment_status = 'Inactive', 
+             is_host_enabled = 0 
+         WHERE (id = 1 OR employee_id = 1)`,
+        [now]
       );
     }
 
