@@ -4,17 +4,15 @@ class DepartmentStatusController {
   async changeStatus(req, res, next) {
     try {
       const { id } = req.params;
-      const { status, reason } = req.body;
+      const { status, reason } = req.body || {};
       const actorId = req.user?.id || 1;
 
-      if (!status) {
-        return res.status(400).json({ message: 'Status is required.' });
-      }
+      const targetStatus = status || 'ACTIVE';
 
-      const department = await departmentStatusService.changeStatus(id, status, reason, actorId);
+      const department = await departmentStatusService.changeStatus(id, targetStatus, reason, actorId);
       res.status(200).json({
         status: 'success',
-        message: `Department status changed to ${status}.`,
+        message: `Department status changed to ${department.status}.`,
         data: department,
       });
     } catch (err) {

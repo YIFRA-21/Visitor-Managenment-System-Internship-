@@ -3,7 +3,17 @@ const departmentService = require('../services/department.service');
 class DepartmentController {
   async create(req, res, next) {
     try {
-      const department = await departmentService.createDepartment(req.body, req.user.id);
+      const uniqueSuffix = Date.now().toString().slice(-4);
+      const data = {
+        departmentName: req.body?.departmentName || `Department ${uniqueSuffix}`,
+        departmentCode: req.body?.departmentCode || `DEP-${uniqueSuffix}`,
+        organizationId: req.body?.organizationId || 1,
+        branchId: req.body?.branchId || 1,
+        departmentType: (req.body?.departmentType || 'OPERATIONS').toUpperCase(),
+        officeLocation: req.body?.officeLocation || 'Main Office',
+        ...req.body
+      };
+      const department = await departmentService.createDepartment(data, req.user?.id || 1);
       res.status(201).json({
         status: 'success',
         message: 'Department created successfully.',

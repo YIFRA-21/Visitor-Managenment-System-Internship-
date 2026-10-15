@@ -70,21 +70,50 @@ class DepartmentRepository {
     }
   }
 
-  async findById(id) {
+  async findById(id, includeDeleted = false) {
     try {
-      const sql = `
+      let sql = `
         SELECT d.*, b.branch_name, o.name AS organization_name
         FROM departments d
         LEFT JOIN organization_branches b ON d.branch_id = b.id
         LEFT JOIN organizations o ON d.organization_id = o.id
-        WHERE d.id = ? AND d.deleted_at IS NULL
+        WHERE d.id = ?
       `;
+      if (!includeDeleted) {
+        sql += ' AND d.deleted_at IS NULL';
+      }
       const rows = await db.query(sql, [Number(id)]);
       if (!rows || rows.length === 0) return null;
       return this.mapRow(rows[0]);
     } catch (err) {
       console.error('DepartmentRepository.findById Error:', err);
       return null;
+    }
+  }
+
+  async findStatusHistory(id) {
+    try {
+      const sql = `
+        SELECT a.id, a.action, a.old_values, a.new_values, a.created_at, u.full_name AS actor_name
+        FROM audit_logs a
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE (a.entity = 'departments' OR a.table_name = 'departments')
+          AND (a.record_id = ? OR a.entity_id = ?)
+        ORDER BY a.created_at DESC
+      `;
+      const rows = await db.query(sql, [Number(id), Number(id)]);
+      return (rows || []).map(r => ({
+        id: r.id,
+        action: r.action,
+        status: (r.new_values && typeof r.new_values === 'object' && r.new_values.status) || r.action.replace('DEPARTMENT_STATUS_', ''),
+        oldStatus: (r.old_values && typeof r.old_values === 'object' && r.old_values.status) || null,
+        reason: (r.new_values && typeof r.new_values === 'object' && r.new_values.reason) || '',
+        actor: r.actor_name || 'System Administrator',
+        timestamp: r.created_at
+      }));
+    } catch (err) {
+      console.error('DepartmentRepository.findStatusHistory Error:', err);
+      return [];
     }
   }
 

@@ -16,12 +16,10 @@ class DepartmentSearchController {
 
   async checkCode(req, res, next) {
     try {
-      const { code, excludeId } = req.query;
-      if (!code) {
-        return res.status(400).json({ message: 'Code parameter is required.' });
-      }
+      const { excludeId } = req.query;
+      const code = (req.query.code || 'DEP001').trim();
       const taken = await departmentSearchService.isCodeTaken(code, excludeId);
-      res.status(200).json({ code, taken });
+      res.status(200).json({ code, taken, available: !taken });
     } catch (err) {
       next(err);
     }

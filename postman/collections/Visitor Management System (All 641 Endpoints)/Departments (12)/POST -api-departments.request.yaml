@@ -5,9 +5,14 @@ method: POST
 headers:
   Content-Type: application/json
 body:
-  type: text
+  type: json
   content: |-
     {
-      
+      "departmentName": "Engineering & Innovation",
+      "departmentCode": "ENG-101",
+      "organizationId": 1,
+      "branchId": 1,
+      "departmentType": "OPERATIONS",
+      "officeLocation": "Building B, Floor 2"
     }
 order: 6000

@@ -13,38 +13,35 @@ class DepartmentStatusService {
   }
 
   async changeStatus(id, newStatus, reason, actorId) {
-    const department = await departmentRepository.findById(id);
+    const department = await departmentRepository.findById(id, true);
     if (!department) {
       throw new AppError('Department not found.', 404);
     }
 
     const currentStatus = department.status;
-    const allowed = this.getAllowedTransitions(currentStatus);
-
-    if (!allowed.includes(newStatus)) {
-      throw new AppError(
-        `Cannot transition from ${currentStatus} to ${newStatus}. Allowed: ${allowed.join(', ') || 'none'}.`,
-        400
-      );
+    if (newStatus && newStatus.toUpperCase() === currentStatus.toUpperCase()) {
+      return department;
     }
 
-    await departmentRepository.update(id, { status: newStatus });
+    const targetStatus = (newStatus || (currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')).toUpperCase();
+
+    await departmentRepository.update(id, { status: targetStatus, deleted_at: null });
 
     await auditRepository.log({
       userId: actorId,
-      action: `DEPARTMENT_STATUS_${newStatus}`,
+      action: `DEPARTMENT_STATUS_${targetStatus}`,
       module: 'DEPARTMENTS',
       entity: 'departments',
       recordId: id,
       oldValues: { status: currentStatus },
-      newValues: { status: newStatus, reason: reason || '' },
+      newValues: { status: targetStatus, reason: reason || '' },
     });
 
-    return departmentRepository.findById(id);
+    return departmentRepository.findById(id, true);
   }
 
   async getStatusHistory(id) {
-    const department = await departmentRepository.findById(id);
+    const department = await departmentRepository.findById(id, true);
     if (!department) {
       throw new AppError('Department not found.', 404);
     }
