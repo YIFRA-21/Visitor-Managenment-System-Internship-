@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/manager/ping
+url: "{{baseUrl}}/api/manager/ping"
+method: GET
+headers:
+  Content-Type: application/json
+order: 1000

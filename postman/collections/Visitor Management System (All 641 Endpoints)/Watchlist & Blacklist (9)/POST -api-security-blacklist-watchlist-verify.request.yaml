@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/security/blacklist-watchlist/verify
+url: "{{baseUrl}}/api/security/blacklist-watchlist/verify"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 5000

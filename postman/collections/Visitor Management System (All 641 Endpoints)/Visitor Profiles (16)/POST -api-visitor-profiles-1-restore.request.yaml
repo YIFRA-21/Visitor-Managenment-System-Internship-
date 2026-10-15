@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/visitor-profiles/1/restore
+url: "{{baseUrl}}/api/visitor-profiles/1/restore"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 8000

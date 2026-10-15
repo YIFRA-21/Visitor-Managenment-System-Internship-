@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/users/:id/resend-registration-email
+url: "{{baseUrl}}/api/users/:id/resend-registration-email"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 30000

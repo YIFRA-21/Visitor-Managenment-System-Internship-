@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/permissions/export
+url: "{{baseUrl}}/api/permissions/export"
+method: GET
+headers:
+  Content-Type: application/json
+order: 8000

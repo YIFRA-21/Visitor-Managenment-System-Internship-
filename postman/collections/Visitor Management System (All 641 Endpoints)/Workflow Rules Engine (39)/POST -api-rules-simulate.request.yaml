@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/rules/simulate
+url: "{{baseUrl}}/api/rules/simulate"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 20000

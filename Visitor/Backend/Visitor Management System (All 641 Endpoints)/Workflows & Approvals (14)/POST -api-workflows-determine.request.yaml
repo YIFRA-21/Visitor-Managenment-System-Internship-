@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/workflows/determine
+url: "{{baseUrl}}/api/workflows/determine"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 5000

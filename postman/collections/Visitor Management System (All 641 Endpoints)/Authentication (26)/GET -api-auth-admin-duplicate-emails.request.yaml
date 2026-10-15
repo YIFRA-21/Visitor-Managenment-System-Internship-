@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/auth/admin/duplicate-emails
+url: "{{baseUrl}}/api/auth/admin/duplicate-emails"
+method: GET
+headers:
+  Content-Type: application/json
+order: 2000

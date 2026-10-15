@@ -1,0 +1,149 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — TYPOGRAPHY TOKENS
+// ═══════════════════════════════════════════════════════════════════════════
+
+:root {
+  // Font Family
+  --vms-font-family:      'Inter', 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+
+  // Font Weights
+  --vms-fw-light:         300;
+  --vms-fw-regular:       400;
+  --vms-fw-medium:        500;
+  --vms-fw-semibold:      600;
+  --vms-fw-bold:          700;
+  --vms-fw-extrabold:     800;
+
+  // Heading Sizes (Fluid responsive scale)
+  --vms-h1:               clamp(1.75rem, 3.5vw + 0.5rem, 2.5rem);       // 28px – 40px
+  --vms-h2:               clamp(1.5rem, 2.8vw + 0.4rem, 2.125rem);      // 24px – 34px
+  --vms-h3:               clamp(1.25rem, 2.2vw + 0.3rem, 1.75rem);      // 20px – 28px
+  --vms-h4:               clamp(1.125rem, 1.6vw + 0.2rem, 1.5rem);      // 18px – 24px
+  --vms-h5:               clamp(1rem, 1.2vw + 0.2rem, 1.25rem);         // 16px – 20px
+  --vms-h6:               1.125rem;                                     // 18px
+
+  // Body Sizes
+  --vms-body-lg:          1.125rem;     // 18px
+  --vms-body:             1rem;         // 16px
+  --vms-body-sm:          0.875rem;     // 14px
+  --vms-caption:          0.8125rem;    // 13px
+  --vms-small:            0.75rem;      // 12px
+  --vms-tiny:             0.6875rem;    // 11px
+
+  // Line Heights
+  --vms-lh-tight:         1.25;
+  --vms-lh-normal:        1.5;
+  --vms-lh-relaxed:       1.625;
+  --vms-lh-loose:         1.75;
+
+  // Letter Spacing
+  --vms-ls-tight:         -0.025em;
+  --vms-ls-normal:        0;
+  --vms-ls-wide:          0.025em;
+  --vms-ls-wider:         0.05em;
+  --vms-ls-widest:        0.1em;
+}
+
+// ── Typography Base Styles ───────────────────────────────────────────────
+body {
+  font-family: var(--vms-font-family);
+  font-size: var(--vms-body);
+  font-weight: var(--vms-fw-regular);
+  line-height: var(--vms-lh-normal);
+  color: var(--vms-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--vms-font-family);
+  font-weight: var(--vms-fw-bold);
+  line-height: var(--vms-lh-tight);
+  color: var(--vms-text-primary);
+  margin-bottom: 0.5em;
+}
+
+h1 { font-size: var(--vms-h1); font-weight: var(--vms-fw-extrabold); letter-spacing: var(--vms-ls-tight); }
+h2 { font-size: var(--vms-h2); font-weight: var(--vms-fw-extrabold); letter-spacing: var(--vms-ls-tight); }
+h3 { font-size: var(--vms-h3); font-weight: var(--vms-fw-bold); }
+h4 { font-size: var(--vms-h4); font-weight: var(--vms-fw-semibold); }
+h5 { font-size: var(--vms-h5); font-weight: var(--vms-fw-semibold); }
+h6 { font-size: var(--vms-h6); font-weight: var(--vms-fw-semibold); }
+
+p {
+  margin-bottom: 1rem;
+  color: var(--vms-text-secondary);
+}
+
+a {
+  color: var(--vms-text-link);
+  text-decoration: none;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--vms-text-link-hover);
+    text-decoration: underline;
+  }
+}
+
+small, .text-small {
+  font-size: var(--vms-small);
+}
+
+.text-caption {
+  font-size: var(--vms-caption);
+  color: var(--vms-text-secondary);
+}
+
+.text-tiny {
+  font-size: var(--vms-tiny);
+  color: var(--vms-text-tertiary);
+}
+
+// Utility classes for typography
+.fw-light      { font-weight: var(--vms-fw-light) !important; }
+.fw-regular    { font-weight: var(--vms-fw-regular) !important; }
+.fw-medium     { font-weight: var(--vms-fw-medium) !important; }
+.fw-semibold   { font-weight: var(--vms-fw-semibold) !important; }
+.fw-bold       { font-weight: var(--vms-fw-bold) !important; }
+.fw-extrabold  { font-weight: var(--vms-fw-extrabold) !important; }
+
+.text-primary   { color: var(--vms-text-primary) !important; }
+.text-secondary { color: var(--vms-text-secondary) !important; }
+.text-tertiary  { color: var(--vms-text-tertiary) !important; }
+.text-muted     { color: var(--vms-text-tertiary) !important; }
+
+// Label style used across forms
+.vms-label {
+  display: block;
+  font-size: var(--vms-small);
+  font-weight: var(--vms-fw-semibold);
+  color: var(--vms-text-secondary);
+  margin-bottom: 0.375rem;
+  letter-spacing: var(--vms-ls-wide);
+}
+
+// Page title style
+.vms-page-title {
+  font-size: var(--vms-h3);
+  font-weight: var(--vms-fw-bold);
+  color: var(--vms-text-primary);
+  letter-spacing: var(--vms-ls-tight);
+  margin-bottom: 0.25rem;
+}
+
+.vms-page-subtitle {
+  font-size: var(--vms-body-sm);
+  color: var(--vms-text-secondary);
+  font-weight: var(--vms-fw-regular);
+}
+
+// Section title style
+.vms-section-title {
+  font-size: var(--vms-tiny);
+  font-weight: var(--vms-fw-bold);
+  color: var(--vms-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--vms-ls-widest);
+  margin-bottom: 0.75rem;
+}

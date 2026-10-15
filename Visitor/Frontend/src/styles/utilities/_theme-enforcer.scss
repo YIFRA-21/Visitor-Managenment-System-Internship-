@@ -1,0 +1,375 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS GLOBAL THEME ENFORCER — UNIVERSAL WILDCARD & HOVER ADAPTER
+// ═══════════════════════════════════════════════════════════════════════════
+// Enforces perfect light/dark theme rendering system-wide.
+// Light mode (toggle white): Light backgrounds, dark crisp text, light hover.
+// Dark mode (toggle dark): Dark backgrounds, white crisp text, dark hover.
+
+// ── 1. GLOBAL LAYOUT & CONTENT CONTAINERS ────────────────────────────────
+html, body, .vms-app, .vms-main-wrapper {
+  background-color: var(--vms-bg-primary) !important;
+  color: var(--vms-text-primary) !important;
+}
+
+.vms-main-content {
+  background-color: var(--vms-bg-primary) !important;
+  color: var(--vms-text-primary) !important;
+}
+
+// ── 2. LIGHT MODE THEME OVERRIDES ([data-theme="light"]) ───────────────────
+html[data-theme="light"],
+body[data-theme="light"],
+[data-theme="light"] {
+
+  // Universal catch for ALL Tailwind arbitrary dark hex background classes (bg-[#...])
+  [class*='bg-[#'] {
+    background-color: var(--vms-bg-card) !important;
+    color: var(--vms-text-primary) !important;
+  }
+
+  // Catch outer page wrappers / min-h-screen dark backgrounds
+  .vms-main-content [class*="min-h-screen"],
+  .vms-main-content [class*='bg-[#07'],
+  .vms-main-content [class*='bg-[#08'],
+  .vms-main-content [class*='bg-[#09'],
+  .vms-main-content [class*='bg-[#06'],
+  .vms-main-content [class*='bg-[#0a'],
+  .vms-main-content [class*='bg-[#0b'],
+  .vms-main-content [class*='bg-[#0c'],
+  .vms-main-content [class*='bg-[#0d'],
+  .vms-main-content [class*='bg-[#0e'],
+  .vms-main-content [class*='bg-[#0f'],
+  .vms-main-content [class*='bg-[#11'],
+  .vms-main-content [class*='bg-[#1e'],
+  .vms-main-content [class*='bg-[#05'] {
+    background-color: var(--vms-bg-card) !important;
+  }
+
+  // Page background for main outer container
+  .vms-main-content > div,
+  .vms-main-content > div > div:first-child {
+    background-color: var(--vms-bg-primary);
+  }
+
+  // Catch ALL Tailwind slate background classes
+  [class*="bg-slate-900"],
+  [class*="bg-slate-950"],
+  [class*="bg-slate-800"],
+  [class*="bg-slate-700"],
+  [class*="bg-slate-900/"],
+  [class*="bg-slate-950/"],
+  [class*="bg-slate-800/"],
+  [class*="bg-slate-700/"],
+  [class*="bg-slate-850/"] {
+    background-color: var(--vms-bg-card) !important;
+    color: var(--vms-text-primary) !important;
+  }
+
+  // Inline style dark background attribute overrides
+  [style*="background"][style*="#0"],
+  [style*="background"][style*="#1"],
+  [style*="background"][style*="#2"],
+  [style*="background-color"][style*="#0"],
+  [style*="background-color"][style*="#1"],
+  [style*="background-color"][style*="#2"],
+  [style*="background: #0"],
+  [style*="background:#0"] {
+    background-color: var(--vms-bg-card) !important;
+    color: var(--vms-text-primary) !important;
+  }
+
+  // Catch ALL text colors inside light panels to guarantee 100% legibility
+  [class*="text-slate-100"],
+  [class*="text-slate-200"],
+  [class*="text-slate-300"],
+  [class*='text-[#f'],
+  [class*='text-[#F'],
+  [class*='text-[#e'],
+  [class*='text-[#E'],
+  [class*='text-[#c'],
+  [class*='text-[#C'] {
+    color: var(--vms-text-primary) !important;
+  }
+
+  [class*="text-slate-400"],
+  [class*="text-slate-450"],
+  [class*="text-slate-500"],
+  [class*="text-slate-600"] {
+    color: var(--vms-text-secondary) !important;
+  }
+
+  // Force headings to dark text in light mode
+  .vms-main-content h1,
+  .vms-main-content h2,
+  .vms-main-content h3,
+  .vms-main-content h4,
+  .vms-main-content h5,
+  .vms-main-content h6 {
+    color: var(--vms-text-primary) !important;
+  }
+
+  // Force text-white to dark text EXCEPT inside colored action buttons/badges
+  :not(.btn):not([class*="bg-indigo"]):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-purple"]):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-teal"]):not(.badge):not(.vms-badge) {
+    > [class*="text-white"] {
+      color: var(--vms-text-primary) !important;
+    }
+  }
+
+  // Borders in light mode
+  [class*="border-slate-800"],
+  [class*="border-slate-700"],
+  [class*="border-slate-900"],
+  [class*="border-slate-850"],
+  [class*="border-white/"] {
+    border-color: var(--vms-border) !important;
+  }
+
+  // ── HOVER STATE OVERRIDES FOR LIGHT MODE (Scoped to Data Rows Only) ──
+  tbody tr:hover,
+  .table tbody tr:hover,
+  table tbody tr:hover {
+    background-color: var(--vms-table-row-hover-bg, #F1F5F9) !important;
+  }
+
+  // Ensure Column Headers are strictly isolated and static
+  thead,
+  thead tr,
+  thead th,
+  table thead,
+  table thead tr,
+  table thead th {
+    background: var(--vms-table-header-bg, linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 100%)) !important;
+    color: var(--vms-table-header-text, #0F172A) !important;
+    border-bottom: 2px solid var(--vms-table-header-border, #6366F1) !important;
+  }
+
+  // Recharts Tooltips & Charts in light mode
+  .recharts-tooltip-wrapper,
+  .recharts-default-tooltip {
+    background-color: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    color: #0F172A !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+
+    * {
+      color: #0F172A !important;
+    }
+  }
+
+  .recharts-cartesian-axis-tick text {
+    fill: #475569 !important;
+  }
+
+  .recharts-cartesian-grid line {
+    stroke: #E2E8F0 !important;
+  }
+
+  // Tables & Modals
+  .table, table, .table-dark {
+    --bs-table-bg: transparent !important;
+    --bs-table-color: #0F172A !important;
+    background-color: transparent !important;
+    color: #0F172A !important;
+    
+    th {
+      background-color: #F8FAFC !important;
+      color: #475569 !important;
+      border-color: #E2E8F0 !important;
+    }
+
+    td {
+      background-color: transparent !important;
+      color: #0F172A !important;
+      border-color: #E2E8F0 !important;
+    }
+
+    // Data-row hover ONLY. Never scope to bare `tr:hover` — that would apply
+    // the row hover to <thead> and change header background/text.
+    // No descendant color override: badges, buttons, icons and links keep
+    // their own semantic colors while the row background subtly changes.
+    tbody tr:hover,
+    tbody tr:focus {
+      background-color: var(--vms-table-row-hover-bg, #F1F5F9) !important;
+    }
+  }
+
+  .modal-content {
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    border-color: #E2E8F0 !important;
+  }
+}
+
+// ── 3. DARK MODE THEME OVERRIDES ([data-theme="dark"]) ────────────────────
+html[data-theme="dark"],
+body[data-theme="dark"],
+[data-theme="dark"],
+.dark {
+
+  // Global background & text
+  background-color: var(--vms-bg-primary, #0F172A) !important;
+  color: var(--vms-text-primary, #F8FAFC) !important;
+
+  // Arbitrary hex backgrounds in dark mode → card dark
+  [class*='bg-[#'] {
+    background-color: var(--vms-bg-card, #1E293B) !important;
+    color: var(--vms-text-primary, #F8FAFC) !important;
+  }
+
+  .vms-main-content [class*="min-h-screen"],
+  .vms-main-content [class*='bg-[#07'],
+  .vms-main-content [class*='bg-[#08'],
+  .vms-main-content [class*='bg-[#09'],
+  .vms-main-content [class*='bg-[#06'] {
+    background-color: var(--vms-bg-primary, #0F172A) !important;
+  }
+
+  // Modals & Dialogs in Dark Mode
+  .modal-content {
+    background-color: #0F172A !important;
+    color: #F8FAFC !important;
+    border-color: rgba(148, 163, 184, 0.25) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+  }
+
+  .modal-content.bg-slate-900,
+  .modal-content[class*="bg-slate-900"] {
+    background-color: #0F172A !important;
+    color: #F8FAFC !important;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    background-color: transparent !important;
+    color: #F8FAFC !important;
+    border-color: rgba(148, 163, 184, 0.18) !important;
+  }
+
+  // Outline Secondary Buttons in Dark Mode
+  .btn-outline-secondary {
+    background-color: #1E293B !important;
+    border-color: #475569 !important;
+    color: #E2E8F0 !important;
+
+    &:hover, &:focus {
+      background-color: #334155 !important;
+      border-color: #94A3B8 !important;
+      color: #FFFFFF !important;
+    }
+  }
+
+  // Close buttons in dark mode
+  .btn-close,
+  .btn-close-white {
+    filter: invert(1) grayscale(100%) brightness(200%) !important;
+    opacity: 0.85;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  // Form Controls in Dark Mode
+  .form-control,
+  .form-select,
+  textarea,
+  select {
+    background-color: #0B101D !important;
+    color: #F8FAFC !important;
+    border-color: #334155 !important;
+
+    &::placeholder {
+      color: #64748B !important;
+    }
+
+    &:focus {
+      background-color: #0B101D !important;
+      color: #F8FAFC !important;
+      border-color: #6366F1 !important;
+    }
+  }
+
+  // Text legibility & Headings
+  h1, h2, h3, h4, h5, h6,
+  .modal-title,
+  .text-white {
+    color: #FFFFFF !important;
+  }
+
+  [class*="text-slate-100"],
+  [class*="text-slate-200"] {
+    color: #F8FAFC !important;
+  }
+
+  [class*="text-slate-300"] {
+    color: #CBD5E1 !important;
+  }
+
+  [class*="text-slate-400"] {
+    color: #94A3B8 !important;
+  }
+
+  [class*="text-slate-500"] {
+    color: #64748B !important;
+  }
+
+  [class*="border-slate-800"],
+  [class*="border-slate-700"] {
+    border-color: rgba(148, 163, 184, 0.18) !important;
+  }
+
+  // ── HOVER STATE OVERRIDES FOR DARK MODE (Scoped to Data Rows Only) ──
+  tbody tr:hover,
+  .table tbody tr:hover,
+  table tbody tr:hover {
+    background-color: var(--vms-table-row-hover-bg, #273449) !important;
+  }
+
+  // Ensure Column Headers are strictly isolated and static in Dark Mode
+  thead,
+  thead tr,
+  thead th,
+  table thead,
+  table thead tr,
+  table thead th {
+    background: var(--vms-table-header-bg, linear-gradient(180deg, #1E293B 0%, #151E2E 100%)) !important;
+    color: var(--vms-table-header-text, #F8FAFC) !important;
+    border-bottom: 2px solid var(--vms-table-header-border, #6366F1) !important;
+  }
+
+  .recharts-tooltip-wrapper,
+  .recharts-default-tooltip {
+    background-color: #1E293B !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    color: #F8FAFC !important;
+
+    * {
+      color: #F8FAFC !important;
+    }
+  }
+
+  .recharts-cartesian-axis-tick text {
+    fill: #CBD5E1 !important;
+  }
+
+  .recharts-cartesian-grid line {
+    stroke: rgba(148, 163, 184, 0.18) !important;
+  }
+
+  .table, table {
+    color: #F8FAFC !important;
+
+    th {
+      background-color: #1E293B !important;
+      color: #CBD5E1 !important;
+      border-color: rgba(148, 163, 184, 0.18) !important;
+    }
+
+    td {
+      background-color: transparent !important;
+      color: #F8FAFC !important;
+      border-color: rgba(148, 163, 184, 0.18) !important;
+    }
+  }
+}

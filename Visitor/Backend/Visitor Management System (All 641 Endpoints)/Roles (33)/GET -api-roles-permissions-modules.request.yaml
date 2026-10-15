@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/roles/permissions/modules
+url: "{{baseUrl}}/api/roles/permissions/modules"
+method: GET
+headers:
+  Content-Type: application/json
+order: 19000

@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/hierarchy/tree
+url: "{{baseUrl}}/api/hierarchy/tree"
+method: GET
+headers:
+  Content-Type: application/json
+order: 2000

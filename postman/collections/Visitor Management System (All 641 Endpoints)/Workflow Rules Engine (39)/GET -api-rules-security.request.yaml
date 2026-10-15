@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/rules/security
+url: "{{baseUrl}}/api/rules/security"
+method: GET
+headers:
+  Content-Type: application/json
+order: 13000

@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/visitor/notifications/read-all
+url: "{{baseUrl}}/api/visitor/notifications/read-all"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 21000

@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/calendar/holidays/1
+url: "{{baseUrl}}/api/calendar/holidays/1"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 15000

@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/permissions/templates
+url: "{{baseUrl}}/api/permissions/templates"
+method: GET
+headers:
+  Content-Type: application/json
+order: 5000

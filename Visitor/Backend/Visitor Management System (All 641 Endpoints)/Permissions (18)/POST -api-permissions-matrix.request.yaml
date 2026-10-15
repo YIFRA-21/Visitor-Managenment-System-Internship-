@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/permissions/matrix
+url: "{{baseUrl}}/api/permissions/matrix"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 3000

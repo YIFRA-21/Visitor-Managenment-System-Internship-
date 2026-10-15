@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/audit-logs/configurations/1
+url: "{{baseUrl}}/api/audit-logs/configurations/1"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 13000

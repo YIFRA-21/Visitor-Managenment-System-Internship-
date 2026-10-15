@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/departments
+url: "{{baseUrl}}/api/departments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 6000

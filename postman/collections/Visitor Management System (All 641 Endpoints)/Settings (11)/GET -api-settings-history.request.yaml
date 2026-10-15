@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/settings/history
+url: "{{baseUrl}}/api/settings/history"
+method: GET
+headers:
+  Content-Type: application/json
+order: 4000

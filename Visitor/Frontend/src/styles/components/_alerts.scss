@@ -1,0 +1,128 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — ALERT STYLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+.vms-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--vms-radius-lg);
+  border: 1px solid transparent;
+  font-size: var(--vms-body-sm);
+  line-height: var(--vms-lh-relaxed);
+
+  &__icon {
+    flex-shrink: 0;
+    font-size: 1.125rem;
+    margin-top: 0.0625rem;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    font-weight: var(--vms-fw-semibold);
+    margin-bottom: 0.125rem;
+  }
+
+  &__message {
+    font-size: var(--vms-body-sm);
+    opacity: 0.9;
+  }
+
+  &__close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.6;
+    padding: 0.25rem;
+    border-radius: var(--vms-radius-sm);
+    transition: opacity var(--vms-transition-fast);
+    font-size: 1rem;
+
+    &:hover { opacity: 1; }
+  }
+
+  // ── Variants ───────────────────────────────────────────────────────────
+  &--success {
+    background-color: var(--vms-success-light);
+    border-color: var(--vms-success-border);
+    color: #166534;
+
+    .vms-alert__icon { color: var(--vms-success); }
+  }
+
+  &--danger, &--error {
+    background-color: var(--vms-danger-light);
+    border-color: var(--vms-danger-border);
+    color: #991B1B;
+
+    .vms-alert__icon { color: var(--vms-danger); }
+  }
+
+  &--warning {
+    background-color: var(--vms-warning-light);
+    border-color: var(--vms-warning-border);
+    color: #92400E;
+
+    .vms-alert__icon { color: var(--vms-warning); }
+  }
+
+  &--info {
+    background-color: var(--vms-info-light);
+    border-color: var(--vms-info-border);
+    color: #0C4A6E;
+
+    .vms-alert__icon { color: var(--vms-info); }
+  }
+
+  &--neutral {
+    background-color: var(--vms-bg-secondary);
+    border-color: var(--vms-border);
+    color: var(--vms-text-primary);
+
+    .vms-alert__icon { color: var(--vms-text-secondary); }
+  }
+}
+
+// Dark mode text overrides
+[data-theme="dark"] {
+  .vms-alert--success { color: #BBF7D0; }
+  .vms-alert--danger, .vms-alert--error { color: #FECACA; }
+  .vms-alert--warning { color: #FDE68A; }
+  .vms-alert--info { color: #BAE6FD; }
+}
+
+// ── Toast Notification (positioned) ──────────────────────────────────────
+.vms-toast-container {
+  position: fixed;
+  top: var(--vms-space-4);
+  right: var(--vms-space-4);
+  z-index: 1060;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vms-space-2);
+  max-width: 24rem;
+}
+
+.vms-toast {
+  @extend .vms-alert;
+  box-shadow: var(--vms-shadow-lg);
+  animation: vms-toast-in 0.3s ease-out;
+}
+
+@keyframes vms-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}

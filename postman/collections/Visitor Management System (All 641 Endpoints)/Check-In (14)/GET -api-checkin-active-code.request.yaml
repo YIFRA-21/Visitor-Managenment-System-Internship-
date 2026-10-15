@@ -1,0 +1,9 @@
+$kind: http-request
+name: GET /api/checkin/active/:code
+url: "{{baseUrl}}/api/checkin/active/:code"
+method: GET
+headers:
+  Content-Type: application/json
+pathVariables:
+  code: ""
+order: 3000

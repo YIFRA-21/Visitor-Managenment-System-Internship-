@@ -1,0 +1,185 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS GLOBAL ENTERPRISE DESIGN SYSTEM — CARD STYLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+.vms-card,
+.card,
+.stat-card,
+.org-profile-card {
+  background-color: var(--vms-bg-card);
+  border: 1px solid var(--vms-border);
+  border-radius: 0.875rem;
+  box-shadow: var(--vms-shadow-card);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.28s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  will-change: transform, box-shadow, border-color;
+
+  &:hover,
+  &--interactive:hover {
+    transform: translateY(-4px) scale(1.008);
+    border-color: #6366f1 !important;
+    box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.35),
+                0 0 16px rgba(99, 102, 241, 0.22) !important;
+  }
+
+  &--secondary {
+    background-color: var(--vms-bg-secondary);
+  }
+
+  &__header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--vms-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background-color: transparent;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--vms-text-primary);
+  }
+
+  &__subtitle {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.875rem;
+    color: var(--vms-text-secondary);
+  }
+
+  &__body {
+    padding: 1.5rem;
+    flex: 1 1 auto;
+    color: var(--vms-text-primary);
+  }
+
+  &__footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--vms-border);
+    background-color: var(--vms-bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+
+    @media (max-width: 575px) {
+      padding: 0.75rem 1rem;
+      flex-wrap: wrap;
+    }
+  }
+
+  // ── Enterprise KPI Stat Card System ───────────────────────────────────
+  &--stat {
+    position: relative;
+    padding: 1.25rem 1.5rem;
+    border-radius: 1rem;
+    overflow: hidden;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+
+    @media (max-width: 767px) {
+      padding: 1rem 1.125rem;
+      min-height: 96px;
+    }
+
+    // Organic top-left curve / vertical accent bar
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+      border-top-left-radius: 1rem;
+      border-bottom-left-radius: 1rem;
+      background-color: var(--card-accent, var(--vms-primary));
+      box-shadow: 0 0 12px var(--card-accent, var(--vms-primary));
+      transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
+      z-index: 2;
+    }
+
+    &:hover {
+      transform: translateY(-4px) scale(1.01);
+      border-color: var(--card-accent, var(--vms-primary)) !important;
+      box-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.38),
+                  0 0 20px var(--card-accent, rgba(99, 102, 241, 0.3)) !important;
+
+      &::before {
+        width: 12px;
+        box-shadow: 0 0 18px var(--card-accent, var(--vms-primary));
+      }
+    }
+
+    // Color Variants
+    &.vms-card--primary { --card-accent: var(--vms-primary, #4f46e5); }
+    &.vms-card--success { --card-accent: var(--vms-success, #10b981); }
+    &.vms-card--warning { --card-accent: var(--vms-warning, #f59e0b); }
+    &.vms-card--danger  { --card-accent: var(--vms-danger, #ef4444); }
+    &.vms-card--info    { --card-accent: var(--vms-info, #06b6d4); }
+  }
+
+  &__label {
+    font-size: var(--vms-tiny, 0.6875rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--vms-text-secondary);
+    margin-bottom: 0.25rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  &__value {
+    font-size: clamp(1.5rem, 3.2vw, 2.25rem);
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--vms-text-primary);
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+  }
+
+  &__trend {
+    font-size: var(--vms-tiny, 0.6875rem);
+    font-weight: 600;
+    color: var(--vms-text-tertiary);
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  &__icon {
+    width: 2.5rem;
+    height: 2.75rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--vms-bg-secondary);
+    border: 1px solid var(--vms-border);
+    flex-shrink: 0;
+    color: var(--vms-text-secondary);
+    transition: transform var(--vms-transition-fast);
+
+    i, .bi, svg {
+      font-size: 1.25rem;
+    }
+
+    .vms-card--stat:hover & {
+      transform: scale(1.08);
+      color: var(--card-accent, var(--vms-primary));
+    }
+  }
+}
+

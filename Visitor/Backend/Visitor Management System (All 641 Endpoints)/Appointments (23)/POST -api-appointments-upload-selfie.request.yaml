@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/appointments/upload/selfie
+url: "{{baseUrl}}/api/appointments/upload/selfie"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 4000

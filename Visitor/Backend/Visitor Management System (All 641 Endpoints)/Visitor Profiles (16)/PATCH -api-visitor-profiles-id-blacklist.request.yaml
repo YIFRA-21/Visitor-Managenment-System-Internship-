@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/visitor-profiles/:id/blacklist
+url: "{{baseUrl}}/api/visitor-profiles/:id/blacklist"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 15000

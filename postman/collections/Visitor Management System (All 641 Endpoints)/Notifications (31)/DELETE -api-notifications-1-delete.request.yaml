@@ -1,0 +1,7 @@
+$kind: http-request
+name: DELETE /api/notifications/1/delete
+url: "{{baseUrl}}/api/notifications/1/delete"
+method: DELETE
+headers:
+  Content-Type: application/json
+order: 25000

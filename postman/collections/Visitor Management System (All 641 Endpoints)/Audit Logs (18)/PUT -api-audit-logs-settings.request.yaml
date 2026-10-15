@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/audit-logs/settings
+url: "{{baseUrl}}/api/audit-logs/settings"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 6000

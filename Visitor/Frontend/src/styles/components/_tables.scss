@@ -1,0 +1,358 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS GLOBAL ENTERPRISE DESIGN SYSTEM — DATATABLE & LIST ROW STYLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+.vms-table-container,
+.table-responsive {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--vms-table-row-border, var(--vms-border));
+  border-radius: 0.75rem;
+  background-color: var(--vms-bg-card);
+  box-shadow: var(--vms-shadow-card);
+  position: relative;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MULTI-ROLE LIST & TABLE HEADER STYLING SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+// 1. ADMIN ROLE (Command Indigo & Royal Slate)
+[data-role="admin"],
+.vms-role--admin,
+.vms-sidebar--admin ~ .vms-main-wrapper,
+body[data-role="admin"] {
+  --vms-table-header-bg: linear-gradient(90deg, #1e1b4b 0%, #171e3b 50%, #0f172a 100%);
+  --vms-table-header-border: #6366f1;
+  --vms-table-header-text: #f1f5f9;
+  --vms-table-header-accent: #818cf8;
+  --vms-table-header-hover-bg: linear-gradient(90deg, #2e266d 0%, #1e294b 100%);
+  --vms-table-header-shadow: 0 4px 14px -2px rgba(99, 102, 241, 0.35);
+
+  [data-theme="light"] &,
+  html:not(.dark) & {
+    --vms-table-header-bg: linear-gradient(90deg, #eef2ff 0%, #f8fafc 100%);
+    --vms-table-header-border: #6366f1;
+    --vms-table-header-text: #1e1b4b;
+    --vms-table-header-accent: #4f46e5;
+    --vms-table-header-hover-bg: linear-gradient(90deg, #e0e7ff 0%, #eef2ff 100%);
+  }
+}
+
+// 2. MANAGER ROLE (Executive Emerald & Deep Forest Teal)
+[data-role="manager"],
+.vms-role--manager,
+.vms-sidebar--manager ~ .vms-main-wrapper,
+body[data-role="manager"] {
+  --vms-table-header-bg: linear-gradient(90deg, #064e3b 0%, #0b2d24 50%, #022c22 100%);
+  --vms-table-header-border: #10b981;
+  --vms-table-header-text: #ecfdf5;
+  --vms-table-header-accent: #34d399;
+  --vms-table-header-hover-bg: linear-gradient(90deg, #047857 0%, #064e3b 100%);
+  --vms-table-header-shadow: 0 4px 14px -2px rgba(16, 185, 129, 0.35);
+
+  [data-theme="light"] &,
+  html:not(.dark) & {
+    --vms-table-header-bg: linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%);
+    --vms-table-header-border: #10b981;
+    --vms-table-header-text: #064e3b;
+    --vms-table-header-accent: #059669;
+    --vms-table-header-hover-bg: linear-gradient(90deg, #d1fae5 0%, #ecfdf5 100%);
+  }
+}
+
+// 3. RECEPTIONIST ROLE (Midnight Orchid Violet & Royal Plum)
+[data-role="receptionist"],
+.vms-role--receptionist,
+.vms-sidebar--receptionist ~ .vms-main-wrapper,
+body[data-role="receptionist"] {
+  --vms-table-header-bg: linear-gradient(90deg, #3b0764 0%, #250b44 50%, #1e102e 100%);
+  --vms-table-header-border: #a855f7;
+  --vms-table-header-text: #faf5ff;
+  --vms-table-header-accent: #c084fc;
+  --vms-table-header-hover-bg: linear-gradient(90deg, #581c87 0%, #3b0764 100%);
+  --vms-table-header-shadow: 0 4px 14px -2px rgba(168, 85, 247, 0.35);
+
+  [data-theme="light"] &,
+  html:not(.dark) & {
+    --vms-table-header-bg: linear-gradient(90deg, #faf5ff 0%, #fdf4ff 100%);
+    --vms-table-header-border: #a855f7;
+    --vms-table-header-text: #581c87;
+    --vms-table-header-accent: #7c3aed;
+    --vms-table-header-hover-bg: linear-gradient(90deg, #f3e8ff 0%, #faf5ff 100%);
+  }
+}
+
+// 4. SECURITY OFFICER ROLE (Tactical Amber Gold & Defense Carbon)
+[data-role="security"],
+.vms-role--security,
+.vms-sidebar--security ~ .vms-main-wrapper,
+body[data-role="security"] {
+  --vms-table-header-bg: linear-gradient(90deg, #27272a 0%, #201c13 50%, #18181b 100%);
+  --vms-table-header-border: #f59e0b;
+  --vms-table-header-text: #fffbeb;
+  --vms-table-header-accent: #fbbf24;
+  --vms-table-header-hover-bg: linear-gradient(90deg, #3f3f46 0%, #2d2414 100%);
+  --vms-table-header-shadow: 0 4px 14px -2px rgba(245, 158, 11, 0.35);
+
+  [data-theme="light"] &,
+  html:not(.dark) & {
+    --vms-table-header-bg: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%);
+    --vms-table-header-border: #f59e0b;
+    --vms-table-header-text: #78350f;
+    --vms-table-header-accent: #d97706;
+    --vms-table-header-hover-bg: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%);
+  }
+}
+
+// 5. EMPLOYEE / HOST ROLE (Corporate Sapphire & Dynamic Navy)
+[data-role="employee"],
+.vms-role--employee,
+.vms-sidebar--employee ~ .vms-main-wrapper,
+body[data-role="employee"] {
+  --vms-table-header-bg: linear-gradient(90deg, #1e3a5f 0%, #13243f 50%, #0f172a 100%);
+  --vms-table-header-border: #3b82f6;
+  --vms-table-header-text: #eff6ff;
+  --vms-table-header-accent: #60a5fa;
+  --vms-table-header-hover-bg: linear-gradient(90deg, #2563eb 0%, #1e3a5f 100%);
+  --vms-table-header-shadow: 0 4px 14px -2px rgba(59, 130, 246, 0.35);
+
+  [data-theme="light"] &,
+  html:not(.dark) & {
+    --vms-table-header-bg: linear-gradient(90deg, #eff6ff 0%, #f0f9ff 100%);
+    --vms-table-header-border: #3b82f6;
+    --vms-table-header-text: #1e3a8a;
+    --vms-table-header-accent: #2563eb;
+    --vms-table-header-hover-bg: linear-gradient(90deg, #dbeafe 0%, #eff6ff 100%);
+  }
+}
+
+// 6. VISITOR ROLE (Modern Cyan & Oceanic Azure)
+[data-role="visitor"],
+.vms-role--visitor,
+.vms-sidebar--visitor ~ .vms-main-wrapper,
+body[data-role="visitor"] {
+  --vms-table-header-bg: linear-gradient(90deg, #0e4f63 0%, #0c3140 50%, #082f49 100%);
+  --vms-table-header-border: #06b6d4;
+  --vms-table-header-text: #ecfeff;
+  --vms-table-header-accent: #38bdf8;
+  --vms-table-header-hover-bg: linear-gradient(90deg, #0891b2 0%, #0e4f63 100%);
+  --vms-table-header-shadow: 0 4px 14px -2px rgba(6, 182, 212, 0.35);
+
+  [data-theme="light"] &,
+  html:not(.dark) & {
+    --vms-table-header-bg: linear-gradient(90deg, #ecfeff 0%, #f0fdfa 100%);
+    --vms-table-header-border: #06b6d4;
+    --vms-table-header-text: #164e63;
+    --vms-table-header-accent: #0891b2;
+    --vms-table-header-hover-bg: linear-gradient(90deg, #cffafe 0%, #ecfeff 100%);
+  }
+}
+
+/* ── Centralized Table Component ────────────────────────────────────────── */
+.vms-table,
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+  color: var(--vms-table-text-primary, var(--vms-text-primary));
+  margin-bottom: 0;
+
+  /* ── 1. Column & List Header (Attractive Role-Compatible Background) ─── */
+  thead,
+  thead tr {
+    background: var(--vms-table-header-bg, linear-gradient(180deg, #1E293B 0%, #151E2E 100%)) !important;
+  }
+
+  thead th,
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--vms-table-header-bg, linear-gradient(180deg, #1E293B 0%, #151E2E 100%)) !important;
+    color: var(--vms-table-header-text, #F8FAFC) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.875rem 1rem !important;
+    border-top: none !important;
+    border-bottom: 2px solid var(--vms-table-header-border, #6366F1) !important;
+    box-shadow: var(--vms-table-header-shadow, 0 4px 12px -2px rgba(99, 102, 241, 0.25)) !important;
+    white-space: nowrap;
+    user-select: none;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+
+    svg, i {
+      color: var(--vms-table-header-accent, #818CF8) !important;
+      transition: transform 0.2s ease, color 0.2s ease;
+      vertical-align: middle;
+    }
+
+    /* Attractive Header Hover */
+    &:hover {
+      background: var(--vms-table-header-hover-bg, var(--vms-table-header-bg)) !important;
+      color: #FFFFFF !important;
+
+      svg, i {
+        color: #FFFFFF !important;
+        transform: scale(1.15);
+      }
+    }
+
+    &.cursor-pointer,
+    &.sortable,
+    &[onClick] {
+      cursor: pointer;
+    }
+  }
+
+  /* ── 2. Table Data Cells ──────────────────────────────────────────────── */
+  td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--vms-table-row-border, rgba(148, 163, 184, 0.18));
+    vertical-align: middle;
+    color: inherit;
+    overflow-wrap: break-word;
+
+    @media (max-width: 767px) {
+      padding: 0.625rem 0.75rem;
+      font-size: 0.8125rem;
+    }
+  }
+
+  /* ── 3. Data Row Hover (Scoped to tbody tr only) ──────────────────────── */
+  tbody tr {
+    background-color: var(--vms-table-row-bg, transparent);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+      background-color: var(--vms-table-row-hover-bg, rgba(99, 102, 241, 0.08)) !important;
+    }
+
+    &.selected {
+      background-color: var(--vms-bg-active, rgba(79, 70, 229, 0.2)) !important;
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  &__checkbox {
+    width: 40px;
+    text-align: center;
+  }
+}
+
+/* ── Global List & Table Header Enforcement Across All Tables ──────────── */
+table thead,
+.table-responsive thead,
+.vms-table-container thead,
+.table-header,
+.list-header {
+  background: var(--vms-table-header-bg, linear-gradient(180deg, #1E293B 0%, #151E2E 100%)) !important;
+}
+
+table thead tr,
+.table-responsive thead tr,
+.vms-table-container thead tr {
+  background: transparent !important;
+}
+
+table thead th,
+.table-responsive thead th,
+.vms-table-container thead th,
+.list-header-cell {
+  background: var(--vms-table-header-bg, linear-gradient(180deg, #1E293B 0%, #151E2E 100%)) !important;
+  color: var(--vms-table-header-text, #F8FAFC) !important;
+  font-weight: 700 !important;
+  border-bottom: 2px solid var(--vms-table-header-border, #6366F1) !important;
+  box-shadow: var(--vms-table-header-shadow, 0 4px 12px -2px rgba(99, 102, 241, 0.25)) !important;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+
+  svg, i {
+    color: var(--vms-table-header-accent, #818CF8) !important;
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+
+  &:hover {
+    background: var(--vms-table-header-hover-bg, var(--vms-table-header-bg)) !important;
+    color: #FFFFFF !important;
+
+    svg, i {
+      color: #FFFFFF !important;
+      transform: scale(1.15);
+    }
+  }
+}
+
+
+/* ── 4. Row Content Preservation on Hover ──────────────────────────────── */
+/* Images maintain full clarity */
+tbody tr:hover img,
+tbody tr:hover [class*="avatar"],
+tbody tr:hover [class*="photo"] {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Badges & Status Pills keep distinct background/text colors */
+tbody tr:hover .badge,
+tbody tr:hover [class*="badge"],
+tbody tr:hover [class*="status-pill"],
+tbody tr:hover [class*="tag"] {
+  opacity: 1 !important;
+}
+
+/* Action buttons inside rows maintain independent hover state */
+tbody tr button,
+tbody tr .btn,
+tbody tr .vms-btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+tbody tr:hover button,
+tbody tr:hover .btn,
+tbody tr:hover .vms-btn {
+  opacity: 1 !important;
+}
+
+/* ── 5. Action buttons & icons 100% visible inside tables ───────────────── */
+tbody tr td button,
+table td button,
+.table td button {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  border-radius: 0.5rem !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: visible !important;
+
+  svg, i {
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    stroke-width: 2 !important;
+  }
+}
+

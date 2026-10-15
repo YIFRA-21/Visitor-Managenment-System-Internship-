@@ -1,0 +1,24 @@
+$kind: http-request
+name: POST /api/auth/login
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "belayyifra1@gmail.com",
+      "password": "AdminPassword123!"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      const res = pm.response.json();
+      const token = res.token || (res.data && res.data.token);
+      if (token) {
+        pm.collectionVariables.set("authToken", token);
+        console.log("Saved authToken to collection variable:", token);
+      }
+    language: text/javascript
+order: 5000

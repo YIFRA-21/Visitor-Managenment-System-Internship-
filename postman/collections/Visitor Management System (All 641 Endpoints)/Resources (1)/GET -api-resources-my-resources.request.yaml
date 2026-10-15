@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/resources/my-resources
+url: "{{baseUrl}}/api/resources/my-resources"
+method: GET
+headers:
+  Content-Type: application/json
+order: 1000

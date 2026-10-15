@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/checkin/scan
+url: "{{baseUrl}}/api/checkin/scan"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 2000

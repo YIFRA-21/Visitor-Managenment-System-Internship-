@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/users/:id/login-history
+url: "{{baseUrl}}/api/users/:id/login-history"
+method: GET
+headers:
+  Content-Type: application/json
+order: 34000

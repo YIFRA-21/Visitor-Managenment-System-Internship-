@@ -1,0 +1,7 @@
+$kind: collection
+description: Integration testing collection for VMS core endpoints (Auth, Visitors, Appointments, Approvals, Checkin/Checkout, and Dashboards).
+variables:
+  base_url: http://localhost:5000
+  bearer_token: ""
+  last_appointment_id: ""
+  last_reference_code: ""

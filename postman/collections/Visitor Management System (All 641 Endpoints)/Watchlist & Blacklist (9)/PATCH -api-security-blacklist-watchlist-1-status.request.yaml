@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/security/blacklist-watchlist/1/status
+url: "{{baseUrl}}/api/security/blacklist-watchlist/1/status"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 6000

@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/rules/visitor-pass
+url: "{{baseUrl}}/api/rules/visitor-pass"
+method: GET
+headers:
+  Content-Type: application/json
+order: 14000

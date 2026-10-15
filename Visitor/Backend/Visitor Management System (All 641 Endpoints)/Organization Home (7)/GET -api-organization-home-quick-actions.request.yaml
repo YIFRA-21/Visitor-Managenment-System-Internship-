@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/organization/home/quick-actions
+url: "{{baseUrl}}/api/organization/home/quick-actions"
+method: GET
+headers:
+  Content-Type: application/json
+order: 6000

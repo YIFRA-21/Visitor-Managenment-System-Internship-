@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/hierarchy/assign/1
+url: "{{baseUrl}}/api/hierarchy/assign/1"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 8000

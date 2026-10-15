@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/settings/:category
+url: "{{baseUrl}}/api/settings/:category"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 11000

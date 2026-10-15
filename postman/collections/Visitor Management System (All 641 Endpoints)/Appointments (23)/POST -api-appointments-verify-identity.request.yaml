@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/appointments/verify-identity
+url: "{{baseUrl}}/api/appointments/verify-identity"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 21000

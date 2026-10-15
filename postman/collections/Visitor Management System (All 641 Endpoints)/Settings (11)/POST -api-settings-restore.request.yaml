@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/settings/restore
+url: "{{baseUrl}}/api/settings/restore"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 8000

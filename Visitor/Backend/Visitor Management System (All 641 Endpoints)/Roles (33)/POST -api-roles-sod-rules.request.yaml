@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/roles/sod-rules
+url: "{{baseUrl}}/api/roles/sod-rules"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 13000

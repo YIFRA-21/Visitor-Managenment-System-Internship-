@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/security/incidents
+url: "{{baseUrl}}/api/security/incidents"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 10000

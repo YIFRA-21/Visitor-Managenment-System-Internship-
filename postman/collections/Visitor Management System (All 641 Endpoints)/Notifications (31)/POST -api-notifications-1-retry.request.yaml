@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/notifications/1/retry
+url: "{{baseUrl}}/api/notifications/1/retry"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 29000

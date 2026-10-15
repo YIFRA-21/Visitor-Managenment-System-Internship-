@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/notifications/read-all
+url: "{{baseUrl}}/api/notifications/read-all"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 10000

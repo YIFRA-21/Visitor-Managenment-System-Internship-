@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/employees"
+method: GET
+headers:
+  Authorization: Bearer {{authToken}}
+order: 1000

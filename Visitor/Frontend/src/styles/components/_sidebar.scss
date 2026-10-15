@@ -1,0 +1,669 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — SIDEBAR STYLES (MULTI-ROLE ENTERPRISE THEMES)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.vms-sidebar {
+  position: fixed;
+  inset-block: 0;
+  left: 0;
+  z-index: 1060;
+  display: flex;
+  flex-direction: column;
+  width: var(--vms-sidebar-width);
+  max-width: min(85vw, 320px);
+  background: linear-gradient(180deg, #0b1120 0%, #111827 50%, #0f172a 100%);
+  color: #cbd5e1;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  transition: width var(--vms-transition-normal), transform var(--vms-transition-normal);
+
+  // Default Fallback Role Accent Tokens
+  --role-accent: #6366f1;
+  --role-accent-rgb: 99, 102, 241;
+  --role-accent-light: #818cf8;
+  --role-accent-glow: rgba(99, 102, 241, 0.4);
+  --role-hover-bg: linear-gradient(90deg, rgba(99, 102, 241, 0.22) 0%, rgba(129, 140, 248, 0.08) 100%);
+  --role-hover-border: rgba(129, 140, 248, 0.35);
+  --role-hover-shadow: 0 4px 16px -2px rgba(99, 102, 241, 0.35);
+  --role-active-bg: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  --role-active-shadow: 0 4px 16px rgba(79, 70, 229, 0.5);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ROLE-SPECIFIC BACKGROUND COLOR & DYNAMIC ACCENT THEMES
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // 1. ADMIN ROLE: Command Center Slate & Royal Indigo
+  &.vms-sidebar--admin {
+    --role-accent: #6366f1;
+    --role-accent-rgb: 99, 102, 241;
+    --role-accent-light: #818cf8;
+    --role-accent-glow: rgba(99, 102, 241, 0.45);
+    --role-hover-bg: linear-gradient(90deg, rgba(99, 102, 241, 0.26) 0%, rgba(129, 140, 248, 0.1) 100%);
+    --role-hover-border: rgba(129, 140, 248, 0.4);
+    --role-hover-shadow: 0 4px 18px -2px rgba(99, 102, 241, 0.4);
+    --role-active-bg: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    --role-active-shadow: 0 4px 16px rgba(79, 70, 229, 0.5);
+
+    background: linear-gradient(180deg, #090d16 0%, #0f172a 40%, #1e1b4b 100%);
+    border-right: 1px solid rgba(99, 102, 241, 0.25);
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.6), inset -1px 0 0 rgba(99, 102, 241, 0.2);
+  }
+
+  // 2. MANAGER ROLE: Executive Forest & Deep Emerald Teal
+  &.vms-sidebar--manager {
+    --role-accent: #10b981;
+    --role-accent-rgb: 16, 185, 129;
+    --role-accent-light: #34d399;
+    --role-accent-glow: rgba(16, 185, 129, 0.45);
+    --role-hover-bg: linear-gradient(90deg, rgba(16, 185, 129, 0.26) 0%, rgba(52, 211, 153, 0.1) 100%);
+    --role-hover-border: rgba(52, 211, 153, 0.4);
+    --role-hover-shadow: 0 4px 18px -2px rgba(16, 185, 129, 0.4);
+    --role-active-bg: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    --role-active-shadow: 0 4px 16px rgba(16, 185, 129, 0.5);
+
+    background: linear-gradient(180deg, #031913 0%, #064e3b 40%, #022c22 100%);
+    border-right: 1px solid rgba(16, 185, 129, 0.25);
+    box-shadow: 4px 0 24px rgba(2, 44, 34, 0.65), inset -1px 0 0 rgba(16, 185, 129, 0.2);
+  }
+
+  // 3. RECEPTIONIST ROLE: Royal Midnight Violet & Deep Purple-Plum
+  &.vms-sidebar--receptionist {
+    --role-accent: #a855f7;
+    --role-accent-rgb: 168, 85, 247;
+    --role-accent-light: #c084fc;
+    --role-accent-glow: rgba(168, 85, 247, 0.45);
+    --role-hover-bg: linear-gradient(90deg, rgba(168, 85, 247, 0.26) 0%, rgba(192, 132, 252, 0.1) 100%);
+    --role-hover-border: rgba(192, 132, 252, 0.4);
+    --role-hover-shadow: 0 4px 18px -2px rgba(168, 85, 247, 0.4);
+    --role-active-bg: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+    --role-active-shadow: 0 4px 16px rgba(147, 51, 234, 0.5);
+
+    background: linear-gradient(180deg, #180927 0%, #3b0764 40%, #2e1065 100%);
+    border-right: 1px solid rgba(168, 85, 247, 0.25);
+    box-shadow: 4px 0 24px rgba(46, 16, 101, 0.65), inset -1px 0 0 rgba(168, 85, 247, 0.2);
+  }
+
+  // 4. SECURITY OFFICER ROLE: Defense Tactical Carbon & Shield Amber-Gold
+  &.vms-sidebar--security {
+    --role-accent: #f59e0b;
+    --role-accent-rgb: 245, 158, 11;
+    --role-accent-light: #fbbf24;
+    --role-accent-glow: rgba(245, 158, 11, 0.45);
+    --role-hover-bg: linear-gradient(90deg, rgba(245, 158, 11, 0.26) 0%, rgba(251, 191, 36, 0.1) 100%);
+    --role-hover-border: rgba(251, 191, 36, 0.4);
+    --role-hover-shadow: 0 4px 18px -2px rgba(245, 158, 11, 0.4);
+    --role-active-bg: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    --role-active-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+
+    background: linear-gradient(180deg, #121214 0%, #27272a 40%, #18181b 100%);
+    border-right: 1px solid rgba(245, 158, 11, 0.25);
+    box-shadow: 4px 0 24px rgba(24, 24, 27, 0.7), inset -1px 0 0 rgba(245, 158, 11, 0.2);
+  }
+
+  // 5. EMPLOYEE / HOST ROLE: Corporate Sapphire & Dynamic Navy Blue
+  &.vms-sidebar--employee {
+    --role-accent: #3b82f6;
+    --role-accent-rgb: 59, 130, 246;
+    --role-accent-light: #60a5fa;
+    --role-accent-glow: rgba(59, 130, 246, 0.45);
+    --role-hover-bg: linear-gradient(90deg, rgba(59, 130, 246, 0.26) 0%, rgba(96, 165, 250, 0.1) 100%);
+    --role-hover-border: rgba(96, 165, 250, 0.4);
+    --role-hover-shadow: 0 4px 18px -2px rgba(59, 130, 246, 0.4);
+    --role-active-bg: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+    --role-active-shadow: 0 4px 16px rgba(59, 130, 246, 0.5);
+
+    background: linear-gradient(180deg, #071526 0%, #1e3a5f 40%, #0f172a 100%);
+    border-right: 1px solid rgba(59, 130, 246, 0.25);
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.65), inset -1px 0 0 rgba(59, 130, 246, 0.2);
+  }
+
+  // 6. VISITOR ROLE: Modern Oceanic Cyan & Deep Azure Teal
+  &.vms-sidebar--visitor {
+    --role-accent: #06b6d4;
+    --role-accent-rgb: 6, 182, 212;
+    --role-accent-light: #38bdf8;
+    --role-accent-glow: rgba(6, 182, 212, 0.45);
+    --role-hover-bg: linear-gradient(90deg, rgba(6, 182, 212, 0.26) 0%, rgba(56, 189, 248, 0.1) 100%);
+    --role-hover-border: rgba(56, 189, 248, 0.4);
+    --role-hover-shadow: 0 4px 18px -2px rgba(6, 182, 212, 0.4);
+    --role-active-bg: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+    --role-active-shadow: 0 4px 16px rgba(6, 182, 212, 0.5);
+
+    background: linear-gradient(180deg, #041820 0%, #0e4f63 40%, #082f49 100%);
+    border-right: 1px solid rgba(6, 182, 212, 0.25);
+    box-shadow: 4px 0 24px rgba(8, 47, 73, 0.65), inset -1px 0 0 rgba(6, 182, 212, 0.2);
+  }
+
+  // ── Collapsed (Desktop only) ───────────────────────────────────────────
+  &.collapsed {
+    @media (min-width: 992px) {
+      width: var(--vms-sidebar-collapsed);
+
+      .vms-sidebar__text,
+      .vms-sidebar__chevron,
+      .vms-sidebar__badge,
+      .vms-sidebar__user-info,
+      .vms-sidebar__brand-text-wrapper,
+      .vms-sidebar__section-label {
+        opacity: 0;
+        width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        display: none;
+      }
+
+      .vms-sidebar__logo-full { display: none; }
+      .vms-sidebar__logo-icon { display: flex; }
+
+      .vms-sidebar__nav-item {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+
+        &:hover {
+          transform: scale(1.08);
+        }
+      }
+
+      .vms-sidebar__submenu { display: none; }
+    }
+  }
+
+  // ── Mobile: Off-canvas Drawer Navigation ──────────────────────────────
+  &.mobile-hidden {
+    transform: translateX(-100%);
+  }
+
+  &.mobile-visible {
+    transform: translateX(0);
+    box-shadow: var(--vms-shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.7));
+  }
+
+  @media (min-width: 992px) {
+    transform: translateX(0) !important;
+  }
+
+  // ── Brand / Logo ───────────────────────────────────────────────────────
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: var(--vms-navbar-height);
+    padding: 0 var(--vms-space-4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(8px);
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  &__logo-full {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+
+    &:hover {
+      .vms-sidebar__logo-img {
+        transform: scale(1.08) rotate(-2deg);
+        box-shadow: 0 4px 14px var(--role-accent-glow, rgba(255, 255, 255, 0.35));
+      }
+    }
+  }
+
+  &__logo-img {
+    height: 2.25rem;
+    width: auto;
+    object-fit: contain;
+    border-radius: var(--vms-radius-md);
+    background: #FFFFFF;
+    padding: 2px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  }
+
+  &__brand-text-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  &__brand-name {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+
+  // ── Role Badges in Header ──────────────────────────────────────────────
+  &__role-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.1rem 0.45rem;
+    border-radius: 9999px;
+    line-height: 1.3;
+    width: fit-content;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+
+    &--admin {
+      background: rgba(99, 102, 241, 0.25);
+      color: #c7d2fe;
+      border: 1px solid rgba(99, 102, 241, 0.45);
+    }
+    &--manager {
+      background: rgba(16, 185, 129, 0.25);
+      color: #a7f3d0;
+      border: 1px solid rgba(16, 185, 129, 0.45);
+    }
+    &--receptionist {
+      background: rgba(168, 85, 247, 0.25);
+      color: #e9d5ff;
+      border: 1px solid rgba(168, 85, 247, 0.45);
+    }
+    &--security {
+      background: rgba(245, 158, 11, 0.25);
+      color: #fde68a;
+      border: 1px solid rgba(245, 158, 11, 0.45);
+    }
+    &--employee {
+      background: rgba(59, 130, 246, 0.25);
+      color: #bfdbfe;
+      border: 1px solid rgba(59, 130, 246, 0.45);
+    }
+    &--visitor {
+      background: rgba(6, 182, 212, 0.25);
+      color: #a5f3fc;
+      border: 1px solid rgba(6, 182, 212, 0.45);
+    }
+  }
+
+  &__logo-icon {
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  // ── Navigation ─────────────────────────────────────────────────────────
+  &__nav {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--vms-space-3);
+
+    // Sleek Scrollbar
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      &:hover { background: rgba(255, 255, 255, 0.28); }
+    }
+  }
+
+  &__section {
+    margin-bottom: var(--vms-space-2);
+  }
+
+  &__section-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: var(--vms-space-2) var(--vms-space-3);
+    margin-bottom: var(--vms-space-1);
+  }
+
+  // ── Nav Item (Highly Dynamic with Vibrant Role Hover Color) ─────────────
+  &__nav-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.5625rem 0.85rem;
+    margin-bottom: 3px;
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: rgba(241, 245, 249, 0.85);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--vms-radius-md);
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                background 0.22s ease,
+                border-color 0.22s ease,
+                box-shadow 0.22s ease,
+                color 0.2s ease;
+    text-decoration: none;
+    overflow: hidden;
+
+    // Glowing left radiant indicator bar
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%) scaleY(0);
+      width: 3.5px;
+      height: 60%;
+      background: var(--role-accent, #6366f1);
+      border-radius: 0 4px 4px 0;
+      box-shadow: 0 0 10px var(--role-accent, #6366f1);
+      opacity: 0;
+      transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+    }
+
+    // Dynamic Role-Themed Hover State with Color Display & Motion
+    &:hover {
+      transform: translateX(6px);
+      background: var(--role-hover-bg, rgba(255, 255, 255, 0.12));
+      border-color: var(--role-hover-border, rgba(255, 255, 255, 0.18));
+      box-shadow: var(--role-hover-shadow, 0 4px 16px rgba(0, 0, 0, 0.25));
+      color: #ffffff;
+
+      &::before {
+        transform: translateY(-50%) scaleY(1);
+        opacity: 1;
+      }
+
+      .vms-sidebar__icon {
+        color: var(--role-accent-light, #ffffff);
+        transform: scale(1.18);
+        filter: drop-shadow(0 0 6px var(--role-accent-glow, rgba(255, 255, 255, 0.4)));
+      }
+
+      .vms-sidebar__chevron {
+        color: #ffffff;
+        transform: translateX(3px);
+        &.expanded {
+          transform: rotate(90deg) scale(1.1);
+        }
+      }
+
+      .vms-sidebar__badge {
+        transform: scale(1.08);
+      }
+    }
+
+    // Active state with prominent glow and color
+    &.active {
+      transform: translateX(4px);
+      background: var(--role-active-bg, #4f46e5) !important;
+      border-color: transparent !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+      box-shadow: var(--role-active-shadow, 0 4px 14px rgba(79, 70, 229, 0.45)) !important;
+      border-radius: 0.75rem !important;
+
+      &::before {
+        transform: translateY(-50%) scaleY(1);
+        height: 75%;
+        width: 4px;
+        background: #ffffff;
+        box-shadow: 0 0 10px #ffffff;
+        opacity: 1;
+      }
+
+      .vms-sidebar__icon {
+        color: #ffffff !important;
+        transform: scale(1.1);
+      }
+    }
+
+    &__left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.65);
+    flex-shrink: 0;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                color 0.2s ease,
+                filter 0.2s ease;
+  }
+
+  &__text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity var(--vms-transition-normal), width var(--vms-transition-normal);
+  }
+
+  &__chevron {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.45);
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                color 0.2s ease,
+                opacity var(--vms-transition-normal);
+    flex-shrink: 0;
+
+    &.expanded {
+      transform: rotate(90deg);
+      color: #ffffff;
+    }
+  }
+
+  &__badge {
+    font-size: var(--vms-tiny);
+    font-weight: var(--vms-fw-bold);
+    padding: 0.125rem 0.45rem;
+    border-radius: var(--vms-radius-full);
+    background-color: var(--role-accent, var(--vms-primary));
+    color: #FFFFFF;
+    line-height: 1.3;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+  }
+
+  // ── Submenu ────────────────────────────────────────────────────────────
+  &__submenu {
+    padding-left: 2.25rem;
+    overflow: hidden;
+    transition: max-height var(--vms-transition-normal);
+
+    &.collapsed {
+      max-height: 0;
+    }
+
+    &.expanded {
+      max-height: 600px;
+    }
+  }
+
+  &__sub-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.4rem 0.8rem;
+    margin-bottom: 2px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: rgba(226, 232, 240, 0.75);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--vms-radius-sm);
+    cursor: pointer;
+    text-align: left;
+    position: relative;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+                background 0.2s ease,
+                color 0.2s ease,
+                border-color 0.2s ease,
+                box-shadow 0.2s ease;
+    text-decoration: none;
+
+    &:hover {
+      transform: translateX(5px);
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--role-hover-border, rgba(255, 255, 255, 0.15));
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+
+      &::before {
+        background-color: var(--role-accent-light, #ffffff);
+        box-shadow: 0 0 8px var(--role-accent, #6366f1);
+      }
+    }
+
+    &.active {
+      background: var(--role-hover-bg, rgba(99, 102, 241, 0.28)) !important;
+      border-color: var(--role-hover-border, rgba(99, 102, 241, 0.4)) !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+      border-radius: 0.5rem !important;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--role-accent-light, #818cf8);
+        box-shadow: 0 0 8px var(--role-accent, #6366f1);
+      }
+    }
+  }
+
+  // ── Footer ─────────────────────────────────────────────────────────────
+  &__footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: var(--vms-space-3) var(--vms-space-4);
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(8px);
+    flex-shrink: 0;
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: var(--vms-radius-lg);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                background 0.2s ease,
+                border-color 0.2s ease,
+                box-shadow 0.25s ease;
+    cursor: default;
+
+    &:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.09);
+      border-color: var(--role-hover-border, rgba(255, 255, 255, 0.2));
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+
+      .vms-sidebar__avatar {
+        transform: scale(1.06);
+        border-color: var(--role-accent-light, #ffffff);
+        box-shadow: 0 0 12px var(--role-accent-glow, rgba(255, 255, 255, 0.35));
+      }
+    }
+  }
+
+  &__avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--vms-radius-full);
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--vms-body-sm);
+    font-weight: var(--vms-fw-bold);
+    color: #ffffff;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 0.2s ease,
+                box-shadow 0.2s ease;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__user-info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    transition: opacity var(--vms-transition-normal), width var(--vms-transition-normal);
+  }
+
+  &__user-name {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+  }
+
+  // ── Role Badges in Footer ──────────────────────────────────────────────
+  &__user-role-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+    width: fit-content;
+
+    &--admin { color: #a5b4fc; }
+    &--manager { color: #6ee7b7; }
+    &--receptionist { color: #d8b4fe; }
+    &--security { color: #fcd34d; }
+    &--employee { color: #93c5fd; }
+    &--visitor { color: #67e8f9; }
+  }
+}
+
+// ── Mobile Overlay Backdrop ──────────────────────────────────────────────
+.vms-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  transition: opacity var(--vms-transition-normal);
+
+  @media (min-width: 992px) {
+    display: none !important;
+  }
+}
+
+// ── Mobile Drawer Body Scroll Lock ───────────────────────────────────────
+body.vms-drawer-open {
+  overflow: hidden !important;
+  touch-action: none;
+}

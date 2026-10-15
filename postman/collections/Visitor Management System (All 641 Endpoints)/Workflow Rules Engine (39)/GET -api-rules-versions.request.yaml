@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/rules/versions
+url: "{{baseUrl}}/api/rules/versions"
+method: GET
+headers:
+  Content-Type: application/json
+order: 21000

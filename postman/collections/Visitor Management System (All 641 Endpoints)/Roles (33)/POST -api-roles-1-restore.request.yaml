@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/roles/1/restore
+url: "{{baseUrl}}/api/roles/1/restore"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 27000

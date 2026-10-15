@@ -1,0 +1,312 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS GLOBAL ENTERPRISE DESIGN SYSTEM — CENTRALIZED RESPONSIVE ARCHITECTURE
+// ═══════════════════════════════════════════════════════════════════════════
+// One single responsive authority for Mobile, Tablet, Laptop, Desktop, and Large Desktop.
+// Aligns with Bootstrap 5 breakpoints (576px, 768px, 992px, 1200px, 1400px).
+// Mobile-First Architecture.
+
+// ── 1. UNIVERSAL RESPONSIVE BASELINE & OVERFLOW AUDIT FIXES ──────────────
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-text-size-adjust: 100%;
+}
+
+// Universal media element constraint (excluding vector icons)
+img,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+// Long text wrapping protection for names, hashes, visitor IDs, references
+.vms-wrap-anywhere,
+[class*="truncate-wrap"] {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+// ── 2. GLOBAL CONTAINER & LAYOUT NORMALIZATION ────────────────────────────
+.container-responsive {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding-inline: 12px;
+  min-width: 0;
+
+  @media (min-width: 576px) {
+    padding-inline: 16px;
+  }
+
+  @media (min-width: 992px) {
+    padding-inline: 24px;
+    max-width: var(--vms-container-max-width, 1440px);
+  }
+
+  @media (min-width: 1400px) {
+    padding-inline: 32px;
+    max-width: var(--vms-container-wide-max, 1680px);
+  }
+}
+
+// ── 3. RECHARTS & DATA VISUALIZATION RESPONSIVE FIXES ────────────────────
+.recharts-responsive-container {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.recharts-wrapper {
+  max-width: 100% !important;
+}
+
+.recharts-surface {
+  max-width: 100% !important;
+}
+
+// ── 4. TABLE RESPONSIVE SCROLLBAR & TOUCH SCROLLING ──────────────────────
+.table-responsive,
+.vms-table-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--vms-border, rgba(148, 163, 184, 0.3)) transparent;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--vms-border, rgba(148, 163, 184, 0.3));
+    border-radius: 3px;
+
+    &:hover {
+      background: var(--vms-text-tertiary, #94a3b8);
+    }
+  }
+
+  table {
+    min-width: 600px;
+
+    @media (min-width: 992px) {
+      min-width: 100%;
+    }
+  }
+}
+
+// ── 5. RESPONSIVE TABS (PROFILE, DETAILS, SETTINGS VIEWS) ────────────────
+.vms-tabs-container,
+.vms-tabs-nav,
+[class*="overflow-x-auto"][class*="border-b"] {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.375rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  scrollbar-width: thin;
+
+  > button,
+  > a,
+  > div {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+// ── 6. BREAKPOINT PROGRESSION MATRIX ─────────────────────────────────────
+
+// =========================================================================
+// EXTRA SMALL SCREENS (< 576px) — MOBILE PHONES (360px, 375px, 390px, 412px)
+// =========================================================================
+@media (max-width: 575.98px) {
+  // Page padding
+  .vms-main-content {
+    padding: 0.75rem 0.625rem !important;
+  }
+
+  .vms-page-header {
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  // Dashboard hero banners
+  .vms-main-content [class*="rounded-3xl"] {
+    border-radius: 1.25rem !important;
+    padding: 1.25rem 1rem !important;
+  }
+
+  // KPI stat cards on mobile: 1 column
+  .vms-stats-grid,
+  .vms-kpi-grid,
+  .vms-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  // Form inputs touch target
+  input,
+  select,
+  textarea,
+  .form-control,
+  .form-select,
+  .vms-input,
+  .vms-select {
+    min-height: 44px !important;
+    font-size: 16px !important; // Prevents iOS Safari auto-zoom
+  }
+
+  // Buttons on mobile wrap cleanly
+  .vms-action-toolbar,
+  .vms-btn-group {
+    width: 100% !important;
+
+    > .btn,
+    > .vms-btn,
+    > button {
+      flex: 1 1 100% !important;
+      justify-content: center !important;
+    }
+  }
+
+  // Modals on mobile
+  .vms-modal,
+  .modal-dialog {
+    width: calc(100vw - 1rem) !important;
+    max-width: calc(100vw - 1rem) !important;
+    margin: 0.5rem auto !important;
+  }
+
+  // OTP inputs on mobile
+  [id^="otp-input-"] {
+    width: 2.5rem !important;
+    height: 3rem !important;
+    font-size: 1.25rem !important;
+  }
+
+  // Authentication & wizard forms fit screen
+  .vms-auth-card,
+  .vms-card--auth {
+    padding: 1.25rem 1rem !important;
+  }
+}
+
+// =========================================================================
+// SMALL SCREENS (576px – 767.98px) — MOBILE LANDSCAPE
+// =========================================================================
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .vms-main-content {
+    padding: 1rem !important;
+  }
+
+  // 2 KPI cards per row on small screens
+  .vms-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  // Forms 2 columns when appropriate
+  .vms-form-grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+// =========================================================================
+// TABLET SCREENS (768px – 991.98px) — TABLETS (768px, 820px, iPad, Galaxy Tab)
+// =========================================================================
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .vms-main-content {
+    padding: 1.25rem !important;
+  }
+
+  // 2 KPI cards per row on tablet
+  .vms-stats-grid,
+  .vms-kpi-grid,
+  .vms-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.25rem !important;
+  }
+
+  // Charts grid: 1 column on tablet to give full width for data reading
+  .vms-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  // Modals comfortable tablet width
+  .vms-modal {
+    max-width: min(90vw, 36rem) !important;
+  }
+}
+
+// =========================================================================
+// LAPTOP SCREENS (992px – 1199.98px) — LAPTOPS (1024px, 1280px)
+// =========================================================================
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .vms-main-content {
+    padding: 1.5rem !important;
+  }
+
+  // 4 KPI cards per row on laptop
+  .vms-stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1.25rem !important;
+  }
+
+  .vms-charts-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+// =========================================================================
+// DESKTOP SCREENS (1200px – 1399.98px) — DESKTOPS (1440px)
+// =========================================================================
+@media (min-width: 1200px) and (max-width: 1399.98px) {
+  .vms-main-content {
+    padding: 1.75rem 2rem !important;
+  }
+
+  .vms-stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+}
+
+// =========================================================================
+// LARGE DESKTOP SCREENS (1400px+) — WIDE SCREENS & 4K (1920px, 2560px)
+// =========================================================================
+@media (min-width: 1400px) {
+  .vms-main-content {
+    padding: 2rem 2.5rem !important;
+    max-width: var(--vms-container-wide-max, 1680px) !important;
+    margin-inline: auto !important;
+  }
+
+  .vms-stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1.75rem !important;
+  }
+
+  .vms-charts-grid {
+    gap: 1.75rem !important;
+  }
+}

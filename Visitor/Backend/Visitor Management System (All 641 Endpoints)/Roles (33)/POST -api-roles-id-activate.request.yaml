@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/roles/:id/activate
+url: "{{baseUrl}}/api/roles/:id/activate"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 23000

@@ -1,0 +1,48 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — BREAKPOINT TOKENS
+// ═══════════════════════════════════════════════════════════════════════════
+// Aligns with Bootstrap 5 breakpoints for consistency.
+
+$vms-breakpoints: (
+  xs:  0,
+  sm:  576px,
+  md:  768px,
+  lg:  992px,
+  xl:  1200px,
+  xxl: 1400px,
+) !default;
+
+// SCSS mixin for media queries
+@mixin vms-breakpoint-up($name) {
+  $min: map-get($vms-breakpoints, $name);
+  @if $min and $min > 0 {
+    @media (min-width: $min) {
+      @content;
+    }
+  } @else {
+    @content;
+  }
+}
+
+@mixin vms-breakpoint-down($name) {
+  $breakpoint-names: map-keys($vms-breakpoints);
+  $index: index($breakpoint-names, $name);
+  @if $index and $index < length($breakpoint-names) {
+    $next-name: nth($breakpoint-names, $index + 1);
+    $max: map-get($vms-breakpoints, $next-name) - 0.02px;
+    @media (max-width: $max) {
+      @content;
+    }
+  } @else {
+    @content;
+  }
+}
+
+// CSS Custom Properties for JS access
+:root {
+  --vms-breakpoint-sm:  576px;
+  --vms-breakpoint-md:  768px;
+  --vms-breakpoint-lg:  992px;
+  --vms-breakpoint-xl:  1200px;
+  --vms-breakpoint-xxl: 1400px;
+}

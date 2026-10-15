@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/organizations/:id/restore
+url: "{{baseUrl}}/api/organizations/:id/restore"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 10000

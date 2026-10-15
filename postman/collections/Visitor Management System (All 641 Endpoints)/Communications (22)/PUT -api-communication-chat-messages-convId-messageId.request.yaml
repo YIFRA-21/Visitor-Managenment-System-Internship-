@@ -1,0 +1,16 @@
+$kind: http-request
+name: PUT /api/communication/chat/messages/:convId/:messageId
+url: "{{baseUrl}}/api/communication/chat/messages/:convId/:messageId"
+method: PUT
+headers:
+  Content-Type: application/json
+pathVariables:
+  convId: ""
+  messageId: ""
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 13000

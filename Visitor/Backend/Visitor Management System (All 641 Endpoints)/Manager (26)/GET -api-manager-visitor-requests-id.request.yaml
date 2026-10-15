@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/manager/visitor-requests/:id
+url: "{{baseUrl}}/api/manager/visitor-requests/:id"
+method: GET
+headers:
+  Content-Type: application/json
+order: 7000

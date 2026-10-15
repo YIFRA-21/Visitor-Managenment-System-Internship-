@@ -1,0 +1,7 @@
+$kind: http-request
+name: DELETE /api/audit-logs/settings/:key
+url: "{{baseUrl}}/api/audit-logs/settings/:key"
+method: DELETE
+headers:
+  Content-Type: application/json
+order: 7000

@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/rules/escalations
+url: "{{baseUrl}}/api/rules/escalations"
+method: GET
+headers:
+  Content-Type: application/json
+order: 2000

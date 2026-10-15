@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/manager/policies
+url: "{{baseUrl}}/api/manager/policies"
+method: GET
+headers:
+  Content-Type: application/json
+order: 23000

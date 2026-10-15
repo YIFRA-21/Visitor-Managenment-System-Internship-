@@ -1,0 +1,26 @@
+import { apiClient } from '../../../services/apiClient';
+export const roleService = {
+    list: (params) => apiClient.get('/roles', { params }),
+    getById: (id) => apiClient.get(`/roles/${id}`),
+    create: (data) => apiClient.post('/roles', data),
+    update: (id, data) => apiClient.put(`/roles/${id}`, data),
+    remove: (id) => apiClient.delete(`/roles/${id}`),
+    getPermissions: (roleId) => apiClient.get(`/roles/${roleId}/permissions`),
+    syncPermissions: (roleId, permissionIds) => apiClient.put(`/roles/${roleId}/permissions`, { permissionIds }),
+    getMatrix: () => apiClient.get('/roles/matrix'),
+    getHierarchy: () => apiClient.get('/roles/hierarchy'),
+    listAllPermissions: (params) => apiClient.get('/roles/permissions/all', { params }),
+    getPermissionModules: () => apiClient.get('/roles/permissions/modules'),
+    createPermission: (data) => apiClient.post('/roles/permissions', data),
+    getUserPermissions: (userId) => apiClient.get(`/roles/user/${userId}/permissions`),
+    activate: (id) => apiClient.post(`/roles/${id}/activate`),
+    deactivate: (id) => apiClient.post(`/roles/${id}/deactivate`),
+    archive: (id) => apiClient.post(`/roles/${id}/archive`),
+    restore: (id) => apiClient.post(`/roles/${id}/restore`),
+    clone: (id, data) => apiClient.post(`/roles/${id}/clone`, data),
+    getStatistics: () => apiClient.get('/roles/statistics'),
+    getConflicts: () => apiClient.get('/roles/conflicts'),
+    getSodRules: () => apiClient.get('/roles/sod-rules'),
+    getTemplates: () => apiClient.get('/roles/templates'),
+};
+export default roleService;

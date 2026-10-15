@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/notifications/unread-count
+url: "{{baseUrl}}/api/notifications/unread-count"
+method: GET
+headers:
+  Content-Type: application/json
+order: 3000

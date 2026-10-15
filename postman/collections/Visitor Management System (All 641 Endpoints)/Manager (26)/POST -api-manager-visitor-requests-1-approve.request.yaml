@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/manager/visitor-requests/1/approve
+url: "{{baseUrl}}/api/manager/visitor-requests/1/approve"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 11000

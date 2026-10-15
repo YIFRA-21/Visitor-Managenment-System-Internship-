@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/workflows/1/clone
+url: "{{baseUrl}}/api/workflows/1/clone"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 10000

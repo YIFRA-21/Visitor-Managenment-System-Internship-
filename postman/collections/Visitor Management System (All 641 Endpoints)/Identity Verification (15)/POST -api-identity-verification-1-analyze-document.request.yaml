@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/identity-verification/1/analyze-document
+url: "{{baseUrl}}/api/identity-verification/1/analyze-document"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 7000

@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/notifications/deliveries
+url: "{{baseUrl}}/api/notifications/deliveries"
+method: GET
+headers:
+  Content-Type: application/json
+order: 7000

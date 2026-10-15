@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: GET
+order: 1000

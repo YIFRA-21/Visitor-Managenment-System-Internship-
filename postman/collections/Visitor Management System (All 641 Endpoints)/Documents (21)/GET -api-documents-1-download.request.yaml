@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/documents/1/download
+url: "{{baseUrl}}/api/documents/1/download"
+method: GET
+headers:
+  Content-Type: application/json
+order: 12000

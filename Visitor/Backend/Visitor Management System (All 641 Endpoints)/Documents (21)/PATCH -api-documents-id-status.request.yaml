@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/documents/:id/status
+url: "{{baseUrl}}/api/documents/:id/status"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 18000

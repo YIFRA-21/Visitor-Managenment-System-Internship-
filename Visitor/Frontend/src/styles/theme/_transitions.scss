@@ -1,0 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — TRANSITION TOKENS
+// ═══════════════════════════════════════════════════════════════════════════
+
+:root {
+  --vms-transition-fast:    0.1s ease-in-out;
+  --vms-transition:         0.2s ease-in-out;
+  --vms-transition-normal:  0.3s ease-in-out;
+  --vms-transition-slow:    0.4s ease-in-out;
+  --vms-transition-theme:   0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Specific transition properties
+  --vms-transition-colors:  color var(--vms-transition), background-color var(--vms-transition), border-color var(--vms-transition), box-shadow var(--vms-transition);
+  --vms-transition-transform: transform var(--vms-transition);
+  --vms-transition-opacity: opacity var(--vms-transition);
+  --vms-transition-all:     all var(--vms-transition);
+}

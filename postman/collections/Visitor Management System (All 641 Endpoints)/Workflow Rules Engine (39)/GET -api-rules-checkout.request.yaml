@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/rules/checkout
+url: "{{baseUrl}}/api/rules/checkout"
+method: GET
+headers:
+  Content-Type: application/json
+order: 16000

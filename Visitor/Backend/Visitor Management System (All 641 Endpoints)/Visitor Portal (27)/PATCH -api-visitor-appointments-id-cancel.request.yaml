@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/visitor/appointments/:id/cancel
+url: "{{baseUrl}}/api/visitor/appointments/:id/cancel"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 13000

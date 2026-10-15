@@ -1,0 +1,7 @@
+$kind: http-request
+name: DELETE /api/visitor-profiles/:id
+url: "{{baseUrl}}/api/visitor-profiles/:id"
+method: DELETE
+headers:
+  Content-Type: application/json
+order: 16000

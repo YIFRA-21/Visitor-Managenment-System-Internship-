@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/reception/arrivals/1/cancel
+url: "{{baseUrl}}/api/reception/arrivals/1/cancel"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 4000

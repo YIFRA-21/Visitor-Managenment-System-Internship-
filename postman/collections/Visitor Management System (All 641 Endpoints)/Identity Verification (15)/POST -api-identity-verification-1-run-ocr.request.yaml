@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/identity-verification/1/run-ocr
+url: "{{baseUrl}}/api/identity-verification/1/run-ocr"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 8000

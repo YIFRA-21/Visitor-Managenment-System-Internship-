@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/system/modules/:id
+url: "{{baseUrl}}/api/system/modules/:id"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 11000

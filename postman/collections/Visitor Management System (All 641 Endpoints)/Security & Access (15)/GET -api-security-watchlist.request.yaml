@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/security/watchlist
+url: "{{baseUrl}}/api/security/watchlist"
+method: GET
+headers:
+  Content-Type: application/json
+order: 6000

@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/communication/chat/conversations
+url: "{{baseUrl}}/api/communication/chat/conversations"
+method: GET
+headers:
+  Content-Type: application/json
+order: 4000

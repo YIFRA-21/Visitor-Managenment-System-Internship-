@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/notifications/1/forward
+url: "{{baseUrl}}/api/notifications/1/forward"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 26000

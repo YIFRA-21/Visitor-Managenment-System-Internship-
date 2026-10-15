@@ -1,0 +1,7 @@
+$kind: http-request
+name: DELETE /api/users/1/sessions/all
+url: "{{baseUrl}}/api/users/1/sessions/all"
+method: DELETE
+headers:
+  Content-Type: application/json
+order: 32000

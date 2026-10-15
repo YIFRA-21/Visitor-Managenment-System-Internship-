@@ -1,0 +1,15 @@
+$kind: http-request
+name: POST /api/permissions/:permissionId/restore
+url: "{{baseUrl}}/api/permissions/:permissionId/restore"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  permissionId: ""
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 17000

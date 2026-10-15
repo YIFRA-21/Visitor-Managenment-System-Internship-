@@ -1,0 +1,15 @@
+$kind: http-request
+name: POST /api/permissions/:permissionId/clone
+url: "{{baseUrl}}/api/permissions/:permissionId/clone"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  permissionId: ""
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 18000

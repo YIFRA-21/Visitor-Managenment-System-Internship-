@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/roles/compare
+url: "{{baseUrl}}/api/roles/compare"
+method: GET
+headers:
+  Content-Type: application/json
+order: 4000

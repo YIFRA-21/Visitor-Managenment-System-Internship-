@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/communication/contacts/manual
+url: "{{baseUrl}}/api/communication/contacts/manual"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 2000

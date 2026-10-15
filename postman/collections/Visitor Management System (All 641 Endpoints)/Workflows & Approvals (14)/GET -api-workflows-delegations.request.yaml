@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/workflows/delegations
+url: "{{baseUrl}}/api/workflows/delegations"
+method: GET
+headers:
+  Content-Type: application/json
+order: 3000

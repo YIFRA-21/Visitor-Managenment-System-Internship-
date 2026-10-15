@@ -1,0 +1,32 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Enterprise Visitor Management System (VMS) - Module 13 Notification Management API",
+    "version": "1.0.0",
+    "description": "Production REST API specification for Notification Management Module 13 (Parts 1-7)."
+  },
+  "servers": [
+    { "url": "http://localhost:5000/api/v1/notifications", "description": "Local Development Server" }
+  ],
+  "paths": {
+    "/rules": {
+      "get": {
+        "summary": "Get Paginated Notification Rules",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated array of rules with standard response envelope" }
+        }
+      },
+      "post": {
+        "summary": "Create Notification Rule (Transactional)",
+        "responses": {
+          "201": { "description": "Notification Rule Created" }
+        }
+      }
+    }
+  }
+}

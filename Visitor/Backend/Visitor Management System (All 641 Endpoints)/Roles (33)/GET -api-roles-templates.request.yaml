@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/roles/templates
+url: "{{baseUrl}}/api/roles/templates"
+method: GET
+headers:
+  Content-Type: application/json
+order: 15000

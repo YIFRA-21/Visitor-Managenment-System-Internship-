@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/workflows/1/audit-logs
+url: "{{baseUrl}}/api/workflows/1/audit-logs"
+method: GET
+headers:
+  Content-Type: application/json
+order: 14000

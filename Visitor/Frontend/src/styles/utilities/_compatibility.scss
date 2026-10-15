@@ -1,0 +1,301 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS GLOBAL ENTERPRISE DESIGN SYSTEM — COMPATIBILITY & THEME ADAPTER
+// ═══════════════════════════════════════════════════════════════════════════
+// Bridges legacy Tailwind classes & inline styles with the mandatory VMS Global
+// Theme System, guaranteeing 100% perfect rendering in both Light & Dark modes.
+
+// ── GLOBAL FORM CONTROL THEME ADAPTER ─────────────────────────────────────
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"],
+input[type="time"],
+textarea,
+select,
+.form-control,
+.form-select {
+  background-color: var(--vms-bg-input) !important;
+  border: 1px solid var(--vms-border-input) !important;
+  border-radius: 8px !important;
+  color: var(--vms-text-primary) !important;
+  padding-top: 0.625rem !important;
+  padding-bottom: 0.625rem !important;
+  padding-right: 1rem !important;
+  padding-left: 1rem;
+  font-size: 0.8125rem !important;
+  font-family: 'Inter', 'Segoe UI', sans-serif !important;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease, color 0.25s ease !important;
+  outline: none !important;
+
+  &::placeholder {
+    color: var(--vms-text-muted) !important;
+  }
+
+  &:hover:not(:disabled):not(:focus) {
+    border-color: rgba(79, 70, 229, 0.45) !important;
+  }
+
+  &:focus {
+    border-color: var(--vms-border-focus) !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2), 0 0 12px rgba(79, 70, 229, 0.08) !important;
+    background-color: var(--vms-bg-input) !important;
+  }
+
+  &:disabled,
+  &[readonly] {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    background-color: var(--vms-bg-secondary) !important;
+  }
+}
+
+select option,
+.form-select option {
+  background-color: var(--vms-bg-card) !important;
+  color: var(--vms-text-primary) !important;
+}
+
+// Search Inputs & Icon Positioning
+.vms-search-input,
+.vms-search-box input {
+  padding-left: 2.5rem !important;
+}
+
+.vms-navbar__search-input,
+.vms-navbar__search input {
+  padding-left: 2.25rem !important;
+}
+
+input.pl-8, [class*=" pl-8"] { padding-left: 2rem !important; }
+input.pl-9, [class*=" pl-9"] { padding-left: 2.25rem !important; }
+input.pl-10, [class*=" pl-10"] { padding-left: 2.5rem !important; }
+input.pl-11, [class*=" pl-11"] { padding-left: 2.75rem !important; }
+input.pl-12, [class*=" pl-12"] { padding-left: 3rem !important; }
+
+.vms-search-icon,
+.vms-navbar__search-icon,
+.relative > svg,
+.relative > i.bi-search {
+  z-index: 10 !important;
+}
+
+// ── TAILWIND HARDCODED DARK BACKGROUND OVERRIDES ──────────────────────────
+// Redirect all hardcoded dark backgrounds to theme variables so light mode
+// renders pure light backgrounds and dark mode renders dark slate.
+
+// Page/Outer Wrapper Backgrounds → --vms-bg-primary
+.bg-\[\#070b13\],
+.bg-\[\#070b14\],
+.bg-\[\#080d16\],
+.bg-\[\#080d1e\],
+.bg-\[\#080c14\],
+.bg-\[\#080c16\],
+.bg-\[\#070b1a\],
+.bg-\[\#090d16\],
+.bg-slate-950 {
+  background-color: var(--vms-bg-primary) !important;
+}
+
+// Secondary/Panel Backgrounds → --vms-bg-secondary
+.bg-\[\#05080e\],
+.bg-\[\#060a12\],
+.bg-\[\#0a0e18\],
+.bg-\[\#0a0f1d\],
+.bg-\[\#0b101b\],
+.bg-\[\#0b101d\],
+.bg-\[\#0c1220\],
+.bg-\[\#0d1527\],
+.bg-slate-900,
+.bg-slate-900\/30,
+.bg-slate-900\/40,
+.bg-slate-900\/50,
+.bg-slate-900\/60,
+.bg-slate-900\/70,
+.bg-slate-900\/80,
+.bg-slate-900\/90,
+.bg-slate-900\/95,
+.bg-slate-950\/60,
+.bg-slate-950\/80 {
+  background-color: var(--vms-bg-secondary) !important;
+}
+
+// Card/Modal/Surface Backgrounds → --vms-bg-card
+.bg-\[\#0f172a\],
+.bg-\[\#0F172A\],
+.bg-\[\#0a0f19\],
+.bg-\[\#0a0f1d\],
+.bg-\[\#0a0e18\],
+.bg-\[\#0c1220\],
+.bg-\[\#090d16\],
+.bg-\[\#0b101b\],
+.bg-\[\#0b101d\],
+.bg-\[\#070b14\],
+.bg-\[\#080c16\],
+.bg-\[\#080d16\],
+.bg-\[\#080d17\],
+.bg-\[\#080d1e\],
+.bg-\[\#070b1a\],
+.bg-\[\#0d1321\],
+.bg-\[\#020617\],
+.bg-\[\#05080e\],
+.bg-\[\#060a13\],
+.bg-\[\#111827\],
+.bg-\[\#1e293b\],
+.bg-\[\#1E293B\],
+.bg-\[\#273449\],
+.bg-\[\#0b101b\]\/60,
+.bg-\[\#0b101b\]\/70,
+.bg-\[\#0b101b\]\/80,
+.bg-\[\#0b101b\]\/90,
+.bg-\[\#0b101b\]\/95,
+.bg-\[\#0b101b\]\/98,
+.bg-slate-800,
+.bg-slate-800\/50,
+.bg-slate-800\/60,
+.bg-slate-800\/70,
+.bg-slate-800\/80,
+.bg-slate-800\/90,
+.bg-slate-700,
+.bg-slate-700\/30,
+.bg-slate-700\/50,
+.bg-slate-700\/60,
+.dark-panel {
+  background-color: var(--vms-bg-card) !important;
+}
+
+// Explicit dark theme helper classes
+.dark\:bg-\[\#0b101b\],
+.dark\:bg-\[\#0f172a\],
+.dark\:bg-\[\#111827\],
+.dark\:bg-\[\#1e293b\],
+.dark\:bg-slate-900,
+.dark\:bg-slate-950 {
+  [data-theme="light"] & {
+    background-color: var(--vms-bg-card) !important;
+  }
+  [data-theme="dark"] & {
+    background-color: var(--vms-bg-card) !important;
+  }
+}
+
+// Inline styles compatibility for legacy elements in light mode
+[data-theme="light"] {
+  [style*="background-color: #1e293b"],
+  [style*="background-color: #0f172a"],
+  [style*="background-color: #090d16"],
+  [style*="background-color: #070b16"],
+  [style*="background-color: #060913"],
+  [style*="background-color: rgb(30, 41, 59)"],
+  [style*="background-color: rgb(15, 23, 42)"],
+  [style*="background-color: rgb(9, 13, 22)"] {
+    background-color: var(--vms-bg-card) !important;
+    color: var(--vms-text-primary) !important;
+    border-color: var(--vms-border) !important;
+  }
+}
+
+// ── TAILWIND HARDCODED TEXT COLOR OVERRIDES ──────────────────────────────
+.text-slate-100,
+.text-slate-200 {
+  color: var(--vms-text-primary) !important;
+}
+
+// Target text-white except inside colored buttons and badges
+:not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info):not(.vms-badge):not(.badge):not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-purple-"]) > .text-white,
+p.text-white,
+h1.text-white,
+h2.text-white,
+h3.text-white,
+h4.text-white,
+h5.text-white,
+h6.text-white,
+span.text-white:not(.btn *):not(.badge *),
+div.text-white:not(.btn *):not(.badge *) {
+  color: var(--vms-text-primary) !important;
+}
+
+.text-slate-300,
+.text-slate-400,
+.text-slate-500 {
+  color: var(--vms-text-secondary) !important;
+}
+
+.text-slate-600 {
+  color: var(--vms-text-muted) !important;
+}
+
+// ── TAILWIND BORDER OVERRIDES ─────────────────────────────────────────────
+.border-slate-800,
+.border-slate-900,
+.border-slate-700,
+.border-slate-800\/60,
+.border-slate-800\/80,
+.border-slate-800\/90,
+.border-white\/5,
+.border-white\/10,
+.border-white\/20,
+.border-slate-100,
+.border-slate-200,
+.dark\:border-slate-800,
+.dark\:border-slate-700 {
+  border-color: var(--vms-border) !important;
+}
+
+// ── BOOTSTRAP TABLE THEME ADAPTER ─────────────────────────────────────────
+.table {
+  --bs-table-bg: transparent !important;
+  --bs-table-color: var(--vms-text-primary) !important;
+  background-color: transparent !important;
+  color: var(--vms-text-primary) !important;
+
+  thead, thead tr, thead th {
+    background-color: var(--vms-bg-table-header) !important;
+    color: var(--vms-text-secondary) !important;
+    border-color: var(--vms-border) !important;
+  }
+
+  tbody, td {
+    background-color: transparent !important;
+    color: var(--vms-text-primary) !important;
+    border-color: var(--vms-border) !important;
+  }
+
+  tbody tr {
+    background-color: var(--vms-table-row-bg, var(--vms-bg-card)) !important;
+  }
+
+  tbody tr:hover {
+    background-color: var(--vms-table-row-hover-bg, var(--vms-bg-hover)) !important;
+  }
+}
+
+// ── NAVBAR & DROPDOWN Z-INDEX STACKING ENFORCEMENT ───────────────────────
+// Ensures profile dropdown, notifications popover, and search results
+// ALWAYS render on top of page content, sticky sub-navbars, and cards.
+.vms-navbar,
+nav.vms-navbar,
+header.vms-page-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1050 !important;
+}
+
+.vms-navbar__dropdown,
+.vms-navbar__search-results,
+.vms-navbar .dropdown-menu {
+  z-index: 1080 !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--vms-border) !important;
+}
+
+.vms-main-content {
+  position: relative !important;
+  z-index: 1 !important;
+}
+

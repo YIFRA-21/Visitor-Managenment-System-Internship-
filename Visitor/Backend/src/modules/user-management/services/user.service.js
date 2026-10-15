@@ -1,0 +1,1451 @@
+/**
+ * Enterprise User Management Service
+ * ────────────────────────────────────
+ * Complete lifecycle management for User Accounts, Profiles, Credentials,
+ * Security State Transitions, Sessions, Login History, Audit & Notifications.
+ */
+
+const bcrypt = require('bcryptjs');
+const db = require('../../../config/db');
+const userRepository = require('../repositories/user.repository');
+const auditRepository = require('../../audit-log/repositories/audit.repository');
+const { AppError } = require('../../../middleware/errorHandler');
+const notificationService = require('../../notifications/services/notification.service');
+const emailService = require('../../notifications/services/email.service');
+
+class UserManagementService {
+  // ── 1. Backend-Generated Immutable User ID Code ──────────────────────────
+
+  async generateUserCode(roleName) {
+    const rolePrefixes = {
+      admin: 'ADM',
+      administrator: 'ADM',
+      visitor: 'VIS',
+      staff: 'EMP',
+      employee: 'EMP',
+      'employee/host': 'EMP',
+      manager: 'MGR',
+      'department manager': 'MGR',
+      department_manager: 'MGR',
+      receptionist: 'REC',
+      security_officer: 'SEC',
+      security: 'SEC',
+    };
+
+    const prefix = rolePrefixes[(roleName || '').toLowerCase()] || 'USR';
+    const year = new Date().getFullYear();
+    const fullPrefix = `${prefix}-${year}-`;
+
+    const regex = new RegExp(`^.*?${prefix}-${year}-(\\d+)$`, 'i');
+    let maxSeq = 0;
+
+    const [userRows, empRows, mgrRows] = await Promise.all([
+      db.query(`SELECT user_code FROM users WHERE user_code LIKE ? OR user_code LIKE ?`, [`${fullPrefix}%`, `%${fullPrefix}%`]).catch(() => []),
+      db.query(`SELECT employee_number FROM employees WHERE employee_number LIKE ? OR employee_number LIKE ?`, [`${fullPrefix}%`, `%${fullPrefix}%`]).catch(() => []),
+      db.query(`SELECT manager_number FROM manager_profiles WHERE manager_number LIKE ? OR manager_number LIKE ?`, [`${fullPrefix}%`, `%${fullPrefix}%`]).catch(() => [])
+    ]);
+
+    for (const r of (userRows || [])) {
+      if (!r.user_code) continue;
+      const m = String(r.user_code).match(regex);
+      if (m && m[1]) {
+        const val = parseInt(m[1], 10);
+        if (!isNaN(val) && val > maxSeq) maxSeq = val;
+      }
+    }
+
+    for (const r of (empRows || [])) {
+      if (!r.employee_number) continue;
+      const m = String(r.employee_number).match(regex);
+      if (m && m[1]) {
+        const val = parseInt(m[1], 10);
+        if (!isNaN(val) && val > maxSeq) maxSeq = val;
+      }
+    }
+
+    for (const r of (mgrRows || [])) {
+      if (!r.manager_number) continue;
+      const m = String(r.manager_number).match(regex);
+      if (m && m[1]) {
+        const val = parseInt(m[1], 10);
+        if (!isNaN(val) && val > maxSeq) maxSeq = val;
+      }
+    }
+
+    let nextNum = maxSeq + 1;
+    while (true) {
+      const candidate5 = `${fullPrefix}${String(nextNum).padStart(5, '0')}`;
+      const candidate6 = `${fullPrefix}${String(nextNum).padStart(6, '0')}`;
+      const candidate = candidate6;
+
+      const [uMatch] = await db.query(`SELECT id FROM users WHERE user_code IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
+      const [eMatch] = await db.query(`SELECT id FROM employees WHERE employee_number IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
+      const [mMatch] = await db.query(`SELECT id FROM manager_profiles WHERE manager_number IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
+
+      if (!uMatch && !eMatch && !mMatch) {
+        return candidate;
+      }
+      nextNum++;
+    }
+  }
+
+  // ── 2. Real Backend KPI Statistics ──────────────────────────────────────
+
+  async getUserStats() {
+    const sql = `
+      SELECT
+        COUNT(*) AS total_users,
+        SUM(CASE WHEN status = 'active' OR account_status = 'ACTIVE' THEN 1 ELSE 0 END) AS active_users,
+        SUM(CASE WHEN status = 'pending' OR account_status = 'PENDING' THEN 1 ELSE 0 END) AS pending_users,
+        SUM(CASE WHEN status = 'inactive' OR account_status = 'INACTIVE' THEN 1 ELSE 0 END) AS inactive_users,
+        SUM(CASE WHEN status = 'suspended' OR account_status = 'SUSPENDED' THEN 1 ELSE 0 END) AS suspended_users,
+        SUM(CASE WHEN status = 'locked' OR account_status = 'LOCKED' THEN 1 ELSE 0 END) AS locked_users,
+        SUM(CASE WHEN status = 'expired' OR account_status = 'EXPIRED' THEN 1 ELSE 0 END) AS expired_users,
+        SUM(CASE WHEN email_verified = 0 OR phone_verified = 0 THEN 1 ELSE 0 END) AS unverified_users,
+        SUM(CASE WHEN last_login_at >= DATE_SUB(NOW(), INTERVAL 15 MINUTE) THEN 1 ELSE 0 END) AS online_users,
+        SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS recently_registered,
+        SUM(CASE WHEN first_login_required = 1 THEN 1 ELSE 0 END) AS temporary_credential_users,
+        SUM(CASE WHEN mfa_enabled = 1 THEN 1 ELSE 0 END) AS mfa_enabled_users
+      FROM users
+      WHERE deleted_at IS NULL
+    `;
+    const rows = await db.query(sql);
+    const stats = rows[0] || {};
+
+    return {
+      totalUsers: parseInt(stats.total_users || 0),
+      activeUsers: parseInt(stats.active_users || 0),
+      pendingUsers: parseInt(stats.pending_users || 0),
+      inactiveUsers: parseInt(stats.inactive_users || 0),
+      suspendedUsers: parseInt(stats.suspended_users || 0),
+      lockedUsers: parseInt(stats.locked_users || 0),
+      expiredUsers: parseInt(stats.expired_users || 0),
+      unverifiedUsers: parseInt(stats.unverified_users || 0),
+      onlineUsers: parseInt(stats.online_users || 0),
+      recentlyRegistered: parseInt(stats.recently_registered || 0),
+      temporaryCredentialUsers: parseInt(stats.temporary_credential_users || 0),
+      mfaEnabledUsers: parseInt(stats.mfa_enabled_users || 0),
+    };
+  }
+
+  // ── 3. List Users with Advanced Search & Filters ────────────────────────
+
+  async listUsers(filters = {}) {
+    let sql = `
+      SELECT u.id, u.user_code, u.username, u.first_name, u.middle_name, u.last_name,
+             u.full_name, u.email, u.phone, u.phone_number, u.role, u.status, u.account_status,
+             u.email_verified, u.phone_verified, u.mfa_enabled, u.department_id, u.job_title,
+             u.avatar_url, u.last_login_at, u.failed_login_attempts, u.first_login_required,
+             u.created_at, u.updated_at,
+             COALESCE(d.department_name, d.name, 'General') AS department_name,
+             COALESCE(b.branch_name, (SELECT branch_name FROM organization_branches WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1), 'Main Branch') AS branch_name,
+             COALESCE(o.name, (SELECT name FROM organizations WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1), 'IT Park') AS organization_name
+      FROM users u
+      LEFT JOIN employees e ON e.user_id = u.id AND e.deleted_at IS NULL
+      LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
+      LEFT JOIN organization_branches b ON COALESCE(u.branch_id, e.branch_id, d.branch_id) = b.id
+      LEFT JOIN organizations o ON COALESCE(u.organization_id, e.organization_id, b.organization_id, d.organization_id) = o.id
+      WHERE u.deleted_at IS NULL
+    `;
+    const params = [];
+
+    // Filter by Status
+    if (filters.status && filters.status !== 'ALL') {
+      sql += ` AND (LOWER(u.status) = LOWER(?) OR LOWER(u.account_status) = LOWER(?))`;
+      params.push(filters.status, filters.status);
+    }
+
+    // Filter by Role / User Type
+    if (filters.role && filters.role !== 'ALL') {
+      const normRole = String(filters.role).toLowerCase();
+      if (normRole === 'employee' || normRole === 'staff') {
+        sql += ` AND (LOWER(u.role) IN ('employee', 'staff') OR u.user_code LIKE 'EMP%')`;
+      } else if (normRole === 'visitor') {
+        sql += ` AND (LOWER(u.role) = 'visitor' OR u.user_code LIKE 'VIS%')`;
+      } else if (normRole === 'manager') {
+        sql += ` AND (LOWER(u.role) = 'manager' OR LOWER(u.role) LIKE '%manager%' OR u.user_code LIKE 'MGR%')`;
+      } else if (normRole === 'security' || normRole === 'security_officer') {
+        sql += ` AND (LOWER(u.role) IN ('security', 'security_officer') OR LOWER(u.role) LIKE '%security%' OR u.user_code LIKE 'SEC%')`;
+      } else if (normRole === 'receptionist' || normRole === 'reception') {
+        sql += ` AND (LOWER(u.role) IN ('receptionist', 'reception') OR LOWER(u.role) LIKE '%reception%' OR u.user_code LIKE 'REC%')`;
+      } else {
+        sql += ` AND LOWER(u.role) = LOWER(?)`;
+        params.push(filters.role);
+      }
+    }
+
+    // Filter by Department
+    if (filters.departmentId) {
+      sql += ` AND u.department_id = ?`;
+      params.push(parseInt(filters.departmentId));
+    }
+
+    // Filter by MFA
+    if (filters.mfa === 'true') {
+      sql += ` AND u.mfa_enabled = 1`;
+    } else if (filters.mfa === 'false') {
+      sql += ` AND u.mfa_enabled = 0`;
+    }
+
+    // Filter by Verification Status
+    if (filters.verification === 'verified') {
+      sql += ` AND u.email_verified = 1`;
+    } else if (filters.verification === 'unverified') {
+      sql += ` AND u.email_verified = 0`;
+    }
+
+    // Search Across User Code, Username, Full Name, Email, Phone
+    if (filters.search && filters.search.trim() !== '') {
+      sql += ` AND (
+        u.user_code LIKE ? OR
+        u.username LIKE ? OR
+        u.full_name LIKE ? OR
+        u.email LIKE ? OR
+        u.phone LIKE ? OR
+        u.job_title LIKE ?
+      )`;
+      const s = `%${filters.search.trim()}%`;
+      params.push(s, s, s, s, s, s);
+    }
+
+    // Date Range Filters
+    if (filters.createdFrom) {
+      sql += ` AND u.created_at >= ?`;
+      params.push(filters.createdFrom);
+    }
+    if (filters.createdTo) {
+      sql += ` AND u.created_at <= ?`;
+      params.push(`${filters.createdTo} 23:59:59`);
+    }
+
+    // Total Count Query (using the filtered WHERE clause)
+    const whereIndex = sql.indexOf('WHERE');
+    const countSql = whereIndex !== -1
+      ? `SELECT COUNT(*) AS total FROM users u LEFT JOIN departments d ON u.department_id = d.id ${sql.substring(whereIndex)}`
+      : `SELECT COUNT(*) AS total FROM users u WHERE u.deleted_at IS NULL`;
+    const countRes = await db.query(countSql, params);
+    const countRow = Array.isArray(countRes[0]) ? countRes[0][0] : (Array.isArray(countRes) ? countRes[0] : countRes);
+    const total = countRow?.total || 0;
+
+    // Approved Sorting Fields
+    const allowedSortFields = {
+      name: 'u.full_name',
+      userCode: 'u.user_code',
+      email: 'u.email',
+      role: 'u.role',
+      status: 'u.status',
+      createdAt: 'u.created_at',
+      lastLogin: 'u.last_login_at',
+    };
+    const sortField = allowedSortFields[filters.sortBy] || 'u.created_at';
+    const sortDir = filters.sortDir === 'asc' ? 'ASC' : 'DESC';
+    sql += ` ORDER BY ${sortField} ${sortDir}`;
+
+    // Pagination
+    const page = Math.max(1, parseInt(filters.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(filters.limit) || 25));
+    const offset = (page - 1) * limit;
+    sql += ` LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const usersRes = await db.query(sql, params);
+    const users = Array.isArray(usersRes[0]) ? usersRes[0] : (Array.isArray(usersRes) ? usersRes : []);
+
+    return {
+      data: users,
+      pagination: {
+        total: parseInt(total),
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
+  }
+
+  // ── 4. Get Single User Details ────────────────────────────────────────────
+
+  async getUser(id) {
+    const rows = await db.query(
+      `SELECT u.id, u.user_code, u.username, u.email, u.first_name, u.middle_name, u.last_name, u.full_name,
+              u.phone, u.avatar_url, u.account_status, u.status, u.email_verified, u.phone_verified,
+              u.failed_login_attempts, u.last_login_at, u.role, u.department_id, u.first_login_required,
+              u.created_at, u.updated_at,
+              COALESCE(d.department_name, d.name, 'General') AS department_name,
+              COALESCE(b.branch_name, (SELECT branch_name FROM organization_branches WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1), 'Main Branch') AS branch_name,
+              COALESCE(o.name, (SELECT name FROM organizations WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1), 'IT Park') AS organization_name
+       FROM users u
+       LEFT JOIN employees e ON e.user_id = u.id AND e.deleted_at IS NULL
+       LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
+       LEFT JOIN organization_branches b ON COALESCE(u.branch_id, e.branch_id, d.branch_id) = b.id
+       LEFT JOIN organizations o ON COALESCE(u.organization_id, e.organization_id, b.organization_id, d.organization_id) = o.id
+       WHERE u.id = ? AND u.deleted_at IS NULL`,
+      [id]
+    );
+    if (!rows[0]) throw new AppError('User not found', 404);
+
+    const user = rows[0];
+
+    // Fetch user roles
+    const roles = await db.query(
+      `SELECT r.id AS role_id, r.role_name, r.role_code
+       FROM user_roles ur
+       JOIN roles r ON ur.role_id = r.id
+       WHERE ur.user_id = ? AND r.deleted_at IS NULL`,
+      [id]
+    );
+
+    // Fetch active sessions count
+    const sessionRows = await db.query(
+      `SELECT COUNT(*) AS active_sessions FROM user_sessions WHERE user_id = ? AND is_active = 1`,
+      [id]
+    ).catch(() => [{ active_sessions: 0 }]);
+
+    return {
+      ...user,
+      roles: roles || [],
+      activeSessionsCount: sessionRows[0]?.active_sessions || 0,
+    };
+  }
+
+  // ── 5. Create User (Database Transaction) ─────────────────────────────────
+
+  async createUser(data, operatorUserId) {
+    const firstName = (data.firstName || '').trim();
+    const lastName = (data.lastName || '').trim();
+    const emailNorm = (data.email || '').trim().toLowerCase();
+    const phone = (data.phone || '').trim();
+
+    if (!firstName || !lastName) {
+      throw new AppError('First Name and Last Name are required fields.', 400);
+    }
+    if (!emailNorm) {
+      throw new AppError('Email address is required.', 400);
+    }
+    if (!phone) {
+      throw new AppError('Phone number is required.', 400);
+    }
+
+    // Duplicate Email Protection (HTTP 409)
+    const existingEmail = await userRepository.findByEmail(emailNorm);
+    if (existingEmail) {
+      const emailErr = new AppError('This email address is already registered.', 409);
+      emailErr.field = 'email';
+      throw emailErr;
+    }
+
+    // Ensure any legacy archived/deleted user, employee, or visitor record frees this email so MySQL unique key constraint never collides
+    await db.query(
+      `UPDATE users 
+       SET email = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', email),
+           username = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', username)
+       WHERE LOWER(email) = LOWER(?) AND (deleted_at IS NOT NULL OR account_status IN ('ARCHIVED', 'DELETED') OR status IN ('archived', 'deleted'))`,
+      [emailNorm]
+    ).catch(() => {});
+    await db.query(
+      `UPDATE employees 
+       SET email = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', email)
+       WHERE LOWER(email) = LOWER(?) AND (deleted_at IS NOT NULL OR employment_status = 'Inactive')`,
+      [emailNorm]
+    ).catch(() => {});
+    await db.query(
+      `UPDATE visitors 
+       SET email = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', email)
+       WHERE LOWER(email) = LOWER(?) AND (deleted_at IS NOT NULL OR is_active = FALSE OR status = 'DELETED')`,
+      [emailNorm]
+    ).catch(() => {});
+
+    // Duplicate Phone Protection (HTTP 409)
+    if (phone) {
+      const existingPhone = await userRepository.findByPhone(phone);
+      if (existingPhone) {
+        const phoneErr = new AppError('This phone number is already registered.', 409);
+        phoneErr.field = 'phone';
+        throw phoneErr;
+      }
+    }
+
+    // Duplicate Username Protection
+    const usernameNorm = (data.username || emailNorm.split('@')[0]).trim().toLowerCase();
+    const existingUsername = await userRepository.findByUsername(usernameNorm);
+    let finalUsername = usernameNorm;
+    if (existingUsername) {
+      finalUsername = `${usernameNorm}${Math.floor(Math.random() * 1000)}`;
+    }
+
+    // Auto-Generate Immutable User ID Code
+    const userCode = await this.generateUserCode(data.role || 'employee');
+
+    // Password & Temporary Credential Handling
+    const isTempPassword = data.credentialMode === 'temporary' || !data.password;
+    const rawPassword = data.password || `TempPass#${Math.floor(100000 + Math.random() * 900000)}`;
+    const passwordHash = await bcrypt.hash(rawPassword, 12);
+
+    const fullName = `${data.firstName || ''} ${data.middleName ? data.middleName + ' ' : ''}${data.lastName || ''}`.trim() || data.fullName || finalUsername;
+
+    // Execute Database Transaction
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      // Resolve organization_id and branch_id
+      let organizationId = null;
+      let branchId = null;
+
+      if (data.organizationId) {
+        organizationId = parseInt(data.organizationId);
+      } else if (data.organization) {
+        const orgMatch = await conn.query(
+          `SELECT id FROM organizations WHERE (LOWER(name) = LOWER(?) OR LOWER(code) = LOWER(?) OR id = ?) AND deleted_at IS NULL LIMIT 1`,
+          [data.organization, data.organization, isNaN(data.organization) ? 0 : parseInt(data.organization)]
+        );
+        if (orgMatch[0]) organizationId = orgMatch[0].id;
+      }
+
+      if (data.branchId) {
+        branchId = parseInt(data.branchId);
+      } else if (data.branch) {
+        const branchMatch = await conn.query(
+          `SELECT id, organization_id FROM organization_branches WHERE (LOWER(branch_name) = LOWER(?) OR LOWER(branch_code) = LOWER(?) OR id = ?) AND deleted_at IS NULL LIMIT 1`,
+          [data.branch, data.branch, isNaN(data.branch) ? 0 : parseInt(data.branch)]
+        );
+        if (branchMatch[0]) {
+          branchId = branchMatch[0].id;
+          if (!organizationId && branchMatch[0].organization_id) {
+            organizationId = branchMatch[0].organization_id;
+          }
+        }
+      }
+
+      // If department is provided, inherit organization/branch if not explicitly set
+      if (data.departmentId) {
+        const deptRows = await conn.query(
+          `SELECT organization_id, branch_id FROM departments WHERE id = ? LIMIT 1`,
+          [data.departmentId]
+        );
+        if (deptRows[0]) {
+          if (!branchId && deptRows[0].branch_id) branchId = deptRows[0].branch_id;
+          if (!organizationId && deptRows[0].organization_id) organizationId = deptRows[0].organization_id;
+        }
+      }
+
+      // Fallback to active organization and branch if still unassigned
+      if (!organizationId) {
+        const defaultOrg = await conn.query(`SELECT id FROM organizations WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1`);
+        if (defaultOrg[0]) organizationId = defaultOrg[0].id;
+      }
+      if (!branchId) {
+        const defaultBranch = await conn.query(`SELECT id FROM organization_branches WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1`);
+        if (defaultBranch[0]) branchId = defaultBranch[0].id;
+      }
+
+      const queryRes = await conn.query(
+        `INSERT INTO users (
+          user_code, username, email, password_hash, first_name, middle_name, last_name,
+          full_name, phone, phone_number, role, department_id, organization_id, branch_id, job_title,
+          account_status, status, email_verified, phone_verified, failed_login_attempts,
+          first_login_required, avatar_url, profile_photo
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
+        [
+          userCode,
+          finalUsername,
+          emailNorm,
+          passwordHash,
+          data.firstName || null,
+          data.middleName || null,
+          data.lastName || null,
+          fullName,
+          data.phone || null,
+          data.phone || null,
+          data.role || 'employee',
+          data.departmentId ? parseInt(data.departmentId) : null,
+          organizationId,
+          branchId,
+          data.jobTitle || null,
+          data.accountStatus || 'ACTIVE',
+          (data.accountStatus || 'ACTIVE').toLowerCase(),
+          data.emailVerified ? 1 : 0,
+          data.phoneVerified ? 1 : 0,
+          isTempPassword ? 1 : 0,
+          data.avatarUrl || null,
+          data.avatarUrl || null,
+        ]
+      );
+
+      const insertResult = Array.isArray(queryRes) ? queryRes[0] : queryRes;
+      const userId = insertResult?.insertId || Date.now();
+
+      // Assign DB Role Record
+      try {
+        const roleLower = String(data.role || 'employee').trim().toLowerCase();
+        let targetCode = 'EMPLOYEE';
+        if (['admin', 'administrator'].includes(roleLower)) targetCode = 'ADMIN';
+        else if (['employee', 'staff', 'host'].includes(roleLower)) targetCode = 'EMPLOYEE';
+        else if (['receptionist'].includes(roleLower)) targetCode = 'RECEPTIONIST';
+        else if (['security', 'security_officer'].includes(roleLower)) targetCode = 'SECURITY';
+        else if (['visitor'].includes(roleLower)) targetCode = 'VISITOR';
+        else if (['manager', 'department_manager'].includes(roleLower)) targetCode = 'MANAGER';
+
+        const roleRes = await conn.query(
+          `SELECT id FROM roles WHERE (UPPER(role_code) = ? OR LOWER(role_code) = ? OR LOWER(role_name) = ? OR LOWER(name) = ?) AND deleted_at IS NULL LIMIT 1`,
+          [targetCode, roleLower, roleLower, roleLower]
+        );
+        const roleList = Array.isArray(roleRes) && Array.isArray(roleRes[0]) ? roleRes[0] : (Array.isArray(roleRes) ? roleRes : []);
+        const matchedRoleId = roleList[0]?.id;
+        if (matchedRoleId) {
+          await conn.query(
+            `INSERT INTO user_roles (user_id, role_id, is_active, assigned_at) VALUES (?, ?, 1, NOW())
+             ON DUPLICATE KEY UPDATE is_active = 1, deleted_at = NULL, role_id = VALUES(role_id)`,
+            [userId, matchedRoleId]
+          );
+        }
+      } catch (err) {
+        console.warn('[UserManagement] Role assignment skipped:', err.message);
+      }
+
+      // Automatically store in employees or visitors table based on role
+      const employeeRoles = ['employee', 'staff'];
+      const userRole = (data.role || 'employee').toLowerCase();
+      if (employeeRoles.includes(userRole)) {
+        try {
+          await conn.query(
+            `INSERT INTO employees (user_id, employee_number, first_name, middle_name, last_name, full_name, email, mobile_number, job_title, department_id, organization_id, branch_id, employment_status, is_host_enabled, photo_url)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', 1, ?)`,
+            [
+              userId,
+              userCode,
+              data.firstName || null,
+              data.middleName || null,
+              data.lastName || null,
+              fullName,
+              emailNorm,
+              data.phone || null,
+              data.jobTitle || 'Staff Member',
+              data.departmentId ? parseInt(data.departmentId) : null,
+              organizationId,
+              branchId,
+              data.avatarUrl || null
+            ]
+          );
+        } catch (empErr) {
+          console.warn('[UserManagement] Employee record sync skipped:', empErr.message);
+        }
+
+        if (userRole === 'manager') {
+          try {
+            await conn.query(
+              `INSERT INTO manager_profiles (user_id, manager_number, department_id, position, office, phone, email, photo_url)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON DUPLICATE KEY UPDATE position = VALUES(position), phone = VALUES(phone), photo_url = VALUES(photo_url)`,
+              [
+                userId,
+                userCode,
+                data.departmentId ? parseInt(data.departmentId) : null,
+                data.jobTitle || 'Department Manager',
+                data.office || data.address || 'Main Office',
+                data.phone || null,
+                emailNorm,
+                data.avatarUrl || null
+              ]
+            );
+          } catch (mgrErr) {
+            console.warn('[UserManagement] Manager profile sync note:', mgrErr.message);
+          }
+        }
+      } else if (userRole === 'visitor') {
+        try {
+          const refNum = `VMS-${Date.now().toString().slice(-6)}`;
+          await conn.query(
+            `INSERT INTO visitors (
+              user_id, visitor_code, reference_number, first_name, middle_name, last_name,
+              full_name, email, phone, organization_id, branch_id, department_id,
+              status, registration_status, is_active, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', 'APPROVED', 1, NOW())`,
+            [
+              userId,
+              userCode,
+              refNum,
+              data.firstName || null,
+              data.middleName || null,
+              data.lastName || null,
+              fullName,
+              emailNorm,
+              data.phone || null,
+              organizationId,
+              branchId,
+              data.departmentId ? parseInt(data.departmentId) : null,
+            ]
+          );
+        } catch (visErr) {
+          console.warn('[UserManagement] Visitor record sync skipped:', visErr.message);
+        }
+      }
+
+      await conn.commit();
+      conn.release();
+
+      // Audit Event Logging
+      await auditRepository.log({
+        userId: operatorUserId,
+        action: 'USER_CREATED',
+        module: 'USER_MANAGEMENT',
+        entity: 'users',
+        recordId: userId,
+        newValues: { userCode, email: emailNorm, role: data.role, accountStatus: data.accountStatus },
+      });
+
+      // Trigger Welcome / Temporary Credentials Notification
+      try {
+        await notificationService.sendNotification({
+          userId,
+          title: 'Account Created',
+          message: `Your account has been created. User ID: ${userCode}. Temporary Password: ${rawPassword}`,
+          type: 'USER_CREATED',
+          channels: ['EMAIL', 'IN_APP'],
+        });
+      } catch (err) {
+        console.warn('[UserManagement] Notification failed:', err.message);
+      }
+
+      return {
+        userId,
+        userCode,
+        username: finalUsername,
+        fullName,
+        email: emailNorm,
+        role: data.role || 'employee',
+        credentialMode: data.credentialMode || 'temporary',
+        temporaryPassword: isTempPassword ? rawPassword : null,
+      };
+    } catch (err) {
+      await conn.rollback();
+      conn.release();
+      throw err;
+    }
+  }
+
+  // ── 6. Update User Profile & Credentials ──────────────────────────────────
+
+  async updateUser(id, data, operatorUserId) {
+    const user = await this.getUser(id);
+    const oldValues = { role: user.role, status: user.status, departmentId: user.department_id, fullName: user.full_name };
+
+    const fields = [];
+    const params = [];
+
+    // Names
+    const fName = data.firstName !== undefined ? data.firstName : data.first_name;
+    const mName = data.middleName !== undefined ? data.middleName : data.middle_name;
+    const lName = data.lastName !== undefined ? data.lastName : data.last_name;
+    if (fName !== undefined || lName !== undefined || mName !== undefined) {
+      const finalFirst = fName !== undefined ? fName : user.first_name;
+      const finalMiddle = mName !== undefined ? mName : user.middle_name;
+      const finalLast = lName !== undefined ? lName : user.last_name;
+      const fullName = `${finalFirst || ''} ${finalMiddle ? finalMiddle + ' ' : ''}${finalLast || ''}`.trim();
+      fields.push('first_name = ?', 'middle_name = ?', 'last_name = ?', 'full_name = ?');
+      params.push(finalFirst || null, finalMiddle || null, finalLast || null, fullName);
+    } else if (data.fullName !== undefined || data.full_name !== undefined) {
+      const full = data.fullName !== undefined ? data.fullName : data.full_name;
+      fields.push('full_name = ?');
+      params.push(full);
+    }
+
+    // Email
+    const emailVal = data.email !== undefined ? data.email : undefined;
+    if (emailVal !== undefined && emailVal !== user.email) {
+      const emailNorm = emailVal.trim().toLowerCase();
+      const emailUser = await userRepository.findByEmail(emailNorm);
+      if (emailUser && emailUser.id !== id) {
+        throw new AppError('This email address is already registered to another user', 409);
+      }
+      fields.push('email = ?');
+      params.push(emailNorm);
+    }
+
+    // Role
+    const roleVal = data.role !== undefined ? data.role : data.user_type;
+    if (roleVal !== undefined) {
+      fields.push('role = ?');
+      params.push(roleVal);
+
+      try {
+        const roleLower = String(roleVal).trim().toLowerCase();
+        let targetCode = 'EMPLOYEE';
+        if (['admin', 'administrator'].includes(roleLower)) targetCode = 'ADMIN';
+        else if (['employee', 'staff', 'host'].includes(roleLower)) targetCode = 'EMPLOYEE';
+        else if (['receptionist'].includes(roleLower)) targetCode = 'RECEPTIONIST';
+        else if (['security', 'security_officer'].includes(roleLower)) targetCode = 'SECURITY';
+        else if (['visitor'].includes(roleLower)) targetCode = 'VISITOR';
+        else if (['manager', 'department_manager'].includes(roleLower)) targetCode = 'MANAGER';
+
+        const roleRes = await db.query(
+          `SELECT id FROM roles WHERE (UPPER(role_code) = ? OR LOWER(role_code) = ? OR LOWER(role_name) = ? OR LOWER(name) = ?) AND deleted_at IS NULL LIMIT 1`,
+          [targetCode, roleLower, roleLower, roleLower]
+        );
+        const roleList = Array.isArray(roleRes) && Array.isArray(roleRes[0]) ? roleRes[0] : (Array.isArray(roleRes) ? roleRes : []);
+        const matchedRoleId = roleList[0]?.id;
+        if (matchedRoleId) {
+          await db.query(`UPDATE user_roles SET is_active = 0, deleted_at = CURRENT_TIMESTAMP WHERE user_id = ?`, [id]).catch(() => {});
+          await db.query(
+            `INSERT INTO user_roles (user_id, role_id, is_active, created_at, assigned_at) VALUES (?, ?, 1, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE is_active = 1, deleted_at = NULL, role_id = VALUES(role_id)`,
+            [id, matchedRoleId]
+          ).catch(() => {});
+        }
+      } catch (roleErr) {
+        console.warn('[UserManagement] Role assignment on update error:', roleErr.message);
+      }
+    }
+
+    // Phone & Alt / Mobile Phone
+    const phoneVal = data.phone !== undefined ? data.phone : data.phone_number;
+    if (phoneVal !== undefined) {
+      fields.push('phone = ?', 'phone_number = ?');
+      params.push(phoneVal, phoneVal);
+      await db.query(`UPDATE employees SET office_phone = ? WHERE user_id = ?`, [phoneVal, id]).catch(() => {});
+    }
+    const altPhoneVal = data.altPhone !== undefined ? data.altPhone : data.alt_phone;
+    if (altPhoneVal !== undefined) {
+      fields.push('mobile_number = ?');
+      params.push(altPhoneVal);
+      await db.query(`UPDATE employees SET mobile_number = ? WHERE user_id = ?`, [altPhoneVal, id]).catch(() => {});
+    }
+
+    // Demographics
+    if (data.gender !== undefined) {
+      fields.push('gender = ?');
+      params.push(data.gender);
+      await db.query(`UPDATE employees SET gender = ? WHERE user_id = ?`, [data.gender, id]).catch(() => {});
+    }
+    const dobVal = data.dateOfBirth !== undefined ? data.dateOfBirth : data.date_of_birth;
+    if (dobVal !== undefined) {
+      fields.push('date_of_birth = ?');
+      params.push(dobVal || null);
+      await db.query(`UPDATE employees SET dob = ? WHERE user_id = ?`, [dobVal || null, id]).catch(() => {});
+    }
+    if (data.nationality !== undefined) {
+      await db.query(`UPDATE employees SET nationality = ? WHERE user_id = ?`, [data.nationality, id]).catch(() => {});
+    }
+    if (data.address !== undefined) {
+      fields.push('address = ?');
+      params.push(data.address);
+      await db.query(`UPDATE employees SET office_location = ? WHERE user_id = ?`, [data.address, id]).catch(() => {});
+    }
+
+    // Department
+    const deptId = data.departmentId !== undefined ? data.departmentId : data.department_id;
+    if (deptId !== undefined) {
+      const parsedDept = deptId ? parseInt(deptId) : null;
+      fields.push('department_id = ?');
+      params.push(parsedDept);
+      await db.query(`UPDATE employees SET department_id = ? WHERE user_id = ?`, [parsedDept, id]).catch(() => {});
+    }
+
+    // Organization
+    const orgVal = data.organizationId !== undefined ? data.organizationId : (data.organization_id !== undefined ? data.organization_id : data.organization);
+    if (orgVal !== undefined) {
+      let orgId = !isNaN(orgVal) ? parseInt(orgVal) : null;
+      if (!orgId && typeof orgVal === 'string') {
+        const orgMatch = await db.query(
+          `SELECT id FROM organizations WHERE (LOWER(name) = LOWER(?) OR LOWER(code) = LOWER(?)) AND deleted_at IS NULL LIMIT 1`,
+          [orgVal, orgVal]
+        );
+        if (orgMatch[0]) orgId = orgMatch[0].id;
+      }
+      if (orgId) {
+        fields.push('organization_id = ?');
+        params.push(orgId);
+        await db.query(`UPDATE employees SET organization_id = ? WHERE user_id = ?`, [orgId, id]).catch(() => {});
+      }
+    }
+
+    // Branch
+    const branchVal = data.branchId !== undefined ? data.branchId : (data.branch_id !== undefined ? data.branch_id : data.branch);
+    if (branchVal !== undefined) {
+      let bId = !isNaN(branchVal) ? parseInt(branchVal) : null;
+      if (!bId && typeof branchVal === 'string') {
+        const branchMatch = await db.query(
+          `SELECT id FROM organization_branches WHERE (LOWER(branch_name) = LOWER(?) OR LOWER(branch_code) = LOWER(?)) AND deleted_at IS NULL LIMIT 1`,
+          [branchVal, branchVal]
+        );
+        if (branchMatch[0]) bId = branchMatch[0].id;
+      }
+      if (bId) {
+        fields.push('branch_id = ?');
+        params.push(bId);
+        await db.query(`UPDATE employees SET branch_id = ? WHERE user_id = ?`, [bId, id]).catch(() => {});
+      }
+    }
+
+    // Job Title
+    const jobVal = data.jobTitle !== undefined ? data.jobTitle : data.job_title;
+    if (jobVal !== undefined) {
+      fields.push('job_title = ?');
+      params.push(jobVal);
+      await db.query(`UPDATE employees SET job_title = ? WHERE user_id = ?`, [jobVal, id]).catch(() => {});
+    }
+
+    // Manager (stored in employees table)
+    const mgrVal = data.managerId !== undefined ? data.managerId : data.manager_id;
+    if (mgrVal !== undefined) {
+      const parsedMgr = mgrVal ? parseInt(mgrVal) : null;
+      await db.query(`UPDATE employees SET manager_id = ?, manager_employee_id = ? WHERE user_id = ?`, [parsedMgr, parsedMgr, id]).catch(() => {});
+    }
+
+    // Avatar
+    const avatarVal = data.avatarUrl !== undefined ? data.avatarUrl : (data.avatar_url !== undefined ? data.avatar_url : data.avatar);
+    if (avatarVal !== undefined) {
+      fields.push('avatar_url = ?', 'profile_photo = ?');
+      params.push(avatarVal, avatarVal);
+      await db.query(`UPDATE employees SET photo_url = ? WHERE user_id = ?`, [avatarVal, id]).catch(() => {});
+    }
+
+    // Username
+    if (data.username !== undefined && data.username.trim()) {
+      fields.push('username = ?');
+      params.push(data.username.trim());
+    }
+
+    // Status
+    const statusVal = data.status !== undefined ? data.status : (data.accountStatus !== undefined ? data.accountStatus : data.account_status);
+    if (statusVal !== undefined && statusVal.trim()) {
+      const stUpper = statusVal.trim().toUpperCase();
+      fields.push('status = ?', 'account_status = ?');
+      params.push(stUpper.toLowerCase(), stUpper);
+      await db.query(`UPDATE employees SET employment_status = ? WHERE user_id = ?`, [stUpper === 'ACTIVE' ? 'Active' : 'Inactive', id]).catch(() => {});
+    }
+
+    // Password reset if provided
+    if (data.password && String(data.password).trim().length >= 8) {
+      const passwordHash = await bcrypt.hash(String(data.password).trim(), 12);
+      fields.push('password_hash = ?', 'first_login_required = 0');
+      params.push(passwordHash);
+    }
+
+    if (fields.length === 0) {
+      throw new AppError('No fields provided to update', 400);
+    }
+
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    params.push(id);
+    await db.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, params);
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'USER_UPDATED',
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      recordId: id,
+      oldValues,
+      newValues: data,
+    });
+  }
+
+  // ── 7. Account Lifecycle State Transitions ────────────────────────────────
+
+  async setAccountStatus(id, newStatus, reason = '', operatorUserId) {
+    const validStatuses = ['ACTIVE', 'PENDING', 'LOCKED', 'SUSPENDED', 'INACTIVE', 'EXPIRED', 'DEACTIVATED', 'ARCHIVED', 'BLOCKED', 'DISABLED'];
+    const statusUpper = (newStatus || '').toUpperCase();
+    if (!validStatuses.includes(statusUpper)) {
+      throw new AppError(`Invalid account status transition: ${newStatus}`, 400);
+    }
+
+    const user = await this.getUser(id);
+
+    // Prevent deactivating last admin
+    if (user.role === 'admin' && (statusUpper === 'INACTIVE' || statusUpper === 'DEACTIVATED' || statusUpper === 'SUSPENDED' || statusUpper === 'BLOCKED')) {
+      const admins = await db.query(
+        `SELECT COUNT(*) AS count FROM users WHERE role = 'admin' AND deleted_at IS NULL AND (status = 'active' OR account_status = 'ACTIVE')`
+      );
+      if (admins[0]?.count <= 1) {
+        throw new AppError('Cannot deactivate or suspend the primary system administrator account.', 403);
+      }
+    }
+
+    await db.query(
+      `UPDATE users SET account_status = ?, status = ?, failed_login_attempts = CASE WHEN ? = 'ACTIVE' THEN 0 ELSE failed_login_attempts END WHERE id = ?`,
+      [statusUpper, statusUpper.toLowerCase(), statusUpper, id]
+    );
+
+    // Revoke active sessions if account is blocked, suspended, deactivated, or locked
+    if (['BLOCKED', 'DISABLED', 'SUSPENDED', 'DEACTIVATED', 'LOCKED', 'INACTIVE', 'ARCHIVED'].includes(statusUpper)) {
+      await db.query(`UPDATE user_sessions SET is_active = 0 WHERE user_id = ?`, [id]).catch(() => {});
+      await db.query(`UPDATE visitors SET is_active = FALSE, status = 'BLOCKED' WHERE user_id = ?`, [id]).catch(() => {});
+      await db.query(`UPDATE employees SET employment_status = 'Inactive' WHERE user_id = ?`, [id]).catch(() => {});
+    } else if (statusUpper === 'ACTIVE') {
+      await db.query(`UPDATE visitors SET is_active = TRUE, status = 'ACTIVE' WHERE user_id = ?`, [id]).catch(() => {});
+      await db.query(`UPDATE employees SET employment_status = 'Active' WHERE user_id = ?`, [id]).catch(() => {});
+    }
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: `USER_STATUS_${statusUpper}`,
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      recordId: id,
+      oldValues: { status: user.account_status },
+      newValues: { status: statusUpper, reason },
+    });
+  }
+
+  // ── 8. Password Reset & Credentials Management ───────────────────────────
+
+  async adminResetPassword(id, newPassword, forceMustChange = true, operatorUserId) {
+    const user = await this.getUser(id);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await db.query(
+      `UPDATE users 
+       SET password_hash = ?, failed_login_attempts = 0, account_locked_until = NULL,
+           account_status = 'ACTIVE', status = 'active', first_login_required = ?
+       WHERE id = ?`,
+      [passwordHash, forceMustChange ? 1 : 0, id]
+    );
+
+    // Store in Password History
+    try {
+      await db.query(
+        `INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)`,
+        [id, passwordHash]
+      );
+    } catch (err) {}
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'PASSWORD_RESET_ADMIN',
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      recordId: id,
+    });
+  }
+
+  // ── 8b. Dispatch Credentials (User ID & Temporary Password via Email) ──────
+
+  async sendUserCredentials(userId, operatorUserId) {
+    const user = await this.getUser(userId);
+    if (!user.email || !user.email.trim()) {
+      throw new AppError('This user account has no email address configured.', 400);
+    }
+
+    const tempPassword = `TempPass#${Math.floor(100000 + Math.random() * 900000)}`;
+    const passwordHash = await bcrypt.hash(tempPassword, 12);
+
+    await db.query(
+      `UPDATE users 
+       SET password_hash = ?,
+           first_login_required = 1,
+           temporary_password_created_at = CURRENT_TIMESTAMP,
+           temporary_password_expires_at = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 48 HOUR),
+           failed_login_attempts = 0,
+           account_locked_until = NULL,
+           account_status = 'ACTIVE',
+           status = 'active',
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [passwordHash, userId]
+    );
+
+    // Invalidate existing sessions so the new credentials are required
+    await db.query(`DELETE FROM user_sessions WHERE user_id = ?`, [userId]).catch(() => {});
+
+    // Ensure user_code is populated
+    let userCode = user.user_code;
+    if (!userCode) {
+      userCode = await this.generateUserCode(user.role || 'employee');
+      await db.query(`UPDATE users SET user_code = ? WHERE id = ?`, [userCode, userId]).catch(() => {});
+    }
+
+    let emailResult = null;
+    try {
+      emailResult = await emailService.sendRegistrationCredentials({
+        to: user.email.trim(),
+        fullName: user.full_name || user.username || 'User',
+        userCode: userCode,
+        temporaryPassword: tempPassword,
+        role: user.role || 'user',
+        accountType: user.role || 'user',
+        loginUrl: (process.env.CLIENT_URL || 'http://localhost:5173') + '/login',
+      });
+    } catch (mailErr) {
+      console.error('[UserManagement] sendUserCredentials email error:', mailErr);
+    }
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'CREDENTIALS_SENT_EMAIL',
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      recordId: userId,
+      newValues: { email: user.email, userCode }
+    });
+
+    return {
+      userId,
+      userCode,
+      email: user.email,
+      temporaryPassword: tempPassword,
+      emailStatus: emailResult?.status || 'sent',
+      message: 'Account credentials have been sent successfully to the user\'s registered email.'
+    };
+  }
+
+  // ── 9. Sessions & Devices Management ─────────────────────────────────────
+
+  async getUserSessions(userId) {
+    try {
+      const rows = await db.query(
+        `SELECT id, device_id, device_name, browser, os, ip_address, is_active,
+                created_at, last_activity_at
+         FROM user_sessions
+         WHERE user_id = ?
+         ORDER BY last_activity_at DESC`,
+        [userId]
+      );
+      return rows;
+    } catch (err) {
+      return [];
+    }
+  }
+
+  async revokeSession(userId, sessionId, operatorUserId) {
+    try {
+      await db.query(`UPDATE user_sessions SET is_active = 0 WHERE id = ? AND user_id = ?`, [sessionId, userId]);
+      await auditRepository.log({
+        userId: operatorUserId,
+        action: 'SESSION_REVOKED',
+        module: 'USER_MANAGEMENT',
+        entity: 'user_sessions',
+        recordId: sessionId,
+      });
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  async revokeAllSessions(userId, operatorUserId) {
+    try {
+      await db.query(`UPDATE user_sessions SET is_active = 0 WHERE user_id = ?`, [userId]);
+      await auditRepository.log({
+        userId: operatorUserId,
+        action: 'ALL_SESSIONS_REVOKED',
+        module: 'USER_MANAGEMENT',
+        entity: 'user_sessions',
+        recordId: userId,
+      });
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  // ── 10. Login History & User Activity ────────────────────────────────────
+
+  async getLoginHistory(userId, page = 1, limit = 20) {
+    try {
+      const offset = (page - 1) * limit;
+      const rows = await db.query(
+        `SELECT id, ip_address, user_agent, status, failure_reason, created_at
+         FROM login_history
+         WHERE user_id = ?
+         ORDER BY created_at DESC
+         LIMIT ? OFFSET ?`,
+        [userId, limit, offset]
+      );
+      return rows;
+    } catch (err) {
+      return [];
+    }
+  }
+
+  async getUserActivity(userId, limit = 50) {
+    try {
+      const rows = await db.query(
+        `SELECT al.id, al.action, al.module, al.entity, al.record_id, al.created_at, al.ip_address,
+                al.status, al.severity, al.new_values, al.old_values, al.metadata_json,
+                u.full_name AS actor_name, u.email AS actor_email
+         FROM audit_logs al
+         LEFT JOIN users u ON COALESCE(al.actor_id, al.user_id) = u.id
+         WHERE (al.user_id = ? OR al.actor_id = ? OR (al.entity IN ('users', 'user', 'USER') AND (al.record_id = ? OR al.entity_id = ?)))
+         ORDER BY al.created_at DESC
+         LIMIT ?`,
+        [userId, userId, userId, userId, Number(limit) || 50]
+      );
+      return (rows || []).map(r => {
+        try {
+          if (typeof r.metadata_json === 'string') r.metadata_json = JSON.parse(r.metadata_json);
+        } catch (_) {}
+        try {
+          if (typeof r.new_values === 'string') r.new_values = JSON.parse(r.new_values);
+        } catch (_) {}
+        try {
+          if (typeof r.old_values === 'string') r.old_values = JSON.parse(r.old_values);
+        } catch (_) {}
+        return r;
+      });
+    } catch (err) {
+      return [];
+    }
+  }
+
+  // ── 11. User Invitations Lifecycle ───────────────────────────────────────
+
+  async createInvitation(data, operatorUserId) {
+    const emailNorm = (data.email || '').trim().toLowerCase();
+    if (!emailNorm) throw new AppError('Email address is required for invitation.', 400);
+
+    const existingUser = await userRepository.findByEmail(emailNorm);
+    if (existingUser) throw new AppError('A user account with this email address already exists.', 409);
+
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const tokenHash = require('crypto').createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    const result = await db.query(
+      `INSERT INTO user_invitations (email, role, department_id, token_hash, status, invited_by, expires_at)
+       VALUES (?, ?, ?, ?, 'SENT', ?, ?)`,
+      [emailNorm, data.role || 'employee', data.departmentId ? parseInt(data.departmentId) : null, tokenHash, operatorUserId, expiresAt]
+    );
+
+    // Audit Event
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'USER_INVITED',
+      module: 'USER_MANAGEMENT',
+      entity: 'user_invitations',
+      recordId: result.insertId,
+      newValues: { email: emailNorm, role: data.role },
+    });
+
+    // Dispatch Email Notification
+    try {
+      await notificationService.sendNotification({
+        userId: operatorUserId,
+        title: 'Account Invitation Sent',
+        message: `An invitation link has been dispatched to ${emailNorm}.`,
+        type: 'USER_INVITED',
+        channels: ['EMAIL', 'IN_APP'],
+      });
+    } catch (err) {}
+
+    return { id: result.insertId, email: emailNorm, token };
+  }
+
+  async getInvitations() {
+    try {
+      const rows = await db.query(
+        `SELECT i.id, i.email, i.role, i.status, i.expires_at, i.created_at,
+                d.department_name
+         FROM user_invitations i
+         LEFT JOIN departments d ON i.department_id = d.id
+         ORDER BY i.id DESC`
+      );
+      return rows;
+    } catch (err) {
+      return [];
+    }
+  }
+
+  async resendInvitation(id, operatorUserId) {
+    const rows = await db.query(`SELECT * FROM user_invitations WHERE id = ?`, [id]);
+    if (!rows[0]) throw new AppError('Invitation record not found', 404);
+
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await db.query(`UPDATE user_invitations SET expires_at = ?, status = 'SENT' WHERE id = ?`, [expiresAt, id]);
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'USER_INVITATION_RESENT',
+      module: 'USER_MANAGEMENT',
+      entity: 'user_invitations',
+      recordId: id,
+    });
+
+    return true;
+  }
+
+  async cancelInvitation(id, operatorUserId) {
+    await db.query(`UPDATE user_invitations SET status = 'CANCELLED' WHERE id = ?`, [id]);
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'USER_INVITATION_CANCELLED',
+      module: 'USER_MANAGEMENT',
+      entity: 'user_invitations',
+      recordId: id,
+    });
+
+    return true;
+  }
+
+  // ── 12. Saved Searches Presets ───────────────────────────────────────────
+
+  async saveSearch(userId, searchName, filtersJson) {
+    if (!searchName || !filtersJson) throw new AppError('Search name and filter parameters are required.', 400);
+    return userRepository.saveSavedSearch(userId, searchName, filtersJson);
+  }
+
+  async getSavedSearches(userId) {
+    return userRepository.getSavedSearches(userId);
+  }
+
+  async deleteSavedSearch(id, userId) {
+    return userRepository.deleteSavedSearch(id, userId);
+  }
+
+  // ── 13. Bulk Operations ──────────────────────────────────────────────────
+
+  async bulkStatusChange(userIds, status, reason, operatorUserId) {
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      throw new AppError('At least one user ID must be selected for bulk status change.', 400);
+    }
+    const statusUpper = (status || '').toUpperCase();
+    const affected = await userRepository.bulkUpdateStatus(userIds, statusUpper, reason, operatorUserId);
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: `BULK_USER_STATUS_${statusUpper}`,
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      newValues: { userIds, status: statusUpper, reason, count: affected },
+    });
+
+    return { affectedCount: affected };
+  }
+
+  async bulkNotify(userIds, title, message, operatorUserId) {
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      throw new AppError('At least one user ID must be selected for bulk notification.', 400);
+    }
+
+    let successCount = 0;
+    for (const targetUserId of userIds) {
+      try {
+        await notificationService.sendNotification({
+          userId: targetUserId,
+          title: title || 'System Administrator Announcement',
+          message: message || 'Important message from system administrator.',
+          type: 'BULK_ADMIN_NOTIFICATION',
+          channels: ['IN_APP', 'EMAIL'],
+        });
+        successCount++;
+      } catch (err) {}
+    }
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'BULK_USER_NOTIFIED',
+      module: 'USER_MANAGEMENT',
+      entity: 'notifications',
+      newValues: { userIds, count: successCount },
+    });
+
+    return { notifiedCount: successCount };
+  }
+
+  // ── 14. Bulk CSV/Excel User Import ───────────────────────────────────────
+
+  async importUsers(usersArray, operatorUserId) {
+    if (!Array.isArray(usersArray) || usersArray.length === 0) {
+      throw new AppError('Import array cannot be empty.', 400);
+    }
+
+    const results = {
+      total: usersArray.length,
+      successful: 0,
+      failed: 0,
+      duplicates: 0,
+      errors: [],
+    };
+
+    for (let i = 0; i < usersArray.length; i++) {
+      const row = usersArray[i];
+      try {
+        if (!row.email || !row.firstName || !row.lastName) {
+          results.failed++;
+          results.errors.push({ row: i + 1, email: row.email, reason: 'Missing required fields (First Name, Last Name, Email).' });
+          continue;
+        }
+
+        const emailNorm = row.email.trim().toLowerCase();
+        const existing = await userRepository.findByEmail(emailNorm);
+        if (existing) {
+          results.duplicates++;
+          results.failed++;
+          results.errors.push({ row: i + 1, email: emailNorm, reason: 'Email already registered.' });
+          continue;
+        }
+
+        await this.createUser(
+          {
+            firstName: row.firstName,
+            middleName: row.middleName || '',
+            lastName: row.lastName,
+            email: emailNorm,
+            phone: row.phone || row.phoneNumber || '+251000000000',
+            role: row.role || 'employee',
+            departmentId: row.departmentId || null,
+            jobTitle: row.jobTitle || 'Staff',
+            credentialMode: 'temporary',
+          },
+          operatorUserId
+        );
+        results.successful++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push({ row: i + 1, email: row.email, reason: err.message });
+      }
+    }
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'USERS_BULK_IMPORTED',
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      newValues: { total: results.total, successful: results.successful, failed: results.failed, duplicates: results.duplicates },
+    });
+
+    return results;
+  }
+
+  // ── 15. Export Sanitized User Dataset ─────────────────────────────────────
+
+  async exportUsers(filters = {}, operatorUserId) {
+    const listRes = await this.listUsers({ ...filters, limit: 5000, page: 1 });
+    const rawUsers = listRes.data || [];
+
+    // Security Sanitization: Strip passwords, tokens, hashes, MFA keys
+    const sanitizedData = rawUsers.map((u) => ({
+      userIdCode: u.user_code || `USR-${u.id}`,
+      username: u.username,
+      fullName: u.full_name,
+      firstName: u.first_name,
+      lastName: u.last_name,
+      email: u.email,
+      phone: u.phone || u.phone_number,
+      role: u.role,
+      department: u.department_name || 'N/A',
+      organization: u.organization_name || 'IT Park',
+      branch: u.branch_name || 'Main Branch',
+      accountStatus: u.account_status || u.status,
+      emailVerified: u.email_verified ? 'Yes' : 'No',
+      phoneVerified: u.phone_verified ? 'Yes' : 'No',
+      mfaEnabled: u.mfa_enabled ? 'Yes' : 'No',
+      lastLoginAt: u.last_login_at ? new Date(u.last_login_at).toISOString() : 'Never',
+      createdAt: new Date(u.created_at).toISOString(),
+    }));
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'USERS_EXPORTED',
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      newValues: { exportedCount: sanitizedData.length, filters },
+    });
+
+    return sanitizedData;
+  }
+
+  // ── 16. Contact Verification Resends ─────────────────────────────────────
+
+  async resendEmailVerification(userId, operatorUserId) {
+    const user = await this.getUser(userId);
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'EMAIL_VERIFICATION_RESENT',
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      recordId: userId,
+    });
+
+    try {
+      await notificationService.sendNotification({
+        userId,
+        title: 'Verify Your Email Address',
+        message: `Click to verify your email address (${user.email}).`,
+        type: 'EMAIL_VERIFICATION',
+        channels: ['EMAIL'],
+      });
+    } catch (err) {}
+
+    return true;
+  }
+
+  async resendPhoneVerification(userId, operatorUserId) {
+    const user = await this.getUser(userId);
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'PHONE_VERIFICATION_RESENT',
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      recordId: userId,
+    });
+
+    try {
+      await notificationService.sendNotification({
+        userId,
+        title: 'Verify Phone Number',
+        message: `Your OTP verification code is ${Math.floor(100000 + Math.random() * 900000)}.`,
+        type: 'PHONE_VERIFICATION',
+        channels: ['SMS'],
+      });
+    } catch (err) {}
+
+    return true;
+  }
+
+  // ── 17. User Account Archival & Restoration ──────────────────────────────
+
+  async archiveUser(userId, operatorUserId) {
+    const user = await this.getUser(userId);
+    if (user.role === 'admin') {
+      throw new AppError('Primary administrator account cannot be archived.', 403);
+    }
+
+    await userRepository.archiveUser(userId, operatorUserId);
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'USER_ARCHIVED',
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      recordId: userId,
+    });
+
+    return true;
+  }
+
+  async deleteUser(userId, operatorUserId) {
+    const user = await this.getUser(userId);
+    if (user.role === 'admin') {
+      throw new AppError('Primary administrator account cannot be deleted.', 403);
+    }
+
+    await userRepository.archiveUser(userId, operatorUserId);
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'USER_DELETED',
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      recordId: userId,
+    });
+
+    return true;
+  }
+
+  async restoreUser(userId, operatorUserId) {
+    await userRepository.restoreUser(userId, operatorUserId);
+
+    await auditRepository.log({
+      userId: operatorUserId,
+      action: 'USER_RESTORED',
+      module: 'USER_MANAGEMENT',
+      entity: 'users',
+      recordId: userId,
+    });
+
+    return true;
+  }
+}
+
+module.exports = new UserManagementService();

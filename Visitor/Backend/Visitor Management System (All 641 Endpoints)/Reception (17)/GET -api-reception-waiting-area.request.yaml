@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/reception/waiting-area
+url: "{{baseUrl}}/api/reception/waiting-area"
+method: GET
+headers:
+  Content-Type: application/json
+order: 12000

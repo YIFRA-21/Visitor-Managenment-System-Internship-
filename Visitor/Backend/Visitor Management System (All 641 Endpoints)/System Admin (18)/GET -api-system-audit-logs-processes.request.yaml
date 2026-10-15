@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/system/audit-logs/processes
+url: "{{baseUrl}}/api/system/audit-logs/processes"
+method: GET
+headers:
+  Content-Type: application/json
+order: 15000

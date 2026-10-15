@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/visitor/feedback
+url: "{{baseUrl}}/api/visitor/feedback"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 22000

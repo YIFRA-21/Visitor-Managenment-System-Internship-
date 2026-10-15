@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/workflows/dashboard-stats
+url: "{{baseUrl}}/api/workflows/dashboard-stats"
+method: GET
+headers:
+  Content-Type: application/json
+order: 2000

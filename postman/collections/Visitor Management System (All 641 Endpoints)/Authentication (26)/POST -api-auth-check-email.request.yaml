@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/auth/check-email
+url: "{{baseUrl}}/api/auth/check-email"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "new_visitor_8565@example.com"
+    }
+order: 1000

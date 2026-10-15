@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/documents/:id/preview
+url: "{{baseUrl}}/api/documents/:id/preview"
+method: GET
+headers:
+  Content-Type: application/json
+order: 14000

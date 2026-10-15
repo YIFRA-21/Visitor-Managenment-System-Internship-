@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/feedback-support/tickets
+url: "{{baseUrl}}/api/feedback-support/tickets"
+method: GET
+headers:
+  Content-Type: application/json
+order: 7000

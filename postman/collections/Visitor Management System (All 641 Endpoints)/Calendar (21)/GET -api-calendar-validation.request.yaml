@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/calendar/validation
+url: "{{baseUrl}}/api/calendar/validation"
+method: GET
+headers:
+  Content-Type: application/json
+order: 3000

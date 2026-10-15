@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/employees/export
+url: "{{baseUrl}}/api/employees/export"
+method: GET
+headers:
+  Content-Type: application/json
+order: 7000

@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/notifications/preferences
+url: "{{baseUrl}}/api/notifications/preferences"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 5000

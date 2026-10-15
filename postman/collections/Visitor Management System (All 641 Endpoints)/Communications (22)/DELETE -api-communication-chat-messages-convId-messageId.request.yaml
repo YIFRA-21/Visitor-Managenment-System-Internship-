@@ -1,0 +1,10 @@
+$kind: http-request
+name: DELETE /api/communication/chat/messages/:convId/:messageId
+url: "{{baseUrl}}/api/communication/chat/messages/:convId/:messageId"
+method: DELETE
+headers:
+  Content-Type: application/json
+pathVariables:
+  convId: ""
+  messageId: ""
+order: 14000

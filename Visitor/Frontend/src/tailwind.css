@@ -1,0 +1,404 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * VMS — Tailwind Utilities Layer (Compatibility)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * We skip @tailwind base (Bootstrap handles the reset) and @tailwind components
+ * (our SCSS design system handles components). We only import utilities so that
+ * existing page views with Tailwind classes continue to work perfectly.
+ */
+
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * VMS FUNCTIONAL & DISTINCT COLOR SYSTEM
+ * ═══════════════════════════════════════════════════════════════════════════
+ * - Same function (Sidebar active items, Primary Buttons, Refresh Buttons) → Uniform Indigo/Blue
+ * - Different functions (Stat KPI cards, Status Badges, Chart categories) → Distinct, vibrant, harmonious colors
+ */
+
+/* ── Refresh Button Global Component Class (User Screenshot Match) ───────── */
+.vms-btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background-color: #1e293b !important;
+  border: 1px solid rgba(148, 163, 184, 0.4) !important;
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.2s ease-in-out !important;
+  cursor: pointer;
+}
+
+.vms-btn-refresh svg {
+  width: 1rem;
+  height: 1rem;
+  color: #818cf8;
+  transition: color 0.2s ease-in-out;
+}
+
+.vms-btn-refresh:hover {
+  background-color: #4f46e5 !important;
+  border-color: #818cf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35) !important;
+}
+
+.vms-btn-refresh:hover svg {
+  color: #ffffff !important;
+}
+
+.vms-btn-refresh:active {
+  transform: scale(0.97);
+}
+
+/* ── Page Refreshing Animation & Glowing Progress Bar ───────────────────── */
+.vms-page-refreshing {
+  opacity: 0.72;
+  filter: blur(0.4px);
+  transform: scale(0.994);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.vms-refresh-scanbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #3b82f6 100%);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.8), 0 0 24px rgba(168, 85, 247, 0.6);
+  z-index: 9999;
+  animation: vmsScanLine 0.7s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes vmsScanLine {
+  0% {
+    opacity: 0.6;
+    transform: scaleX(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GLOBAL TABLE & LIST STYLES — All roles, all data tables
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Table Row Hover: Subtle highlight that doesn't hide content ────────── */
+table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+table tbody tr:hover {
+  background-color: var(--vms-table-row-hover-bg, rgba(99, 102, 241, 0.08)) !important;
+}
+
+/* Ensure all content inside hovered rows remains fully visible while preserving original element colors */
+table tbody tr:hover td {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Badges, tags, status pills, links, photos and buttons preserve their distinct colors on row hover */
+table tbody tr:hover td .badge,
+table tbody tr:hover td [class*="badge"],
+table tbody tr:hover td [class*="tag"],
+table tbody tr:hover td [class*="status"],
+table tbody tr:hover td [class*="font-mono"],
+table tbody tr:hover td a,
+table tbody tr:hover td button,
+table tbody tr:hover td img {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ── Table Header: NO hover effect, stable theme-aware background ───────── */
+table thead tr {
+  background-color: var(--vms-table-header-bg, #151E2E) !important;
+  pointer-events: auto;
+}
+
+table thead tr:hover {
+  background-color: var(--vms-table-header-bg, #151E2E) !important;
+}
+
+table thead th {
+  user-select: none;
+  transition: none !important;
+}
+
+table thead th:hover {
+  background-color: transparent !important;
+}
+
+/* ── Toggle Switch Styling: White & black compatible colors ─────────────── */
+/* Toggle track (unchecked) */
+input[type="checkbox"][role="switch"],
+.toggle-switch,
+.vms-toggle {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 40px;
+  height: 22px;
+  background-color: #334155 !important;
+  border-radius: 11px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border: 1px solid #475569;
+}
+
+/* Toggle track (checked) */
+input[type="checkbox"][role="switch"]:checked,
+.toggle-switch.active,
+.vms-toggle.active,
+.toggle-switch:checked,
+.vms-toggle:checked {
+  background-color: #4f46e5 !important;
+  border-color: #6366f1;
+}
+
+/* Toggle knob */
+input[type="checkbox"][role="switch"]::before,
+.toggle-switch::before,
+.vms-toggle::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background-color: #ffffff !important;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Toggle knob position (checked) */
+input[type="checkbox"][role="switch"]:checked::before,
+.toggle-switch.active::before,
+.vms-toggle.active::before,
+.toggle-switch:checked::before,
+.vms-toggle:checked::before {
+  transform: translateX(18px);
+}
+
+/* ── Badge & tag visibility inside hovered rows ─────────────────────────── */
+table tbody tr:hover .badge,
+table tbody tr:hover [class*="badge"],
+table tbody tr:hover [class*="tag"],
+table tbody tr:hover [class*="status"] {
+  opacity: 1 !important;
+}
+
+/* ── Ensure row content doesn't clip on hover ───────────────────────────── */
+table tbody tr td {
+  overflow: visible;
+}
+
+/* ── Card-based list items hover (non-table lists) ──────────────────────── */
+.divide-y > div:hover,
+.divide-y > tr:hover,
+[class*="divide-slate"] > div:hover {
+  background-color: var(--vms-table-row-hover-bg, rgba(99, 102, 241, 0.06)) !important;
+}
+
+/* ── Action Buttons & Icons 100% Visibility Across All Tables (All Roles) ── */
+table tbody tr td button,
+table tbody tr td button svg,
+table tbody tr td button i {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+table tbody tr td button {
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Delete Action: Red in normal state, Red on hover */
+[title*="Delete" i],
+[aria-label*="Delete" i],
+.group\/del {
+  color: #f87171 !important;
+}
+
+[title*="Delete" i] svg,
+[aria-label*="Delete" i] svg,
+.group\/del svg {
+  color: #f87171 !important;
+}
+
+[title*="Delete" i]:hover,
+[aria-label*="Delete" i]:hover,
+.group\/del:hover {
+  background-color: #dc2626 !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.5) !important;
+}
+
+[title*="Delete" i]:hover svg,
+[aria-label*="Delete" i]:hover svg,
+.group\/del:hover svg {
+  color: #ffffff !important;
+}
+
+/* ── Vibrant Action Buttons Hover Palette (Never Black on Hover) ────────── */
+table td button[title*="View" i]:hover {
+  background-color: #2563eb !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4) !important;
+}
+table td button[title*="View" i]:hover svg {
+  color: #ffffff !important;
+}
+
+table td button[title*="Edit" i]:hover {
+  background-color: #d97706 !important;
+  border-color: #f59e0b !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4) !important;
+}
+table td button[title*="Edit" i]:hover svg {
+  color: #ffffff !important;
+}
+
+table td button[title*="Clone" i]:hover {
+  background-color: #059669 !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4) !important;
+}
+table td button[title*="Clone" i]:hover svg {
+  color: #ffffff !important;
+}
+
+table td button[title*="Compare" i]:hover {
+  background-color: #0891b2 !important;
+  border-color: #06b6d4 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.4) !important;
+}
+table td button[title*="Compare" i]:hover svg {
+  color: #ffffff !important;
+}
+
+table td button[title*="Deactivate" i]:hover {
+  background-color: #ea580c !important;
+  border-color: #f97316 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4) !important;
+}
+table td button[title*="Deactivate" i]:hover svg {
+  color: #ffffff !important;
+}
+
+table td button[title*="Archive" i]:hover {
+  background-color: #9333ea !important;
+  border-color: #a855f7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.4) !important;
+}
+table td button[title*="Archive" i]:hover svg {
+  color: #ffffff !important;
+}
+
+table td button[title*="Restore" i]:hover {
+  background-color: #0d9488 !important;
+  border-color: #14b8a6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4) !important;
+}
+table td button[title*="Restore" i]:hover svg {
+  color: #ffffff !important;
+}
+
+table td button[title*="Activate" i]:hover {
+  background-color: #059669 !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4) !important;
+}
+table td button[title*="Activate" i]:hover svg {
+  color: #ffffff !important;
+}
+
+/* Back button icon visibility */
+[title*="Back" i] svg,
+[aria-label*="Back" i] svg,
+button:has(svg.lucide-arrow-left) svg,
+a:has(svg.lucide-arrow-left) svg {
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: #818cf8 !important;
+}
+
+button:has(svg.lucide-arrow-left):hover svg,
+a:has(svg.lucide-arrow-left):hover svg {
+  color: #ffffff !important;
+}
+
+/* ── List & Table Header Background Enforcement Across All Roles ────────── */
+thead,
+thead tr,
+table thead,
+.table-responsive thead,
+.vms-table-container thead,
+table thead th,
+th[scope="col"] {
+  background: var(--vms-table-header-bg, linear-gradient(90deg, #1e1b4b 0%, #171e3b 50%, #0f172a 100%)) !important;
+  color: var(--vms-table-header-text, #f8fafc) !important;
+  border-bottom: 2px solid var(--vms-table-header-border, #6366f1) !important;
+}
+
+thead th svg,
+table thead th svg {
+  color: var(--vms-table-header-accent, #818cf8) !important;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+thead th:hover svg,
+table thead th:hover svg {
+  color: #ffffff !important;
+  transform: scale(1.15);
+}
+
+/* ── Fullscreen Document Viewer ───────────────────────────────────────────── */
+.fullscreen-doc-canvas {
+  background: #090e1c !important;
+  border-radius: 0 !important;
+  border: none !important;
+  padding: 1rem !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+.fullscreen-doc-canvas::backdrop {
+  background: #090e1c;
+}
+

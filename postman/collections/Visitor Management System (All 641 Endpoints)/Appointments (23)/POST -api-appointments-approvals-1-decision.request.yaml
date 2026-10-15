@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/appointments/approvals/1/decision
+url: "{{baseUrl}}/api/appointments/approvals/1/decision"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 12000

@@ -1,0 +1,15 @@
+$kind: http-request
+name: PATCH /api/visitor-profiles/1/photos/:photoId/active
+url: "{{baseUrl}}/api/visitor-profiles/1/photos/:photoId/active"
+method: PATCH
+headers:
+  Content-Type: application/json
+pathVariables:
+  photoId: ""
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 10000

@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{base_url}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "admin@visitor.com",
+      "password": "Password123!"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      const response = pm.response.json();
+      if (response && response.token) {
+          pm.collectionVariables.set("bearer_token", response.token);
+          pm.test("Token saved successfully", () => {
+              pm.expect(response.token).to.be.a('string');
+          });
+      }
+    language: text/javascript
+order: 2000

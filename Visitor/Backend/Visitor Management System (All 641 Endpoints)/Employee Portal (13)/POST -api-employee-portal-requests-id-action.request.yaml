@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/employee-portal/requests/:id/action
+url: "{{baseUrl}}/api/employee-portal/requests/:id/action"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 3000

@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/identity/first-login-change
+url: "{{baseUrl}}/api/identity/first-login-change"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 5000

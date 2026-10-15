@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/appointments/:id/cancel
+url: "{{baseUrl}}/api/appointments/:id/cancel"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 15000

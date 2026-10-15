@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/security/blacklist-watchlist/:id
+url: "{{baseUrl}}/api/security/blacklist-watchlist/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 4000

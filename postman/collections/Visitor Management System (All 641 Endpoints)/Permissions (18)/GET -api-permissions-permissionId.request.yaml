@@ -1,0 +1,9 @@
+$kind: http-request
+name: GET /api/permissions/:permissionId
+url: "{{baseUrl}}/api/permissions/:permissionId"
+method: GET
+headers:
+  Content-Type: application/json
+pathVariables:
+  permissionId: ""
+order: 12000

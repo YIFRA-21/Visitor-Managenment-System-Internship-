@@ -1,0 +1,9 @@
+$kind: http-request
+name: GET /api/identity-verification/mobile-status/:token
+url: "{{baseUrl}}/api/identity-verification/mobile-status/:token"
+method: GET
+headers:
+  Content-Type: application/json
+pathVariables:
+  token: ""
+order: 1000

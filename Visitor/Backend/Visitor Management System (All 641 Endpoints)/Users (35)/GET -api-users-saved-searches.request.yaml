@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/users/saved-searches
+url: "{{baseUrl}}/api/users/saved-searches"
+method: GET
+headers:
+  Content-Type: application/json
+order: 7000

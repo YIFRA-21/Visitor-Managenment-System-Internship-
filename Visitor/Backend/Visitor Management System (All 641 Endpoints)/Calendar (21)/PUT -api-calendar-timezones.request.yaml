@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/calendar/timezones
+url: "{{baseUrl}}/api/calendar/timezones"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 21000

@@ -1,0 +1,21 @@
+# Use this workspace to collaborate
+workspace:
+  id: 0ee0ccb6-4ca6-4165-82a5-7644127e16e8
+
+localResources:
+  collections:
+    - ../Visitor Management System (VMS) API
+    - ../Visitor/Visitor Management System (VMS) API
+    - ../Visitor/Backend/Visitor Management System (All 641 Endpoints)
+    - ../Visitor/Backend/Visitor Management System (VMS) API
+  specs:
+    - ../Visitor/Backend/src/docs/swagger.json
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ../Visitor/Visitor Management System (VMS) API: 8c59f0f9-2b0e-4fae-9fa9-43c2fb1c4cd2
+    ../Visitor/Backend/Visitor Management System (All 641 Endpoints): vms-all-641-endpoints-2026
+    ../Visitor/Backend/Visitor Management System (VMS) API: vms-api-collection-2026
+    ../postman/collections/Visitor Management System (All 641 Endpoints): a54dbca7-5926-49aa-b3d8-c417bbe558a5

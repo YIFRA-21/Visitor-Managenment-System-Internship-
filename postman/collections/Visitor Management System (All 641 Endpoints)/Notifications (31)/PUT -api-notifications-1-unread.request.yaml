@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/notifications/1/unread
+url: "{{baseUrl}}/api/notifications/1/unread"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 21000

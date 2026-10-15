@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/users/bulk-notify
+url: "{{baseUrl}}/api/users/bulk-notify"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 11000

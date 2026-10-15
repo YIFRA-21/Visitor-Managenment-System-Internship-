@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/me/permissions"
+method: GET
+headers:
+  Authorization: Bearer {{authToken}}
+order: 4000

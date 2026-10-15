@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/communication/chat/messages/:convId
+url: "{{baseUrl}}/api/communication/chat/messages/:convId"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 12000

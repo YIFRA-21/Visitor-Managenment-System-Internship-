@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/checkout/overstay
+url: "{{baseUrl}}/api/checkout/overstay"
+method: GET
+headers:
+  Content-Type: application/json
+order: 3000

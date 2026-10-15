@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/checkin/live-board
+url: "{{baseUrl}}/api/checkin/live-board"
+method: GET
+headers:
+  Content-Type: application/json
+order: 1000

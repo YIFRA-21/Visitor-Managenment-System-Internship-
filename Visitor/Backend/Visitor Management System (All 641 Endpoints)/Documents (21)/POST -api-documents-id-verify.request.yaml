@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/documents/:id/verify
+url: "{{baseUrl}}/api/documents/:id/verify"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 15000

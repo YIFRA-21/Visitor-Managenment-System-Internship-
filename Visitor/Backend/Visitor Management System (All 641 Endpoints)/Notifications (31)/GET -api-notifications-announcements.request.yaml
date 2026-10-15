@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/notifications/announcements
+url: "{{baseUrl}}/api/notifications/announcements"
+method: GET
+headers:
+  Content-Type: application/json
+order: 6000

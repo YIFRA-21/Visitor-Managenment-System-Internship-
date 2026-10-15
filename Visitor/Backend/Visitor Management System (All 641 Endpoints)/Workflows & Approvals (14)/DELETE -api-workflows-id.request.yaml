@@ -1,0 +1,7 @@
+$kind: http-request
+name: DELETE /api/workflows/:id
+url: "{{baseUrl}}/api/workflows/:id"
+method: DELETE
+headers:
+  Content-Type: application/json
+order: 12000

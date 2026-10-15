@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/reception/queue/1
+url: "{{baseUrl}}/api/reception/queue/1"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 9000

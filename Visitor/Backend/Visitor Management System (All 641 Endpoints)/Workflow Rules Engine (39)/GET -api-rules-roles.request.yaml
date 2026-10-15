@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/rules/roles
+url: "{{baseUrl}}/api/rules/roles"
+method: GET
+headers:
+  Content-Type: application/json
+order: 7000

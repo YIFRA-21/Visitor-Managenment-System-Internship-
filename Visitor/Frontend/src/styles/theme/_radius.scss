@@ -1,0 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — BORDER RADIUS TOKENS
+// ═══════════════════════════════════════════════════════════════════════════
+
+:root {
+  --vms-radius-none:    0;
+  --vms-radius-sm:      0.25rem;    // 4px
+  --vms-radius-md:      0.5rem;     // 8px   — buttons, inputs
+  --vms-radius-lg:      0.75rem;    // 12px  — dropdowns, modals
+  --vms-radius-xl:      1rem;       // 16px  — cards
+  --vms-radius-2xl:     1.25rem;    // 20px  — large cards
+  --vms-radius-full:    9999px;     // pills, avatars, badges
+}

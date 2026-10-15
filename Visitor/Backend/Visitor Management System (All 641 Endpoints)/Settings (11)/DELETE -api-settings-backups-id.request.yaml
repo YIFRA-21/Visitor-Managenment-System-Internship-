@@ -1,0 +1,7 @@
+$kind: http-request
+name: DELETE /api/settings/backups/:id
+url: "{{baseUrl}}/api/settings/backups/:id"
+method: DELETE
+headers:
+  Content-Type: application/json
+order: 9000

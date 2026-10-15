@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/visitor-profiles/:id/verify-identity
+url: "{{baseUrl}}/api/visitor-profiles/:id/verify-identity"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 14000

@@ -1,0 +1,12 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — SHADOW TOKENS
+// ═══════════════════════════════════════════════════════════════════════════
+// Shadows are defined in _colors.scss per theme. This file adds utility classes.
+
+.shadow-xs   { box-shadow: var(--vms-shadow-xs) !important; }
+.shadow-sm   { box-shadow: var(--vms-shadow-sm) !important; }
+.shadow-md   { box-shadow: var(--vms-shadow-md) !important; }
+.shadow-lg   { box-shadow: var(--vms-shadow-lg) !important; }
+.shadow-xl   { box-shadow: var(--vms-shadow-xl) !important; }
+.shadow-card { box-shadow: var(--vms-shadow-card) !important; }
+.shadow-none { box-shadow: none !important; }

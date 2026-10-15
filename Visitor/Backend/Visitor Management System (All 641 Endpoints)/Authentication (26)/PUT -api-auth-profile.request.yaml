@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/auth/profile
+url: "{{baseUrl}}/api/auth/profile"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 19000

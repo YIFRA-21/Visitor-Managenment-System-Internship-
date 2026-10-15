@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/system/feature-flags/1
+url: "{{baseUrl}}/api/system/feature-flags/1"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 9000

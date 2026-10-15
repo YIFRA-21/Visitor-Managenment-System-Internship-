@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/departments/check-code
+url: "{{baseUrl}}/api/departments/check-code"
+method: GET
+headers:
+  Content-Type: application/json
+order: 3000

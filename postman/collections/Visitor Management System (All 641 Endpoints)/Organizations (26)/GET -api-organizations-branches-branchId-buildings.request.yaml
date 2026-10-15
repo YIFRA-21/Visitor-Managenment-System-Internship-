@@ -1,0 +1,9 @@
+$kind: http-request
+name: GET /api/organizations/branches/:branchId/buildings
+url: "{{baseUrl}}/api/organizations/branches/:branchId/buildings"
+method: GET
+headers:
+  Content-Type: application/json
+pathVariables:
+  branchId: ""
+order: 25000

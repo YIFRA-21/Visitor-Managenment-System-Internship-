@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/checkout/pending
+url: "{{baseUrl}}/api/checkout/pending"
+method: GET
+headers:
+  Content-Type: application/json
+order: 2000

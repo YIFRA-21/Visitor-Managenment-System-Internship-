@@ -1,0 +1,13 @@
+{
+  "name": "visitor-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix Backend && npm install --prefix Frontend",
+    "db:setup": "npm run db:setup --prefix Backend",
+    "dev:backend": "npm run dev --prefix Backend",
+    "dev:frontend": "npm run dev --prefix Frontend",
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "build": "npm run build --prefix Frontend"
+  }
+}

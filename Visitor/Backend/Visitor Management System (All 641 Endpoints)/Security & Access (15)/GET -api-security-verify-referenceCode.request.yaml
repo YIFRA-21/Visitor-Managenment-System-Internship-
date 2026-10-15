@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/security/verify/:referenceCode
+url: "{{baseUrl}}/api/security/verify/:referenceCode"
+method: GET
+headers:
+  Content-Type: application/json
+order: 4000

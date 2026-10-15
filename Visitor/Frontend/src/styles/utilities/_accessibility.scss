@@ -1,0 +1,110 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — ACCESSIBILITY UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Focus Ring ───────────────────────────────────────────────────────────
+// Visible focus ring only for keyboard navigation, not mouse clicks.
+
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--vms-primary);
+  outline-offset: 2px;
+  border-radius: var(--vms-radius-sm);
+}
+
+// Override focus-visible outline for invalid inputs (Red Google Gmail Style)
+input.is-invalid:focus-visible,
+input[aria-invalid="true"]:focus-visible,
+input[data-invalid="true"]:focus-visible,
+select.is-invalid:focus-visible,
+select[aria-invalid="true"]:focus-visible,
+select[data-invalid="true"]:focus-visible,
+textarea.is-invalid:focus-visible,
+textarea[aria-invalid="true"]:focus-visible,
+textarea[data-invalid="true"]:focus-visible,
+.form-control.is-invalid:focus-visible,
+.form-control[aria-invalid="true"]:focus-visible,
+.form-control[data-invalid="true"]:focus-visible {
+  outline: 2px solid #f43f5e !important;
+  outline-offset: 0px !important;
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.3) !important;
+}
+
+// Remove focus ring for elements that handle it themselves
+.vms-btn:focus-visible,
+.vms-form-control:focus-visible,
+.vms-form-check__input:focus-visible,
+.vms-switch__input:focus-visible {
+  outline: none;
+  // These elements use box-shadow for focus indication
+}
+
+// ── Screen Reader Only ───────────────────────────────────────────────────
+.vms-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// ── Skip to Content ──────────────────────────────────────────────────────
+.vms-skip-link {
+  position: fixed;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--vms-primary);
+  color: #FFFFFF;
+  font-size: var(--vms-body-sm);
+  font-weight: var(--vms-fw-semibold);
+  border-radius: 0 0 var(--vms-radius-md) var(--vms-radius-md);
+  text-decoration: none;
+  transition: top var(--vms-transition-fast);
+
+  &:focus {
+    top: 0;
+  }
+}
+
+// ── Large Click Targets ──────────────────────────────────────────────────
+// Minimum 44x44px touch target for WCAG 2.1 compliance
+.vms-touch-target {
+  min-width: 2.75rem;   // 44px
+  min-height: 2.75rem;  // 44px
+}
+
+// ── Reduced Motion ───────────────────────────────────────────────────────
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// ── High Contrast Indicators ─────────────────────────────────────────────
+// Ensure color is not the only indicator — use icons, text, borders too
+@media (forced-colors: active) {
+  .vms-badge { border: 1px solid; }
+  .vms-alert { border: 2px solid; }
+  .vms-btn { border: 2px solid; }
+}
+
+// ── ARIA Live Region for Dynamic Updates ─────────────────────────────────
+.vms-live-region {
+  @extend .vms-sr-only;
+}

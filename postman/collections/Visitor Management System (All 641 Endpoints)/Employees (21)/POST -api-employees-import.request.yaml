@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/employees/import
+url: "{{baseUrl}}/api/employees/import"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 5000

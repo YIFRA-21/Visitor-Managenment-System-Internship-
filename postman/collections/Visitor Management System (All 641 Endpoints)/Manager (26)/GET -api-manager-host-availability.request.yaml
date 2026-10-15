@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/manager/host-availability
+url: "{{baseUrl}}/api/manager/host-availability"
+method: GET
+headers:
+  Content-Type: application/json
+order: 5000

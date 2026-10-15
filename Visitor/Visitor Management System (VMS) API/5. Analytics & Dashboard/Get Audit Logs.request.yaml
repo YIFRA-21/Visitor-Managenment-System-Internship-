@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{base_url}}/api/reports/audit-logs"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{bearer_token}}"
+order: 2000

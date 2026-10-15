@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/documents/ocr-extract
+url: "{{baseUrl}}/api/documents/ocr-extract"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 5000

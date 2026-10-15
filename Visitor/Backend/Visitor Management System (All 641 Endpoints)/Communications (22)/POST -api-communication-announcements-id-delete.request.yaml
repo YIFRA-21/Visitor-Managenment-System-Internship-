@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/communication/announcements/:id/delete
+url: "{{baseUrl}}/api/communication/announcements/:id/delete"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 22000

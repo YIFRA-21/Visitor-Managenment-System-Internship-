@@ -1,0 +1,9 @@
+$kind: http-request
+name: DELETE /api/visitor-profiles/photos/:photoId
+url: "{{baseUrl}}/api/visitor-profiles/photos/:photoId"
+method: DELETE
+headers:
+  Content-Type: application/json
+pathVariables:
+  photoId: ""
+order: 11000

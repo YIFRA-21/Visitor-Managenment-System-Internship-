@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/departments/:id/status/history
+url: "{{baseUrl}}/api/departments/:id/status/history"
+method: GET
+headers:
+  Content-Type: application/json
+order: 12000

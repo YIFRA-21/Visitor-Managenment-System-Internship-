@@ -1,0 +1,7 @@
+$kind: http-request
+name: DELETE /api/security/watchlist/1
+url: "{{baseUrl}}/api/security/watchlist/1"
+method: DELETE
+headers:
+  Content-Type: application/json
+order: 8000

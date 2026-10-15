@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/visitor-history/:id
+url: "{{baseUrl}}/api/visitor-history/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 4000

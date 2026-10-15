@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/rules/test
+url: "{{baseUrl}}/api/rules/test"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 19000

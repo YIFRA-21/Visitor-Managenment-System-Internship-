@@ -1,0 +1,723 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS GLOBAL ENTERPRISE DESIGN SYSTEM — MASTER STYLESHEET
+// ═══════════════════════════════════════════════════════════════════════════
+// Single entry point for all styles. Import order is critical.
+
+// 1. Google Fonts
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+// 2. Bootstrap 5 Variable Overrides (MUST be before Bootstrap import)
+@import 'bootstrap-overrides';
+
+// 3. Bootstrap 5 Core
+@import 'bootstrap/scss/bootstrap';
+@import 'reset';
+
+// 4. Bootstrap Icons
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+// 5. Design System Tokens
+@import 'theme/index';
+
+// 6. Component Styles
+@import 'components/index';
+
+// 7. Utility Styles
+@import 'utilities/index';
+
+// 8. Ethiopian Brand Accents
+@import 'ethiopian-accents';
+
+// 9. Centralized Responsive Design System
+@import 'responsive';
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL BASE STYLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--vms-bg-primary);
+  color: var(--vms-text-primary);
+  font-family: var(--vms-font-family, 'Inter', sans-serif);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+::selection {
+  background-color: rgba(var(--vms-primary-rgb), 0.2);
+  color: var(--vms-text-primary);
+}
+
+// ── Global Layout ────────────────────────────────────────────────────────
+.vms-app {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  background-color: var(--vms-bg-primary);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.vms-main-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 100vh;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding-left: 0;
+  transition: padding-left var(--vms-transition-normal, 0.25s ease);
+
+  @media (min-width: 992px) {
+    padding-left: var(--vms-sidebar-width, 260px);
+  }
+
+  &.sidebar-collapsed {
+    @media (min-width: 992px) {
+      padding-left: var(--vms-sidebar-collapsed, 70px);
+    }
+  }
+}
+
+.vms-main-content {
+  flex: 1 1 auto;
+  padding: var(--vms-page-padding, 1rem);
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+// ── Universal Document Inspection Studio Overlay (Display Area Bound) ───
+.vms-doc-modal-overlay {
+  position: fixed;
+  inset-block: 0;
+  right: 0;
+  left: 0;
+  z-index: 1070;
+  background-color: rgba(4, 7, 16, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  transition: left var(--vms-transition-normal, 0.25s ease);
+
+  @media (min-width: 992px) {
+    left: var(--vms-sidebar-width, 260px);
+    padding: 0.75rem 1rem;
+  }
+}
+
+.sidebar-collapsed .vms-doc-modal-overlay,
+.vms-main-wrapper.sidebar-collapsed .vms-doc-modal-overlay {
+  @media (min-width: 992px) {
+    left: var(--vms-sidebar-collapsed, 70px);
+  }
+}
+
+
+// ── Override Bootstrap text-muted for theme ──────────────────────────────
+.text-muted {
+  color: var(--vms-text-muted) !important;
+}
+
+// ── Override Bootstrap .card for theme ───────────────────────────────────
+.card {
+  background-color: var(--vms-bg-card);
+  border-color: var(--vms-border);
+  color: var(--vms-text-primary);
+  box-shadow: var(--vms-shadow-card);
+  transition: var(--vms-hover-transition);
+}
+
+// ── Override Bootstrap .table for theme ──────────────────────────────────
+.table {
+  color: var(--vms-text-primary);
+  border-color: var(--vms-border);
+
+  > thead > tr > th {
+    background-color: var(--vms-bg-secondary);
+    color: var(--vms-text-secondary);
+    border-color: var(--vms-border);
+  }
+
+  > tbody > tr > td {
+    border-color: var(--vms-border);
+  }
+
+  > tbody > tr:hover {
+    background-color: var(--vms-bg-hover);
+  }
+}
+
+// ── Override Bootstrap .form-control for theme ───────────────────────────
+.form-control,
+.form-select {
+  background-color: var(--vms-bg-input);
+  border-color: var(--vms-border-input);
+  color: var(--vms-text-primary);
+  transition: var(--vms-hover-transition);
+
+  &::placeholder {
+    color: var(--vms-text-muted);
+  }
+
+  &:focus {
+    background-color: var(--vms-bg-input);
+    border-color: var(--vms-border-focus);
+    color: var(--vms-text-primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+  }
+}
+
+/* ── Global Enterprise Invalid Input Overrides (Google Gmail Red Style) ── */
+.form-control.is-invalid,
+.form-control[aria-invalid="true"],
+.form-control[data-invalid="true"],
+input.is-invalid,
+input[aria-invalid="true"],
+input[data-invalid="true"],
+select.is-invalid,
+select[aria-invalid="true"],
+select[data-invalid="true"],
+textarea.is-invalid,
+textarea[aria-invalid="true"],
+textarea[data-invalid="true"] {
+  border: 2px solid #f43f5e !important;
+  background-color: rgba(244, 63, 94, 0.08) !important;
+
+  &:focus,
+  &:focus-within,
+  &:focus-visible {
+    border-color: #f43f5e !important;
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.3) !important;
+    outline: 2px solid #f43f5e !important;
+    outline-offset: 0px !important;
+  }
+}
+
+// ── Override Bootstrap .modal for theme ──────────────────────────────────
+.modal-content {
+  background-color: var(--vms-bg-card);
+  border-color: var(--vms-border);
+  color: var(--vms-text-primary);
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--vms-border);
+}
+
+// ── Override Bootstrap .dropdown-menu for theme ──────────────────────────
+.dropdown-menu {
+  background-color: var(--vms-bg-card);
+  border-color: var(--vms-border);
+  box-shadow: var(--vms-shadow-lg);
+
+  .dropdown-item {
+    color: var(--vms-text-primary);
+
+    &:hover, &:focus {
+      background-color: var(--vms-bg-hover);
+      color: var(--vms-text-primary);
+    }
+  }
+}
+
+// ── Override Bootstrap .btn for theme consistency ────────────────────────
+.btn-primary {
+  background-color: var(--vms-primary);
+  border-color: var(--vms-primary);
+
+  &:hover {
+    background-color: var(--vms-primary-hover);
+    border-color: var(--vms-primary-hover);
+    transform: var(--vms-hover-transform);
+    box-shadow: var(--vms-hover-shadow);
+  }
+}
+
+// ── Print Styles ─────────────────────────────────────────────────────────
+@media print {
+  .vms-sidebar,
+  .vms-navbar,
+  .vms-sidebar-overlay,
+  .no-print {
+    display: none !important;
+  }
+
+  .vms-main-wrapper {
+    padding-left: 0 !important;
+  }
+
+  .vms-main-content {
+    padding: 0 !important;
+  }
+
+  body {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+  }
+}
+
+.table-responsive,
+.vms-table-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--vms-border) transparent;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--vms-border);
+    border-radius: 3px;
+
+    &:hover {
+      background: var(--vms-text-tertiary);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 1: UNIFIED BUTTON STANDARDIZATION — MIDDLE SIZE & ATTRACTIVE HOVER (ALL ROLES)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 1: UNIFIED BUTTON STANDARDIZATION — MIDDLE SIZE & ATTRACTIVE HOVER (ALL ROLES)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/* Standard text buttons across all roles get comfortable middle size (42px) */
+.btn:not(.btn-sm):not(.btn-lg):not(.btn-icon):not([class*="w-"]):not([class*="h-"]):not(.dropdown-toggle-split),
+.vms-btn:not(.vms-btn--sm):not(.vms-btn--lg):not(.vms-btn--icon):not([class*="w-"]):not([class*="h-"]),
+button[type="submit"]:not(.btn-sm):not(.btn-icon):not([class*="w-"]):not([class*="h-"]),
+button[type="reset"]:not(.btn-sm):not(.btn-icon):not([class*="w-"]):not([class*="h-"]) {
+  height: 42px;
+  min-height: 42px;
+  padding: 0 1.125rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+
+  &:hover:not(:disabled):not(.disabled) {
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), 0 0 12px rgba(99, 102, 241, 0.2);
+  }
+
+  &:active:not(:disabled):not(.disabled) {
+    transform: translateY(0.5px) scale(0.98);
+  }
+}
+
+// ── Table Action Buttons & Dedicated Icon Button Styling (100% VISIBLE ICONS) ──
+table td button,
+.table td button,
+td div button,
+button[class*="w-7"],
+button[class*="w-8"],
+button[class*="w-9"],
+button[class*="h-7"],
+button[class*="h-8"],
+button[class*="h-9"],
+button.btn-icon,
+.vms-btn--icon {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  border-radius: 0.5rem !important;
+  overflow: visible !important;
+  flex-shrink: 0 !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+  svg, i {
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+    max-width: 16px !important;
+    max-height: 16px !important;
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    flex-shrink: 0 !important;
+    stroke-width: 2 !important;
+    transition: transform 0.2s ease, color 0.2s ease !important;
+  }
+
+  &:hover {
+    transform: scale(1.1) translateY(-1px) !important;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 2: HOVER BORDER OF ALL FILE UPLOAD PLACES & DROPZONES (ALL ROLES)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.vms-file-upload,
+.dropzone,
+.file-drop-zone,
+[data-upload-zone],
+[data-dropzone] {
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #6366f1 !important;
+    border-style: dashed !important;
+    background-color: rgba(99, 102, 241, 0.08) !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.22), 0 10px 25px -4px rgba(99, 102, 241, 0.25) !important;
+    transform: translateY(-2px);
+
+    svg, i {
+      transform: translateY(-3px) scale(1.12);
+      color: #818cf8 !important;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease;
+    }
+
+    p, span, label, strong {
+      color: var(--vms-text-primary);
+    }
+  }
+
+  &:active,
+  &.is-dragging,
+  &[data-dragging="true"] {
+    border-color: #818cf8 !important;
+    background-color: rgba(99, 102, 241, 0.15) !important;
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.35) !important;
+    transform: scale(1.015);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 3: CARD MULTI-DIRECTIONAL HOVER ANIMATION & BORDER COLOR FILL (ALL ROLES)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.vms-card,
+.card,
+.stat-card,
+.org-profile-card,
+.vms-main-content div[class*="rounded-xl"][class*="border"]:not(button):not(input):not(select):not(textarea):not(table):not(.modal):not(.modal-dialog):not(form):not(.vms-form-group),
+.vms-main-content div[class*="rounded-2xl"][class*="border"]:not(button):not(input):not(select):not(textarea):not(table):not(.modal):not(.modal-dialog):not(form):not(.vms-form-group) {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.28s ease;
+
+  &:hover {
+    // Multi-directional lift & scale animation
+    transform: translateY(-4px) scale(1.006);
+    // Fill border color
+    border-color: #6366f1 !important;
+    box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.35),
+                0 0 16px rgba(99, 102, 241, 0.22) !important;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 4: FUNCTIONAL ICON MATRIX WITH COMPATIBLE NORMAL & HOVER COLORS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── 1. DELETE / REMOVE / TRASH / REJECT (RED ICON & RED HOVER) ─────────
+[title*="Delete" i],
+[aria-label*="Delete" i],
+[title*="Remove" i],
+[aria-label*="Remove" i],
+[title*="Trash" i],
+.group\/del,
+.action-delete,
+.btn-delete,
+button:has(svg.lucide-trash),
+button:has(svg.lucide-trash-2) {
+  background-color: rgba(239, 68, 68, 0.16) !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  color: #f87171 !important;
+
+  svg, i {
+    color: #f87171 !important;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+    border-color: #f87171 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.55), 0 0 10px rgba(239, 68, 68, 0.35) !important;
+
+    svg, i {
+      color: #ffffff !important;
+      transform: scale(1.1);
+    }
+  }
+}
+
+// ── 2. MAIL / CREDENTIALS (SKY BLUE ICON & SKY BLUE HOVER) ─────────────
+[title*="Mail" i],
+[title*="Credential" i],
+[title*="Send User" i],
+button:has(svg.lucide-mail) {
+  background-color: rgba(14, 165, 233, 0.16) !important;
+  border: 1px solid rgba(14, 165, 233, 0.35) !important;
+  color: #38bdf8 !important;
+
+  svg, i {
+    color: #38bdf8 !important;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #0284c7, #0ea5e9) !important;
+    border-color: #38bdf8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.55), 0 0 10px rgba(14, 165, 233, 0.35) !important;
+
+    svg, i {
+      color: #ffffff !important;
+      transform: scale(1.1);
+    }
+  }
+}
+
+// ── 3. VIEW / DETAILS / INFO / PREVIEW (BLUE ICON & BLUE HOVER) ────────
+[title*="View" i],
+[aria-label*="View" i],
+[title*="Detail" i],
+[aria-label*="Detail" i],
+[title*="Info" i],
+[title*="Preview" i],
+.action-view,
+.btn-view,
+button:has(svg.lucide-eye) {
+  background-color: rgba(59, 130, 246, 0.16) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: #60a5fa !important;
+
+  svg, i {
+    color: #60a5fa !important;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+    border-color: #60a5fa !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.55), 0 0 10px rgba(59, 130, 246, 0.35) !important;
+
+    svg, i {
+      color: #ffffff !important;
+      transform: scale(1.1);
+    }
+  }
+}
+
+// ── 4. SECURITY / AUDIT / SHIELD (INDIGO ICON & INDIGO HOVER) ──────────
+[title*="Security" i],
+[title*="Shield" i],
+[title*="Session" i],
+button:has(svg.lucide-shield-check) {
+  background-color: rgba(99, 102, 241, 0.16) !important;
+  border: 1px solid rgba(99, 102, 241, 0.35) !important;
+  color: #818cf8 !important;
+
+  svg, i {
+    color: #818cf8 !important;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #4338ca, #6366f1) !important;
+    border-color: #818cf8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.55), 0 0 10px rgba(99, 102, 241, 0.35) !important;
+
+    svg, i {
+      color: #ffffff !important;
+      transform: scale(1.1);
+    }
+  }
+}
+
+// ── 5. EDIT / UPDATE / MODIFY (AMBER GOLD ICON & AMBER HOVER) ──────────
+[title*="Edit" i],
+[aria-label*="Edit" i],
+[title*="Update" i],
+[aria-label*="Update" i],
+[title*="Modify" i],
+.action-edit,
+.btn-edit,
+button:has(svg.lucide-edit),
+button:has(svg.lucide-edit-2),
+button:has(svg.lucide-edit-3) {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  color: #fbbf24 !important;
+
+  svg, i {
+    color: #fbbf24 !important;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+    border-color: #fbbf24 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.55), 0 0 10px rgba(245, 158, 11, 0.35) !important;
+
+    svg, i {
+      color: #ffffff !important;
+      transform: scale(1.1);
+    }
+  }
+}
+
+// ── 6. LOCK / UNLOCK / STATUS (EMERALD GREEN ICON & EMERALD HOVER) ─────
+[title*="Lock" i],
+[title*="Status" i],
+.group\/lock,
+button:has(svg.lucide-lock),
+button:has(svg.lucide-unlock) {
+  background-color: rgba(16, 185, 129, 0.16) !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  color: #34d399 !important;
+
+  svg, i {
+    color: #34d399 !important;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+    border-color: #34d399 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.55), 0 0 10px rgba(16, 185, 129, 0.35) !important;
+
+    svg, i {
+      color: #ffffff !important;
+      transform: scale(1.1);
+    }
+  }
+}
+
+// ── 7. KEY / ADMIN PASSWORD RESET (VIOLET/PURPLE ICON & VIOLET HOVER) ──
+[title*="Reset" i],
+[title*="Password" i],
+[title*="Key" i],
+.group\/key,
+button:has(svg.lucide-key) {
+  background-color: rgba(139, 92, 246, 0.16) !important;
+  border: 1px solid rgba(139, 92, 246, 0.35) !important;
+  color: #a78bfa !important;
+
+  svg, i {
+    color: #a78bfa !important;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #7c3aed, #8b5cf6) !important;
+    border-color: #a78bfa !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.55), 0 0 10px rgba(139, 92, 246, 0.35) !important;
+
+    svg, i {
+      color: #ffffff !important;
+      transform: scale(1.1);
+    }
+  }
+}
+
+// ── 8. BACK BUTTON / BACK ICON (VISIBLE LIGHT INDIGO & HOVER SLIDE) ────
+[title*="Back" i],
+[aria-label*="Back" i],
+.btn-back,
+.back-btn,
+button:has(svg.lucide-arrow-left),
+a:has(svg.lucide-arrow-left),
+button:has(svg.lucide-chevron-left) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  background-color: rgba(99, 102, 241, 0.14) !important;
+  border: 1px solid rgba(99, 102, 241, 0.3) !important;
+  color: #f8fafc !important;
+  border-radius: 0.5rem !important;
+  cursor: pointer !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+  svg, i {
+    width: 16px !important;
+    height: 16px !important;
+    color: #818cf8 !important;
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: transform 0.2s ease, color 0.2s ease !important;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #4338ca, #4f46e5) !important;
+    border-color: #818cf8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45) !important;
+    transform: translateX(-2px) !important;
+
+    svg, i {
+      color: #ffffff !important;
+      transform: translateX(-3px) !important;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 5: HOVER LINK MICRO-ANIMATION & COLOR HIGHLIGHT (ALL ROLES)
+// ═══════════════════════════════════════════════════════════════════════════
+
+a:not(.btn):not(.vms-btn):not(.nav-link):not(.sidebar-link):not(.dropdown-item) {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    color: #818cf8 !important;
+    text-shadow: 0 0 10px rgba(99, 102, 241, 0.35);
+  }
+}
+
+.vms-breadcrumb a:hover,
+table td a:hover {
+  color: #818cf8 !important;
+  background-color: rgba(99, 102, 241, 0.12) !important;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-decoration: none !important;
+}
+
+

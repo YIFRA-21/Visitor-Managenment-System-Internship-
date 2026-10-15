@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/identity/profile
+url: "{{baseUrl}}/api/identity/profile"
+method: GET
+headers:
+  Content-Type: application/json
+order: 4000

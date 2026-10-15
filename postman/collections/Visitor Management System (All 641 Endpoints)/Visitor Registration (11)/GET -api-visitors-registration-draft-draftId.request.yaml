@@ -1,0 +1,9 @@
+$kind: http-request
+name: GET /api/visitors/registration/draft/:draftId
+url: "{{baseUrl}}/api/visitors/registration/draft/:draftId"
+method: GET
+headers:
+  Content-Type: application/json
+pathVariables:
+  draftId: ""
+order: 5000

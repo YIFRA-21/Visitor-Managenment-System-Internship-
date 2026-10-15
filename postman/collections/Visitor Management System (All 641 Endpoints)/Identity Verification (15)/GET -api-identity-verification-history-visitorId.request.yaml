@@ -1,0 +1,9 @@
+$kind: http-request
+name: GET /api/identity-verification/history/:visitorId
+url: "{{baseUrl}}/api/identity-verification/history/:visitorId"
+method: GET
+headers:
+  Content-Type: application/json
+pathVariables:
+  visitorId: ""
+order: 14000

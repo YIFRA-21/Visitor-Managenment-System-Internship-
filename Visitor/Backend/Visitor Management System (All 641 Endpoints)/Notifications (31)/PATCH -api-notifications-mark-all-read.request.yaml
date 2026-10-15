@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/notifications/mark-all-read
+url: "{{baseUrl}}/api/notifications/mark-all-read"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 14000

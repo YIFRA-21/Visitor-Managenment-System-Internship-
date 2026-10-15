@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/organizations/branches/:id
+url: "{{baseUrl}}/api/organizations/branches/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 23000

@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/dashboard/activities
+url: "{{baseUrl}}/api/dashboard/activities"
+method: GET
+headers:
+  Content-Type: application/json
+order: 3000

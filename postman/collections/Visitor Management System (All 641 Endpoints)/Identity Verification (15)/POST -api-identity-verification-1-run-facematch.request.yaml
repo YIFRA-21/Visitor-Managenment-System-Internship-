@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/identity-verification/1/run-facematch
+url: "{{baseUrl}}/api/identity-verification/1/run-facematch"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 10000

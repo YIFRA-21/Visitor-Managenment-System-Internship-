@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/checkin/analytics
+url: "{{baseUrl}}/api/checkin/analytics"
+method: GET
+headers:
+  Content-Type: application/json
+order: 8000

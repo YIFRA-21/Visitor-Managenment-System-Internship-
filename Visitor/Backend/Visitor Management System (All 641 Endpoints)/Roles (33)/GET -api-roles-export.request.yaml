@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/roles/export
+url: "{{baseUrl}}/api/roles/export"
+method: GET
+headers:
+  Content-Type: application/json
+order: 5000

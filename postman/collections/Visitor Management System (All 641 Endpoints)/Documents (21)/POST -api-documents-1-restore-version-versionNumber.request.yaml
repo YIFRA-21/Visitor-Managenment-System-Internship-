@@ -1,0 +1,15 @@
+$kind: http-request
+name: POST /api/documents/1/restore-version/:versionNumber
+url: "{{baseUrl}}/api/documents/1/restore-version/:versionNumber"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  versionNumber: ""
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 17000

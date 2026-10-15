@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/visitor-categories
+url: "{{baseUrl}}/api/visitor-categories"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 5000

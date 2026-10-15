@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/visitors/registration/upload-document
+url: "{{baseUrl}}/api/visitors/registration/upload-document"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 7000

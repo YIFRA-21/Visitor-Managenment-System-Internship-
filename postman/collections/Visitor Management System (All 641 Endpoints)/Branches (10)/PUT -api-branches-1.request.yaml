@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/branches/1
+url: "{{baseUrl}}/api/branches/1"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 7000

@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/security/escorts
+url: "{{baseUrl}}/api/security/escorts"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 14000

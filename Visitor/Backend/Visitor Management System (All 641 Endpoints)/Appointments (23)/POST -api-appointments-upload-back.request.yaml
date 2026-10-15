@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/appointments/upload/back
+url: "{{baseUrl}}/api/appointments/upload/back"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 3000

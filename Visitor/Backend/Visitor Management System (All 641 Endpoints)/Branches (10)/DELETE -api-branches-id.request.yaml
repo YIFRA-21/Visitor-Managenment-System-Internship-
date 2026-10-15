@@ -1,0 +1,7 @@
+$kind: http-request
+name: DELETE /api/branches/:id
+url: "{{baseUrl}}/api/branches/:id"
+method: DELETE
+headers:
+  Content-Type: application/json
+order: 8000

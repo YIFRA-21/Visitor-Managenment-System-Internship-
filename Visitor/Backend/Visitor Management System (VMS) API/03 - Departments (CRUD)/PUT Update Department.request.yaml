@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/departments/1"
+method: PUT
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{authToken}}
+body:
+  type: text
+  content: |-
+    {
+      "departmentName": "Research & Advanced Innovation",
+      "departmentCode": "RND001",
+      "organizationId": 1,
+      "branchId": 3,
+      "departmentType": "TECHNICAL",
+      "officeLocation": "HQ Building, Floor 4 Room 402"
+    }
+order: 4000

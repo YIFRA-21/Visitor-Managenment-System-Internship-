@@ -1,0 +1,183 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS GLOBAL ENTERPRISE DESIGN SYSTEM — COLOR TOKENS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Standard Mandatory Global Brand & Action Variables
+:root {
+  // Brand / Primary
+  --vms-primary:          #4F46E5;
+  --vms-primary-hover:    #4338CA;
+  --vms-primary-rgb:      79, 70, 229;
+
+  // Semantic Status Colors
+  --vms-success:          #10B981;
+  --vms-warning:          #F59E0B;
+  --vms-danger:           #EF4444;
+  --vms-info:             #3B82F6;
+
+  // Unchangeable Mandatory Action Button Colors
+  --vms-action-view:      #3B82F6;
+  --vms-action-edit:      #F59E0B;
+  --vms-action-add:       #4F46E5;
+  --vms-action-register:  #4F46E5;
+  --vms-action-save:      #10B981;
+  --vms-action-delete:    #EF4444;
+  --vms-action-refresh:   #64748B;
+  --vms-action-reset:     #6B7280;
+  --vms-action-search:    #8B5CF6;
+  --vms-action-export:    #F97316;
+  --vms-action-import:    #0EA5E9;
+  --vms-action-download:  #2563EB;
+  --vms-action-upload:    #06B6D4;
+  --vms-action-print:     #71717A;
+  --vms-action-history:   #14B8A6;
+  --vms-action-security:  #EAB308;
+  --vms-action-approve:   #10B981;
+  --vms-action-reject:    #F43F5E;
+
+  // Global Micro-Animation Settings
+  --vms-hover-transition: all 0.25s ease;
+  --vms-hover-transform:  translateY(-2px);
+  --vms-hover-shadow:     0 10px 25px rgba(0, 0, 0, 0.18);
+  --vms-hover-neutral-bg: rgba(148, 163, 184, 0.40);
+
+  // Border radius & transition defaults
+  --vms-sidebar-width: 260px;
+  --vms-sidebar-collapsed: 70px;
+  --vms-transition-normal: 0.25s ease;
+  --vms-transition-fast: 0.15s ease;
+
+  // Aliases for Tailwind config variables
+  --bg-primary:           var(--vms-bg-primary);
+  --bg-secondary:         var(--vms-bg-secondary);
+  --bg-card:              var(--vms-bg-card);
+  --text-primary:         var(--vms-text-primary);
+  --text-secondary:       var(--vms-text-secondary);
+  --border-color:         var(--vms-border);
+}
+
+// ── LIGHT MODE (DEFAULT) ────────────────────────────────────────────────
+:root,
+[data-theme="light"] {
+  --vms-bg-primary:       #F8FAFC;
+  --vms-bg-card:          #FFFFFF;
+  --vms-bg-secondary:     #F1F5F9;
+  --vms-bg-sidebar:             #0F172A;
+  --vms-sidebar-border:         rgba(255, 255, 255, 0.08);
+  --vms-sidebar-text:           #CBD5E1;
+  --vms-sidebar-hover-bg:       rgba(255, 255, 255, 0.12);
+  --vms-sidebar-hover-border:   rgba(255, 255, 255, 0.20);
+  --vms-sidebar-icon:           rgba(255, 255, 255, 0.7);
+  --vms-sidebar-icon-hover:     #FFFFFF;
+  --vms-bg-navbar:        #FFFFFF;
+  --vms-bg-table-header:  #F8FAFC;
+  --vms-bg-input:         #FFFFFF;
+  --vms-bg-hover:         rgba(148, 163, 184, 0.15);
+  --vms-bg-active:        #EEF2FF;
+  --vms-bg-modal-overlay: rgba(15, 23, 42, 0.5);
+
+  // Text
+  --vms-text-primary:     #0F172A;
+  --vms-text-secondary:   #475569;
+  --vms-text-muted:       #64748B;
+  --vms-text-tertiary:    #94A3B8;
+  --vms-text-inverse:     #FFFFFF;
+
+  // Borders
+  --vms-border:           #E2E8F0;
+  --vms-border-light:     #F1F5F9;
+  --vms-border-focus:     #4F46E5;
+  --vms-border-input:     #CBD5E1;
+
+  // Semantic Light Accents
+  --vms-success-light:    #ECFDF5;
+  --vms-warning-light:    #FFFBEB;
+  --vms-danger-light:     #FEF2F2;
+  --vms-info-light:       #EFF6FF;
+
+  // Centralized Table Tokens
+  --vms-table-header-bg:       linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 100%);
+  --vms-table-header-border:   #6366F1;
+  --vms-table-header-text:     #0F172A;
+  --vms-table-header-accent:   #4F46E5;
+  --vms-table-header-hover-bg: linear-gradient(180deg, #E2E8F0 0%, #CBD5E1 100%);
+  --vms-table-header-shadow:   0 2px 6px rgba(0, 0, 0, 0.05);
+  --vms-table-row-bg:       #FFFFFF;
+  --vms-table-row-hover-bg: #F1F5F9;
+  --vms-table-row-border:   #E2E8F0;
+  --vms-table-text-primary: #0F172A;
+  --vms-table-text-secondary: #64748B;
+  --vms-table-accent-text:  #4F46E5;
+
+  // Shadows
+  --vms-shadow-xs:        0 1px 2px rgba(15, 23, 42, 0.05);
+  --vms-shadow-sm:        0 1px 3px rgba(15, 23, 42, 0.08);
+  --vms-shadow-md:        0 4px 6px -1px rgba(15, 23, 42, 0.08);
+  --vms-shadow-lg:        0 10px 15px -3px rgba(15, 23, 42, 0.08);
+  --vms-shadow-card:      0 1px 3px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+
+// ── DARK MODE ───────────────────────────────────────────────────────────
+[data-theme="dark"],
+html[data-theme="dark"],
+body[data-theme="dark"],
+[data-bs-theme="dark"],
+.dark {
+  --vms-bg-primary:       #0F172A;
+  --vms-bg-card:          #1E293B;
+  --vms-bg-secondary:     #273449;
+  --vms-bg-sidebar:             #0B0F19;
+  --vms-sidebar-border:         rgba(255, 255, 255, 0.08);
+  --vms-sidebar-text:           #CBD5E1;
+  --vms-sidebar-hover-bg:       rgba(255, 255, 255, 0.12);
+  --vms-sidebar-hover-border:   rgba(255, 255, 255, 0.20);
+  --vms-sidebar-icon:           rgba(255, 255, 255, 0.7);
+  --vms-sidebar-icon-hover:     #FFFFFF;
+  --vms-bg-navbar:        #111827;
+  --vms-bg-table-header:  #151E2E;
+  --vms-bg-input:         #1E293B;
+  --vms-bg-hover:         #273449;
+  --vms-bg-active:        rgba(79, 70, 229, 0.2);
+  --vms-bg-modal-overlay: rgba(0, 0, 0, 0.75);
+
+  // Centralized Table Tokens
+  --vms-table-header-bg:       linear-gradient(180deg, #1E293B 0%, #151E2E 100%);
+  --vms-table-header-border:   #6366F1;
+  --vms-table-header-text:     #F8FAFC;
+  --vms-table-header-accent:   #818CF8;
+  --vms-table-header-hover-bg: linear-gradient(180deg, #273449 0%, #1A2638 100%);
+  --vms-table-header-shadow:   0 4px 12px -2px rgba(99, 102, 241, 0.25);
+  --vms-table-row-bg:       #1E293B;
+  --vms-table-row-hover-bg: #273449;
+  --vms-table-row-border:   rgba(148, 163, 184, 0.18);
+  --vms-table-text-primary: #F8FAFC;
+  --vms-table-text-secondary: #94A3B8;
+  --vms-table-accent-text:  #818CF8;
+
+  // Text
+  --vms-text-primary:     #F8FAFC;
+  --vms-text-secondary:   #CBD5E1;
+  --vms-text-muted:       #94A3B8;
+  --vms-text-tertiary:    #64748B;
+  --vms-text-inverse:     #0F172A;
+
+  // Borders
+  --vms-border:           rgba(148, 163, 184, 0.18);
+  --vms-sidebar-border:   rgba(148, 163, 184, 0.18);
+  --vms-border-light:     rgba(148, 163, 184, 0.1);
+  --vms-border-focus:     #6366F1;
+  --vms-border-input:     rgba(148, 163, 184, 0.25);
+
+  // Semantic Dark Accents
+  --vms-success-light:    rgba(16, 185, 129, 0.15);
+  --vms-warning-light:    rgba(245, 158, 11, 0.15);
+  --vms-danger-light:     rgba(239, 68, 68, 0.15);
+  --vms-info-light:       rgba(59, 130, 246, 0.15);
+
+  // Shadows
+  --vms-shadow-xs:        0 1px 2px rgba(0, 0, 0, 0.3);
+  --vms-shadow-sm:        0 1px 3px rgba(0, 0, 0, 0.4);
+  --vms-shadow-md:        0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --vms-shadow-lg:        0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  --vms-shadow-card:      0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(148, 163, 184, 0.18);
+}

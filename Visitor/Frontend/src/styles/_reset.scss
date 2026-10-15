@@ -1,0 +1,61 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — TAILWIND NORMALIZATION RESET
+// ═══════════════════════════════════════════════════════════════════════════
+// Normalizes buttons, inputs, selects, and textareas to remove default browser
+// styling, matching Tailwind's baseline resets.
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+button,
+[type='button'],
+[type='reset'],
+[type='submit'] {
+  background-color: transparent;
+  background-image: none;
+  border-style: none;
+  border-width: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-transform: none;
+  -webkit-appearance: button;
+  appearance: button;
+}
+
+button:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  margin: 0;
+}
+

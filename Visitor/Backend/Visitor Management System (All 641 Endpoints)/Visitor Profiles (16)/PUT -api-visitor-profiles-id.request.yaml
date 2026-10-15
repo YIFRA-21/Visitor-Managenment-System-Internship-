@@ -1,0 +1,13 @@
+$kind: http-request
+name: PUT /api/visitor-profiles/:id
+url: "{{baseUrl}}/api/visitor-profiles/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 5000

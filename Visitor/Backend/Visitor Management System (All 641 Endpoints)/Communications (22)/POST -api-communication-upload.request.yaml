@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/communication/upload
+url: "{{baseUrl}}/api/communication/upload"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 15000

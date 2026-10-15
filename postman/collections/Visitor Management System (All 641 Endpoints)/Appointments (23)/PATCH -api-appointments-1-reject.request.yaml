@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/appointments/1/reject
+url: "{{baseUrl}}/api/appointments/1/reject"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 17000

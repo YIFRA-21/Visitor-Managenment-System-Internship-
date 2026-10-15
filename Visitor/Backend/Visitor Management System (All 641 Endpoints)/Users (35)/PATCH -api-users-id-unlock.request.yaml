@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/users/:id/unlock
+url: "{{baseUrl}}/api/users/:id/unlock"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 20000

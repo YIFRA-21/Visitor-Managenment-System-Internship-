@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/visitor-profiles/:id/pass
+url: "{{baseUrl}}/api/visitor-profiles/:id/pass"
+method: GET
+headers:
+  Content-Type: application/json
+order: 4000

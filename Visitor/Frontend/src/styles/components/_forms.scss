@@ -1,0 +1,183 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS GLOBAL ENTERPRISE DESIGN SYSTEM — FORM CONTROLS STYLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+.vms-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1.25rem;
+}
+
+.vms-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--vms-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  &__required {
+    color: var(--vms-danger);
+  }
+}
+
+.vms-input,
+.vms-select,
+.vms-textarea {
+  width: 100%;
+  min-height: 44px; // WCAG AA Touch target
+  padding: 0.625rem 0.875rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--vms-text-primary);
+  background-color: var(--vms-bg-input);
+  border: 1px solid var(--vms-border-input);
+  border-radius: 0.5rem;
+  transition: var(--vms-hover-transition);
+
+  &:hover {
+    border-color: var(--vms-primary);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--vms-border-focus);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+  }
+
+  &:disabled {
+    background-color: var(--vms-bg-secondary);
+    color: var(--vms-text-muted);
+    cursor: not-allowed;
+  }
+
+  &--error {
+    border-color: var(--vms-danger) !important;
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+    }
+  }
+}
+
+.vms-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.vms-error-text {
+  font-size: 0.75rem;
+  color: var(--vms-danger);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.vms-helper-text {
+  font-size: 0.75rem;
+  color: var(--vms-text-muted);
+}
+
+// ── Responsive Form Row & Grid ───────────────────────────────────────────
+.vms-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+
+    > .vms-form-group,
+    > div {
+      flex: 1 1 0%;
+      margin-bottom: 0;
+    }
+  }
+}
+
+.vms-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.vms-form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+
+  @media (min-width: 576px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 992px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.vms-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--vms-border);
+
+  @media (max-width: 575px) {
+    flex-direction: column-reverse;
+
+    > * {
+      width: 100%;
+    }
+  }
+}
+
+// ── Enterprise File Upload & Dropzone System (All Roles) ──────────────────
+.vms-file-upload,
+.dropzone,
+.file-drop-zone,
+[data-upload-zone],
+[data-dropzone] {
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer;
+  position: relative;
+
+  &:hover {
+    border-color: #6366f1 !important;
+    border-style: dashed !important;
+    background-color: rgba(99, 102, 241, 0.08) !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2), 0 10px 25px -4px rgba(99, 102, 241, 0.22) !important;
+    transform: translateY(-2px);
+
+    svg, i {
+      transform: translateY(-3px) scale(1.12);
+      color: #818cf8 !important;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease;
+    }
+
+    p, span, label {
+      color: var(--vms-text-primary);
+    }
+  }
+
+  &:active,
+  &.is-dragging,
+  &[data-dragging="true"] {
+    border-color: #818cf8 !important;
+    background-color: rgba(99, 102, 241, 0.14) !important;
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.35) !important;
+    transform: scale(1.01);
+  }
+}
+
+

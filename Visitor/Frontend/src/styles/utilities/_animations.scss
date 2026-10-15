@@ -1,0 +1,169 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — ANIMATION UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Keyframes ────────────────────────────────────────────────────────────
+@keyframes vms-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes vms-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes vms-slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes vms-slide-down {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes vms-slide-left {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes vms-slide-right {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes vms-scale-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes vms-scale-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.9); }
+}
+
+@keyframes vms-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes vms-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes vms-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes vms-skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+// Ethiopian flag loading animation
+@keyframes vms-ethiopian-loader {
+  0% { background-color: #078930; }
+  33% { background-color: #FCDD09; }
+  66% { background-color: #DA121A; }
+  100% { background-color: #078930; }
+}
+
+// ── Utility Classes ──────────────────────────────────────────────────────
+.vms-animate-fade-in     { animation: vms-fade-in 0.3s ease-out; }
+.vms-animate-slide-up    { animation: vms-slide-up 0.4s ease-out; }
+.vms-animate-slide-down  { animation: vms-slide-down 0.4s ease-out; }
+.vms-animate-slide-left  { animation: vms-slide-left 0.4s ease-out; }
+.vms-animate-slide-right { animation: vms-slide-right 0.4s ease-out; }
+.vms-animate-scale-in    { animation: vms-scale-in 0.3s ease-out; }
+.vms-animate-spin        { animation: vms-spin 1s linear infinite; }
+.vms-animate-pulse       { animation: vms-pulse 2s ease-in-out infinite; }
+.vms-animate-bounce      { animation: vms-bounce 1s ease-in-out infinite; }
+
+// ── Loading Skeleton ─────────────────────────────────────────────────────
+.vms-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--vms-border-light) 25%,
+    var(--vms-bg-hover) 50%,
+    var(--vms-border-light) 75%
+  );
+  background-size: 200% 100%;
+  animation: vms-skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--vms-radius-sm);
+
+  &--text {
+    height: 0.875rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  &--heading {
+    height: 1.5rem;
+    width: 60%;
+    margin-bottom: 0.75rem;
+  }
+
+  &--avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--vms-radius-full);
+  }
+
+  &--card {
+    height: 8rem;
+    border-radius: var(--vms-radius-xl);
+  }
+
+  &--button {
+    height: 2.5rem;
+    width: 8rem;
+    border-radius: var(--vms-radius-md);
+  }
+}
+
+// ── Stagger Children ─────────────────────────────────────────────────────
+.vms-stagger > * {
+  animation: vms-fade-in 0.3s ease-out both;
+}
+
+@for $i from 1 through 12 {
+  .vms-stagger > *:nth-child(#{$i}) {
+    animation-delay: #{$i * 0.05}s;
+  }
+}
+
+// ── Hover Effects ────────────────────────────────────────────────────────
+.vms-hover-lift {
+  transition: transform var(--vms-transition), box-shadow var(--vms-transition);
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--vms-shadow-md);
+  }
+}
+
+.vms-hover-scale {
+  transition: transform var(--vms-transition);
+  &:hover { transform: scale(1.02); }
+}
+
+.vms-hover-glow {
+  transition: box-shadow var(--vms-transition);
+  &:hover {
+    box-shadow: 0 0 20px rgba(var(--vms-primary-rgb), 0.15);
+  }
+}
+
+// ── Theme Transition ─────────────────────────────────────────────────────
+body,
+.vms-sidebar,
+.vms-navbar,
+.vms-card,
+.vms-table-wrapper,
+.vms-modal {
+  transition: background-color var(--vms-transition-theme),
+              color var(--vms-transition-theme),
+              border-color var(--vms-transition-theme),
+              box-shadow var(--vms-transition-theme);
+}

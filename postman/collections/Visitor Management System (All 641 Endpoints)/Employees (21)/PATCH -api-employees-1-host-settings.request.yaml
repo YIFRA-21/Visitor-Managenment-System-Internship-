@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/employees/1/host-settings
+url: "{{baseUrl}}/api/employees/1/host-settings"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 13000

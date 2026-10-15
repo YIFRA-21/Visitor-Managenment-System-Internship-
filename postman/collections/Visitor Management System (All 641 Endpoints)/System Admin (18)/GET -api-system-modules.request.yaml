@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/system/modules
+url: "{{baseUrl}}/api/system/modules"
+method: GET
+headers:
+  Content-Type: application/json
+order: 10000

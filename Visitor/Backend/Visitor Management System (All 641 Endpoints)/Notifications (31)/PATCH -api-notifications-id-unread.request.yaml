@@ -1,0 +1,13 @@
+$kind: http-request
+name: PATCH /api/notifications/:id/unread
+url: "{{baseUrl}}/api/notifications/:id/unread"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 20000

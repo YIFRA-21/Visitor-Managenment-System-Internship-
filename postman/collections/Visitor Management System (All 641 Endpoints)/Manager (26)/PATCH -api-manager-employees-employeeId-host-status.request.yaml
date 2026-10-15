@@ -1,0 +1,15 @@
+$kind: http-request
+name: PATCH /api/manager/employees/:employeeId/host-status
+url: "{{baseUrl}}/api/manager/employees/:employeeId/host-status"
+method: PATCH
+headers:
+  Content-Type: application/json
+pathVariables:
+  employeeId: ""
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 4000

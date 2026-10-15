@@ -1,0 +1,7 @@
+$kind: http-request
+name: DELETE /api/calendar/special-days/1
+url: "{{baseUrl}}/api/calendar/special-days/1"
+method: DELETE
+headers:
+  Content-Type: application/json
+order: 19000

@@ -1,0 +1,7 @@
+$kind: http-request
+name: GET /api/manager/alternative-hosts
+url: "{{baseUrl}}/api/manager/alternative-hosts"
+method: GET
+headers:
+  Content-Type: application/json
+order: 8000

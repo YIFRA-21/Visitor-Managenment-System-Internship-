@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/manager/visitor-requests/1/reassign
+url: "{{baseUrl}}/api/manager/visitor-requests/1/reassign"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 9000

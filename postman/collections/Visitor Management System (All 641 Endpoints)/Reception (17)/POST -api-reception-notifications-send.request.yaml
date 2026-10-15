@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/reception/notifications/send
+url: "{{baseUrl}}/api/reception/notifications/send"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 11000

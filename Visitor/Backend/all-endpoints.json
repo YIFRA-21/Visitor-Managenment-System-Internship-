@@ -1,0 +1,2646 @@
+{
+  "Authentication": [
+    {
+      "method": "POST",
+      "path": "/api/auth/check-email"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/admin/duplicate-emails"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/login"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh-token"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/forgot-password"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/reset-password"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/verify-email"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/resend-verification"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/change-password"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/auth/change-password"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me/permissions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me/resources"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/profile"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/auth/profile"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/sessions"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/auth/sessions/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/auth/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/users"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/auth/users/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/avatar"
+    }
+  ],
+  "Departments": [
+    {
+      "method": "GET",
+      "path": "/api/departments/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/departments/search"
+    },
+    {
+      "method": "GET",
+      "path": "/api/departments/check-code"
+    },
+    {
+      "method": "GET",
+      "path": "/api/departments/statistics/overview"
+    },
+    {
+      "method": "GET",
+      "path": "/api/departments"
+    },
+    {
+      "method": "POST",
+      "path": "/api/departments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/departments/:id/employees"
+    },
+    {
+      "method": "GET",
+      "path": "/api/departments/:id"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/departments/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/departments/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/departments/:id/status"
+    },
+    {
+      "method": "GET",
+      "path": "/api/departments/:id/status/history"
+    }
+  ],
+  "Employees": [
+    {
+      "method": "GET",
+      "path": "/api/employees/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees/dashboard-stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees/stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees/audit-logs"
+    },
+    {
+      "method": "POST",
+      "path": "/api/employees/import"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees/export"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees"
+    },
+    {
+      "method": "POST",
+      "path": "/api/employees"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees/:id"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/employees/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/employees/:id/availability"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/employees/:id/host-settings"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/employees/:id/status"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/employees/:id/archive"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/employees/:id/restore"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/employees/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/employees/:id/resend-registration-email"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees/:id/appointments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees/:id/audit-logs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees/:id/availability"
+    }
+  ],
+  "Employee Portal": [
+    {
+      "method": "GET",
+      "path": "/api/employee-portal/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employee-portal/requests"
+    },
+    {
+      "method": "POST",
+      "path": "/api/employee-portal/requests/:id/action"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employee-portal/requests/:id/documents"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employee-portal/my-appointments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employee-portal/my-visitors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employee-portal/my-visitors/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employee-portal/my-visitors/:id/documents"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employee-portal/visitors/:id/documents"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employee-portal/rooms"
+    },
+    {
+      "method": "POST",
+      "path": "/api/employee-portal/rooms/reserve"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employee-portal/support/tickets"
+    },
+    {
+      "method": "POST",
+      "path": "/api/employee-portal/support/tickets"
+    }
+  ],
+  "Appointments": [
+    {
+      "method": "POST",
+      "path": "/api/appointments/upload"
+    },
+    {
+      "method": "POST",
+      "path": "/api/appointments/upload/front"
+    },
+    {
+      "method": "POST",
+      "path": "/api/appointments/upload/back"
+    },
+    {
+      "method": "POST",
+      "path": "/api/appointments/upload/selfie"
+    },
+    {
+      "method": "POST",
+      "path": "/api/appointments/upload/selfie-base64"
+    },
+    {
+      "method": "POST",
+      "path": "/api/appointments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/appointments/track"
+    },
+    {
+      "method": "GET",
+      "path": "/api/appointments/dashboard-stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/appointments/calendar"
+    },
+    {
+      "method": "POST",
+      "path": "/api/appointments/check-eligibility"
+    },
+    {
+      "method": "GET",
+      "path": "/api/appointments/approvals/pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/appointments/approvals/:id/decision"
+    },
+    {
+      "method": "GET",
+      "path": "/api/appointments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/appointments/:id"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/appointments/:id/cancel"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/appointments/:id/approve"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/appointments/:id/reject"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/appointments/:id/reschedule"
+    },
+    {
+      "method": "GET",
+      "path": "/api/appointments/:id/qr"
+    },
+    {
+      "method": "POST",
+      "path": "/api/appointments/forgot-reference"
+    },
+    {
+      "method": "POST",
+      "path": "/api/appointments/verify-identity"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/appointments/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/appointments/:id/restore"
+    }
+  ],
+  "Check-In": [
+    {
+      "method": "GET",
+      "path": "/api/checkin/live-board"
+    },
+    {
+      "method": "POST",
+      "path": "/api/checkin/scan"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkin/active/:code"
+    },
+    {
+      "method": "POST",
+      "path": "/api/checkin/:appointmentId/checkout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkin/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkin/pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkin/history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkin/analytics"
+    },
+    {
+      "method": "POST",
+      "path": "/api/checkin/walkin"
+    },
+    {
+      "method": "POST",
+      "path": "/api/checkin/validate"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkin/search"
+    },
+    {
+      "method": "POST",
+      "path": "/api/checkin/override"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkin/queue/status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/checkin/group"
+    }
+  ],
+  "Check-Out": [
+    {
+      "method": "GET",
+      "path": "/api/checkout/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkout/pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkout/overstay"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkout/evacuation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkout/history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/checkout/analytics"
+    },
+    {
+      "method": "POST",
+      "path": "/api/checkout/process"
+    },
+    {
+      "method": "POST",
+      "path": "/api/checkout/group"
+    }
+  ],
+  "Reports & Analytics": [
+    {
+      "method": "GET",
+      "path": "/api/reports/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/visitors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/audit-logs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/daily"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/monthly"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/employee-stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/security"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/peak-hours"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/kpis"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/departments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/occupancy"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/saved"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reports/custom"
+    }
+  ],
+  "Building & Rooms": [
+    {
+      "method": "GET",
+      "path": "/api/rooms"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms/:id/availability"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rooms"
+    }
+  ],
+  "Notifications": [
+    {
+      "method": "GET",
+      "path": "/api/notifications/health"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/preferences"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/preferences"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/announcements"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/deliveries"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/audit-logs"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/notifications/read-all"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/read-all"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/read-all"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/mark-all-read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/mark-all-read"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/notifications/mark-all-read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/bulk-delete"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/notifications/bulk"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/notifications/:id/read"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/:id/read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/:id/read"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/notifications/:id/unread"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/:id/unread"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/:id/unread"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/notifications/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/:id/delete"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/notifications/:id/delete"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/:id/forward"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/send"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/:id/retry"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/trigger-test"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/test-trigger"
+    }
+  ],
+  "Communications": [
+    {
+      "method": "GET",
+      "path": "/api/communication/contacts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/communication/contacts/manual"
+    },
+    {
+      "method": "GET",
+      "path": "/api/communication/unread-counts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/communication/chat/conversations"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/communication/chat/conversations/:convId"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/communication/chat/conversations/:convId"
+    },
+    {
+      "method": "POST",
+      "path": "/api/communication/chat/conversations/:convId/participants"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/communication/chat/conversations/:convId/participants/:userId"
+    },
+    {
+      "method": "POST",
+      "path": "/api/communication/chat/direct"
+    },
+    {
+      "method": "POST",
+      "path": "/api/communication/chat/group"
+    },
+    {
+      "method": "GET",
+      "path": "/api/communication/chat/messages/:convId"
+    },
+    {
+      "method": "POST",
+      "path": "/api/communication/chat/messages/:convId"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/communication/chat/messages/:convId/:messageId"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/communication/chat/messages/:convId/:messageId"
+    },
+    {
+      "method": "POST",
+      "path": "/api/communication/upload"
+    },
+    {
+      "method": "POST",
+      "path": "/api/communication/email/send"
+    },
+    {
+      "method": "GET",
+      "path": "/api/communication/announcements"
+    },
+    {
+      "method": "POST",
+      "path": "/api/communication/announcements"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/communication/announcements/:id/read"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/communication/announcements/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/communication/announcements/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/communication/announcements/:id/delete"
+    }
+  ],
+  "Security & Access": [
+    {
+      "method": "GET",
+      "path": "/api/security/blacklist"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/blacklist"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/security/blacklist/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/verify/:referenceCode"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/watchlist"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/watchlist"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/security/watchlist/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/incidents"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/incidents"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/security/incidents/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/access-rules"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/escorts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/escorts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/analytics"
+    }
+  ],
+  "Organizations": [
+    {
+      "method": "GET",
+      "path": "/api/organizations/search"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/check-code"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/public-branding"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/organizations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/:id"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/organizations/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/organizations/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/organizations/:id/restore"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/organizations/:id/activate"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/organizations/:id/deactivate"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/:id/status"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/organizations/:id/status"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/:id/status/history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/:id/settings"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/organizations/:id/settings"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/organizations/:id/branding"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/:id/statistics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/:orgId/branches/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/:orgId/branches"
+    },
+    {
+      "method": "POST",
+      "path": "/api/organizations/branches"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/organizations/branches/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/organizations/branches/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizations/branches/:branchId/buildings"
+    },
+    {
+      "method": "POST",
+      "path": "/api/organizations/buildings"
+    }
+  ],
+  "Organization Home": [
+    {
+      "method": "GET",
+      "path": "/api/organization/home"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organization/home/cards"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organization/home/charts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organization/home/statistics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organization/home/activities"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organization/home/quick-actions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organization/home/search"
+    }
+  ],
+  "Branches": [
+    {
+      "method": "GET",
+      "path": "/api/branches/statistics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/branches/search"
+    },
+    {
+      "method": "GET",
+      "path": "/api/branches/check-code"
+    },
+    {
+      "method": "GET",
+      "path": "/api/branches"
+    },
+    {
+      "method": "POST",
+      "path": "/api/branches"
+    },
+    {
+      "method": "GET",
+      "path": "/api/branches/:id"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/branches/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/branches/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/branches/:id/status"
+    },
+    {
+      "method": "GET",
+      "path": "/api/branches/:id/status/history"
+    }
+  ],
+  "Users": [
+    {
+      "method": "GET",
+      "path": "/api/users/statistics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/stats"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/invitations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/invitations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/invitations/:id/resend"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/invitations/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/saved-searches"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/saved-searches"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/saved-searches/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/bulk-status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/bulk-notify"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/import"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/export"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/users/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/users/:id/status"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/users/:id/lock"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/users/:id/unlock"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/users/:id/block"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/users/:id/unblock"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/archive"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/restore"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/resend-email-verification"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/resend-phone-verification"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/users/:id/reset-password"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/send-credentials"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/resend-registration-email"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/sessions"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/:id/sessions/all"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/:id/sessions/:sessionId"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/login-history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/activity"
+    }
+  ],
+  "Roles": [
+    {
+      "method": "GET",
+      "path": "/api/roles/statistics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/matrix"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/compare"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/export"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/hierarchy"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/hierarchy"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/roles/hierarchy/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/conflicts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/conflicts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/roles/conflicts/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/sod-rules"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/sod-rules"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/roles/sod-rules/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/templates"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/templates/instantiate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/bulk-operations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/permissions/all"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/permissions/modules"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/roles/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/:id/activate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/:id/deactivate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/:id/archive"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/roles/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/:id/restore"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/:id/clone"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/:id/permissions"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/roles/:id/permissions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/roles/:id/users"
+    },
+    {
+      "method": "POST",
+      "path": "/api/roles/:id/users"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/roles/:id/users/:userId"
+    }
+  ],
+  "System Admin": [
+    {
+      "method": "GET",
+      "path": "/api/system/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/health"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/settings/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/settings/:key"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/system/settings"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/system/settings/:key"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/feature-flags"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/system/feature-flags/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/modules"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/system/modules/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/configurations"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/system/configurations/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/audit-logs/stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/audit-logs/processes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/audit-logs/export"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/audit-logs/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/audit-logs"
+    }
+  ],
+  "Audit Logs": [
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/health"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/settings/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/settings/:key"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/audit-logs/settings"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/audit-logs/settings/:key"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/feature-flags"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/audit-logs/feature-flags/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/modules"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/audit-logs/modules/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/configurations"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/audit-logs/configurations/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/audit-logs/stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/audit-logs/processes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/audit-logs/export"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/audit-logs/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit-logs/audit-logs"
+    }
+  ],
+  "Manager": [
+    {
+      "method": "GET",
+      "path": "/api/manager/ping"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/overview"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/employees"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/manager/employees/:employeeId/host-status"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/host-availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/visitor-requests"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/visitor-requests/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/alternative-hosts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/manager/visitor-requests/:id/reassign"
+    },
+    {
+      "method": "POST",
+      "path": "/api/manager/visitor-requests/:id/assign-host"
+    },
+    {
+      "method": "POST",
+      "path": "/api/manager/visitor-requests/:id/approve"
+    },
+    {
+      "method": "POST",
+      "path": "/api/manager/visitor-requests/:id/reject"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/appointments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/appointments/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/visitors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/export"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/audit-logs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/profile"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/manager/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/rooms"
+    },
+    {
+      "method": "POST",
+      "path": "/api/manager/rooms/book"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/policies"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/manager/policies"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/evacuation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager/security-zones"
+    }
+  ],
+  "Calendar": [
+    {
+      "method": "GET",
+      "path": "/api/calendar/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar/statistics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar/validation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar/preview"
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar/schedules/org"
+    },
+    {
+      "method": "POST",
+      "path": "/api/calendar/schedules/org"
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar/schedules/branch"
+    },
+    {
+      "method": "POST",
+      "path": "/api/calendar/schedules/branch"
+    },
+    {
+      "method": "POST",
+      "path": "/api/calendar/schedules/branch/reset"
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar/schedules"
+    },
+    {
+      "method": "POST",
+      "path": "/api/calendar/schedules"
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar/holidays"
+    },
+    {
+      "method": "POST",
+      "path": "/api/calendar/holidays"
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar/holidays/:id"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/calendar/holidays/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/calendar/holidays/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar/special-days"
+    },
+    {
+      "method": "POST",
+      "path": "/api/calendar/special-days"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/calendar/special-days/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar/timezones"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/calendar/timezones"
+    }
+  ],
+  "Visitor Portal": [
+    {
+      "method": "GET",
+      "path": "/api/visitor/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/profile"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/visitor/profile"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor/profile/photo"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/documents"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor/documents"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor/documents/submit-to-host"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/visitor/documents/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/visitor/documents/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/appointments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/appointments/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor/appointments"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/visitor/appointments/:id/cancel"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/visitor/appointments/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/visitor/appointments/:id/reschedule"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/passes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/passes/:id/qr"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/notifications"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/visitor/notifications/:id/read"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/visitor/notifications/read-all"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor/feedback"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/feedback"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor/support"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/support"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor/settings"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/visitor/settings"
+    }
+  ],
+  "Visitor Registration": [
+    {
+      "method": "POST",
+      "path": "/api/visitors/registration/register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitors/registration/validate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitors/registration/save-draft"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitors/registration/drafts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitors/registration/draft/:draftId"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitors/registration/upload-photo"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitors/registration/upload-document"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitors/registration/history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitors/registration"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitors/registration/:id"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/visitors/registration/:id"
+    }
+  ],
+  "Reception": [
+    {
+      "method": "GET",
+      "path": "/api/reception/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reception/arrivals"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reception/arrivals/:id/confirm"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reception/arrivals/:id/cancel"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reception/verify-appointment"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reception/face-match"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reception/walk-ins"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reception/queue"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/reception/queue/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reception/passes/generate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reception/notifications/send"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reception/waiting-area"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reception/search"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reception/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reception/activity-logs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reception/profile"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/reception/profile"
+    }
+  ],
+  "Reporting Exports": [
+    {
+      "method": "GET",
+      "path": "/api/exports/ping"
+    }
+  ],
+  "Identity": [
+    {
+      "method": "POST",
+      "path": "/api/identity/forgot-password"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity/reset-password"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity/resources"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity/profile"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity/first-login-change"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity/unlock-account"
+    }
+  ],
+  "Dashboard": [
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/activities"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/layout"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/layout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/search"
+    }
+  ],
+  "Resources": [
+    {
+      "method": "GET",
+      "path": "/api/resources/my-resources"
+    }
+  ],
+  "Permissions": [
+    {
+      "method": "GET",
+      "path": "/api/permissions/statistics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/permissions/matrix"
+    },
+    {
+      "method": "POST",
+      "path": "/api/permissions/matrix"
+    },
+    {
+      "method": "GET",
+      "path": "/api/permissions/groups"
+    },
+    {
+      "method": "GET",
+      "path": "/api/permissions/templates"
+    },
+    {
+      "method": "POST",
+      "path": "/api/permissions/authorize-test"
+    },
+    {
+      "method": "POST",
+      "path": "/api/permissions/import"
+    },
+    {
+      "method": "GET",
+      "path": "/api/permissions/export"
+    },
+    {
+      "method": "GET",
+      "path": "/api/permissions/my-permissions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/permissions"
+    },
+    {
+      "method": "POST",
+      "path": "/api/permissions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/permissions/:permissionId"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/permissions/:permissionId"
+    },
+    {
+      "method": "POST",
+      "path": "/api/permissions/:permissionId/activate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/permissions/:permissionId/deactivate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/permissions/:permissionId/archive"
+    },
+    {
+      "method": "POST",
+      "path": "/api/permissions/:permissionId/restore"
+    },
+    {
+      "method": "POST",
+      "path": "/api/permissions/:permissionId/clone"
+    }
+  ],
+  "Hierarchy": [
+    {
+      "method": "GET",
+      "path": "/api/hierarchy"
+    },
+    {
+      "method": "GET",
+      "path": "/api/hierarchy/tree"
+    },
+    {
+      "method": "GET",
+      "path": "/api/hierarchy/search"
+    },
+    {
+      "method": "GET",
+      "path": "/api/hierarchy/validate"
+    },
+    {
+      "method": "GET",
+      "path": "/api/hierarchy/statistics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/hierarchy/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/hierarchy/assign"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/hierarchy/assign/:id"
+    }
+  ],
+  "Settings": [
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings/export"
+    },
+    {
+      "method": "POST",
+      "path": "/api/settings/import"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings/history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings/validation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings/backups"
+    },
+    {
+      "method": "POST",
+      "path": "/api/settings/backups"
+    },
+    {
+      "method": "POST",
+      "path": "/api/settings/restore"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/settings/backups/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings/:category"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/settings/:category"
+    }
+  ],
+  "Visitor Profiles": [
+    {
+      "method": "GET",
+      "path": "/api/visitor-profiles/stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor-profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor-profiles/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor-profiles/:id/pass"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/visitor-profiles/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/visitor-profiles/:id/status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor-profiles/:id/archive"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor-profiles/:id/restore"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor-profiles/:id/photos"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/visitor-profiles/:id/photos/:photoId/active"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/visitor-profiles/photos/:photoId"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor-profiles/:id/notes"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/visitor-profiles/notes/:noteId"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/visitor-profiles/:id/verify-identity"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/visitor-profiles/:id/blacklist"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/visitor-profiles/:id"
+    }
+  ],
+  "Identity Verification": [
+    {
+      "method": "GET",
+      "path": "/api/identity-verification/mobile-status/:token"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/start"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/:id/mobile-session"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/:id/upload-front"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/:id/upload-back"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/:id/upload-selfie"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/:id/analyze-document"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/:id/run-ocr"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/:id/run-liveness"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/:id/run-facematch"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/:id/validate-security"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity-verification/:id/complete"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity-verification/:id/report"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity-verification/history/:visitorId"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity-verification/:id"
+    }
+  ],
+  "Documents": [
+    {
+      "method": "GET",
+      "path": "/api/documents/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/documents/categories"
+    },
+    {
+      "method": "POST",
+      "path": "/api/documents/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/api/documents/statuses"
+    },
+    {
+      "method": "POST",
+      "path": "/api/documents/ocr-extract"
+    },
+    {
+      "method": "POST",
+      "path": "/api/documents/bulk-upload"
+    },
+    {
+      "method": "GET",
+      "path": "/api/documents"
+    },
+    {
+      "method": "GET",
+      "path": "/api/documents/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/documents"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/documents/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/documents/:id/replace"
+    },
+    {
+      "method": "GET",
+      "path": "/api/documents/:id/download"
+    },
+    {
+      "method": "GET",
+      "path": "/api/documents/:id/view"
+    },
+    {
+      "method": "GET",
+      "path": "/api/documents/:id/preview"
+    },
+    {
+      "method": "POST",
+      "path": "/api/documents/:id/verify"
+    },
+    {
+      "method": "POST",
+      "path": "/api/documents/:id/approve"
+    },
+    {
+      "method": "POST",
+      "path": "/api/documents/:id/restore-version/:versionNumber"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/documents/:id/status"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/documents/:id/archive"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/documents/:id/restore"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/documents/:id"
+    }
+  ],
+  "Visitor Categories": [
+    {
+      "method": "GET",
+      "path": "/api/visitor-categories/stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor-categories/by-code/:code"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor-categories"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor-categories/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/visitor-categories"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/visitor-categories/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/visitor-categories/:id/archive"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/visitor-categories/:id/restore"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/visitor-categories/:id"
+    }
+  ],
+  "Visitor History": [
+    {
+      "method": "GET",
+      "path": "/api/visitor-history/stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor-history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visitor-history/:id"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/visitor-history/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/visitor-history/:id"
+    }
+  ],
+  "Workflows & Approvals": [
+    {
+      "method": "GET",
+      "path": "/api/workflows"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workflows/dashboard-stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workflows/delegations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/workflows/delegations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/workflows/determine"
+    },
+    {
+      "method": "POST",
+      "path": "/api/workflows/simulate"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workflows/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/workflows"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/workflows/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/workflows/:id/clone"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workflows/:id/status"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workflows/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workflows/:id/versions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workflows/:id/audit-logs"
+    }
+  ],
+  "Watchlist & Blacklist": [
+    {
+      "method": "GET",
+      "path": "/api/security/blacklist-watchlist"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/blacklist-watchlist/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/blacklist-watchlist"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/security/blacklist-watchlist/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/blacklist-watchlist/verify"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/security/blacklist-watchlist/:id/status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/blacklist-watchlist/:id/clearance"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/security/blacklist-watchlist/:id/archive"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/security/blacklist-watchlist/:id/restore"
+    }
+  ],
+  "Feedback & Support": [
+    {
+      "method": "POST",
+      "path": "/api/feedback-support/feedback"
+    },
+    {
+      "method": "GET",
+      "path": "/api/feedback-support/feedback"
+    },
+    {
+      "method": "GET",
+      "path": "/api/feedback-support/feedback/stats"
+    },
+    {
+      "method": "POST",
+      "path": "/api/feedback-support/feedback/:id/accept"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/feedback-support/feedback/:id/status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/feedback-support/tickets"
+    },
+    {
+      "method": "GET",
+      "path": "/api/feedback-support/tickets"
+    },
+    {
+      "method": "GET",
+      "path": "/api/feedback-support/tickets/stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/feedback-support/tickets/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/feedback-support/tickets/:id/messages"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/feedback-support/tickets/:id/status"
+    }
+  ],
+  "Workflow Rules Engine": [
+    {
+      "method": "GET",
+      "path": "/api/rules/schedules"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/escalations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/reminders"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/retries"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/approvals"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/organization"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/roles"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/user-groups"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/visitor"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/employee"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/appointment"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/reception"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/security"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/visitor-pass"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/checkin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/checkout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/emergency"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/system"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rules/test"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rules/simulate"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/versions"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rules/versions"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rules/rollback"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rules/import"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/export"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/audit"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/analytics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/performance"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/dependencies"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/conflicts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/executions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/templates"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rules/templates"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rules/api-trigger"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rules/webhook"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/jobs"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rules/publish"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rules/archive"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rules/production-status"
+    }
+  ]
+}

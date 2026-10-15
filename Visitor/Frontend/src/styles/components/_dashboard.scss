@@ -1,0 +1,215 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// VMS DESIGN SYSTEM — DASHBOARD WIDGET STYLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Dashboard Layout ─────────────────────────────────────────────────────
+.vms-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vms-gap-lg);
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--vms-gap-md);
+    padding-bottom: var(--vms-space-4);
+    border-bottom: 1px solid var(--vms-border);
+  }
+
+  &__title-group {
+    h1, h2, h3 { margin-bottom: 0.125rem; }
+  }
+
+  &__badge {
+    font-size: var(--vms-tiny);
+    font-weight: var(--vms-fw-semibold);
+    color: var(--vms-text-tertiary);
+    background-color: var(--vms-bg-secondary);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--vms-radius-full);
+    border: 1px solid var(--vms-border);
+    text-transform: uppercase;
+    letter-spacing: var(--vms-ls-wider);
+  }
+}
+
+// ── Stats Grid ───────────────────────────────────────────────────────────
+.vms-stats-grid {
+  display: grid;
+  gap: var(--vms-gap-md, 1rem);
+  grid-template-columns: repeat(1, 1fr);
+  width: 100%;
+  min-width: 0;
+
+  @media (min-width: 576px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--vms-gap-md, 1rem);
+  }
+
+  @media (min-width: 992px) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--vms-gap-lg, 1.5rem);
+  }
+}
+
+
+// ── Chart Card ───────────────────────────────────────────────────────────
+.vms-chart-card {
+  @extend .vms-card;
+  
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--vms-space-4);
+  }
+
+  &__title {
+    font-size: var(--vms-body-sm);
+    font-weight: var(--vms-fw-semibold);
+    color: var(--vms-text-primary);
+    margin: 0;
+  }
+
+  &__subtitle {
+    font-size: var(--vms-tiny);
+    color: var(--vms-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: var(--vms-ls-wide);
+  }
+
+  // Recharts overrides
+  .recharts-cartesian-grid-horizontal line,
+  .recharts-cartesian-grid-vertical line {
+    stroke: var(--vms-border);
+  }
+
+  .recharts-text {
+    fill: var(--vms-text-tertiary);
+    font-size: 0.625rem;
+    font-family: var(--vms-font-family);
+  }
+
+  .recharts-tooltip-wrapper .recharts-default-tooltip {
+    background-color: var(--vms-bg-card) !important;
+    border-color: var(--vms-border) !important;
+    border-radius: var(--vms-radius-md) !important;
+    box-shadow: var(--vms-shadow-lg) !important;
+    color: var(--vms-text-primary) !important;
+    font-size: var(--vms-small) !important;
+    font-family: var(--vms-font-family) !important;
+  }
+}
+
+// ── Charts Grid ──────────────────────────────────────────────────────────
+.vms-charts-grid {
+  display: grid;
+  gap: var(--vms-gap-lg);
+  grid-template-columns: 1fr;
+  width: 100%;
+  min-width: 0;
+
+  @media (min-width: 992px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.recharts-responsive-container {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+
+// ── Activity List ────────────────────────────────────────────────────────
+.vms-activity-list {
+  &__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--vms-border-light);
+
+    &:last-child { border-bottom: none; }
+  }
+
+  &__icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--vms-radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: var(--vms-body-sm);
+    font-weight: var(--vms-fw-medium);
+    color: var(--vms-text-primary);
+  }
+
+  &__desc {
+    font-size: var(--vms-small);
+    color: var(--vms-text-secondary);
+    margin-top: 0.125rem;
+  }
+
+  &__time {
+    font-size: var(--vms-tiny);
+    color: var(--vms-text-tertiary);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+// ── Quick Actions Grid ───────────────────────────────────────────────────
+.vms-quick-actions {
+  display: grid;
+  gap: var(--vms-gap-sm);
+  grid-template-columns: repeat(2, 1fr);
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: var(--vms-space-4);
+    background-color: var(--vms-bg-card);
+    border: 1px solid var(--vms-border);
+    border-radius: var(--vms-radius-lg);
+    cursor: pointer;
+    transition: all var(--vms-transition-fast);
+    text-decoration: none;
+    color: var(--vms-text-primary);
+
+    &:hover {
+      border-color: var(--vms-primary);
+      box-shadow: var(--vms-shadow-sm);
+      transform: translateY(-1px);
+    }
+
+    i, .bi {
+      font-size: 1.5rem;
+      color: var(--vms-primary);
+    }
+
+    span {
+      font-size: var(--vms-small);
+      font-weight: var(--vms-fw-medium);
+      text-align: center;
+    }
+  }
+}

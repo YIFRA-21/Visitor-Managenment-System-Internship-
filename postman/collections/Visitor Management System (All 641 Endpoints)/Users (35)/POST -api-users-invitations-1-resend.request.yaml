@@ -1,0 +1,13 @@
+$kind: http-request
+name: POST /api/users/invitations/1/resend
+url: "{{baseUrl}}/api/users/invitations/1/resend"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      
+    }
+order: 5000
