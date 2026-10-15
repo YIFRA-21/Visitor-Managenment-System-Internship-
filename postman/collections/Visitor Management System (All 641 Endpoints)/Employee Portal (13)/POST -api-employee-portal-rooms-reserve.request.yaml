@@ -8,6 +8,10 @@ body:
   type: text
   content: |-
     {
-      
+      "roomId": 1,
+      "title": "Strategy & Operations Review",
+      "scheduledStart": "2026-10-16 10:00:00",
+      "scheduledEnd": "2026-10-16 11:30:00",
+      "meetingNotes": "Quarterly executive review meeting"
     }
 order: 11000
