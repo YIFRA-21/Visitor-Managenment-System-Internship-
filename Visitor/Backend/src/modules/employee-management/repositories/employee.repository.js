@@ -108,7 +108,7 @@ class EmployeeRepository {
     };
   }
 
-  async findById(id) {
+  async findById(id, includeDeleted = false) {
     const isNum = !isNaN(Number(id)) && Number(id) > 0;
     const numId = isNum ? Number(id) : null;
     const strId = String(id);

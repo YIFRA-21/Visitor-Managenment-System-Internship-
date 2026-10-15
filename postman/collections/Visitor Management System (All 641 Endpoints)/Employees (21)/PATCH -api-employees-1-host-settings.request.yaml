@@ -8,6 +8,8 @@ body:
   type: text
   content: |-
     {
-      
+      "is_host_enabled": true,
+      "max_visitors_per_day": 10,
+      "max_concurrent_visitors": 3
     }
 order: 13000

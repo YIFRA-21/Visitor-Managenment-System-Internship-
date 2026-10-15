@@ -8,6 +8,12 @@ body:
   type: text
   content: |-
     {
-      
+      "first_name": "Abebe",
+      "last_name": "Kebede",
+      "email": "abebe.kebede{{$timestamp}}@visitor.com",
+      "department_id": 1,
+      "role": "employee",
+      "employment_type": "Full-Time",
+      "position": "Software Engineer"
     }
 order: 9000

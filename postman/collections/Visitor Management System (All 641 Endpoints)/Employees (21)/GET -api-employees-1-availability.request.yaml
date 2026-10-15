@@ -1,6 +1,6 @@
 $kind: http-request
 name: GET /api/employees/1/availability
-url: "{{baseUrl}}/api/employees/1/availability"
+url: "{{baseUrl}}/api/employees/1/availability?date=2026-10-16"
 method: GET
 headers:
   Content-Type: application/json

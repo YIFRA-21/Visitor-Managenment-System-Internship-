@@ -8,6 +8,6 @@ body:
   type: text
   content: |-
     {
-      
+      "availability_status": "Available"
     }
 order: 12000

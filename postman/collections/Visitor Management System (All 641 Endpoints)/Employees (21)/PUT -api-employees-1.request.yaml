@@ -8,6 +8,8 @@ body:
   type: text
   content: |-
     {
-      
+      "first_name": "System",
+      "last_name": "Administrator",
+      "position": "Chief Security & IT Officer"
     }
 order: 11000

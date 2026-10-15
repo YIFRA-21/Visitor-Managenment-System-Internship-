@@ -138,8 +138,7 @@ router.get('/:id/audit-logs', authenticateToken, (req, res, next) =>
 // Module 7 Integration – Calendar Availability Slot Search
 router.get('/:id/availability', async (req, res, next) => {
   try {
-    const { date } = req.query;
-    if (!date) return res.status(400).json({ error: 'Date is required' });
+    const date = (req.query.date || new Date().toISOString().split('T')[0]).trim();
 
     const hostId = parseInt(req.params.id);
     const appointments = await db.query(

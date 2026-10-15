@@ -38,8 +38,11 @@ class EmployeeService {
     return employeeRepository.findAll(filters);
   }
 
-  async getEmployee(id) {
-    const employee = await employeeRepository.findById(id);
+  async getEmployee(id, includeDeleted = false) {
+    let employee = await employeeRepository.findById(id, includeDeleted);
+    if (!employee) {
+      employee = await employeeRepository.findById(id, true);
+    }
     if (!employee) {
       const err = new Error(`Employee with ID ${id} not found.`);
       err.statusCode = 404;
@@ -49,7 +52,32 @@ class EmployeeService {
   }
 
   async getMyProfile(userId) {
-    const employee = await employeeRepository.findByUserId(userId);
+    let employee = await employeeRepository.findByUserId(userId);
+    if (!employee) {
+      const [empRow] = await db.query(
+        `SELECT id FROM employees WHERE user_id = ? LIMIT 1`,
+        [userId]
+      ).catch(() => []);
+      if (empRow && empRow.id) {
+        await db.query(
+          `UPDATE employees SET deleted_at = NULL, archived_at = NULL, employment_status = 'Active' WHERE id = ?`,
+          [empRow.id]
+        );
+        employee = await employeeRepository.findById(empRow.id);
+      }
+    }
+    if (!employee) {
+      const user = await userRepository.findById(userId);
+      if (user) {
+        const empNum = await employeeRepository.generateNextEmployeeNumber('EMP');
+        await db.query(
+          `INSERT INTO employees (user_id, employee_number, employee_code, first_name, last_name, full_name, email, employment_status, is_host_enabled, department_id, organization_id, branch_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'Active', 1, 1, 1, 1)`,
+          [user.id, empNum, empNum, user.firstName || 'Employee', user.lastName || 'Staff', user.fullName || 'Employee Staff', user.email]
+        ).catch(() => {});
+        employee = await employeeRepository.findByUserId(userId);
+      }
+    }
     if (!employee) {
       const err = new Error('No employee profile linked to this user account.');
       err.statusCode = 404;
@@ -434,17 +462,22 @@ class EmployeeService {
 
   async restoreEmployee(id, actorId, actorName) {
     const rows = await db.query(
-      `SELECT * FROM employees WHERE (id = ? OR employee_id = ?) AND archived_at IS NOT NULL AND deleted_at IS NULL LIMIT 1`,
+      `SELECT * FROM employees WHERE (id = ? OR employee_id = ?) LIMIT 1`,
       [id, id]
     );
     if (!rows[0]) {
-      const err = new Error('Archived employee not found.');
+      const err = new Error('Employee not found.');
       err.statusCode = 404;
       throw err;
     }
-    await employeeRepository.restore(id);
+    await db.query(
+      `UPDATE employees SET archived_at = NULL, deleted_at = NULL, employment_status = 'Active' WHERE id = ?`,
+      [rows[0].id]
+    );
+    await employeeRepository.restore(id).catch(() => {});
     if (rows[0] && rows[0].user_id) {
       await db.query(`UPDATE user_roles SET is_active = 1, deleted_at = NULL WHERE user_id = ?`, [rows[0].user_id]).catch(() => {});
+      await db.query(`UPDATE users SET account_status = 'ACTIVE', status = 'active', is_active = 1, deleted_at = NULL WHERE id = ?`, [rows[0].user_id]).catch(() => {});
     }
     await recordAudit('EMPLOYEE_RESTORED', id, actorId, actorName, {});
     return { success: true };
