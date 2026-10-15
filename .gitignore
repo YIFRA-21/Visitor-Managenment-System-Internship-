@@ -4,3 +4,5 @@ dist/
 uploads/
 *.log
 .DS_Store
+vite.config.*.timestamp*
+*.timestamp-*.mjs

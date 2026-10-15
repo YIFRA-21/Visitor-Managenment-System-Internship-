@@ -5,11 +5,11 @@ method: POST
 headers:
   Content-Type: application/json
 body:
-  type: text
+  type: json
   content: |-
     {
-      "email": "belayyifra1@gmail.com",
-      "password": "AdminPassword123!"
+      "email": "belayyifra@gmail.com",
+      "password": "Password123!"
     }
 scripts:
   - type: afterResponse
