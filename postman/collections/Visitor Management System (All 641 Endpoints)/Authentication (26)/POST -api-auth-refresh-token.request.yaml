@@ -5,9 +5,9 @@ method: POST
 headers:
   Content-Type: application/json
 body:
-  type: text
+  type: json
   content: |-
     {
-      "refreshToken": "sample-refresh-token"
+      "refreshToken": "{{refreshToken}}"
     }
 order: 7000

@@ -5,7 +5,7 @@ method: PATCH
 headers:
   Content-Type: application/json
 body:
-  type: text
+  type: json
   content: |-
     {
       "status": "ACTIVE"

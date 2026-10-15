@@ -3,6 +3,7 @@ description: Master collection containing all 641 endpoints across 40 modules wi
 variables:
   baseUrl: http://localhost:5000
   authToken: ""
+  refreshToken: ""
 auth:
   - id: 8326924f-e199-4d41-aebb-e95d57308647
     type: bearer

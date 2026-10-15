@@ -85,12 +85,18 @@ router.patch('/users/:id', authenticate, authorize('admin'), authController.upda
 router.post('/avatar', authenticate, upload.single('avatar'), async (req, res, next) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      if (req.body && (req.body.avatarUrl || req.body.avatar)) {
+        const avatarUrl = req.body.avatarUrl || req.body.avatar;
+        const db = require('../../../config/db');
+        await db.query('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl, req.user.id]);
+        return res.status(200).json({ message: 'Avatar updated successfully', avatarUrl });
+      }
+      return res.status(400).json({ error: 'No file uploaded. Please upload an image file using multipart/form-data with field name "avatar" or pass "avatarUrl" in JSON.' });
     }
     const avatarUrl = `/uploads/${req.file.filename}`;
     const db = require('../../../config/db');
     await db.query('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl, req.user.id]);
-    res.json({ message: 'Avatar updated successfully', avatarUrl });
+    res.status(200).json({ message: 'Avatar updated successfully', avatarUrl });
   } catch (err) {
     next(err);
   }

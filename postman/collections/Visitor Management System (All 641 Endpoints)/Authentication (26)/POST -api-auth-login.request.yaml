@@ -20,5 +20,10 @@ scripts:
         pm.collectionVariables.set("authToken", token);
         console.log("Saved authToken to collection variable:", token);
       }
+      const refreshToken = res.refreshToken || (res.data && res.data.refreshToken);
+      if (refreshToken) {
+        pm.collectionVariables.set("refreshToken", refreshToken);
+        console.log("Saved refreshToken to collection variable:", refreshToken);
+      }
     language: text/javascript
 order: 5000

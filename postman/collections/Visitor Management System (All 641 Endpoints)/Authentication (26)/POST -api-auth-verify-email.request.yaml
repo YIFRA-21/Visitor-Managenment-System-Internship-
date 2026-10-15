@@ -5,11 +5,10 @@ method: POST
 headers:
   Content-Type: application/json
 body:
-  type: text
+  type: json
   content: |-
     {
-      "email": "belayyifra1@gmail.com",
-      "token": "123456",
-      "newPassword": "AdminPassword123!"
+      "email": "belayyifra@gmail.com",
+      "token": "123456"
     }
 order: 11000
