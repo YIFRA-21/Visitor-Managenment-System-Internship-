@@ -2,9 +2,18 @@ const calendarRepository = require('../../calendar-scheduling/repositories/calen
 const holidayRepository = require('../../calendar-scheduling/repositories/holiday.repository');
 
 class StatisticsService {
-  async getStatistics(orgId, branchId = null) {
-    const holidays = await holidayRepository.findAll({ organizationId: orgId, branchId });
-    const specialDays = await calendarRepository.getSpecialWorkingDays(orgId);
+  async getCharts(orgId = 1) {
+    const stats = await this.getStatistics(orgId);
+    return {
+      success: true,
+      data: stats.charts,
+      ...stats.charts
+    };
+  }
+
+  async getStatistics(orgId = 1, branchId = null) {
+    const holidays = await holidayRepository.findAll({ organizationId: orgId, branchId }).catch(() => []);
+    const specialDays = await calendarRepository.getSpecialWorkingDays(orgId).catch(() => []);
 
     // Assume standard 261 working days, 104 weekend days, etc.
     const totalHolidays = holidays.length;
