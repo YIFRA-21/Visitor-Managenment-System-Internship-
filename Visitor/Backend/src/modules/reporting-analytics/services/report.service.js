@@ -166,6 +166,7 @@ class ReportService {
        FROM checkins WHERE checked_out_at IS NOT NULL
        AND checked_in_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND deleted_at IS NULL`
     );
+    const avgDuration = avgDurationResult[0];
     return {
       today: todayStats,
       weeklyTrend,
