@@ -12,10 +12,7 @@ class RoomController {
 
   async getAvailability(req, res, next) {
     try {
-      const { date } = req.query;
-      if (!date) {
-        return res.status(400).json({ error: 'Date is required' });
-      }
+      const date = req.query.date || new Date().toISOString().split('T')[0];
       const availability = await roomService.getRoomAvailability(req.params.id, date);
       res.status(200).json(availability);
     } catch (err) {
@@ -25,7 +22,7 @@ class RoomController {
 
   async create(req, res, next) {
     try {
-      const room = await roomService.createRoom(req.body);
+      const room = await roomService.createRoom(req.body || {});
       res.status(201).json(room);
     } catch (err) {
       next(err);

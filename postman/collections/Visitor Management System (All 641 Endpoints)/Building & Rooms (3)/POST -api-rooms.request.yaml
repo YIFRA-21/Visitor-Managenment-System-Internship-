@@ -8,6 +8,9 @@ body:
   type: text
   content: |-
     {
-      
+      "name": "Synergy Boardroom 6F",
+      "capacity": 16,
+      "location": "HQ Tower, 6th Floor",
+      "facilityId": 1
     }
 order: 3000

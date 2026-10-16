@@ -1,7 +1,9 @@
 $kind: http-request
 name: GET /api/rooms/1/availability
-url: "{{baseUrl}}/api/rooms/1/availability"
+url: "{{baseUrl}}/api/rooms/1/availability?date=2026-10-16"
 method: GET
 headers:
   Content-Type: application/json
+queryParams:
+  date: "2026-10-16"
 order: 2000
