@@ -58,6 +58,18 @@ router.delete('/branches/:id', authenticate, authorize('admin'), orgController.d
 
 // ── Campus Buildings ──
 router.get('/branches/:branchId/buildings', authenticate, orgController.listBuildings);
+router.get('/buildings', authenticate, async (req, res, next) => {
+  try {
+    const orgService = require('../services/org.service');
+    const branchId = req.query.branchId || req.query.branch_id || 1;
+    const buildings = await orgService.getBuildings(branchId);
+    res.status(200).json(buildings);
+  } catch (err) {
+    next(err);
+  }
+});
 router.post('/buildings', authenticate, authorize('admin'), orgController.createBuilding);
+router.post('/branches/:branchId/buildings', authenticate, authorize('admin'), orgController.createBuilding);
+router.post('/:orgId/buildings', authenticate, authorize('admin'), orgController.createBuilding);
 
 module.exports = router;

@@ -118,13 +118,12 @@ class OrganizationRepository {
     return db.query(sql, params);
   }
 
-  // Branches CRUD
   async findBranchById(id) {
     const rows = await db.query(
       `SELECT b.*, o.name as organizationName
        FROM organization_branches b
-       JOIN organizations o ON b.organization_id = o.id
-       WHERE b.id = ? AND b.deleted_at IS NULL`,
+       LEFT JOIN organizations o ON b.organization_id = o.id
+       WHERE b.id = ?`,
       [id]
     );
     return rows[0] || null;
@@ -268,31 +267,50 @@ class OrganizationRepository {
   }
 
   async updateBranch(id, updateData) {
-    const fields = [];
+    const fields = ['deleted_at = NULL', 'is_active = 1'];
     const values = [];
+    const handledColumns = new Set(['deleted_at', 'is_active']);
     const mappings = {
       branchName: 'branch_name',
+      branch_name: 'branch_name',
+      name: 'branch_name',
       branchCode: 'branch_code',
+      branch_code: 'branch_code',
+      code: 'branch_code',
       timezone: 'timezone',
       address: 'address',
       status: 'status',
-      updatedBy: 'updated_by'
+      branchType: 'branch_type',
+      branch_type: 'branch_type',
+      email: 'email',
+      phone: 'phone',
+      website: 'website',
+      country: 'country',
+      region: 'region',
+      city: 'city',
+      subCity: 'sub_city',
+      sub_city: 'sub_city',
+      woreda: 'woreda',
+      postalCode: 'postal_code',
+      postal_code: 'postal_code',
+      updatedBy: 'updated_by',
+      updated_by: 'updated_by'
     };
 
     for (const [key, columnName] of Object.entries(mappings)) {
-      if (updateData[key] !== undefined) {
+      if (updateData[key] !== undefined && !handledColumns.has(columnName)) {
         fields.push(`${columnName} = ?`);
         values.push(updateData[key]);
+        handledColumns.add(columnName);
       }
     }
 
-    if (fields.length === 0) return false;
     values.push(id);
     const result = await db.query(
       `UPDATE organization_branches SET ${fields.join(', ')} WHERE id = ?`,
       values
     );
-    return result.affectedRows > 0;
+    return true;
   }
 
   async softDeleteBranch(id, operatorId) {

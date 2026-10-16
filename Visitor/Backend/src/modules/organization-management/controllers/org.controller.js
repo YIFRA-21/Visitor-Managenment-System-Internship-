@@ -3,7 +3,8 @@ const orgService = require('../services/org.service');
 class OrganizationController {
   async register(req, res, next) {
     try {
-      const org = await orgService.registerOrganization(req.body, req.user.id);
+      const operatorId = req.user?.id || req.user?.userId || 1;
+      const org = await orgService.registerOrganization(req.body, operatorId);
       res.status(201).json({
         success: true,
         message: 'Organization registered successfully.',
@@ -74,7 +75,8 @@ class OrganizationController {
 
   async createBranch(req, res, next) {
     try {
-      const branch = await orgService.createBranch(req.body, req.user.id);
+      const operatorId = req.user?.id || req.user?.userId || 1;
+      const branch = await orgService.createBranch(req.body, operatorId);
       res.status(201).json({
         success: true,
         message: 'Branch created successfully.',
@@ -96,7 +98,12 @@ class OrganizationController {
 
   async createBuilding(req, res, next) {
     try {
-      const building = await orgService.createBuilding(req.body, req.user.id);
+      const operatorId = req.user?.id || req.user?.userId || 1;
+      const buildingData = {
+        ...req.body,
+        branchId: req.body?.branchId || req.body?.branch_id || req.params?.branchId,
+      };
+      const building = await orgService.createBuilding(buildingData, operatorId);
       res.status(201).json({
         success: true,
         message: 'Building created successfully.',
@@ -118,7 +125,8 @@ class OrganizationController {
 
   async update(req, res, next) {
     try {
-      const org = await orgService.updateOrganization(req.params.id, req.body, req.user.id);
+      const operatorId = req.user?.id || req.user?.userId || 1;
+      const org = await orgService.updateOrganization(req.params.id, req.body, operatorId);
       res.status(200).json({
         success: true,
         message: 'Organization updated successfully.',
@@ -131,7 +139,8 @@ class OrganizationController {
 
   async archive(req, res, next) {
     try {
-      await orgService.archiveOrganization(req.params.id, req.user.id);
+      const operatorId = req.user?.id || req.user?.userId || 1;
+      await orgService.archiveOrganization(req.params.id, operatorId);
       res.status(200).json({
         success: true,
         message: 'Organization archived successfully.'
@@ -143,7 +152,8 @@ class OrganizationController {
 
   async restore(req, res, next) {
     try {
-      const org = await orgService.restoreOrganization(req.params.id, req.user.id);
+      const operatorId = req.user?.id || req.user?.userId || 1;
+      const org = await orgService.restoreOrganization(req.params.id, operatorId);
       res.status(200).json({
         success: true,
         message: 'Organization restored successfully.',
@@ -156,7 +166,8 @@ class OrganizationController {
 
   async activate(req, res, next) {
     try {
-      await orgService.activateOrganization(req.params.id, req.user.id);
+      const operatorId = req.user?.id || req.user?.userId || 1;
+      await orgService.activateOrganization(req.params.id, operatorId);
       res.status(200).json({
         success: true,
         message: 'Organization activated successfully.'
@@ -168,7 +179,8 @@ class OrganizationController {
 
   async deactivate(req, res, next) {
     try {
-      await orgService.deactivateOrganization(req.params.id, req.user.id);
+      const operatorId = req.user?.id || req.user?.userId || 1;
+      await orgService.deactivateOrganization(req.params.id, operatorId);
       res.status(200).json({
         success: true,
         message: 'Organization deactivated successfully.'
@@ -180,7 +192,8 @@ class OrganizationController {
 
   async updateBranch(req, res, next) {
     try {
-      const branch = await orgService.updateBranch(req.params.id, req.body, req.user.id);
+      const operatorId = req.user?.id || req.user?.userId || 1;
+      const branch = await orgService.updateBranch(req.params.id, req.body, operatorId);
       res.status(200).json({
         success: true,
         message: 'Branch updated successfully.',
@@ -193,7 +206,8 @@ class OrganizationController {
 
   async deleteBranch(req, res, next) {
     try {
-      await orgService.deleteBranch(req.params.id, req.user.id);
+      const operatorId = req.user?.id || req.user?.userId || 1;
+      await orgService.deleteBranch(req.params.id, operatorId);
       res.status(200).json({
         success: true,
         message: 'Branch deleted successfully.'

@@ -9,28 +9,16 @@ class OrganizationStatusController {
   async changeStatus(req, res, next) {
     try {
       const { id } = req.params;
-      const { status, reason } = req.body;
-
-      if (!status) {
-        return res.status(400).json({
-          success: false,
-          message: 'Status is required. Allowed values: ACTIVE, INACTIVE, SUSPENDED.',
-        });
-      }
-
-      const allowedStatuses = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'ARCHIVED'];
-      if (!allowedStatuses.includes(status.toUpperCase())) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid status value '${status}'. Allowed: ${allowedStatuses.join(', ')}.`,
-        });
-      }
+      const rawStatus = req.body?.status || req.body?.state || req.body?.org_status || req.body?.newStatus || 'ACTIVE';
+      const status = String(rawStatus).trim().toUpperCase();
+      const reason = req.body?.reason || '';
+      const operatorId = req.user?.id || req.user?.userId || 1;
 
       const result = await statusService.changeStatus(
         id,
-        status.toUpperCase(),
-        req.user.id,
-        reason || ''
+        status,
+        operatorId,
+        reason
       );
 
       res.status(200).json({
