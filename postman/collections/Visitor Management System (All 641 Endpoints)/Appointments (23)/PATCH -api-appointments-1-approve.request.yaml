@@ -8,6 +8,6 @@ body:
   type: text
   content: |-
     {
-      
+      "comment": "Approved by Administrator"
     }
 order: 16000

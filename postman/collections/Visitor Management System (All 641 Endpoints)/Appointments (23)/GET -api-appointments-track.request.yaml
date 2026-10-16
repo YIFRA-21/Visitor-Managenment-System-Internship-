@@ -1,6 +1,6 @@
 $kind: http-request
 name: GET /api/appointments/track
-url: "{{baseUrl}}/api/appointments/track"
+url: "{{baseUrl}}/api/appointments/track?code=REF-2026-0001"
 method: GET
 headers:
   Content-Type: application/json

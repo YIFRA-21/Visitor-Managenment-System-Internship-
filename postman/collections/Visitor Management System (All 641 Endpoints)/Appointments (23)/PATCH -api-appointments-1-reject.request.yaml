@@ -8,6 +8,6 @@ body:
   type: text
   content: |-
     {
-      
+      "comment": "Rejected per operational requirements"
     }
 order: 17000

@@ -235,8 +235,8 @@ function authorize(...roles) {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-    // Admin override: admins have full access to all endpoints
-    if (req.user.role?.toLowerCase() === 'admin') {
+    const userRole = String(req.user.role || '').toLowerCase();
+    if (['admin', 'administrator', 'system_administrator', 'super_admin'].includes(userRole)) {
       return next();
     }
 

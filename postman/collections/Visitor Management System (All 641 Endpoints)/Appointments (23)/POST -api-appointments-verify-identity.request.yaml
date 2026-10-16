@@ -8,6 +8,8 @@ body:
   type: text
   content: |-
     {
-      
+      "visitorEmail": "john.doe@example.com",
+      "idImageUrl": "/uploads/documents/passport_sample.pdf",
+      "selfieImage": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
     }
 order: 21000

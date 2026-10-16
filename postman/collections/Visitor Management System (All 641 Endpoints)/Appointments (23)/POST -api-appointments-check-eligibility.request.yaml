@@ -8,6 +8,6 @@ body:
   type: text
   content: |-
     {
-      
+      "appointmentId": 1
     }
 order: 10000

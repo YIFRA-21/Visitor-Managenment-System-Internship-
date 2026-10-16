@@ -8,6 +8,14 @@ body:
   type: text
   content: |-
     {
-      
+      "visitorName": "Abebe Kebede",
+      "visitorEmail": "abebe.kebede{{$timestamp}}@example.com",
+      "visitorPhone": "+251911223344",
+      "company": "Tech Solutions PLC",
+      "hostId": 1,
+      "departmentId": 1,
+      "purpose": "Technical Architecture Review",
+      "scheduledStart": "2026-10-16 14:00:00",
+      "scheduledEnd": "2026-10-16 15:30:00"
     }
 order: 6000
