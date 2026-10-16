@@ -8,6 +8,9 @@ body:
   type: text
   content: |-
     {
-      
+      "code": "BDG-1001",
+      "checkoutMethod": "MANUAL",
+      "remarks": "Standard checkout at security exit",
+      "passCondition": "RETURNED_INTACT"
     }
 order: 7000

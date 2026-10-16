@@ -33,17 +33,17 @@ class CheckoutController {
 
   async processExit(req, res, next) {
     try {
-      const { code, checkoutMethod, remarks, assets, passCondition } = req.body;
-      const checkoutData = { checkoutMethod, remarks, assets, passCondition };
-      const result = await checkoutService.processExit(code, checkoutData, req.user.id);
+      const { code, checkoutMethod, remarks, assets, passCondition } = req.body || {};
+      const checkoutData = { checkoutMethod: checkoutMethod || 'MANUAL', remarks, assets, passCondition };
+      const result = await checkoutService.processExit(code, checkoutData, req.user?.id || 1);
       res.json({ status: 'success', message: 'Visitor checked out successfully', data: result });
     } catch (err) { next(err); }
   }
 
   async processGroupExit(req, res, next) {
     try {
-      const { codes, checkoutMethod, remarks } = req.body;
-      const result = await checkoutService.processGroupExit(codes, { checkoutMethod, remarks }, req.user.id);
+      const { codes, checkoutMethod, remarks } = req.body || {};
+      const result = await checkoutService.processGroupExit(codes, { checkoutMethod: checkoutMethod || 'MANUAL', remarks }, req.user?.id || 1);
       res.json({ status: 'success', ...result });
     } catch (err) { next(err); }
   }

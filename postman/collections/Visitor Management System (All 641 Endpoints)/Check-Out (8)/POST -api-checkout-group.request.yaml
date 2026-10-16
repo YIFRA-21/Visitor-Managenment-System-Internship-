@@ -8,6 +8,10 @@ body:
   type: text
   content: |-
     {
-      
+      "codes": [
+        "BDG-1001"
+      ],
+      "checkoutMethod": "MANUAL",
+      "remarks": "Group delegation exit clearance"
     }
 order: 8000
