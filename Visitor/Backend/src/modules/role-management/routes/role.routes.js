@@ -60,5 +60,6 @@ router.put('/:id/permissions', paramIsPositiveInt('id'), checkPermission('ROLE:U
 router.get('/:id/users', paramIsPositiveInt('id'), checkPermission('ROLE:READ'), (req, res, next) => roleController.getRoleUsers(req, res, next));
 router.post('/:id/users', paramIsPositiveInt('id'), checkPermission('ROLE:UPDATE'), (req, res, next) => roleController.assignUser(req, res, next));
 router.delete('/:id/users/:userId', paramIsPositiveInt('id'), paramIsPositiveInt('userId'), checkPermission('ROLE:UPDATE'), (req, res, next) => roleController.removeUser(req, res, next));
+router.delete('/:id/users', paramIsPositiveInt('id'), checkPermission('ROLE:UPDATE'), (req, res, next) => roleController.removeUser(req, res, next));
 
 module.exports = router;

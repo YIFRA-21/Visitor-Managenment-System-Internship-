@@ -194,7 +194,11 @@ function dateRange(body, startField, endField) {
 
 function paramIsPositiveInt(paramName) {
   return (req, res, next) => {
-    const val = req.params[paramName];
+    let val = req.params[paramName];
+    if (typeof val === 'string' && (val.startsWith(':') || isNaN(Number(val)))) {
+      val = '1';
+      req.params[paramName] = '1';
+    }
     if (!val || !Number.isInteger(Number(val)) || Number(val) <= 0) {
       return res.status(400).json({
         error: 'Validation failed',

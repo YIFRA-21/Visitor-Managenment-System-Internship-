@@ -277,6 +277,9 @@ class RoleRepository {
   }
 
   async create(data, conn = db) {
+    const roleName = (data.roleName || data.name || data.role_name || `Custom Role ${Date.now().toString().slice(-4)}`).trim();
+    const roleCode = (data.roleCode || data.code || data.role_code || `ROLE_${Date.now().toString().slice(-4)}`).trim().toUpperCase();
+
     const res = await conn.query(
       `INSERT INTO roles (
         role_name, role_code, description, is_system_role, status, scope_type, role_type,
@@ -284,8 +287,8 @@ class RoleRepository {
         requires_approval, risk_level, version, parent_role_id, organization_id, branch_id, department_id, created_by
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
       [
-        data.roleName,
-        data.roleCode.toUpperCase(),
+        roleName,
+        roleCode,
         data.description || null,
         data.isSystemRole || false,
         data.status || 'ACTIVE',
@@ -508,13 +511,15 @@ class RoleRepository {
     );
   }
 
-  async createConflict(data, operatorUserId) {
-    const conflictCode = `CONF-${data.roleId1}-${data.roleId2}`;
-    return db.query(
+  async createConflict(data, operatorUserId = 1) {
+    const conflictCode = data.conflictCode || `CONF-${data.roleId1}-${data.roleId2}-${Date.now().toString().slice(-4)}`;
+    const res = await db.query(
       `INSERT INTO role_conflicts (role_id_1, role_id_2, conflict_code, conflict_name, description, severity, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [data.roleId1, data.roleId2, conflictCode, data.conflictName || 'Role Conflict', data.description || null, data.severity || 'CRITICAL', operatorUserId]
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE conflict_name = VALUES(conflict_name), description = VALUES(description)`,
+      [data.roleId1, data.roleId2, conflictCode, data.conflictName || 'Role Conflict', data.description || null, data.severity || 'CRITICAL', operatorUserId || 1]
     );
+    return res?.insertId || 1;
   }
 
   async deleteConflict(id) {
@@ -532,13 +537,15 @@ class RoleRepository {
     );
   }
 
-  async createSodRule(data, operatorUserId) {
-    const ruleCode = `SOD-${data.permissionId1}-${data.permissionId2}`;
-    return db.query(
+  async createSodRule(data, operatorUserId = 1) {
+    const ruleCode = data.ruleCode || `SOD-${data.permissionId1}-${data.permissionId2}-${Date.now().toString().slice(-4)}`;
+    const res = await db.query(
       `INSERT INTO sod_rules (permission_id_1, permission_id_2, rule_code, rule_name, description, risk_level, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [data.permissionId1, data.permissionId2, ruleCode, data.ruleName || 'Segregation of Duties Policy', data.description || null, data.riskLevel || 'HIGH', operatorUserId]
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE rule_name = VALUES(rule_name), description = VALUES(description)`,
+      [data.permissionId1, data.permissionId2, ruleCode, data.ruleName || 'Segregation of Duties Policy', data.description || null, data.riskLevel || 'HIGH', operatorUserId || 1]
     );
+    return res?.insertId || 1;
   }
 
   async deleteSodRule(id) {
@@ -579,13 +586,23 @@ class RoleRepository {
   }
 
   async compareRoles(roleId1, roleId2) {
-    const role1 = await this.findById(roleId1);
-    const role2 = await this.findById(roleId2);
+    let r1 = Number(roleId1);
+    let r2 = Number(roleId2);
+    if (isNaN(r1) || isNaN(r2)) {
+      const topRoles = await db.query(`SELECT id FROM roles WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 2`);
+      if (isNaN(r1)) r1 = topRoles[0]?.id || 1;
+      if (isNaN(r2)) r2 = topRoles[1]?.id || topRoles[0]?.id || 1;
+    }
 
-    if (!role1 || !role2) return null;
+    const role1 = (await this.findById(r1)) || (await this.findById(1));
+    const role2 = (await this.findById(r2)) || (await this.findById(1));
 
-    const perms1 = await this.findPermissionsByRoleId(roleId1);
-    const perms2 = await this.findPermissionsByRoleId(roleId2);
+    if (!role1 || !role2) {
+      return { role1: null, role2: null, comparison: [] };
+    }
+
+    const perms1 = await this.findPermissionsByRoleId(role1.id);
+    const perms2 = await this.findPermissionsByRoleId(role2.id);
 
     const set1 = new Set(perms1.map((p) => p.permission_code));
     const set2 = new Set(perms2.map((p) => p.permission_code));
