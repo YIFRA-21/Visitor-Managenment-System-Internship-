@@ -8,6 +8,6 @@ body:
   type: text
   content: |-
     {
-      
+      "targetEmail": "admin@visitor.local"
     }
 order: 26000

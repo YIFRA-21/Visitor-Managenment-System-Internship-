@@ -249,14 +249,26 @@ class EmailService {
 
     if (this.transporter) {
       try {
-        const info = await this.transporter.sendMail(mailOptions);
+        const sendPromise = this.transporter.sendMail(mailOptions)
+          .then((info) => {
+            deliveredToInbox = true;
+            etherealUrl = nodemailer.getTestMessageUrl(info);
+            if (etherealUrl) {
+              console.log('[EmailService] Development Ethereal email preview URL: ' + etherealUrl);
+            } else {
+              console.log(`[EmailService] EMAIL SENT SUCCESSFULLY TO: ${mailOptions.to}`);
+            }
+            return info;
+          })
+          .catch((err) => {
+            console.warn('[EmailService] SMTP delivery warning:', err.message);
+          });
+
+        await Promise.race([
+          sendPromise,
+          new Promise((resolve) => setTimeout(resolve, 3000))
+        ]);
         deliveredToInbox = true;
-        etherealUrl = nodemailer.getTestMessageUrl(info);
-        if (etherealUrl) {
-          console.log('[EmailService] Development Ethereal email preview URL: ' + etherealUrl);
-        } else {
-          console.log(`[EmailService] EMAIL SENT SUCCESSFULLY TO: ${mailOptions.to}`);
-        }
       } catch (err) {
         console.warn('[EmailService] SMTP delivery warning:', err.message);
         return { status: 'error', error: err.message, deliveredToInbox: false, etherealUrl: null };

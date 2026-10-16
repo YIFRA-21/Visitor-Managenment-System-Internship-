@@ -8,6 +8,8 @@ body:
   type: text
   content: |-
     {
-      
+      "title": "Facility Maintenance Notice",
+      "message": "Routine server and access control maintenance scheduled this evening.",
+      "channels": ["in_app"]
     }
 order: 28000

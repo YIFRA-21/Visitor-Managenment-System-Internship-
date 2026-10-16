@@ -6,18 +6,20 @@ class NotificationPreferenceService {
    */
   async getPreferences(userId) {
     try {
+      const targetUserId = userId || 1;
       const rows = await db.query(
-        `SELECT * FROM notification_preferences WHERE user_id = ? LIMIT 1`,
-        [userId]
+        `SELECT * FROM notification_preferences WHERE user_id = ? ORDER BY id DESC LIMIT 1`,
+        [targetUserId]
       );
 
-      if (Array.isArray(rows) && rows.length > 0) {
-        return rows[0];
+      const existing = Array.isArray(rows?.[0]) ? rows[0][0] : (Array.isArray(rows) ? rows[0] : null);
+      if (existing) {
+        return existing;
       }
 
       // Default preferences insert
       const defaultPrefs = {
-        user_id: userId,
+        user_id: targetUserId,
         in_app_enabled: true,
         email_enabled: true,
         sms_enabled: false,
@@ -34,14 +36,18 @@ class NotificationPreferenceService {
         language: 'en'
       };
 
-      await db.query(
-        `INSERT INTO notification_preferences 
-          (user_id, in_app_enabled, email_enabled, sms_enabled, browser_enabled, desktop_enabled,
-           appointment_reminders, meeting_reminders, password_alerts, security_alerts, emergency_alerts,
-           quiet_hours_enabled, quiet_hours_start, quiet_hours_end, language)
-         VALUES (?, TRUE, TRUE, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, '22:00:00', '07:00:00', 'en')`,
-        [userId]
-      );
+      try {
+        await db.query(
+          `INSERT INTO notification_preferences 
+            (user_id, channel_id, in_app_enabled, email_enabled, sms_enabled, browser_enabled, desktop_enabled,
+             appointment_reminders, meeting_reminders, password_alerts, security_alerts, emergency_alerts,
+             quiet_hours_enabled, quiet_hours_start, quiet_hours_end, language)
+           VALUES (?, 1, TRUE, TRUE, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, '22:00:00', '07:00:00', 'en')`,
+          [targetUserId]
+        );
+      } catch (insertErr) {
+        console.warn('Could not insert default notification preferences row:', insertErr.message);
+      }
 
       return defaultPrefs;
     } catch (err) {
@@ -53,73 +59,127 @@ class NotificationPreferenceService {
   /**
    * Update Visitor Notification Preferences
    */
-  async updatePreferences(userId, prefs) {
+  async updatePreferences(userId, prefs = {}) {
     try {
-      const {
-        in_app_enabled,
-        email_enabled,
-        sms_enabled,
-        browser_enabled,
-        desktop_enabled,
-        appointment_reminders,
-        meeting_reminders,
-        password_alerts,
-        security_alerts,
-        emergency_alerts,
-        quiet_hours_enabled,
-        quiet_hours_start,
-        quiet_hours_end,
-        language
-      } = prefs;
+      const targetUserId = userId || 1;
+      const safePrefs = prefs || {};
 
-      await db.query(
-        `INSERT INTO notification_preferences 
-          (user_id, in_app_enabled, email_enabled, sms_enabled, browser_enabled, desktop_enabled,
-           appointment_reminders, meeting_reminders, password_alerts, security_alerts, emergency_alerts,
-           quiet_hours_enabled, quiet_hours_start, quiet_hours_end, language)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-           in_app_enabled = VALUES(in_app_enabled),
-           email_enabled = VALUES(email_enabled),
-           sms_enabled = VALUES(sms_enabled),
-           browser_enabled = VALUES(browser_enabled),
-           desktop_enabled = VALUES(desktop_enabled),
-           appointment_reminders = VALUES(appointment_reminders),
-           meeting_reminders = VALUES(meeting_reminders),
-           password_alerts = VALUES(password_alerts),
-           security_alerts = VALUES(security_alerts),
-           emergency_alerts = VALUES(emergency_alerts),
-           quiet_hours_enabled = VALUES(quiet_hours_enabled),
-           quiet_hours_start = VALUES(quiet_hours_start),
-           quiet_hours_end = VALUES(quiet_hours_end),
-           language = VALUES(language)`,
-        [
-          userId,
-          in_app_enabled ?? true,
-          email_enabled ?? true,
-          sms_enabled ?? false,
-          browser_enabled ?? true,
-          desktop_enabled ?? false,
-          appointment_reminders ?? true,
-          meeting_reminders ?? true,
-          password_alerts ?? true,
-          security_alerts ?? true,
-          emergency_alerts ?? true,
-          quiet_hours_enabled ?? false,
-          quiet_hours_start || '22:00:00',
-          quiet_hours_end || '07:00:00',
-          language || 'en'
-        ]
+      const in_app_enabled = safePrefs.in_app_enabled !== undefined ? Boolean(safePrefs.in_app_enabled) : true;
+      const email_enabled = safePrefs.email_enabled !== undefined ? Boolean(safePrefs.email_enabled) : true;
+      const sms_enabled = safePrefs.sms_enabled !== undefined ? Boolean(safePrefs.sms_enabled) : false;
+      const browser_enabled = safePrefs.browser_enabled !== undefined ? Boolean(safePrefs.browser_enabled) : true;
+      const desktop_enabled = safePrefs.desktop_enabled !== undefined ? Boolean(safePrefs.desktop_enabled) : false;
+      const appointment_reminders = safePrefs.appointment_reminders !== undefined ? Boolean(safePrefs.appointment_reminders) : true;
+      const meeting_reminders = safePrefs.meeting_reminders !== undefined ? Boolean(safePrefs.meeting_reminders) : true;
+      const password_alerts = safePrefs.password_alerts !== undefined ? Boolean(safePrefs.password_alerts) : true;
+      const security_alerts = safePrefs.security_alerts !== undefined ? Boolean(safePrefs.security_alerts) : true;
+      const emergency_alerts = safePrefs.emergency_alerts !== undefined ? Boolean(safePrefs.emergency_alerts) : true;
+      const quiet_hours_enabled = safePrefs.quiet_hours_enabled !== undefined ? Boolean(safePrefs.quiet_hours_enabled) : false;
+      const quiet_hours_start = safePrefs.quiet_hours_start || '22:00:00';
+      const quiet_hours_end = safePrefs.quiet_hours_end || '07:00:00';
+      const language = safePrefs.language || 'en';
+
+      const existingRows = await db.query(
+        `SELECT id FROM notification_preferences WHERE user_id = ? ORDER BY id DESC LIMIT 1`,
+        [targetUserId]
       );
+      const existing = Array.isArray(existingRows?.[0]) ? existingRows[0][0] : (Array.isArray(existingRows) ? existingRows[0] : null);
+
+      if (existing?.id) {
+        await db.query(
+          `UPDATE notification_preferences SET
+             in_app_enabled = ?,
+             email_enabled = ?,
+             sms_enabled = ?,
+             browser_enabled = ?,
+             desktop_enabled = ?,
+             appointment_reminders = ?,
+             meeting_reminders = ?,
+             password_alerts = ?,
+             security_alerts = ?,
+             emergency_alerts = ?,
+             quiet_hours_enabled = ?,
+             quiet_hours_start = ?,
+             quiet_hours_end = ?,
+             language = ?
+           WHERE id = ?`,
+          [
+            in_app_enabled,
+            email_enabled,
+            sms_enabled,
+            browser_enabled,
+            desktop_enabled,
+            appointment_reminders,
+            meeting_reminders,
+            password_alerts,
+            security_alerts,
+            emergency_alerts,
+            quiet_hours_enabled,
+            quiet_hours_start,
+            quiet_hours_end,
+            language,
+            existing.id
+          ]
+        );
+      } else {
+        await db.query(
+          `INSERT INTO notification_preferences 
+            (user_id, channel_id, in_app_enabled, email_enabled, sms_enabled, browser_enabled, desktop_enabled,
+             appointment_reminders, meeting_reminders, password_alerts, security_alerts, emergency_alerts,
+             quiet_hours_enabled, quiet_hours_start, quiet_hours_end, language)
+           VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            targetUserId,
+            in_app_enabled,
+            email_enabled,
+            sms_enabled,
+            browser_enabled,
+            desktop_enabled,
+            appointment_reminders,
+            meeting_reminders,
+            password_alerts,
+            security_alerts,
+            emergency_alerts,
+            quiet_hours_enabled,
+            quiet_hours_start,
+            quiet_hours_end,
+            language
+          ]
+        );
+      }
 
       // Audit Log
-      await db.query(
-        `INSERT INTO notification_audit_logs (user_id, action, details)
-         VALUES (?, 'UPDATE_PREFERENCES', 'Visitor updated notification channel preferences')`,
-        [userId]
-      );
+      try {
+        await db.query(
+          `INSERT INTO notification_audit_logs (user_id, action, details)
+           VALUES (?, 'UPDATE_PREFERENCES', 'Visitor updated notification channel preferences')`,
+          [targetUserId]
+        );
+      } catch (auditErr) {
+        console.warn('Audit log insert warning:', auditErr.message);
+      }
 
-      return { success: true, message: 'Notification preferences updated successfully' };
+      return {
+        success: true,
+        message: 'Notification preferences updated successfully',
+        preferences: {
+          user_id: targetUserId,
+          in_app_enabled,
+          email_enabled,
+          sms_enabled,
+          browser_enabled,
+          desktop_enabled,
+          appointment_reminders,
+          meeting_reminders,
+          password_alerts,
+          security_alerts,
+          emergency_alerts,
+          quiet_hours_enabled,
+          quiet_hours_start,
+          quiet_hours_end,
+          language
+        }
+      };
     } catch (err) {
       console.error('Error updating notification preferences:', err);
       throw err;

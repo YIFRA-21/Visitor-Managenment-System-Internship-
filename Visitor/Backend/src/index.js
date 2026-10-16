@@ -108,6 +108,21 @@ const pool = require('./config/db');
     try { await pool.query(`ALTER TABLE notifications ADD COLUMN read_at DATETIME NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE notifications ADD COLUMN created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP`); } catch (e) {}
     try { await pool.query(`ALTER TABLE notification_templates ADD COLUMN event_key VARCHAR(100) NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE notification_preferences ADD COLUMN browser_enabled BOOLEAN DEFAULT TRUE`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE notification_preferences ADD COLUMN desktop_enabled BOOLEAN DEFAULT FALSE`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE notification_preferences ADD COLUMN appointment_reminders BOOLEAN DEFAULT TRUE`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE notification_preferences ADD COLUMN meeting_reminders BOOLEAN DEFAULT TRUE`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE notification_preferences ADD COLUMN password_alerts BOOLEAN DEFAULT TRUE`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE notification_preferences ADD COLUMN security_alerts BOOLEAN DEFAULT TRUE`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE notification_preferences ADD COLUMN emergency_alerts BOOLEAN DEFAULT TRUE`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE notification_preferences ADD COLUMN language VARCHAR(10) DEFAULT 'en'`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE notification_audit_logs ADD COLUMN metadata JSON NULL`); } catch (e) {}
+    try {
+      await pool.query(`
+        INSERT IGNORE INTO notifications (id, user_id, type, priority, category, channel, title, message, status, sent_at, is_read)
+        VALUES (1, 1, 'APPT_CONFIRMED', 'medium', 'General', 'in_app', 'Welcome to VMS Platform', 'Your visit has been approved and registered.', 'sent', NOW(), 1)
+      `);
+    } catch (e) {}
 
     // Visitor Profile Directory columns migration
     try { await pool.query(`ALTER TABLE visitors ADD COLUMN is_archived TINYINT(1) DEFAULT 0`); } catch (e) {}

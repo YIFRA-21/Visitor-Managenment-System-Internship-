@@ -8,6 +8,19 @@ body:
   type: text
   content: |-
     {
-      
+      "in_app_enabled": true,
+      "email_enabled": true,
+      "sms_enabled": true,
+      "browser_enabled": true,
+      "desktop_enabled": false,
+      "appointment_reminders": true,
+      "meeting_reminders": true,
+      "password_alerts": true,
+      "security_alerts": true,
+      "emergency_alerts": true,
+      "quiet_hours_enabled": false,
+      "quiet_hours_start": "22:00:00",
+      "quiet_hours_end": "07:00:00",
+      "language": "en"
     }
 order: 5000

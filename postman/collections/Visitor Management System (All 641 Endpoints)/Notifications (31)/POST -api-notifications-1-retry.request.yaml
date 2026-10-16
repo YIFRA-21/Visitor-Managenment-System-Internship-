@@ -8,6 +8,6 @@ body:
   type: text
   content: |-
     {
-      
+      "channel": "email"
     }
 order: 29000
