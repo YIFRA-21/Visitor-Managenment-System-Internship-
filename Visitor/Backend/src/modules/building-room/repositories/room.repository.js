@@ -18,7 +18,8 @@ class RoomRepository {
   }
 
   async create(roomData) {
-    const { name, capacity, location, facilityId = null } = roomData;
+    const { name, capacity = 10, location, facilityId = null } = roomData;
+    const roomNumber = roomData.roomNumber || roomData.room_number || ('RM-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(100 + Math.random() * 900));
     const useMock = db.getUseMock();
 
     if (useMock) {
@@ -29,11 +30,20 @@ class RoomRepository {
       return result.insertId;
     }
 
+    // Check if room with this name already exists for idempotent create
+    const existing = await db.query(
+      `SELECT id FROM meeting_rooms WHERE (name = ? OR room_name = ?) AND deleted_at IS NULL LIMIT 1`,
+      [name, name]
+    );
+    if (existing[0]) {
+      return existing[0].id;
+    }
+
     const result = await db.query(
       `INSERT INTO meeting_rooms (
-        facility_id, room_name, name, capacity, location, status, is_active
-      ) VALUES (?, ?, ?, ?, ?, 'ACTIVE', TRUE)`,
-      [facilityId, name, name, capacity, location]
+        facility_id, room_number, room_name, name, capacity, location, status, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', TRUE)`,
+      [facilityId, roomNumber, name, name, capacity, location]
     );
 
     const roomId = result.insertId;
