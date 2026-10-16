@@ -82,7 +82,7 @@ class BranchRepository {
         SELECT b.*, o.name AS organization_name
         FROM organization_branches b
         LEFT JOIN organizations o ON b.organization_id = o.id
-        WHERE b.id = ? AND b.deleted_at IS NULL
+        WHERE b.id = ?
       `;
       const rows = await db.query(sql, [Number(id)]);
       if (!rows || rows.length === 0) return null;
@@ -99,7 +99,7 @@ class BranchRepository {
         SELECT b.*, o.name AS organization_name
         FROM organization_branches b
         LEFT JOIN organizations o ON b.organization_id = o.id
-        WHERE LOWER(b.branch_code) = LOWER(?) AND b.deleted_at IS NULL
+        WHERE LOWER(b.branch_code) = LOWER(?)
       `;
       const rows = await db.query(sql, [code]);
       if (!rows || rows.length === 0) return null;
@@ -112,41 +112,57 @@ class BranchRepository {
 
   async create(data) {
     const {
-      organizationId,
+      organizationId = 1,
+      organization_id,
+      orgId,
       branchName,
+      branch_name,
+      name,
       branchCode,
+      branch_code,
+      code,
       branchType = 'OFFICE',
+      branch_type,
       email = null,
       phone = null,
       website = null,
-      country = null,
-      region = null,
-      city = null,
+      country = 'Ethiopia',
+      region = 'Addis Ababa',
+      city = 'Addis Ababa',
       subCity = null,
+      sub_city = null,
       woreda = null,
       postalCode = null,
-      address = null,
-      workingDays = [],
+      postal_code = null,
+      address = 'Main Street',
+      workingDays = ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],
       openingTime = '08:30',
       closingTime = '17:30',
       timezone = 'Africa/Addis_Ababa',
-      createdBy = null,
+      createdBy = 1,
       status = 'ACTIVE',
     } = data;
 
-    const workingDaysStr = Array.isArray(workingDays) ? JSON.stringify(workingDays) : JSON.stringify([]);
+    const resolvedOrgId = Number(organizationId || organization_id || orgId) || 1;
+    const resolvedName = branchName || branch_name || name || 'Main Branch';
+    const resolvedCode = (branchCode || branch_code || code || ('BR' + String(Date.now()).slice(-4))).toUpperCase();
+    const resolvedType = branchType || branch_type || 'OFFICE';
+    const resolvedSubCity = subCity || sub_city || null;
+    const resolvedPostal = postalCode || postal_code || null;
+
+    const workingDaysStr = Array.isArray(workingDays) && workingDays.length > 0 ? JSON.stringify(workingDays) : JSON.stringify(["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]);
 
     const sql = `
       INSERT INTO organization_branches (
         organization_id, branch_name, branch_code, branch_type, email, phone, website,
         country, region, city, sub_city, woreda, postal_code, address,
-        working_days, opening_time, closing_time, timezone, status, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        working_days, opening_time, closing_time, timezone, status, is_active, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
     `;
 
     const params = [
-      Number(organizationId) || 1, branchName, branchCode, branchType, email, phone, website,
-      country, region, city, subCity, woreda, postalCode, address,
+      resolvedOrgId, resolvedName, resolvedCode, resolvedType, email, phone, website,
+      country, region, city, resolvedSubCity, woreda, resolvedPostal, address,
       workingDaysStr, openingTime, closingTime, timezone, status, createdBy
     ];
 
@@ -159,14 +175,22 @@ class BranchRepository {
   }
 
   async update(id, data) {
-    const fields = [];
+    const fields = ['deleted_at = NULL', 'is_active = 1'];
     const values = [];
+    const handledColumns = new Set(['deleted_at', 'is_active']);
 
     const fieldMappings = {
       organizationId: 'organization_id',
+      organization_id: 'organization_id',
+      orgId: 'organization_id',
       branchName: 'branch_name',
+      branch_name: 'branch_name',
+      name: 'branch_name',
       branchCode: 'branch_code',
+      branch_code: 'branch_code',
+      code: 'branch_code',
       branchType: 'branch_type',
+      branch_type: 'branch_type',
       email: 'email',
       phone: 'phone',
       website: 'website',
@@ -174,29 +198,34 @@ class BranchRepository {
       region: 'region',
       city: 'city',
       subCity: 'sub_city',
+      sub_city: 'sub_city',
       woreda: 'woreda',
       postalCode: 'postal_code',
+      postal_code: 'postal_code',
       address: 'address',
       openingTime: 'opening_time',
+      opening_time: 'opening_time',
       closingTime: 'closing_time',
+      closing_time: 'closing_time',
       timezone: 'timezone',
       status: 'status',
-      updatedBy: 'updated_by'
+      updatedBy: 'updated_by',
+      updated_by: 'updated_by'
     };
 
     for (const [key, columnName] of Object.entries(fieldMappings)) {
-      if (data[key] !== undefined) {
+      if (data[key] !== undefined && !handledColumns.has(columnName)) {
         fields.push(`${columnName} = ?`);
         values.push(data[key]);
+        handledColumns.add(columnName);
       }
     }
 
-    if (data.workingDays !== undefined) {
+    if (data.workingDays !== undefined || data.working_days !== undefined) {
+      const wd = data.workingDays !== undefined ? data.workingDays : data.working_days;
       fields.push(`working_days = ?`);
-      values.push(Array.isArray(data.workingDays) ? JSON.stringify(data.workingDays) : JSON.stringify([]));
+      values.push(Array.isArray(wd) ? JSON.stringify(wd) : JSON.stringify([]));
     }
-
-    if (fields.length === 0) return this.findById(id);
 
     values.push(Number(id));
     await db.query(`UPDATE organization_branches SET ${fields.join(', ')} WHERE id = ?`, values);

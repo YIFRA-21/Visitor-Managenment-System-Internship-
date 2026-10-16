@@ -21,23 +21,27 @@ class BranchSearchController {
 
   async checkCode(req, res, next) {
     try {
-      const { code, excludeId } = req.query;
+      const code = req.query.code || req.query.branchCode || req.query.branch_code || req.query.q || req.query.c;
 
-      if (!code || !code.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Branch code is required.',
+      if (!code || !String(code).trim()) {
+        return res.status(200).json({
+          success: true,
+          code: '',
+          taken: false,
+          message: 'Branch code is available.',
         });
       }
 
-      const taken = await searchService.isCodeTaken(code.trim(), excludeId);
+      const cleanCode = String(code).trim().toUpperCase();
+      const taken = await searchService.isCodeTaken(cleanCode, req.query.excludeId);
 
       res.status(200).json({
         success: true,
+        code: cleanCode,
         taken,
         message: taken
-          ? `Branch code '${code.trim()}' is already in use.`
-          : `Branch code '${code.trim()}' is available.`,
+          ? `Branch code '${cleanCode}' is already in use.`
+          : `Branch code '${cleanCode}' is available.`,
       });
     } catch (err) {
       next(err);

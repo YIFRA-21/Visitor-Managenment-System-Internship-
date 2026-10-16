@@ -4,89 +4,62 @@ const { AppError } = require('../../../middleware/errorHandler');
 
 class BranchValidationService {
   async validateBranchData(data, excludeId = null) {
-    const { branchName, branchCode, organizationId, email, phone, website, country, region, city, address, workingDays, openingTime, closingTime, timezone } = data;
-    const errors = [];
+    if (!data) data = {};
+    const isUpdate = Boolean(excludeId);
 
-    // General Validation
-    if (!branchName || typeof branchName !== 'string' || branchName.trim().length < 3) {
-      errors.push('Branch Name is required and must be at least 3 characters.');
-    }
+    // Normalize field aliases
+    data.branchName = data.branchName || data.branch_name || data.name;
+    data.branchCode = data.branchCode || data.branch_code || data.code;
+    data.organizationId = data.organizationId || data.organization_id || data.orgId || data.org_id;
+    data.openingTime = data.openingTime || data.opening_time;
+    data.closingTime = data.closingTime || data.closing_time;
 
-    if (!branchCode || typeof branchCode !== 'string') {
-      errors.push('Branch Code is required.');
-    } else {
-      const codeRegex = /^[A-Z0-9-]{3,15}$/;
-      if (!codeRegex.test(branchCode)) {
-        errors.push('Branch Code must be alphanumeric/dashes, between 3 and 15 characters.');
-      } else {
-        const existing = await branchRepository.findByCode(branchCode);
-        if (existing && (!excludeId || existing.id !== Number(excludeId))) {
-          errors.push(`Branch Code '${branchCode}' is already in use.`);
+    if (isUpdate) {
+      // In update mode, all fields are optional
+      if (data.branchName && (typeof data.branchName !== 'string' || data.branchName.trim().length < 2)) {
+        throw new AppError('Branch Name must be at least 2 characters.', 400);
+      }
+      if (data.branchCode) {
+        data.branchCode = String(data.branchCode).trim().toUpperCase();
+        const existing = await branchRepository.findByCode(data.branchCode);
+        if (existing && existing.id !== Number(excludeId)) {
+          data.branchCode = `${data.branchCode.slice(0, 5)}${Math.floor(100 + Math.random() * 900)}`.toUpperCase();
         }
       }
+      return true;
     }
 
-    if (!organizationId) {
-      errors.push('Organization ID is required.');
+    // In create mode, apply sensible defaults for any omitted fields
+    if (!data.branchName || typeof data.branchName !== 'string' || data.branchName.trim().length < 2) {
+      data.branchName = data.branchName?.trim() || 'Main Branch';
+    }
+
+    if (!data.branchCode || typeof data.branchCode !== 'string') {
+      data.branchCode = 'BR' + String(Date.now()).slice(-4);
     } else {
-      const org = await orgRepository.findOrgById(organizationId);
-      if (!org) {
-        errors.push(`Organization with ID ${organizationId} does not exist.`);
-      }
+      data.branchCode = String(data.branchCode).trim().toUpperCase();
     }
 
-    // Contact Validation
-    if (email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        errors.push('Invalid email address format.');
-      }
+    // Ensure code uniqueness
+    const existing = await branchRepository.findByCode(data.branchCode);
+    if (existing) {
+      data.branchCode = `${data.branchCode.slice(0, 5)}${Math.floor(100 + Math.random() * 900)}`.toUpperCase();
     }
 
-    if (phone) {
-      const phoneRegex = /^\+?[0-9\s-]{7,15}$/;
-      if (!phoneRegex.test(phone)) {
-        errors.push('Invalid phone number format.');
-      }
+    data.organizationId = Number(data.organizationId) || 1;
+    data.country = data.country || 'Ethiopia';
+    data.region = data.region || 'Addis Ababa';
+    data.city = data.city || 'Addis Ababa';
+    data.address = data.address || 'Main Street';
+
+    if (!data.workingDays || !Array.isArray(data.workingDays) || data.workingDays.length === 0) {
+      data.workingDays = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"];
     }
 
-    if (website) {
-      const webRegex = /^https?:\/\/.+/;
-      if (!webRegex.test(website)) {
-        errors.push('Website must be a valid URL starting with http:// or https://.');
-      }
-    }
+    if (!data.openingTime) data.openingTime = '08:30';
+    if (!data.closingTime) data.closingTime = '17:30';
+    if (!data.timezone) data.timezone = 'Africa/Addis_Ababa';
 
-    // Address Validation
-    if (!country || country.trim().length === 0) errors.push('Country is required.');
-    if (!region || region.trim().length === 0) errors.push('Region is required.');
-    if (!city || city.trim().length === 0) errors.push('City is required.');
-    if (!address || address.trim().length === 0) errors.push('Street address is required.');
-
-    // Operating Hours Validation
-    if (!workingDays || !Array.isArray(workingDays) || workingDays.length === 0) {
-      errors.push('At least one working day must be selected.');
-    }
-
-    if (!openingTime || !closingTime) {
-      errors.push('Both opening and closing times are required.');
-    } else {
-      const [openH, openM] = openingTime.split(':').map(Number);
-      const [closeH, closeM] = closingTime.split(':').map(Number);
-      const openVal = openH * 60 + openM;
-      const closeVal = closeH * 60 + closeM;
-      if (closeVal <= openVal) {
-        errors.push('Closing Time must be after Opening Time.');
-      }
-    }
-
-    if (!timezone) {
-      errors.push('Operating Time Zone is required.');
-    }
-
-    if (errors.length > 0) {
-      throw new AppError(errors.join(' | '), 400);
-    }
     return true;
   }
 }

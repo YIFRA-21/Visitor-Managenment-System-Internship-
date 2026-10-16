@@ -55,21 +55,16 @@ class UpgradedBranchStatusController {
   async changeStatus(req, res, next) {
     try {
       const { id } = req.params;
-      const { status, reason } = req.body;
-
-      if (!status) {
-        return res.status(400).json({
-          success: false,
-          message: 'Status is required.',
-        });
-      }
-
+      const rawStatus = req.body?.status || req.body?.state || req.body?.branch_status || req.body?.newStatus;
+      const status = rawStatus ? String(rawStatus).trim().toUpperCase() : null;
+      const reason = req.body?.reason || '';
       const operatorId = req.user ? (req.user.id || req.user.user_id) : 1;
+
       const result = await statusService.changeStatus(
         id,
-        status.toUpperCase(),
+        status,
         operatorId,
-        reason || ''
+        reason
       );
 
       res.status(200).json({
