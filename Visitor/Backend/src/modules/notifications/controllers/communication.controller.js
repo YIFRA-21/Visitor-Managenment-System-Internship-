@@ -6,21 +6,13 @@
  */
 
 const communicationService = require('../services/communication.service');
-const db = require('../../../config/db');
-
-function safeId(val, fallback = 1) {
-  if (val === undefined || val === null || val === '') return fallback;
-  const str = String(val).replace(/^:/, '').trim();
-  const n = Number(str);
-  return (!isNaN(n) && n > 0) ? n : fallback;
-}
 
 class CommunicationController {
   // ── Contacts ────────────────────────────────────────────────────────────
   async getContacts(req, res, next) {
     try {
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
+      const userId = req.user?.id;
+      const role = req.user?.role;
       const result = await communicationService.getAvailableContacts(userId, role);
       res.json(result);
     } catch (err) {
@@ -31,8 +23,8 @@ class CommunicationController {
   // ── System Chat Conversations ───────────────────────────────────────────
   async getConversations(req, res, next) {
     try {
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
+      const userId = req.user?.id;
+      const role = req.user?.role;
       const result = await communicationService.getUserConversations(userId, role);
       res.json(result);
     } catch (err) {
@@ -42,21 +34,13 @@ class CommunicationController {
 
   async createDirectConversation(req, res, next) {
     try {
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
-      let targetUserId = safeId(req.body?.targetUserId, 0);
-
+      const userId = req.user?.id;
+      const role = req.user?.role;
+      const { targetUserId } = req.body;
       if (!targetUserId) {
-        try {
-          const others = await db.query('SELECT id FROM users WHERE id != ? AND is_active = 1 LIMIT 1', [userId]);
-          const list = Array.isArray(others[0]) ? others[0] : (Array.isArray(others) ? others : []);
-          targetUserId = list[0]?.id || (userId === 1 ? 2 : 1);
-        } catch (e) {
-          targetUserId = userId === 1 ? 2 : 1;
-        }
+        return res.status(400).json({ error: 'targetUserId is required' });
       }
-
-      const result = await communicationService.createOrGetDirectConversation(userId, role, targetUserId);
+      const result = await communicationService.createOrGetDirectConversation(userId, role, Number(targetUserId));
       res.json(result);
     } catch (err) {
       next(err);
@@ -65,10 +49,8 @@ class CommunicationController {
 
   async createGroupConversation(req, res, next) {
     try {
-      const userId = safeId(req.user?.id, 1);
-      const title = (req.body?.title && String(req.body.title).trim()) || 'Operations Group Hub';
-      const participantUserIds = Array.isArray(req.body?.participantUserIds) ? req.body.participantUserIds : [];
-      const description = req.body?.description || 'General collaboration and operations group';
+      const userId = req.user?.id;
+      const { title, participantUserIds = [], description } = req.body;
       const result = await communicationService.createGroupConversation(userId, title, participantUserIds, description);
       res.status(201).json(result);
     } catch (err) {
@@ -78,10 +60,10 @@ class CommunicationController {
 
   async updateConversation(req, res, next) {
     try {
-      const convId = safeId(req.params.convId, 1);
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
-      const result = await communicationService.updateConversation(convId, userId, role, req.body || {});
+      const { convId } = req.params;
+      const userId = req.user?.id;
+      const role = req.user?.role;
+      const result = await communicationService.updateConversation(Number(convId), userId, role, req.body);
       res.json(result);
     } catch (err) {
       next(err);
@@ -90,10 +72,10 @@ class CommunicationController {
 
   async deleteConversation(req, res, next) {
     try {
-      const convId = safeId(req.params.convId, 1);
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
-      const result = await communicationService.deleteConversation(convId, userId, role);
+      const { convId } = req.params;
+      const userId = req.user?.id;
+      const role = req.user?.role;
+      const result = await communicationService.deleteConversation(Number(convId), userId, role);
       res.json(result);
     } catch (err) {
       next(err);
@@ -102,9 +84,9 @@ class CommunicationController {
 
   async addParticipant(req, res, next) {
     try {
-      const convId = safeId(req.params.convId, 1);
-      const userIdToAdd = safeId(req.body?.userId, safeId(req.user?.id, 1));
-      const result = await communicationService.addParticipantToConversation(convId, userIdToAdd);
+      const { convId } = req.params;
+      const { userId } = req.body;
+      const result = await communicationService.addParticipantToConversation(Number(convId), Number(userId));
       res.json(result);
     } catch (err) {
       next(err);
@@ -113,9 +95,8 @@ class CommunicationController {
 
   async removeParticipant(req, res, next) {
     try {
-      const convId = safeId(req.params.convId, 1);
-      const userIdToRemove = safeId(req.params.userId, safeId(req.user?.id, 1));
-      const result = await communicationService.removeParticipantFromConversation(convId, userIdToRemove);
+      const { convId, userId } = req.params;
+      const result = await communicationService.removeParticipantFromConversation(Number(convId), Number(userId));
       res.json(result);
     } catch (err) {
       next(err);
@@ -124,8 +105,8 @@ class CommunicationController {
 
   async addManualContact(req, res, next) {
     try {
-      const userId = safeId(req.user?.id, 1);
-      const result = await communicationService.createManualContact(userId, req.body || {});
+      const userId = req.user?.id;
+      const result = await communicationService.createManualContact(userId, req.body);
       res.status(201).json(result);
     } catch (err) {
       next(err);
@@ -135,10 +116,10 @@ class CommunicationController {
   // ── Chat Messages ───────────────────────────────────────────────────────
   async getChatMessages(req, res, next) {
     try {
-      const convId = safeId(req.params.convId, 1);
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
-      const result = await communicationService.getChatMessages(convId, userId, role);
+      const { convId } = req.params;
+      const userId = req.user?.id;
+      const role = req.user?.role;
+      const result = await communicationService.getChatMessages(Number(convId), userId, role);
       res.json(result);
     } catch (err) {
       next(err);
@@ -147,16 +128,15 @@ class CommunicationController {
 
   async sendChatMessage(req, res, next) {
     try {
-      const convId = safeId(req.params.convId, 1);
-      const senderId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
-      const { message_text, message_type = 'text', attachments } = req.body || {};
-      const finalText = (message_text && String(message_text).trim()) || (req.body?.text && String(req.body.text).trim()) || 'Hello from VMS!';
+      const { convId } = req.params;
+      const senderId = req.user?.id;
+      const role = req.user?.role;
+      const { message_text, message_type = 'text', attachments } = req.body;
       const result = await communicationService.sendChatMessage(
-        convId,
+        Number(convId),
         senderId,
         role,
-        finalText,
+        message_text,
         message_type,
         attachments
       );
@@ -168,15 +148,14 @@ class CommunicationController {
 
   async editChatMessage(req, res, next) {
     try {
-      const convId = safeId(req.params.convId, 1);
-      const messageId = safeId(req.params.messageId, 1);
-      const userId = safeId(req.user?.id, 1);
-      const messageText = (req.body?.message_text && String(req.body.message_text).trim()) || (req.body?.text && String(req.body.text).trim()) || 'Updated chat message content.';
+      const { convId, messageId } = req.params;
+      const userId = req.user?.id;
+      const { message_text } = req.body;
       const result = await communicationService.editChatMessage(
-        convId,
-        messageId,
+        Number(convId),
+        Number(messageId),
         userId,
-        messageText
+        message_text
       );
       res.json(result);
     } catch (err) {
@@ -186,13 +165,12 @@ class CommunicationController {
 
   async deleteChatMessage(req, res, next) {
     try {
-      const convId = safeId(req.params.convId, 1);
-      const messageId = safeId(req.params.messageId, 1);
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
+      const { convId, messageId } = req.params;
+      const userId = req.user?.id;
+      const role = req.user?.role;
       const result = await communicationService.deleteChatMessage(
-        convId,
-        messageId,
+        Number(convId),
+        Number(messageId),
         userId,
         role
       );
@@ -205,18 +183,18 @@ class CommunicationController {
   // ── Real Email Dispatch ─────────────────────────────────────────────────
   async sendDirectEmail(req, res, next) {
     try {
-      const senderId = safeId(req.user?.id, 1);
-      const result = await communicationService.sendDirectEmail(senderId, req.body || {});
+      const senderId = req.user?.id;
+      const result = await communicationService.sendDirectEmail(senderId, req.body);
       res.json(result);
     } catch (err) {
       next(err);
     }
   }
 
-  // ── Announcements ───────────────────────────────────────────────────────
+  // ── Announcements (Admin-Only for creation) ─────────────────────────────
   async getAnnouncements(req, res, next) {
     try {
-      const role = req.user?.role || 'admin';
+      const role = req.user?.role;
       const orgId = req.user?.organizationId;
       const result = await communicationService.getAnnouncements(role, orgId, req.query);
       res.json(result);
@@ -227,9 +205,9 @@ class CommunicationController {
 
   async createAnnouncement(req, res, next) {
     try {
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
-      const result = await communicationService.createAnnouncement(userId, role, req.body || {});
+      const userId = req.user?.id;
+      const role = req.user?.role;
+      const result = await communicationService.createAnnouncement(userId, role, req.body);
       res.status(201).json(result);
     } catch (err) {
       next(err);
@@ -238,9 +216,9 @@ class CommunicationController {
 
   async markAnnouncementRead(req, res, next) {
     try {
-      const id = safeId(req.params.id, 1);
-      const userId = safeId(req.user?.id, 1);
-      const result = await communicationService.markAnnouncementRead(id, userId);
+      const { id } = req.params;
+      const userId = req.user?.id;
+      const result = await communicationService.markAnnouncementRead(Number(id), userId);
       res.json(result);
     } catch (err) {
       next(err);
@@ -249,10 +227,10 @@ class CommunicationController {
 
   async updateAnnouncement(req, res, next) {
     try {
-      const id = safeId(req.params.id, 1);
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
-      const result = await communicationService.updateAnnouncement(id, userId, role, req.body || {});
+      const { id } = req.params;
+      const userId = req.user?.id;
+      const role = req.user?.role;
+      const result = await communicationService.updateAnnouncement(Number(id), userId, role, req.body);
       res.json(result);
     } catch (err) {
       next(err);
@@ -261,10 +239,10 @@ class CommunicationController {
 
   async deleteAnnouncement(req, res, next) {
     try {
-      const id = safeId(req.params.id, 1);
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
-      const result = await communicationService.deleteAnnouncement(id, userId, role);
+      const { id } = req.params;
+      const userId = req.user?.id;
+      const role = req.user?.role;
+      const result = await communicationService.deleteAnnouncement(Number(id), userId, role);
       res.json(result);
     } catch (err) {
       next(err);
@@ -274,8 +252,8 @@ class CommunicationController {
   // ── Centralized Real Unread Counts ──────────────────────────────────────
   async getUnreadCounts(req, res, next) {
     try {
-      const userId = safeId(req.user?.id, 1);
-      const role = req.user?.role || 'admin';
+      const userId = req.user?.id;
+      const role = req.user?.role;
       const email = req.user?.email || '';
       const result = await communicationService.getUnreadCounts(userId, role, email);
       res.json(result);
@@ -288,18 +266,7 @@ class CommunicationController {
   async uploadAttachment(req, res, next) {
     try {
       if (!req.file) {
-        return res.status(200).json({
-          success: true,
-          message: 'Attachment uploaded successfully',
-          attachment: {
-            name: req.body?.filename || 'sample-document.pdf',
-            filename: 'chat-sample-' + Date.now() + '.pdf',
-            url: '/uploads/sample-document.pdf',
-            size: 1024,
-            mimetype: 'application/pdf',
-            type: 'document'
-          }
-        });
+        return res.status(400).json({ error: 'No file uploaded' });
       }
 
       const file = req.file;
@@ -328,4 +295,3 @@ class CommunicationController {
 }
 
 module.exports = new CommunicationController();
-

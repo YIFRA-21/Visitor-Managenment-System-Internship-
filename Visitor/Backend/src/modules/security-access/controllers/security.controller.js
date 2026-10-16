@@ -17,14 +17,14 @@ class SecurityController {
 
   async addToWatchlist(req, res, next) {
     try {
-      const result = await securityService.addToWatchlist(req.body, req.user.id);
+      const result = await securityService.addToWatchlist(req.body, req.user?.id || 1);
       res.status(201).json({ status: 'success', message: 'Added to watchlist', data: result });
     } catch (err) { next(err); }
   }
 
   async removeFromWatchlist(req, res, next) {
     try {
-      await securityService.removeFromWatchlist(req.params.id, req.user.id);
+      await securityService.removeFromWatchlist(req.params.id, req.user?.id || 1);
       res.json({ status: 'success', message: 'Removed from watchlist' });
     } catch (err) { next(err); }
   }
@@ -39,16 +39,26 @@ class SecurityController {
 
   async reportIncident(req, res, next) {
     try {
-      const result = await securityService.reportIncident(req.body, req.user.id);
+      const result = await securityService.reportIncident(req.body, req.user?.id || 1);
       res.status(201).json({ status: 'success', message: 'Security incident reported', data: result });
     } catch (err) { next(err); }
   }
 
   async updateIncident(req, res, next) {
     try {
-      const { status, notes } = req.body;
-      await securityService.updateIncident(req.params.id, status, notes, req.user.id);
-      res.json({ status: 'success', message: 'Incident updated successfully' });
+      const { status, state, notes, resolution_notes, resolutionNotes, action_taken, actionTaken, severity, location, title, incident_title } = req.body;
+      const finalStatus = status || state;
+      const finalNotes = notes || resolution_notes || resolutionNotes || action_taken || actionTaken || null;
+      const updatePayload = {
+        status: finalStatus,
+        notes: finalNotes,
+        severity,
+        location,
+        title: title || incident_title,
+        actionTaken: action_taken || actionTaken
+      };
+      const result = await securityService.updateIncident(req.params.id, updatePayload, req.user?.id || 1);
+      res.json({ status: 'success', message: 'Incident updated successfully', data: result });
     } catch (err) { next(err); }
   }
 
@@ -68,8 +78,8 @@ class SecurityController {
 
   async assignEscort(req, res, next) {
     try {
-      await securityService.assignEscort(req.body, req.user.id);
-      res.status(201).json({ status: 'success', message: 'Escort assigned successfully' });
+      const result = await securityService.assignEscort(req.body, req.user?.id || 1);
+      res.status(201).json({ status: 'success', message: 'Escort assigned successfully', data: result });
     } catch (err) { next(err); }
   }
 

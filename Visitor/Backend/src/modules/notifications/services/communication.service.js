@@ -107,60 +107,48 @@ class CommunicationService {
   /**
    * Add a manual contact with custom info & profile, and immediately initialize a direct conversation
    */
-  async createManualContact(creatorUserId, contactData = {}) {
-    const rawName = contactData?.full_name || contactData?.name || contactData?.username || 'Guest External Contact';
-    const fullName = String(rawName).trim() || 'Guest External Contact';
-    const cleanEmail = (contactData?.email || '').trim().toLowerCase() || `guest_${Date.now()}@visitor.local`;
-    const phone = (contactData?.phone || contactData?.phone_number || '+251911000000').trim();
-    const role = contactData?.role || 'visitor';
-    const company = contactData?.company || contactData?.department || 'External Contact';
-    const notes = contactData?.notes || '';
+  async createManualContact(creatorUserId, contactData) {
+    const { full_name, email, phone, role = 'visitor', department, company, notes } = contactData;
+    if (!full_name || !full_name.trim()) {
+      throw new AppError('Full name is required.', 400);
+    }
+    const cleanEmail = (email || '').trim().toLowerCase();
     let targetUserId = null;
 
-    try {
+    if (cleanEmail) {
       const existingUser = await db.query(`SELECT id FROM users WHERE email = ? LIMIT 1`, [cleanEmail]);
       const list = Array.isArray(existingUser[0]) ? existingUser[0] : (Array.isArray(existingUser) ? existingUser : []);
       if (list.length > 0) {
         targetUserId = list[0].id;
       }
-    } catch (e) {}
+    }
 
     if (!targetUserId) {
-      const username = cleanEmail ? cleanEmail.split('@')[0] + '_' + Date.now().toString().slice(-4) : `ext_${Date.now().toString().slice(-6)}`;
-      try {
-        const res = await db.query(
-          `INSERT INTO users (username, full_name, email, phone_number, role, job_title, status, is_active, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, 'active', TRUE, NOW())`,
-          [username, fullName, cleanEmail, phone, role, company]
-        );
-        targetUserId = res.insertId;
-      } catch (insertErr) {
-        // Fallback to first existing user
-        const u = await db.query(`SELECT id FROM users WHERE id != ? LIMIT 1`, [creatorUserId || 1]);
-        const uList = Array.isArray(u[0]) ? u[0] : (Array.isArray(u) ? u : []);
-        targetUserId = uList[0]?.id || 2;
-      }
+      const username = cleanEmail ? cleanEmail.split('@')[0] : `ext_${Date.now().toString().slice(-6)}`;
+      const res = await db.query(
+        `INSERT INTO users (username, full_name, email, phone_number, role, job_title, status, is_active, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'active', TRUE, NOW())`,
+        [username, full_name.trim(), cleanEmail || null, (phone || '').trim() || null, role, company || department || 'External Contact']
+      );
+      targetUserId = res.insertId;
     }
 
     // Immediately open direct conversation with this contact
-    let convResult = { conversationId: 1 };
-    try {
-      convResult = await this.createOrGetDirectConversation(creatorUserId || 1, 'admin', targetUserId);
-    } catch (e) {}
+    const convResult = await this.createOrGetDirectConversation(creatorUserId, 'admin', targetUserId);
 
     return {
       success: true,
       contact: {
         id: targetUserId,
-        full_name: fullName,
+        full_name: full_name.trim(),
         email: cleanEmail,
         phone,
         role,
         company,
         notes
       },
-      conversationId: convResult?.conversationId || 1,
-      message: `Contact "${fullName}" added and conversation initialized.`
+      conversationId: convResult.conversationId,
+      message: `Contact "${full_name.trim()}" added and conversation initialized.`
     };
   }
 
@@ -279,28 +267,25 @@ class CommunicationService {
    * Create custom Group Conversation with selected participants
    */
   async createGroupConversation(creatorUserId, title, participantUserIds = [], description = '') {
-    const finalTitle = (title && String(title).trim()) || 'Operations Group Hub';
-    const finalDesc = description || 'Enterprise communications group channel.';
-    const validCreatorId = Number(creatorUserId) || 1;
-
+    if (!title || !title.trim()) {
+      throw new AppError('Group title is required.', 400);
+    }
     const createRes = await db.query(
       `INSERT INTO chat_conversations (conversation_type, title, description, created_by, is_active)
        VALUES ('group', ?, ?, ?, TRUE)`,
-      [finalTitle, finalDesc, validCreatorId]
+      [title.trim(), description || null, creatorUserId]
     );
     const convId = createRes.insertId;
 
     // Add creator as admin
-    try {
-      await db.query(
-        `INSERT IGNORE INTO chat_participants (conversation_id, user_id, role, joined_at)
-         VALUES (?, ?, 'admin', NOW())`,
-        [convId, validCreatorId]
-      );
-    } catch (e) {}
+    await db.query(
+      `INSERT INTO chat_participants (conversation_id, user_id, role, joined_at)
+       VALUES (?, ?, 'admin', NOW())`,
+      [convId, creatorUserId]
+    );
 
     // Add other selected participants
-    const uniqueIds = Array.from(new Set(participantUserIds)).filter(id => Number(id) !== Number(validCreatorId));
+    const uniqueIds = Array.from(new Set(participantUserIds)).filter(id => Number(id) !== Number(creatorUserId));
     for (const uid of uniqueIds) {
       try {
         await db.query(
@@ -314,7 +299,7 @@ class CommunicationService {
     return {
       success: true,
       conversationId: convId,
-      message: `Group conversation "${finalTitle}" created successfully with ${uniqueIds.length + 1} participants.`
+      message: `Group conversation "${title.trim()}" created successfully with ${uniqueIds.length + 1} participants.`
     };
   }
 
@@ -458,29 +443,20 @@ class CommunicationService {
    * Strictly restricted to Team Owner / Creator (or Admin)
    */
   async updateConversation(convId, userId, userRole, { title, description, avatar_url }) {
-    let validConvId = (Number(convId) && !isNaN(Number(convId)) && Number(convId) > 0) ? Number(convId) : 1;
-    let checkRows = await db.query(`SELECT id, created_by FROM chat_conversations WHERE id = ?`, [validConvId]);
-    let checkList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
-    let conv = checkList[0];
-
+    const checkRows = await db.query(`SELECT created_by FROM chat_conversations WHERE id = ?`, [convId]);
+    const checkList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
+    const conv = checkList[0];
     if (!conv) {
-      checkRows = await db.query(`SELECT id, created_by FROM chat_conversations ORDER BY id ASC LIMIT 1`);
-      checkList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
-      conv = checkList[0];
-      if (conv) validConvId = conv.id;
+      throw new AppError('Team channel not found.', 404);
     }
 
-    if (!conv) {
-      const ins = await db.query(
-        `INSERT INTO chat_conversations (conversation_type, title, description, created_by, is_active)
-         VALUES ('group', ?, ?, ?, TRUE)`,
-        [title || 'Default Team Channel', description || 'Channel for team collaboration', userId || 1]
-      );
-      validConvId = ins.insertId;
-    }
+    const normRole = this.normalizeRole(userRole);
+    const isOwner = conv.created_by !== null && Number(conv.created_by) === Number(userId);
+    const isAdmin = normRole === 'admin';
 
-    const finalTitle = title !== undefined && title !== null && String(title).trim() ? String(title).trim() : 'Updated Team Channel';
-    const finalDesc = description !== undefined && description !== null ? description : 'Team collaboration and announcements channel.';
+    if (!isOwner && !isAdmin) {
+      throw new AppError('Permission Denied: Only the team owner/creator can update team information or change photo.', 403);
+    }
 
     await db.query(
       `UPDATE chat_conversations 
@@ -490,23 +466,36 @@ class CommunicationService {
            updated_at = NOW() 
        WHERE id = ?`,
       [
-        finalTitle,
-        finalDesc,
+        title !== undefined && title !== null ? title.trim() : null,
+        description !== undefined && description !== null ? description : null,
         avatar_url !== undefined && avatar_url !== null ? avatar_url : null,
-        validConvId
+        convId
       ]
     );
-    return { success: true, conversationId: validConvId, message: 'Team information updated successfully.' };
+    return { success: true, message: 'Team information updated successfully.' };
   }
 
   /**
    * Delete / deactivate team/group conversation
+   * Strictly restricted to Team Owner / Creator (or Admin)
    */
   async deleteConversation(convId, userId, userRole) {
-    let validConvId = (Number(convId) && !isNaN(Number(convId)) && Number(convId) > 0) ? Number(convId) : 1;
-    try {
-      await db.query(`UPDATE chat_conversations SET is_active = FALSE WHERE id = ?`, [validConvId]);
-    } catch (e) {}
+    const checkRows = await db.query(`SELECT created_by FROM chat_conversations WHERE id = ?`, [convId]);
+    const checkList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
+    const conv = checkList[0];
+    if (!conv) {
+      throw new AppError('Team channel not found.', 404);
+    }
+
+    const normRole = this.normalizeRole(userRole);
+    const isOwner = conv.created_by !== null && Number(conv.created_by) === Number(userId);
+    const isAdmin = normRole === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      throw new AppError('Permission Denied: Only the team owner/creator can delete this team channel.', 403);
+    }
+
+    await db.query(`UPDATE chat_conversations SET is_active = FALSE WHERE id = ?`, [convId]);
     return { success: true, message: 'Team channel deleted successfully.' };
   }
 
@@ -514,22 +503,10 @@ class CommunicationService {
    * Add participant to team/group conversation
    */
   async addParticipantToConversation(convId, userIdToAdd) {
-    let validConvId = (Number(convId) && !isNaN(Number(convId)) && Number(convId) > 0) ? Number(convId) : 1;
-    let validUserId = (Number(userIdToAdd) && !isNaN(Number(userIdToAdd)) && Number(userIdToAdd) > 0) ? Number(userIdToAdd) : 1;
-
-    // Verify conversation exists
-    let convRows = await db.query(`SELECT id FROM chat_conversations WHERE id = ?`, [validConvId]);
-    let convList = Array.isArray(convRows[0]) ? convRows[0] : (Array.isArray(convRows) ? convRows : []);
-    if (!convList[0]) {
-      convRows = await db.query(`SELECT id FROM chat_conversations ORDER BY id ASC LIMIT 1`);
-      convList = Array.isArray(convRows[0]) ? convRows[0] : (Array.isArray(convRows) ? convRows : []);
-      if (convList[0]) validConvId = convList[0].id;
-    }
-
     await db.query(
       `INSERT IGNORE INTO chat_participants (conversation_id, user_id, role, joined_at)
        VALUES (?, ?, 'member', NOW())`,
-      [validConvId, validUserId]
+      [convId, userIdToAdd]
     );
     return { success: true, message: 'Member added to team successfully.' };
   }
@@ -538,42 +515,39 @@ class CommunicationService {
    * Remove participant from team/group conversation
    */
   async removeParticipantFromConversation(convId, userIdToRemove) {
-    let validConvId = (Number(convId) && !isNaN(Number(convId)) && Number(convId) > 0) ? Number(convId) : 1;
-    let validUserId = (Number(userIdToRemove) && !isNaN(Number(userIdToRemove)) && Number(userIdToRemove) > 0) ? Number(userIdToRemove) : 1;
-
     await db.query(
       `DELETE FROM chat_participants WHERE conversation_id = ? AND user_id = ?`,
-      [validConvId, validUserId]
+      [convId, userIdToRemove]
     );
     return { success: true, message: 'Member removed from team successfully.' };
   }
 
   /**
    * Create or retrieve an existing direct conversation with target user
+   * Strictly enforces Role-Based Access Rules
    */
   async createOrGetDirectConversation(userId, userRole, targetUserId) {
-    const validUserId = (Number(userId) && !isNaN(Number(userId)) && Number(userId) > 0) ? Number(userId) : 1;
-    let targetId = (Number(targetUserId) && !isNaN(Number(targetUserId)) && Number(targetUserId) > 0) ? Number(targetUserId) : null;
-
-    if (!targetId || targetId === validUserId) {
-      const otherUsers = await db.query(`SELECT id FROM users WHERE id != ? AND is_active = TRUE ORDER BY id ASC LIMIT 1`, [validUserId]);
-      const otherList = Array.isArray(otherUsers[0]) ? otherUsers[0] : (Array.isArray(otherUsers) ? otherUsers : []);
-      if (otherList[0]?.id) {
-        targetId = otherList[0].id;
-      } else {
-        targetId = validUserId === 1 ? 2 : 1;
-      }
+    if (Number(userId) === Number(targetUserId)) {
+      throw new AppError('Cannot start a conversation with yourself.', 400);
     }
 
     // 1. Fetch Target User
     const targetRows = await db.query(
-      `SELECT id, username, email, role, full_name, avatar_url FROM users WHERE id = ? LIMIT 1`,
-      [targetId]
+      `SELECT id, username, email, role, full_name, avatar_url FROM users WHERE id = ? AND is_active = TRUE LIMIT 1`,
+      [targetUserId]
     );
     const targetList = Array.isArray(targetRows[0]) ? targetRows[0] : (Array.isArray(targetRows) ? targetRows : []);
-    const targetUser = targetList[0] || { id: targetId, full_name: 'Colleague', username: 'colleague' };
+    const targetUser = targetList[0];
+    if (!targetUser) {
+      throw new AppError('Target user does not exist or is inactive.', 404);
+    }
 
-    // 2. Check for existing direct conversation between these 2 users
+    // 2. Validate Role-Based Chat Matrix
+    if (!this.isChatAllowed(userRole, targetUser.role)) {
+      throw new AppError(`Communication between ${this.getRoleLabel(userRole)} and ${this.getRoleLabel(targetUser.role)} is restricted by enterprise policy.`, 403);
+    }
+
+    // 3. Check for existing direct conversation between these 2 users
     const checkSql = `
       SELECT cp1.conversation_id
       FROM chat_participants cp1
@@ -582,7 +556,7 @@ class CommunicationService {
       WHERE cp1.user_id = ? AND cp2.user_id = ? AND c.conversation_type = 'direct' AND c.is_active = TRUE
       LIMIT 1
     `;
-    const checkRows = await db.query(checkSql, [validUserId, targetId]);
+    const checkRows = await db.query(checkSql, [userId, targetUserId]);
     const checkList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
 
     if (checkList.length > 0) {
@@ -593,22 +567,22 @@ class CommunicationService {
       };
     }
 
-    // 3. Create new direct conversation
+    // 4. Create new direct conversation
     const createRes = await db.query(
       `INSERT INTO chat_conversations (conversation_type, title, created_by, is_active) VALUES ('direct', ?, ?, TRUE)`,
-      [`${targetUser.full_name || targetUser.username}`, validUserId]
+      [`${targetUser.full_name || targetUser.username}`, userId]
     );
-    const newConvId = createRes.insertId;
+    const convId = createRes.insertId;
 
     // Add both participants
     await db.query(
       `INSERT INTO chat_participants (conversation_id, user_id, role, joined_at) VALUES (?, ?, 'admin', NOW()), (?, ?, 'member', NOW())`,
-      [newConvId, validUserId, newConvId, targetId]
+      [convId, userId, convId, targetUserId]
     );
 
     return {
       success: true,
-      conversationId: newConvId,
+      conversationId: convId,
       isExisting: false
     };
   }
@@ -619,16 +593,18 @@ class CommunicationService {
    * Get messages for conversation with IDOR verification
    */
   async getChatMessages(conversationId, userId, userRole) {
-    const validConvId = (Number(conversationId) && !isNaN(Number(conversationId)) && Number(conversationId) > 0) ? Number(conversationId) : 1;
-    const validUserId = (Number(userId) && !isNaN(Number(userId))) ? Number(userId) : 1;
-
-    // Ensure user is in chat_participants
-    try {
-      await db.query(
-        `INSERT IGNORE INTO chat_participants (conversation_id, user_id, role, joined_at) VALUES (?, ?, 'member', NOW())`,
-        [validConvId, validUserId]
+    // IDOR Check: Ensure user is a participant of this conversation (or superadmin)
+    const normRole = this.normalizeRole(userRole);
+    if (normRole !== 'admin') {
+      const partCheck = await db.query(
+        `SELECT 1 FROM chat_participants WHERE conversation_id = ? AND user_id = ? LIMIT 1`,
+        [conversationId, userId]
       );
-    } catch (e) {}
+      const isPart = Array.isArray(partCheck[0]) ? partCheck[0].length > 0 : (Array.isArray(partCheck) ? partCheck.length > 0 : false);
+      if (!isPart) {
+        throw new AppError('Access Denied: You are not authorized to view this private conversation.', 403);
+      }
+    }
 
     const sql = `
       SELECT cm.id, cm.conversation_id, cm.sender_id, cm.message_type, cm.message_text,
@@ -636,11 +612,11 @@ class CommunicationService {
              u.full_name as sender_name, u.username as sender_username, u.email as sender_email,
              u.avatar_url as sender_avatar, u.role as sender_role
       FROM chat_messages cm
-      LEFT JOIN users u ON cm.sender_id = u.id
+      JOIN users u ON cm.sender_id = u.id
       WHERE cm.conversation_id = ? AND cm.is_deleted = FALSE
       ORDER BY cm.created_at ASC
     `;
-    const rawRows = await db.query(sql, [validConvId]);
+    const rawRows = await db.query(sql, [conversationId]);
     const messages = Array.isArray(rawRows[0]) ? rawRows[0] : (Array.isArray(rawRows) ? rawRows : []);
 
     // Fetch other participants to determine delivery & seen status
@@ -756,18 +732,20 @@ class CommunicationService {
    * Send a chat message with IDOR check, media support, and Socket.IO emission
    */
   async sendChatMessage(conversationId, senderId, senderRole, messageText, messageType = 'text', attachments = null) {
-    const validConvId = (Number(conversationId) && !isNaN(Number(conversationId)) && Number(conversationId) > 0) ? Number(conversationId) : 1;
-    const validSenderId = (Number(senderId) && !isNaN(Number(senderId))) ? Number(senderId) : 1;
+    // 1. IDOR Check: Ensure sender belongs to this conversation
+    const partCheck = await db.query(
+      `SELECT 1 FROM chat_participants WHERE conversation_id = ? AND user_id = ? LIMIT 1`,
+      [conversationId, senderId]
+    );
+    const isPart = Array.isArray(partCheck[0]) ? partCheck[0].length > 0 : (Array.isArray(partCheck) ? partCheck.length > 0 : false);
+    if (!isPart) {
+      throw new AppError('Access Denied: You cannot post messages to a conversation you do not belong to.', 403);
+    }
 
-    // Auto-add sender to participants
-    try {
-      await db.query(
-        `INSERT IGNORE INTO chat_participants (conversation_id, user_id, role, joined_at) VALUES (?, ?, 'member', NOW())`,
-        [validConvId, validSenderId]
-      );
-    } catch (e) {}
+    if (!messageText && (!attachments || attachments.length === 0)) {
+      throw new AppError('Message text or attachment is required.', 400);
+    }
 
-    const finalText = (messageText && String(messageText).trim()) || 'Hello from VMS!';
     const attachmentsJson = attachments && attachments.length > 0 ? JSON.stringify(attachments) : null;
     const finalType = messageType || (attachments && attachments.length > 0 ? attachments[0].type || 'file' : 'text');
 
@@ -775,7 +753,7 @@ class CommunicationService {
     const insertRes = await db.query(
       `INSERT INTO chat_messages (conversation_id, sender_id, message_type, message_text, attachments_json, is_edited, is_deleted)
        VALUES (?, ?, ?, ?, ?, FALSE, FALSE)`,
-      [validConvId, validSenderId, finalType, finalText, attachmentsJson]
+      [conversationId, senderId, finalType, messageText || '', attachmentsJson]
     );
     const messageId = insertRes.insertId;
 
@@ -862,81 +840,77 @@ class CommunicationService {
   /**
    * Edit message text (Ownership enforced)
    */
-  /**
-   * Edit message text (Ownership enforced)
-   */
   async editChatMessage(conversationId, messageId, userId, newText) {
-    const validConvId = (Number(conversationId) && !isNaN(Number(convId => convId))) ? Number(conversationId) : 1;
-    const validMsgId = (Number(messageId) && !isNaN(Number(messageId)) && Number(messageId) > 0) ? Number(messageId) : 1;
-    const validUserId = (Number(userId) && !isNaN(Number(userId))) ? Number(userId) : 1;
-    const finalText = (newText && String(newText).trim()) || 'Updated chat message content.';
-
-    let checkRows = await db.query(
-      `SELECT id, sender_id FROM chat_messages WHERE id = ? AND is_deleted = FALSE LIMIT 1`,
-      [validMsgId]
-    );
-    let msgList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
-    let msg = msgList[0];
-
-    if (!msg) {
-      checkRows = await db.query(
-        `SELECT id, sender_id FROM chat_messages WHERE is_deleted = FALSE ORDER BY id DESC LIMIT 1`
-      );
-      msgList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
-      msg = msgList[0];
+    if (!newText || !newText.trim()) {
+      throw new AppError('Message text cannot be empty.', 400);
     }
 
+    // Verify ownership
+    const checkRows = await db.query(
+      `SELECT sender_id FROM chat_messages WHERE id = ? AND conversation_id = ? AND is_deleted = FALSE LIMIT 1`,
+      [messageId, conversationId]
+    );
+    const msgList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
+    const msg = msgList[0];
     if (!msg) {
-      const ins = await db.query(
-        `INSERT INTO chat_messages (conversation_id, sender_id, message_type, message_text, is_edited, is_deleted)
-         VALUES (?, ?, 'text', ?, TRUE, FALSE)`,
-        [validConvId, validUserId, finalText]
-      );
-      return { success: true, messageId: ins.insertId, message: 'Message edited successfully' };
+      throw new AppError('Message not found.', 404);
+    }
+
+    if (Number(msg.sender_id) !== Number(userId)) {
+      throw new AppError('Unauthorized: You can only edit your own messages.', 403);
     }
 
     await db.query(
       `UPDATE chat_messages SET message_text = ?, is_edited = TRUE WHERE id = ?`,
-      [finalText, msg.id]
+      [newText.trim(), messageId]
     );
 
     // Broadcast edit event
-    try {
-      socketService.emitToRoom(`conv:${validConvId}`, 'message_edited', {
-        conversation_id: validConvId,
-        message_id: msg.id,
-        message_text: finalText
-      });
-    } catch (e) {}
+    socketService.emitToRoom(`conv:${conversationId}`, 'message_edited', {
+      conversation_id: Number(conversationId),
+      message_id: Number(messageId),
+      message_text: newText.trim()
+    });
 
     return {
       success: true,
-      messageId: msg.id,
       message: 'Message edited successfully'
     };
   }
 
   /**
-   * Delete message
+   * Delete message (Soft-delete, ownership or admin enforced)
    */
   async deleteChatMessage(conversationId, messageId, userId, userRole) {
-    const validConvId = (Number(conversationId) && !isNaN(Number(conversationId)) && Number(conversationId) > 0) ? Number(conversationId) : 1;
-    const validMsgId = (Number(messageId) && !isNaN(Number(messageId)) && Number(messageId) > 0) ? Number(messageId) : 1;
+    const normRole = this.normalizeRole(userRole);
 
-    try {
-      await db.query(
-        `UPDATE chat_messages SET is_deleted = TRUE WHERE id = ?`,
-        [validMsgId]
-      );
-    } catch (e) {}
+    const checkRows = await db.query(
+      `SELECT sender_id FROM chat_messages WHERE id = ? AND conversation_id = ? AND is_deleted = FALSE LIMIT 1`,
+      [messageId, conversationId]
+    );
+    const msgList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
+    const msg = msgList[0];
+    if (!msg) {
+      throw new AppError('Message not found.', 404);
+    }
+
+    const isSender = Number(msg.sender_id) === Number(userId);
+    const isAdmin = normRole === 'admin';
+
+    if (!isSender && !isAdmin) {
+      throw new AppError('Unauthorized: You can only delete your own messages.', 403);
+    }
+
+    await db.query(
+      `UPDATE chat_messages SET is_deleted = TRUE WHERE id = ?`,
+      [messageId]
+    );
 
     // Broadcast delete event
-    try {
-      socketService.emitToRoom(`conv:${validConvId}`, 'message_deleted', {
-        conversation_id: validConvId,
-        message_id: validMsgId
-      });
-    } catch (e) {}
+    socketService.emitToRoom(`conv:${conversationId}`, 'message_deleted', {
+      conversation_id: Number(conversationId),
+      message_id: Number(messageId)
+    });
 
     return {
       success: true,
@@ -949,16 +923,21 @@ class CommunicationService {
   /**
    * Send real email through SMTP service without exposing credentials
    */
-  async sendDirectEmail(senderUserId, payload = {}) {
-    const { to, subject, body, attachments = [] } = payload || {};
+  async sendDirectEmail(senderUserId, payload) {
+    const { to, subject, body, attachments = [] } = payload;
 
-    const finalTo = (to && typeof to === 'string' && to.includes('@')) ? to.trim() : 'visitor@example.com';
-    const finalSubject = (subject && typeof subject === 'string' && subject.trim()) ? subject.trim() : 'Visitor Management System Notification';
-    const finalBody = (body && typeof body === 'string' && body.trim()) ? body.trim() : 'This is an official communication notification from the Visitor Management System.';
+    if (!to || !to.includes('@')) {
+      throw new AppError('A valid recipient email address is required.', 400);
+    }
+    if (!subject || !subject.trim()) {
+      throw new AppError('Email subject is required.', 400);
+    }
+    if (!body || !body.trim()) {
+      throw new AppError('Email body content is required.', 400);
+    }
 
     // Lookup sender details
-    const validSenderId = (Number(senderUserId) && !isNaN(Number(senderUserId)) && Number(senderUserId) > 0) ? Number(senderUserId) : 1;
-    const senderRes = await db.query(`SELECT full_name, email FROM users WHERE id = ?`, [validSenderId]);
+    const senderRes = await db.query(`SELECT full_name, email FROM users WHERE id = ?`, [senderUserId]);
     const senderList = Array.isArray(senderRes[0]) ? senderRes[0] : (Array.isArray(senderRes) ? senderRes : []);
     const sender = senderList[0] || {};
     const senderName = sender.full_name || 'VMS Staff';
@@ -970,9 +949,9 @@ class CommunicationService {
           <p style="margin: 4px 0 0 0; color: #a5b4fc; font-size: 13px;">Direct Communication from ${senderName}</p>
         </div>
         <div style="padding: 28px;">
-          <h3 style="margin: 0 0 16px 0; color: #60a5fa; font-size: 18px; font-weight: 600;">${finalSubject}</h3>
+          <h3 style="margin: 0 0 16px 0; color: #60a5fa; font-size: 18px; font-weight: 600;">${subject}</h3>
           <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin-bottom: 20px; border-left: 4px solid #6366f1;">
-            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #e2e8f0; white-space: pre-wrap;">${finalBody}</p>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #e2e8f0; white-space: pre-wrap;">${body}</p>
           </div>
           <table style="width: 100%; border-collapse: collapse; font-size: 12px; color: #94a3b8; margin-top: 16px;">
             <tr>
@@ -987,40 +966,37 @@ class CommunicationService {
       </div>
     `;
 
-    let plainText = `${finalSubject}\n\n${finalBody}\n\nSent by ${senderName}`;
+    let plainText = `${subject}\n\n${body}\n\nSent by ${senderName}`;
     if (attachments && attachments.length > 0) {
       const attNames = attachments.map(a => a.name).join(', ');
       plainText += `\n\n[Security Notice: ${attachments.length} attachment(s) (${attNames}) were recorded in the system. Files are omitted from external email transmission to ensure enterprise data privacy.]`;
     }
 
     const mailOptions = {
-      to: finalTo,
-      subject: `[VMS] ${finalSubject}`,
+      to: to.trim(),
+      subject: `[VMS] ${subject.trim()}`,
       text: plainText,
       html: emailHtml
+      // Per system requirement: file/doc attachments are omitted from email delivery so receiver email sees ONLY text
     };
 
-    let result = { status: 'success', messageId: `msg_${Date.now()}` };
-    try {
-      const res = await emailService.sendMail(mailOptions);
-      if (res) result = res;
-    } catch (e) {
-      // Graceful fallback if SMTP transport fails in test environment
-      result = { status: 'sent', messageId: `fallback_${Date.now()}` };
-    }
+    // Call real EmailService
+    const result = await emailService.sendMail(mailOptions);
 
     // Record in MySQL notifications table
-    try {
-      await db.query(
-        `INSERT INTO notifications (user_id, visitor_email, type, priority, category, channel, title, message, status, sent_at, is_read)
-         VALUES (?, ?, 'DIRECT_EMAIL', 'normal', 'Email Communication', 'email', ?, ?, ?, NOW(), TRUE)`,
-        [validSenderId, finalTo, finalSubject, finalBody, result.status === 'success' || result.status === 'sent' ? 'sent' : 'failed']
-      );
-    } catch (e) {}
+    await db.query(
+      `INSERT INTO notifications (user_id, visitor_email, type, priority, category, channel, title, message, status, sent_at, is_read)
+       VALUES (?, ?, 'DIRECT_EMAIL', 'normal', 'Email Communication', 'email', ?, ?, ?, NOW(), TRUE)`,
+      [senderUserId, to.trim(), subject.trim(), body.trim(), result.status === 'success' ? 'sent' : 'failed']
+    );
+
+    if (result.status !== 'success') {
+      throw new Error(`Email delivery failed: ${result.error || 'SMTP server error'}`);
+    }
 
     return {
       success: true,
-      messageId: result.messageId || `msg_${Date.now()}`,
+      messageId: result.messageId,
       previewUrl: result.etherealUrl || null,
       message: 'Email delivered successfully to recipient inbox.'
     };
@@ -1094,41 +1070,43 @@ class CommunicationService {
   /**
    * Create announcement (Strictly Administrator Only)
    */
-  /**
-   * Create announcement
-   */
-  async createAnnouncement(userId, userRole, payload = {}) {
-    const safePayload = payload || {};
-    const validUserId = (Number(userId) && !isNaN(Number(userId))) ? Number(userId) : 1;
-    const title = (safePayload.title && String(safePayload.title).trim()) || 'Enterprise Facility Announcement';
-    const contentBody = (safePayload.content_body && String(safePayload.content_body).trim()) || safePayload.content || safePayload.message || 'Important facility and operational communication update.';
-    const bannerUrl = safePayload.banner_url || null;
-    const priority = safePayload.priority || 'medium';
-    const category = safePayload.category || 'General Notice';
+  async createAnnouncement(userId, userRole, payload) {
+    const normRole = this.normalizeRole(userRole);
+    if (normRole !== 'admin') {
+      throw new AppError('Access Denied: Only System Administrators are permitted to publish organization announcements.', 403);
+    }
 
-    const audienceJson = safePayload.target_audience && Array.isArray(safePayload.target_audience)
-      ? JSON.stringify(safePayload.target_audience)
+    const { title, content_body, banner_url, priority = 'medium', category = 'General Notice', target_audience } = payload;
+
+    if (!title || !title.trim()) {
+      throw new AppError('Announcement title is required.', 400);
+    }
+    if (!content_body || !content_body.trim()) {
+      throw new AppError('Announcement content is required.', 400);
+    }
+
+    const audienceJson = target_audience && Array.isArray(target_audience)
+      ? JSON.stringify(target_audience)
       : JSON.stringify(['All Users']);
 
     const res = await db.query(
       `INSERT INTO announcements
         (title, content_body, banner_url, priority, category, status, publish_at, created_by, target_audience_json, allow_comments, allow_reactions)
        VALUES (?, ?, ?, ?, ?, 'published', NOW(), ?, ?, TRUE, TRUE)`,
-      [title, contentBody, bannerUrl, priority, category, validUserId, audienceJson]
+      [title.trim(), content_body.trim(), banner_url || null, priority, category, userId, audienceJson]
     );
 
     const announcementId = res.insertId;
 
-    try {
-      socketService.broadcastLiveNotification({
-        type: 'ANNOUNCEMENT',
-        title: `[Announcement] ${title}`,
-        message: contentBody.slice(0, 150) + '...',
-        priority,
-        announcement_id: announcementId,
-        created_at: new Date().toISOString()
-      });
-    } catch (e) {}
+    // Broadcast to live sockets
+    socketService.broadcastLiveNotification({
+      type: 'ANNOUNCEMENT',
+      title: `[Announcement] ${title.trim()}`,
+      message: content_body.trim().slice(0, 150) + '...',
+      priority,
+      announcement_id: announcementId,
+      created_at: new Date().toISOString()
+    });
 
     return {
       success: true,
@@ -1141,67 +1119,54 @@ class CommunicationService {
    * Mark announcement as read
    */
   async markAnnouncementRead(announcementId, userId) {
-    const validId = (Number(announcementId) && !isNaN(Number(announcementId))) ? Number(announcementId) : 1;
-    const validUserId = (Number(userId) && !isNaN(Number(userId))) ? Number(userId) : 1;
-    try {
-      await db.query(
-        `INSERT INTO announcement_recipients (announcement_id, user_id, is_read, read_at)
-         VALUES (?, ?, TRUE, NOW())
-         ON DUPLICATE KEY UPDATE is_read = TRUE, read_at = NOW()`,
-        [validId, validUserId]
-      );
-    } catch (e) {}
+    await db.query(
+      `INSERT INTO announcement_recipients (announcement_id, user_id, is_read, read_at)
+       VALUES (?, ?, TRUE, NOW())
+       ON DUPLICATE KEY UPDATE is_read = TRUE, read_at = NOW()`,
+      [announcementId, userId]
+    );
     return { success: true };
   }
 
   /**
-   * Update Announcement
+   * Update Announcement (Administrator Only)
    */
-  async updateAnnouncement(announcementId, userId, userRole, payload = {}) {
-    const validId = (Number(announcementId) && !isNaN(Number(announcementId))) ? Number(announcementId) : 1;
-    const safePayload = payload || {};
-    const title = safePayload.title ? String(safePayload.title).trim() : 'Updated Enterprise Announcement';
-    const body = safePayload.content || safePayload.content_body || safePayload.contentBody || safePayload.message || 'Updated announcement body content.';
-    const category = safePayload.category || 'General Notice';
-    const priority = safePayload.priority || 'medium';
-    const rolesJson = safePayload.target_audience ? JSON.stringify(safePayload.target_audience) : null;
-
-    let checkRows = await db.query(`SELECT id FROM announcements WHERE id = ?`, [validId]);
-    let checkList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
-    let annId = checkList[0]?.id;
-
-    if (!annId) {
-      checkRows = await db.query(`SELECT id FROM announcements ORDER BY id DESC LIMIT 1`);
-      checkList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
-      annId = checkList[0]?.id;
+  async updateAnnouncement(announcementId, userId, userRole, payload) {
+    const normRole = this.normalizeRole(userRole);
+    if (!normRole.includes('admin') && normRole !== 'system_admin') {
+      throw new AppError('Access Denied: Only Administrators can update announcements.', 403);
     }
 
-    if (annId) {
-      await db.query(
-        `UPDATE announcements 
-         SET title = COALESCE(?, title),
-             content_body = COALESCE(?, content_body),
-             category = COALESCE(?, category),
-             priority = COALESCE(?, priority),
-             target_audience_json = COALESCE(?, target_audience_json),
-             updated_at = NOW()
-         WHERE id = ?`,
-        [title, body, category, priority, rolesJson, annId]
-      );
-    }
+    const { title, content, contentBody, category, priority, targetRoles } = payload || {};
+    const body = content || contentBody || '';
+    const rolesJson = Array.isArray(targetRoles) ? JSON.stringify(targetRoles) : null;
+
+    await db.query(
+      `UPDATE announcements 
+       SET title = COALESCE(?, title),
+           content_body = COALESCE(?, content_body),
+           category = COALESCE(?, category),
+           priority = COALESCE(?, priority),
+           target_roles = COALESCE(?, target_roles),
+           updated_at = NOW()
+       WHERE id = ?`,
+      [title || null, body || null, category || null, priority || null, rolesJson, announcementId]
+    );
 
     return { success: true, message: 'Announcement updated successfully' };
   }
 
   /**
-   * Delete Announcement
+   * Delete Announcement (Administrator Only)
    */
   async deleteAnnouncement(announcementId, userId, userRole) {
-    const validId = (Number(announcementId) && !isNaN(Number(announcementId))) ? Number(announcementId) : 1;
-    try {
-      await db.query(`DELETE FROM announcement_recipients WHERE announcement_id = ?`, [validId]);
-      await db.query(`DELETE FROM announcements WHERE id = ?`, [validId]);
-    } catch (e) {}
+    const normRole = this.normalizeRole(userRole);
+    if (!normRole.includes('admin') && normRole !== 'system_admin') {
+      throw new AppError('Access Denied: Only Administrators can delete announcements.', 403);
+    }
+
+    await db.query(`DELETE FROM announcement_recipients WHERE announcement_id = ?`, [announcementId]);
+    await db.query(`DELETE FROM announcements WHERE id = ?`, [announcementId]);
 
     return { success: true, message: 'Announcement deleted successfully' };
   }

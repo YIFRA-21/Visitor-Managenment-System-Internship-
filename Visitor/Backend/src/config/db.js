@@ -1111,6 +1111,15 @@ const mockDb = {
   visitor_identity_verifications: [],
   visitor_identity_verification: [],
   visitor_watchlist: [],
+  visitor_escorts: [],
+  security_incidents: [
+    { id: 1, title: 'Tailgating Incident at Turnstile Gate A', incident_title: 'Tailgating Incident at Turnstile Gate A', description: 'Unregistered individual attempted following an employee through the automated speed gate without scanning badge.', severity: 'CRITICAL', status: 'RESOLVED', location: 'Turnstile Speed Gate East A', resolution_notes: 'Incident resolved and cleared by security officer.', reported_by: 1, reporter_id: 1, incident_code: 'INC-2026-0041', created_at: '2026-09-29 05:05:29' }
+  ],
+  security_access_rules: [
+    { id: 1, rule_name: 'Standard Visitor Zone A', zone_name: 'Main Lobby & Floor 1', access_level: 'PUBLIC', description: 'General visitor access to public reception and ground floor meeting rooms', is_active: true },
+    { id: 2, rule_name: 'Restricted Executive Suite', zone_name: 'Floor 5 Executive', access_level: 'RESTRICTED', description: 'Access requires executive host escort or prior authorization', is_active: true },
+    { id: 3, rule_name: 'Server Room Security Zone', zone_name: 'Basement Server Room', access_level: 'HIGH_SECURITY', description: 'Strictly restricted to authorized IT operations and certified security personnel', is_active: true }
+  ],
   visitor_biometrics: [],
   // VMS Profile arrays (employees are seeded above — do NOT re-declare here)
   manager_profiles: [],

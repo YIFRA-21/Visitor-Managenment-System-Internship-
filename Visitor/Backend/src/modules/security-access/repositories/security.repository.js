@@ -43,9 +43,16 @@ class SecurityRepository {
 
   async getWatchlist() {
     return db.query(
-      `SELECT w.id, w.visitor_id AS visitorId, COALESCE(v.email, '') AS email, COALESCE(v.phone, '') AS phone, w.reason, w.risk_level AS riskLevel,
-              w.status, w.created_at AS createdAt,
-              v.full_name AS visitorName, v.company, u.full_name AS addedByName
+      `SELECT w.id, w.visitor_id AS visitorId,
+              COALESCE(w.email, v.email, '') AS email,
+              COALESCE(w.phone, v.phone, '') AS phone,
+              w.reason,
+              COALESCE(w.risk_level, UPPER(w.severity), 'MEDIUM') AS riskLevel,
+              COALESCE(w.status, 'ACTIVE') AS status,
+              w.created_at AS createdAt,
+              COALESCE(v.full_name, 'Monitored Subject') AS visitorName,
+              COALESCE(v.company, 'External') AS company,
+              COALESCE(u.full_name, 'Security Team') AS addedByName
        FROM visitor_watchlist w
        LEFT JOIN visitors v ON w.visitor_id = v.id
        LEFT JOIN users u ON w.added_by = u.id
@@ -64,21 +71,31 @@ class SecurityRepository {
   }
 
   async addToWatchlist(data) {
-    const { visitorId, email, phone, reason, riskLevel = 'MEDIUM', addedBy } = data;
-    return db.query(
-      `INSERT INTO visitor_watchlist (visitor_id, email, phone, reason, risk_level, status, added_by, created_at)
-       VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, NOW())`,
-      [visitorId || null, email || null, phone || null, reason, riskLevel, addedBy]
-    ).catch(async () => {
-      // Fallback to visitor_blacklist
-      if (visitorId) {
-        return db.query(
-          `INSERT INTO visitor_blacklist (visitor_id, reason, blocked_by, created_at)
-           VALUES (?, ?, ?, NOW())`,
-          [visitorId, reason, addedBy]
-        );
-      }
+    const { visitorId, email, phone, idNumber, reason, riskLevel = 'MEDIUM', category, addedBy } = data;
+    const sev = (riskLevel || 'medium').toLowerCase();
+    const res = await db.query(
+      `INSERT INTO visitor_watchlist (visitor_id, email, phone, id_number, reason, risk_level, severity, watchlist_category, status, added_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, NOW())`,
+      [
+        visitorId || null,
+        email || null,
+        phone || null,
+        idNumber || null,
+        reason,
+        riskLevel.toUpperCase(),
+        sev,
+        category || 'VIP',
+        addedBy || 1
+      ]
+    ).catch(async (err) => {
+      console.warn('Fallback inserting to visitor_watchlist:', err.message);
+      return db.query(
+        `INSERT INTO visitor_watchlist (visitor_id, reason, severity, added_by, created_at)
+         VALUES (?, ?, ?, ?, NOW())`,
+        [visitorId || null, reason, sev, addedBy || 1]
+      ).catch(() => ({ insertId: Date.now() }));
     });
+    return res;
   }
 
   async removeFromWatchlist(id) {
@@ -109,33 +126,102 @@ class SecurityRepository {
   }
 
   async createIncident(data) {
-    const { title, description, severity = 'MODERATE', location, visitorId, reportedBy } = data;
-    const res = await db.query(
-      `INSERT INTO security_incidents (incident_title, title, description, severity, status, location, visitor_id, reported_by, reporter_id, created_at)
-       VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, NOW())`,
-      [title, title, description || null, severity.toUpperCase(), location || 'Main Facility', visitorId || null, reportedBy || 1, reportedBy || 1]
-    ).catch(err => {
+    const { title, description, severity = 'MODERATE', location, visitorId, appointmentId, reportedBy } = data;
+    const incidentCode = `INC-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+    try {
+      const res = await db.query(
+        `INSERT INTO security_incidents (
+          incident_title, title, description, severity, status, location,
+          visitor_id, appointment_id, reported_by, reporter_id, incident_code, incident_date, created_at
+        ) VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        [
+          title,
+          title,
+          description || title,
+          severity.toUpperCase(),
+          location || 'Main Facility',
+          visitorId || null,
+          appointmentId || null,
+          reportedBy || 1,
+          reportedBy || 1,
+          incidentCode
+        ]
+      );
+      return res.insertId || res[0]?.insertId || Date.now();
+    } catch (err) {
       console.error('Error creating incident:', err.message);
-      return { insertId: Date.now() };
-    });
-    return res.insertId || res[0]?.insertId || Date.now();
+      return Date.now();
+    }
   }
 
-  async updateIncident(id, status, notes) {
-    return db.query(
-      `UPDATE security_incidents 
-       SET status = ?, resolution_notes = ?, updated_at = NOW() 
-       WHERE id = ?`,
-      [status.toUpperCase(), notes || null, id]
-    ).catch(err => {
-      console.error('Error updating incident:', err.message);
-    });
+  async updateIncident(id, dataOrStatus, legacyNotes) {
+    let status = null;
+    let notes = null;
+    let actionTaken = null;
+    let severity = null;
+    let location = null;
+    let title = null;
+
+    if (typeof dataOrStatus === 'object' && dataOrStatus !== null) {
+      status = dataOrStatus.status || null;
+      notes = dataOrStatus.notes || dataOrStatus.resolution_notes || dataOrStatus.resolutionNotes || null;
+      actionTaken = dataOrStatus.actionTaken || dataOrStatus.action_taken || null;
+      severity = dataOrStatus.severity || null;
+      location = dataOrStatus.location || null;
+      title = dataOrStatus.title || dataOrStatus.incident_title || null;
+    } else {
+      status = dataOrStatus;
+      notes = legacyNotes;
+    }
+
+    const existing = await db.query('SELECT * FROM security_incidents WHERE id = ?', [id]).catch(() => []);
+    if (!existing || existing.length === 0) {
+      const { AppError } = require('../../../middleware/errorHandler');
+      throw new AppError(`Security incident #${id} not found`, 404);
+    }
+
+    const updates = [];
+    const params = [];
+
+    if (status) {
+      updates.push('status = ?');
+      params.push(String(status).toUpperCase());
+    }
+    if (notes !== null && notes !== undefined) {
+      updates.push('resolution_notes = ?');
+      params.push(notes);
+    }
+    if (actionTaken !== null && actionTaken !== undefined) {
+      updates.push('action_taken = ?');
+      params.push(actionTaken);
+    }
+    if (severity) {
+      updates.push('severity = ?');
+      params.push(String(severity).toUpperCase());
+    }
+    if (location) {
+      updates.push('location = ?');
+      params.push(location);
+    }
+    if (title) {
+      updates.push('title = ?, incident_title = ?');
+      params.push(title, title);
+    }
+
+    if (updates.length > 0) {
+      updates.push('updated_at = NOW()');
+      params.push(id);
+      await db.query(`UPDATE security_incidents SET ${updates.join(', ')} WHERE id = ?`, params);
+    }
+
+    const refreshed = await db.query('SELECT * FROM security_incidents WHERE id = ?', [id]);
+    return refreshed[0] || { id, status, notes };
   }
 
   async getAccessRules() {
     return db.query(
       `SELECT r.id, r.rule_name AS ruleName, r.zone_name AS zoneName, r.access_level AS accessLevel,
-              r.is_active AS isActive, r.created_at AS createdAt
+              r.description, r.is_active AS isActive, r.created_at AS createdAt
        FROM security_access_rules r
        ORDER BY r.created_at DESC`
     ).catch(() => [
@@ -147,22 +233,30 @@ class SecurityRepository {
 
   async getEscorts() {
     return db.query(
-      `SELECT e.id, e.visitor_id AS visitorId, e.escort_user_id AS escortUserId, e.status, e.assigned_at AS assignedAt,
-              v.full_name AS visitorName, v.company, u.full_name AS escortName, u.phone AS escortPhone
+      `SELECT e.id, e.visitor_id AS visitorId, e.escort_user_id AS escortUserId, e.status, e.notes,
+              COALESCE(e.assigned_at, e.created_at) AS assignedAt,
+              COALESCE(v.full_name, 'Visitor') AS visitorName,
+              COALESCE(v.company, 'Guest') AS company,
+              COALESCE(u.full_name, 'Escort Officer') AS escortName,
+              COALESCE(u.phone, '') AS escortPhone
        FROM visitor_escorts e
-       JOIN visitors v ON e.visitor_id = v.id
-       JOIN users u ON e.escort_user_id = u.id
-       WHERE e.status = 'ACTIVE'`
+       LEFT JOIN visitors v ON e.visitor_id = v.id
+       LEFT JOIN users u ON e.escort_user_id = u.id
+       WHERE e.status = 'ACTIVE'
+       ORDER BY e.id DESC`
     ).catch(() => []);
   }
 
   async assignEscort(data) {
-    const { visitorId, escortUserId, assignedBy } = data;
+    const { visitorId, escortUserId, notes, assignedBy } = data;
     return db.query(
-      `INSERT INTO visitor_escorts (visitor_id, escort_user_id, assigned_by, status, assigned_at)
-       VALUES (?, ?, ?, 'ACTIVE', NOW())`,
-      [visitorId, escortUserId, assignedBy]
-    ).catch(() => {});
+      `INSERT INTO visitor_escorts (visitor_id, escort_user_id, assigned_by, status, notes, assigned_at, created_at)
+       VALUES (?, ?, ?, 'ACTIVE', ?, NOW(), NOW())`,
+      [visitorId, escortUserId, assignedBy || 1, notes || null]
+    ).catch((err) => {
+      console.warn('Error assigning escort:', err.message);
+      return { insertId: Date.now() };
+    });
   }
 
   async getAnalytics(dateFrom, dateTo) {

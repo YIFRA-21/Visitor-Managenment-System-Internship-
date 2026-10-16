@@ -123,16 +123,6 @@ const pool = require('./config/db');
         VALUES (1, 1, 'APPT_CONFIRMED', 'medium', 'General', 'in_app', 'Welcome to VMS Platform', 'Your visit has been approved and registered.', 'sent', NOW(), 1)
       `);
     } catch (e) {}
-    try {
-      await pool.query(`
-        INSERT IGNORE INTO notification_channels (id, channel_code, channel_name, channel_type, is_default, is_active)
-        VALUES 
-          (1, 'IN_APP', 'In-App Notifications', 'IN_APP', 1, 1),
-          (2, 'EMAIL', 'Email Service', 'EMAIL', 1, 1),
-          (3, 'SMS', 'SMS Gateway', 'SMS', 0, 1),
-          (4, 'PUSH', 'Web Push', 'PUSH', 0, 1)
-      `);
-    } catch (e) {}
 
     // Visitor Profile Directory columns migration
     try { await pool.query(`ALTER TABLE visitors ADD COLUMN is_archived TINYINT(1) DEFAULT 0`); } catch (e) {}

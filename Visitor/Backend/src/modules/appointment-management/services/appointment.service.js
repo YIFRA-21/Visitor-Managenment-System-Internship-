@@ -9,6 +9,9 @@ const { AppError } = require('../../../middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
 
 class AppointmentService {
+  constructor() {
+    this.appointmentRepository = appointmentRepository;
+  }
   async createAppointment(appointmentData, operatorUserId, tx = null) {
     const queryExec = (sql, params) => (tx ? tx.query(sql, params) : db.query(sql, params));
 
