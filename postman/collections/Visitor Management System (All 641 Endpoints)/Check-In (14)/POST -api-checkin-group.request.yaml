@@ -8,6 +8,10 @@ body:
   type: text
   content: |-
     {
-      
+      "codes": [
+        "REF-2026-0001"
+      ],
+      "badgePrefix": "GRP-A",
+      "notes": "Delegation group check-in"
     }
 order: 14000

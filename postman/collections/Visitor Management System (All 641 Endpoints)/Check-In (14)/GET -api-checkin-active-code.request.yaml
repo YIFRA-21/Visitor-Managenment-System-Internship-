@@ -5,5 +5,5 @@ method: GET
 headers:
   Content-Type: application/json
 pathVariables:
-  code: ""
+  code: "BDG-1001"
 order: 3000

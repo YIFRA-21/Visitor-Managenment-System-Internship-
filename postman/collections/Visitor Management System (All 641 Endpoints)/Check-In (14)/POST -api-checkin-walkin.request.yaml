@@ -8,6 +8,13 @@ body:
   type: text
   content: |-
     {
-      
+      "fullName": "Marcus Brody",
+      "email": "marcus.brody@example.com",
+      "phone": "+1-555-0188",
+      "company": "Brody Security Logistics",
+      "purpose": "Vendor Consultation",
+      "hostId": 1,
+      "departmentId": 1,
+      "badgeNumber": "BDG-W101"
     }
 order: 9000

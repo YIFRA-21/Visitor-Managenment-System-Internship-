@@ -8,6 +8,8 @@ body:
   type: text
   content: |-
     {
-      
+      "referenceCode": "REF-2026-0001",
+      "badgeNumber": "BDG-1001",
+      "notes": "Checked in at reception desk"
     }
 order: 2000

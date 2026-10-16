@@ -514,19 +514,19 @@ class CheckinRepository {
       // 2. Create appointment
       const now = new Date();
       const endTime = new Date(now.getTime() + 60 * 60000);
+      const apptNum = `APT-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const refCode = `WLK-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
       const apptRes = await tx.execute(
         `INSERT INTO appointments (organization_id, visitor_id, host_id, department_id, purpose,
+          appointment_number, reference_code, appointment_type_id, visit_purpose_id, expected_duration_minutes,
           appointment_status, status, approval_status, scheduled_start, scheduled_end, is_walk_in, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, 'APPROVED', 'approved', 'APPROVED', ?, ?, TRUE, NOW(), NOW())`,
-        [organizationId, visitorId, hostId || null, departmentId || null, purpose || 'Walk-In Visit',
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 60, 'APPROVED', 'approved', 'APPROVED', ?, ?, TRUE, NOW(), NOW())`,
+        [organizationId, visitorId, hostId || 1, departmentId || 1, purpose || 'Walk-In Visit',
+          apptNum, refCode,
           now.toISOString().slice(0, 19).replace('T', ' '),
           endTime.toISOString().slice(0, 19).replace('T', ' ')]
       );
       const appointmentId = apptRes.insertId;
-
-      // 3. Update reference code
-      const refCode = `WLK-${Date.now().toString(36).toUpperCase()}-${appointmentId}`;
-      await tx.execute('UPDATE appointments SET reference_code = ? WHERE id = ?', [refCode, appointmentId]);
 
       // 4. Create checkin
       const checkedInAt = now.toISOString().slice(0, 19).replace('T', ' ');

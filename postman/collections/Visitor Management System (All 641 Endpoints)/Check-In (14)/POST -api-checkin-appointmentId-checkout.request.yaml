@@ -5,11 +5,12 @@ method: POST
 headers:
   Content-Type: application/json
 pathVariables:
-  appointmentId: ""
+  appointmentId: "1"
 body:
   type: text
   content: |-
     {
-      
+      "checkoutMethod": "MANUAL",
+      "remarks": "Visitor departed premises normally"
     }
 order: 4000

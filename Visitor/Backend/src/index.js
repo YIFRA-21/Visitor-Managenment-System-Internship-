@@ -89,7 +89,8 @@ const pool = require('./config/db');
     try { await pool.query(`ALTER TABLE appointments ADD COLUMN title VARCHAR(255) NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE appointments MODIFY COLUMN approval_status ENUM('PENDING','APPROVED','REJECTED','ESC_PENDING','CANCELLED') DEFAULT 'PENDING'`); } catch (e) {}
     try { await pool.query(`ALTER TABLE appointment_approvals MODIFY COLUMN decision ENUM('PENDING','APPROVED','REJECTED','DELEGATED','ESCALATED','BYPASSED','CANCELLED') NOT NULL DEFAULT 'PENDING'`); } catch (e) {}
-    try { await pool.query(`ALTER TABLE visitors MODIFY COLUMN registration_status ENUM('PENDING','APPROVED','REJECTED','CANCELLED') DEFAULT 'PENDING'`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE appointments ADD COLUMN is_walk_in BOOLEAN DEFAULT FALSE`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE visitors ADD COLUMN visitor_type VARCHAR(50) NULL DEFAULT 'WALK_IN'`); } catch (e) {}
     try { await pool.query(`INSERT IGNORE INTO buildings (id, branch_id, building_name, is_active) VALUES (1, 1, 'Main HQ Building', 1)`); } catch (e) {}
     try { await pool.query(`INSERT IGNORE INTO floors (id, building_id, floor_name, is_active) VALUES (1, 1, 'Ground Floor', 1)`); } catch (e) {}
     // Module 13: Notifications Engine Auto-Migration

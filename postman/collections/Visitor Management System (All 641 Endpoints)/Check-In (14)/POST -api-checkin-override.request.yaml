@@ -8,6 +8,9 @@ body:
   type: text
   content: |-
     {
-      
+      "appointmentId": 1,
+      "reason": "Security supervisor emergency clearance",
+      "badgeNumber": "BDG-OVR-01",
+      "notes": "Escort badge issued manually"
     }
 order: 12000
