@@ -8,6 +8,10 @@ body:
   type: text
   content: |-
     {
-      
+      "full_name": "External Contact",
+      "email": "contact@example.com",
+      "phone": "+1234567890",
+      "company": "Enterprise Partner",
+      "job_title": "Project Lead"
     }
 order: 2000

@@ -5,11 +5,12 @@ method: PUT
 headers:
   Content-Type: application/json
 pathVariables:
-  convId: ""
+  convId: "1"
 body:
   type: text
   content: |-
     {
-      
+      "title": "Updated Operations Hub",
+      "description": "Updated channel description"
     }
 order: 5000

@@ -8,6 +8,8 @@ body:
   type: text
   content: |-
     {
-      
+      "title": "Facility Operations",
+      "description": "Daily facility announcements and coordination",
+      "participantUserIds": [1, 2]
     }
 order: 10000

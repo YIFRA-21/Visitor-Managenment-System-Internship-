@@ -5,5 +5,5 @@ method: DELETE
 headers:
   Content-Type: application/json
 pathVariables:
-  convId: ""
+  convId: "1"
 order: 6000

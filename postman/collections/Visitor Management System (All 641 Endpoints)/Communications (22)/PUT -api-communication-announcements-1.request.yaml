@@ -8,6 +8,8 @@ body:
   type: text
   content: |-
     {
-      
+      "title": "Updated Maintenance Notice",
+      "content_body": "Maintenance window extended by 1 hour.",
+      "priority": "low"
     }
 order: 20000

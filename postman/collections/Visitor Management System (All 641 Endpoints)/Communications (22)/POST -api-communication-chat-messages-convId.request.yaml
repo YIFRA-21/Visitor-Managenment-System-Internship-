@@ -5,11 +5,12 @@ method: POST
 headers:
   Content-Type: application/json
 pathVariables:
-  convId: ""
+  convId: "1"
 body:
   type: text
   content: |-
     {
-      
+      "message_text": "Hello, welcome to Visitor Management System!",
+      "message_type": "text"
     }
 order: 12000

@@ -5,11 +5,11 @@ method: POST
 headers:
   Content-Type: application/json
 pathVariables:
-  convId: ""
+  convId: "1"
 body:
   type: text
   content: |-
     {
-      
+      "userId": 2
     }
 order: 7000

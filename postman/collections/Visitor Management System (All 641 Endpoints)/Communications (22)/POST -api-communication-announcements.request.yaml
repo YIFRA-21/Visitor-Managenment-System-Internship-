@@ -8,6 +8,10 @@ body:
   type: text
   content: |-
     {
-      
+      "title": "Facility Maintenance Notice",
+      "content_body": "Scheduled system maintenance on Sunday at 2 AM.",
+      "priority": "medium",
+      "category": "General Notice",
+      "target_audience": ["All Users"]
     }
 order: 18000

@@ -8,6 +8,8 @@ body:
   type: text
   content: |-
     {
-      
+      "to": "visitor@example.com",
+      "subject": "Visitor Check-in Confirmation",
+      "body": "Welcome to our facility. Your check-in is confirmed."
     }
 order: 16000

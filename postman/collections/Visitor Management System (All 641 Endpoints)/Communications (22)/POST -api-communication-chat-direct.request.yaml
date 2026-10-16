@@ -8,6 +8,6 @@ body:
   type: text
   content: |-
     {
-      
+      "targetUserId": 2
     }
 order: 9000
