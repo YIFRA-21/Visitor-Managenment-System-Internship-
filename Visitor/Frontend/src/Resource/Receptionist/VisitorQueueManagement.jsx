@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, UserCheck, Megaphone, RefreshCw } from 'lucide-react';
+import { Clock, UserCheck, Megaphone, RefreshCw, Trash2, Check } from 'lucide-react';
 import api from '../../services/api';
 import BackButton from '../../components/common/BackButton';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -45,6 +45,18 @@ export default function VisitorQueueManagement() {
         }
         catch (err) {
             console.error(err);
+        }
+    };
+    const handleDeleteQueue = async (id, visitorName) => {
+        if (!window.confirm(`Are you sure you want to remove "${visitorName || 'this visitor'}" from the queue?`)) return;
+        try {
+            await api.delete(`/reception/queue/${id}`);
+            setMessage(`Visitor removed from queue.`);
+            fetchQueue();
+        }
+        catch (err) {
+            console.error(err);
+            setMessage(err.response?.data?.error || err.message || 'Failed to remove from queue');
         }
     };
     return (<div className="p-6 space-y-6 bg-slate-900 min-h-screen text-slate-100 font-sans">
@@ -147,17 +159,24 @@ export default function VisitorQueueManagement() {
                         </span>
                       </td>
 
-                      <td className="p-4 text-right space-x-1.5">
-                        {q.status === 'WAITING' && (<button onClick={() => handleUpdateStatus(q.id, 'CALLED')} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] uppercase tracking-wider">
-                            <Megaphone className="h-3.5 w-3.5 inline mr-1"/>
-                            Call Next
-                          </button>)}
-                        {q.status === 'CALLED' && (<button onClick={() => handleUpdateStatus(q.id, 'MEETING')} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] uppercase tracking-wider">
-                            Start Meeting
-                          </button>)}
-                        {q.status !== 'COMPLETED' && (<button onClick={() => handleUpdateStatus(q.id, 'COMPLETED')} className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px]" title="Mark Completed">
-                            Done
-                          </button>)}
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {q.status === 'WAITING' && (<button onClick={() => handleUpdateStatus(q.id, 'CALLED')} className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] uppercase tracking-wider flex items-center gap-1 shadow-sm transition" title="Call Next Visitor">
+                              <Megaphone className="h-3.5 w-3.5 inline mr-1"/>
+                              Call Next
+                            </button>)}
+                          {q.status === 'CALLED' && (<button onClick={() => handleUpdateStatus(q.id, 'MEETING')} className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] uppercase tracking-wider flex items-center gap-1 shadow-sm transition" title="Start Meeting">
+                              <UserCheck className="h-3.5 w-3.5 inline mr-1"/>
+                              Start Meeting
+                            </button>)}
+                          {q.status !== 'COMPLETED' && (<button onClick={() => handleUpdateStatus(q.id, 'COMPLETED')} className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-[11px] font-bold flex items-center gap-1 transition" title="Mark Completed">
+                              <Check className="h-3.5 w-3.5 text-emerald-400 inline mr-1"/>
+                              Done
+                            </button>)}
+                          <button onClick={() => handleDeleteQueue(q.id, q.visitor_name)} className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-500 border border-rose-500/30 hover:bg-rose-600 hover:text-white hover:border-rose-500 hover:shadow-lg hover:shadow-rose-500/40 flex items-center justify-center transition-all cursor-pointer shadow-sm" title="Delete from Queue">
+                            <Trash2 className="h-4 w-4"/>
+                          </button>
+                        </div>
                       </td>
                     </tr>);
             })}

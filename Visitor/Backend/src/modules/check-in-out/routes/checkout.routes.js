@@ -28,4 +28,14 @@ router.post('/process', authenticate, authorize('receptionist', 'security_office
 // POST /checkout/group — bulk group check-out
 router.post('/group', authenticate, authorize('receptionist', 'admin'), checkoutController.processGroupExit);
 
+// DELETE /checkout/:id — delete/soft-delete check-out record
+router.delete('/:id', authenticate, authorize('receptionist', 'security_officer', 'admin'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const db = require('../../../config/db');
+    await db.query('UPDATE checkins SET checked_out_at = NULL, deleted_at = NOW() WHERE id = ?', [id]);
+    res.json({ status: 'success', message: 'Check-out record deleted successfully' });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

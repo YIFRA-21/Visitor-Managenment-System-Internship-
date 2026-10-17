@@ -232,8 +232,10 @@ table tbody tr td button i {
   visibility: visible !important;
 }
 
-table tbody tr td button {
+table tbody tr td button:not([class*="px-"]):not([class*="py-"]) {
   padding: 0 !important;
+}
+table tbody tr td button {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;

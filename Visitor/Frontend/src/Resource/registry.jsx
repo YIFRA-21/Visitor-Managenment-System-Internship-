@@ -153,6 +153,7 @@ import ManagerDashboard from './Manager/ManagerDashboard';
 import Approvals from './Manager/Approvals';
 import DepartmentVisitors from './Manager/DepartmentVisitors';
 import DepartmentReports from './Manager/DepartmentReports';
+import DepartmentManagerProfileView from './Manager/DepartmentManagerProfileView';
 // Receptionist
 import ReceptionDashboard from './Receptionist/ReceptionDashboard';
 import ReceptionManagementHome from './Receptionist/ReceptionManagementHome';
@@ -201,6 +202,7 @@ import AccessControlRules from './Security/AccessControlRules';
 import LiveVisitorTracking from './Security/LiveVisitorTracking';
 import EscortManagement from './Security/EscortManagement';
 import SecurityReportsAnalytics from './Security/SecurityReportsAnalytics';
+import SecurityOfficerProfileView from './Security/SecurityOfficerProfileView';
 // Module 14: Enterprise Reporting & Analytics Management
 import ReportingDashboard from './Reports/ReportingDashboard';
 import OperationalReports from './Reports/OperationalReports';
@@ -585,6 +587,11 @@ export const componentRegistry = {
     Approvals,
     DepartmentVisitors,
     DepartmentReports,
+    DepartmentManagerProfileView,
+    manager_profile: DepartmentManagerProfileView,
+    'manager-profile': DepartmentManagerProfileView,
+    department_manager_profile: DepartmentManagerProfileView,
+    'department-manager-profile': DepartmentManagerProfileView,
     // Receptionist
     ReceptionDashboard,
     ReceptionManagementHome,
@@ -746,6 +753,11 @@ export const componentRegistry = {
     'escort-management': EscortManagement,
     security_analytics: SecurityReportsAnalytics,
     'security-analytics': SecurityReportsAnalytics,
+    SecurityOfficerProfileView,
+    security_profile: SecurityOfficerProfileView,
+    'security-profile': SecurityOfficerProfileView,
+    security_officer_profile: SecurityOfficerProfileView,
+    'security-officer-profile': SecurityOfficerProfileView,
     // Lowercase view-key mappings for module 3
     org_home: OrganizationManagementHome,
     org_dashboard: OrgDashboard,

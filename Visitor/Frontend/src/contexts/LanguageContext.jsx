@@ -181,6 +181,7 @@ const translations = {
         'sidebar.activityLog': 'Activity Log',
         'sidebar.expressCheckIn': 'Express Check-In',
         'sidebar.expressCheckOut': 'Express Check-Out',
+        'sidebar.checkInOutHistory': 'Check-In & Check-Out History',
         // ── Security Sidebar ──
         'sidebar.securityDashboard': 'Security Dashboard',
         'sidebar.securityAccessControl': 'Security & Access Control',
@@ -1834,6 +1835,7 @@ const translations = {
         'sidebar.activityLog': 'የእንቅስቃሴ ምዝግብ',
         'sidebar.expressCheckIn': 'ፈጣን ቼክ-ኢን',
         'sidebar.expressCheckOut': 'ፈጣን ቼክ-አውት',
+        'sidebar.checkInOutHistory': 'የቼክ-ኢን እና ቼክ-አውት ታሪክ',
         // ── Security Sidebar ──
         'sidebar.securityDashboard': 'የደህንነት ዳሽቦርድ',
         'sidebar.securityAccessControl': 'ደህንነት እና የመዳረሻ ቁጥጥር',

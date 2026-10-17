@@ -69,6 +69,7 @@ import ReceptionistProfileSettings from '../../../Resource/Receptionist/Receptio
 import WalkInVisitorManagement from '../../../Resource/Receptionist/WalkInVisitorManagement';
 import VisitorPassIssuance from '../../../Resource/Receptionist/VisitorPassIssuance';
 import SecurityDashboard from '../../../Resource/Security/SecurityDashboard';
+import SecurityOfficerProfileView from '../../../Resource/Security/SecurityOfficerProfileView';
 import RoleManagement from '../../../Resource/Admin/RoleManagement';
 import PermissionManagement from '../../../Resource/Admin/PermissionManagement';
 import AuditLogs from '../../../Resource/Admin/AuditLogs';
@@ -830,6 +831,11 @@ export default function DashboardPage() {
             case 'security_reports':
             case 'security_analytics':
                 return role === 'visitor' ? <VisitorDashboard /> : <SecurityReportsAnalytics />;
+            case 'security_profile':
+            case 'security-profile':
+            case 'security_officer_profile':
+            case 'security-officer-profile':
+                return <SecurityOfficerProfileView />;
             // Admin Notification Management (Module 13)
             case 'admin_notification_management':
             case 'notification_admin':
@@ -955,6 +961,8 @@ export default function DashboardPage() {
                         return <ReceptionistProfileSettings />;
                     if (role === 'manager' || role === 'department_manager')
                         return <DepartmentManagerProfileView />;
+                    if (role === 'security_officer' || role === 'security')
+                        return <SecurityOfficerProfileView />;
                     return <EmployeeProfileView />;
                 }
             case 'visitor_profile':

@@ -46,12 +46,6 @@ export default function AppointmentVerification({ onNavigate }) {
             </p>
           </div>
         </div>
-
-        {/* Role Boundary Notice */}
-        <div className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center space-x-2 text-amber-300 text-[11px] font-semibold">
-          <ShieldAlert className="h-4 w-4 shrink-0"/>
-          <span>{t('reception.infoOnlyNotice', 'Reception Mode: Info Verification Only (No Approval / Security Authority)')}</span>
-        </div>
       </div>
 
       {/* Search Input Panel */}

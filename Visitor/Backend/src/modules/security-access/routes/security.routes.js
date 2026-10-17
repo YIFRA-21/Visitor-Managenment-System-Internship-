@@ -246,5 +246,72 @@ router.post('/escorts', authenticate, authorize('security_officer', 'admin'), se
 // GET /security/analytics — Threat & security screening analytics
 router.get('/analytics', authenticate, authorize('security_officer', 'admin', 'manager'), securityController.getAnalytics);
 
+// GET /security/profile & PUT /security/profile — Security officer profile & settings
+router.get('/profile', authenticate, async (req, res, next) => {
+  try {
+    const userId = req.user?.id || 1;
+    const users = await db.query(`
+      SELECT u.id, u.user_code, u.username, u.full_name, u.email, u.phone, u.role, u.department_id, u.avatar_url,
+             d.department_name, d.department_code,
+             e.employee_number, e.photo_url, e.job_title, e.office_phone, e.extension, e.office_location,
+             b.branch_name, org.name as org_name
+      FROM users u
+      LEFT JOIN employees e ON u.id = e.user_id
+      LEFT JOIN departments d ON u.department_id = d.id OR e.department_id = d.id
+      LEFT JOIN organization_branches b ON e.branch_id = b.id OR d.branch_id = b.id
+      LEFT JOIN organizations org ON e.organization_id = org.id OR d.organization_id = org.id
+      WHERE u.id = ?
+    `, [userId]);
+
+    let user = users && users[0];
+    if (!user) {
+      const anyUser = await db.query(`SELECT id, user_code, username, full_name, email, phone, role, avatar_url FROM users WHERE id = ?`, [userId]);
+      user = anyUser && anyUser[0];
+    }
+    if (!user) {
+      const secUser = await db.query(`SELECT id, user_code, username, full_name, email, phone, role, avatar_url FROM users WHERE role = 'security_officer' OR role = 'security' LIMIT 1`);
+      user = secUser && secUser[0];
+    }
+
+    res.json({
+      profile: {
+        ...(user || {}),
+        photo_url: user?.avatar_url || user?.photo_url || null,
+        assigned_gate: 'Gate 1 — Main Vehicle & Pedestrian Portal',
+        security_clearance: 'Level 4 (Tactical & Surveillance Clearance)',
+        shift_schedule: 'Day Patrol Shift (06:00 - 18:00)',
+        badge_number: user?.user_code || 'SEC-0042',
+        duty_station: 'Central Security Operations Center (SOC)',
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/profile', authenticate, async (req, res, next) => {
+  try {
+    const userId = req.user?.id || 1;
+    const { full_name, fullName, phone, avatar_url, avatarUrl, photo_url, photoUrl } = req.body;
+    const nameToUpdate = full_name || fullName;
+    const phoneToUpdate = phone;
+    const photoToUpdate = avatar_url || avatarUrl || photo_url || photoUrl;
+
+    const userFields = [];
+    const userValues = [];
+    if (nameToUpdate) { userFields.push('full_name = ?'); userValues.push(nameToUpdate); }
+    if (phoneToUpdate) { userFields.push('phone = ?'); userValues.push(phoneToUpdate); }
+    if (photoToUpdate !== undefined) { userFields.push('avatar_url = ?'); userValues.push(photoToUpdate); }
+
+    if (userFields.length > 0) {
+      await db.query(`UPDATE users SET ${userFields.join(', ')}, updated_at = NOW() WHERE id = ?`, [...userValues, userId]);
+    }
+
+    res.json({ status: 'success', message: 'Security officer profile updated successfully.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
 

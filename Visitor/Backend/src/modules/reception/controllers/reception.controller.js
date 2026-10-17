@@ -124,6 +124,18 @@ class ReceptionController {
     }
   }
 
+  async deleteQueue(req, res) {
+    try {
+      const { id } = req.params;
+      const receptionistInfo = req.user || {};
+      const result = await ReceptionService.deleteQueue(id, receptionistInfo);
+      res.json(result);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete queue item' });
+    }
+  }
+
   // 6. Visitor Pass Issuance
   async generatePass(req, res) {
     try {

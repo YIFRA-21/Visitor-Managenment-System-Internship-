@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, UserCheck, CheckCircle2, UserPlus, Clock, QrCode, Bell, Armchair, Search, FileText, Activity, User } from 'lucide-react';
+import { LayoutDashboard, UserCheck, CheckCircle2, UserPlus, Clock, QrCode, Bell, Search, FileText, Activity, User } from 'lucide-react';
 import ReceptionDashboard from './ReceptionDashboard';
 import VisitorArrivalManagement from './VisitorArrivalManagement';
 import AppointmentVerification from './AppointmentVerification';
@@ -7,11 +7,11 @@ import WalkInVisitorManagement from './WalkInVisitorManagement';
 import VisitorQueueManagement from './VisitorQueueManagement';
 import VisitorPassIssuance from './VisitorPassIssuance';
 import HostNotificationView from './HostNotificationView';
-import WaitingAreaManagement from './WaitingAreaManagement';
 import ReceptionSearchDirectory from './ReceptionSearchDirectory';
 import ReceptionReportsView from './ReceptionReportsView';
 import ReceptionActivityLogView from './ReceptionActivityLogView';
 import ReceptionistProfileSettings from './ReceptionistProfileSettings';
+import CheckInOutHistory from './CheckInOutHistory';
 export default function ReceptionManagementHome({ initialTab = 'dashboard' }) {
     const [activeTab, setActiveTab] = useState(initialTab);
     const tabs = [
@@ -22,7 +22,7 @@ export default function ReceptionManagementHome({ initialTab = 'dashboard' }) {
         { id: 'queue', label: 'Queue Monitor', icon: Clock },
         { id: 'passes', label: 'Pass Issuance', icon: QrCode },
         { id: 'notifications', label: 'Host Alerts', icon: Bell },
-        { id: 'waiting', label: 'Waiting Lounge', icon: Armchair },
+        { id: 'history', label: 'Check-In & Check-Out History', icon: Clock },
         { id: 'search', label: 'Directory Search', icon: Search },
         { id: 'reports', label: 'Reports', icon: FileText },
         { id: 'activity', label: 'Activity Log', icon: Activity },
@@ -44,8 +44,9 @@ export default function ReceptionManagementHome({ initialTab = 'dashboard' }) {
                 return <VisitorPassIssuance />;
             case 'notifications':
                 return <HostNotificationView />;
-            case 'waiting':
-                return <WaitingAreaManagement />;
+            case 'history':
+            case 'checkin_checkout_history':
+                return <CheckInOutHistory initialTab="all" />;
             case 'search':
                 return <ReceptionSearchDirectory />;
             case 'reports':

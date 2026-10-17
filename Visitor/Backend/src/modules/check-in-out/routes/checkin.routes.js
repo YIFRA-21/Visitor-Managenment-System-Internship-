@@ -489,6 +489,15 @@ router.post('/group', authenticate, authorize('receptionist', 'admin'), async (r
   } catch (err) { next(err); }
 });
 
+// DELETE /checkin/:id — delete/soft-delete check-in record
+router.delete('/:id', authenticate, authorize('receptionist', 'security_officer', 'admin'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await db.query('UPDATE checkins SET deleted_at = NOW() WHERE id = ?', [id]);
+    res.json({ status: 'success', message: 'Check-in record deleted successfully' });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;
 module.exports.setSocketIO = setSocketIO;
 module.exports.default = router;

@@ -336,9 +336,9 @@ button[type="reset"]:not(.btn-sm):not(.btn-icon):not([class*="w-"]):not([class*=
 }
 
 // ── Table Action Buttons & Dedicated Icon Button Styling (100% VISIBLE ICONS) ──
-table td button,
-.table td button,
-td div button,
+table td button:not([class*="px-"]):not([class*="w-auto"]),
+.table td button:not([class*="px-"]):not([class*="w-auto"]),
+td div button:not([class*="px-"]):not([class*="w-auto"]),
 button[class*="w-7"],
 button[class*="w-8"],
 button[class*="w-9"],

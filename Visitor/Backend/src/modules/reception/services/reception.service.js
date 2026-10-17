@@ -627,6 +627,18 @@ class ReceptionService {
     return { message: 'Visitor Queue updated successfully.' };
   }
 
+  async deleteQueue(queueId, receptionistInfo = {}) {
+    await db.query(`DELETE FROM visitor_queues WHERE id = ?`, [queueId]);
+    await this.logActivity({
+      activity_type: 'QUEUE_DELETE',
+      title: `Queue #${queueId} Deleted`,
+      details: `Queue record #${queueId} deleted at reception.`,
+      receptionist_id: receptionistInfo.id || 1,
+      receptionist_name: receptionistInfo.full_name || 'Front Desk',
+    });
+    return { success: true, message: 'Queue item deleted successfully.' };
+  }
+
   // 6. VISITOR PASS ISSUANCE
   async generateVisitorPass(passData = {}, receptionistInfo = {}) {
     let apptId = passData.appointment_id || passData.appointmentId || passData.appointmentNumber || passData.id || passData.visit_id || passData.visitId;
@@ -1017,25 +1029,36 @@ class ReceptionService {
   }
 
   // 12. PROFILE & SETTINGS
-  async getProfileAndSettings(userId = 6) {
+  async getProfileAndSettings(userId) {
     const users = await db.query(`
-      SELECT u.id, u.user_code, u.full_name, u.email, u.phone, u.role, u.department_id,
-             e.employee_number, e.photo_url, e.job_title, e.office_phone, e.extension,
+      SELECT u.id, u.user_code, u.username, u.full_name, u.email, u.phone, u.role, u.department_id, u.avatar_url,
+             d.department_name, d.department_code,
+             e.employee_number, e.photo_url, e.job_title, e.office_phone, e.extension, e.office_location,
              b.branch_name, org.name as org_name
       FROM users u
       LEFT JOIN employees e ON u.id = e.user_id
-      LEFT JOIN organization_branches b ON e.branch_id = b.id
-      LEFT JOIN organizations org ON e.organization_id = org.id
+      LEFT JOIN departments d ON u.department_id = d.id OR e.department_id = d.id
+      LEFT JOIN organization_branches b ON e.branch_id = b.id OR d.branch_id = b.id
+      LEFT JOIN organizations org ON e.organization_id = org.id OR d.organization_id = org.id
       WHERE u.id = ?
     `, [userId]);
 
-    const user = users[0] || { full_name: 'Lisa Thompson', user_code: 'REC000001', role: 'receptionist' };
+    let user = users && users[0];
+    if (!user) {
+      const anyUser = await db.query(`SELECT id, user_code, username, full_name, email, phone, role, avatar_url FROM users WHERE id = ?`, [userId]);
+      user = anyUser && anyUser[0];
+    }
+    if (!user) {
+      const recUser = await db.query(`SELECT id, user_code, username, full_name, email, phone, role, avatar_url FROM users WHERE role = 'receptionist' LIMIT 1`);
+      user = recUser && recUser[0];
+    }
 
     return {
       profile: {
-        ...user,
-        reception_counter: 'Main Lobby Counter 1',
-        shift_schedule: 'Morning Shift (07:00 - 15:00)',
+        ...(user || {}),
+        photo_url: user?.avatar_url || user?.photo_url || null,
+        reception_counter: user?.reception_counter || 'Main Lobby Counter 1',
+        shift_schedule: user?.shift_schedule || 'Morning Shift (07:00 - 15:00)',
       },
       settings: {
         theme: 'dark',
@@ -1047,11 +1070,22 @@ class ReceptionService {
   }
 
   async updateProfileAndSettings(userId, settingsData) {
-    const { phone, reception_counter, theme, language } = settingsData;
-    if (phone) {
-      await db.query(`UPDATE users SET phone = ? WHERE id = ?`, [phone, userId]);
+    const { full_name, fullName, phone, avatar_url, avatarUrl, photo_url, photoUrl } = settingsData;
+    const nameToUpdate = full_name || fullName;
+    const phoneToUpdate = phone;
+    const photoToUpdate = avatar_url || avatarUrl || photo_url || photoUrl;
+
+    const userFields = [];
+    const userValues = [];
+    if (nameToUpdate) { userFields.push('full_name = ?'); userValues.push(nameToUpdate); }
+    if (phoneToUpdate) { userFields.push('phone = ?'); userValues.push(phoneToUpdate); }
+    if (photoToUpdate !== undefined) { userFields.push('avatar_url = ?'); userValues.push(photoToUpdate); }
+
+    if (userFields.length > 0) {
+      await db.query(`UPDATE users SET ${userFields.join(', ')}, updated_at = NOW() WHERE id = ?`, [...userValues, userId]);
     }
-    return { message: 'Receptionist profile & preferences updated successfully.' };
+
+    return this.getProfileAndSettings(userId);
   }
 }
 

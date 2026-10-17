@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, UserCheck, Search, QrCode, ShieldCheck, CheckCircle2, CheckCircle, AlertCircle, RefreshCw, Sparkles, Building, User, IdCard, Phone, Mail, Calendar, Check, LogOut, Eye } from 'lucide-react';
+import { Camera, UserCheck, Search, QrCode, ShieldCheck, CheckCircle2, CheckCircle, AlertCircle, RefreshCw, Sparkles, Building, User, IdCard, Phone, Mail, Calendar, Check, LogOut, Eye, LogIn, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api, { checkinApi, getErrorMessage } from '../../services/api';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
@@ -46,6 +46,20 @@ export default function CheckIn() {
         }
         finally {
             setLoadingArrivals(false);
+        }
+    };
+    const handleDeleteArrival = async (item) => {
+        const name = item.visitor_name || item.visitorName || 'this visitor';
+        if (!window.confirm(`Are you sure you want to remove the expected arrival appointment for "${name}"?`)) return;
+        try {
+            if (item.id) {
+                await api.delete(`/appointments/${item.id}`);
+            }
+            loadExpectedArrivals();
+            setMessage({ type: 'success', text: `Arrival record for "${name}" removed.` });
+        } catch (err) {
+            console.error(err);
+            setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to remove arrival record') });
         }
     };
     // Start webcam stream for camera tab
@@ -519,12 +533,26 @@ export default function CheckIn() {
                               {item.reference_code || item.appointment_number}
                             </td>
                             <td className="py-2.5 px-3 text-right">
-                              <button onClick={() => {
-                            selectVisitor(item);
-                            executeCheckIn(item.reference_code || item.appointment_number || String(item.id));
-                        }} disabled={loading} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition">
-                                {t('form.checkIn', 'Check-In')}
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    selectVisitor(item);
+                                    executeCheckIn(item.reference_code || item.appointment_number || String(item.id));
+                                  }}
+                                  disabled={loading}
+                                  className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-500/30 flex items-center justify-center transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                                  title={t('form.checkIn', 'Check-In')}
+                                >
+                                  <LogIn className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteArrival(item)}
+                                  className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-500 border border-rose-500/30 hover:bg-rose-600 hover:text-white hover:border-rose-500 hover:shadow-lg hover:shadow-rose-500/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                                  title="Delete Arrival Appointment"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>);
                 })}

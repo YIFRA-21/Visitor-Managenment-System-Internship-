@@ -130,6 +130,8 @@ export const authApi = {
     terminateAllSessions: () => api.delete('/auth/sessions'),
     getMyPermissions: () => api.get('/auth/me/permissions'),
     getMyResources: () => api.get('/auth/me/resources'),
+    getProfile: () => api.get('/auth/profile'),
+    updateProfile: (data) => api.put('/auth/profile', data),
 };
 export const departmentsApi = {
     list: () => api.get('/departments'),
@@ -259,6 +261,7 @@ export const checkinApi = {
     override: (data) => api.post('/checkin/override', data),
     queueStatus: () => api.get('/checkin/queue/status'),
     group: (data) => api.post('/checkin/group', data),
+    delete: (id) => api.delete(`/checkin/${id}`),
 };
 export const checkoutApi = {
     dashboard: (date) => api.get('/checkout/dashboard', { params: { date } }),
@@ -269,6 +272,7 @@ export const checkoutApi = {
     analytics: (dateFrom, dateTo) => api.get('/checkout/analytics', { params: { dateFrom, dateTo } }),
     process: (data) => api.post('/checkout/process', data),
     group: (data) => api.post('/checkout/group', data),
+    delete: (id) => api.delete(`/checkout/${id}`),
 };
 export const securityApi = {
     dashboard: () => api.get('/security/dashboard'),
@@ -289,6 +293,15 @@ export const securityApi = {
     removeBlacklist: (id) => api.delete(`/security/blacklist/${id}`),
     verifyReference: (referenceCode) => api.get(`/security/verify/${referenceCode}`),
     verify: (referenceCode) => api.get(`/security/verify/${referenceCode}`),
+    getProfile: () => api.get('/security/profile'),
+    updateProfile: (data) => api.put('/security/profile', data),
+};
+export const receptionApi = {
+    getDashboard: () => api.get('/reception/dashboard'),
+    getArrivals: (filter) => api.get('/reception/arrivals', { params: { filter } }),
+    getQueue: () => api.get('/reception/queue'),
+    getProfile: () => api.get('/reception/profile'),
+    updateProfile: (data) => api.put('/reception/profile', data),
 };
 export const reportsApi = {
     dashboard: () => api.get('/reports/dashboard'),

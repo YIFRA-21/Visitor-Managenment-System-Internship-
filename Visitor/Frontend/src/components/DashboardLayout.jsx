@@ -147,11 +147,9 @@ const sidebarConfig = [
             { key: 'visitor-queue', label: 'Visitor Queue', view: 'visitor_queue' },
             { key: 'reception-passes', label: 'Pass Issuance', view: 'reception_passes' },
             { key: 'host-notifications', label: 'Host Notifications', view: 'host_notifications' },
-            { key: 'waiting-area', label: 'Waiting Lounge', view: 'waiting_area' },
             { key: 'reception-directory', label: 'Search & Directory', view: 'reception_directory' },
             { key: 'reception-reports', label: 'Reception Reports', view: 'reception_reports' },
             { key: 'reception-logs', label: 'Activity Log', view: 'reception_activity_log' },
-            { key: 'reception-settings', label: 'Profile & Settings', view: 'reception_profile' },
         ],
     },
     {
@@ -246,7 +244,6 @@ const sidebarConfig = [
             { key: 'manager-visitors', label: 'Department Visitors', view: 'manager_visitors' },
             { key: 'manager-reports', label: 'Department Reports', view: 'manager_reports' },
             { key: 'manager-audit', label: 'Audit History', view: 'manager_audit' },
-            { key: 'manager-profile', label: 'Profile & Settings', view: 'manager_profile' },
         ],
     },
     {
@@ -444,6 +441,8 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             return 'approval_workflow_management';
         if (pathname.includes('/employee-management') || pathname.includes('/employee_management') || pathname.includes('/employees'))
             return 'employee_management';
+        if (pathname.includes('/checkin-checkout-history') || pathname.includes('/checkin_checkout_history'))
+            return 'checkin_checkout_history';
         return defaultView;
     };
     const currentView = propCurrentView || getLayoutView();
@@ -483,10 +482,12 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                 cleanView = 'manager_profile';
             } else if (rawRole === 'receptionist' || rawRole.includes('reception')) {
                 cleanView = 'reception_profile';
+            } else if (rawRole === 'security_officer' || rawRole === 'security' || rawRole.includes('security')) {
+                cleanView = 'security_profile';
             } else if (rawRole === 'staff' || rawRole === 'employee' || rawRole === 'host' || userCode.startsWith('EMP')) {
                 cleanView = 'employee_profile';
             } else {
-                cleanView = 'profile';
+                cleanView = 'employee_profile';
             }
         }
         let baseView = cleanView;
@@ -698,7 +699,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                 { key: 'manager-messages', label: t('sidebar.messageCenter'), iconClass: 'bi-chat-dots', view: 'messages' },
                 { key: 'manager-announcements', label: t('sidebar.announcements'), iconClass: 'bi-megaphone', view: 'announcements' },
                 { key: 'manager-feedback-support', label: t('sidebar.feedbackSupport'), iconClass: 'bi-headset', view: 'FeedbackSupportCenter' },
-                { key: 'manager-profile', label: t('sidebar.profileSettings'), iconClass: 'bi-person-circle', view: 'manager_profile' },
             ];
         }
         // 3. RECEPTIONIST ROLE
@@ -713,14 +713,13 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                 { key: 'reception-notifications', label: t('sidebar.notificationCenter'), iconClass: 'bi-bell', view: 'notifications' },
                 { key: 'reception-messages', label: t('sidebar.messageCenter'), iconClass: 'bi-chat-dots', view: 'messages' },
                 { key: 'reception-announcements', label: t('sidebar.announcements'), iconClass: 'bi-megaphone', view: 'announcements' },
-                { key: 'waiting-area', label: t('sidebar.waitingLounge'), iconClass: 'bi-cup-hot', view: 'waiting_area' },
                 { key: 'reception-directory', label: t('sidebar.directorySearch'), iconClass: 'bi-search', view: 'reception_directory' },
                 { key: 'reception-reports', label: t('sidebar.receptionReports'), iconClass: 'bi-graph-up', view: 'reception_reports' },
                 { key: 'reception-activity', label: t('sidebar.activityLog'), iconClass: 'bi-activity', view: 'reception_activity_log' },
                 { key: 'checkin-item', label: t('sidebar.expressCheckIn'), iconClass: 'bi-box-arrow-in-right', view: 'checkin' },
                 { key: 'checkout-item', label: t('sidebar.expressCheckOut'), iconClass: 'bi-box-arrow-right', view: 'checkout' },
+                { key: 'checkin-checkout-history', label: t('sidebar.checkInOutHistory'), iconClass: 'bi-clock-history', view: 'checkin_checkout_history' },
                 { key: 'reception-feedback-support', label: t('sidebar.feedbackSupport'), iconClass: 'bi-headset', view: 'FeedbackSupportCenter' },
-                { key: 'reception-profile', label: t('nav.myProfile'), iconClass: 'bi-person-badge', view: 'reception_profile' },
             ];
         }
         // 4. SECURITY ROLE

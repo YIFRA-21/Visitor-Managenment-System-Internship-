@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const { authenticate } = require('../../../middleware/auth');
 const ReceptionController = require('../controllers/reception.controller');
 
 const router = Router();
@@ -21,6 +22,7 @@ router.post('/walk-ins', (req, res) => ReceptionController.registerWalkIn(req, r
 // 5. Visitor Queue Management
 router.get('/queue', (req, res) => ReceptionController.getQueue(req, res));
 router.put('/queue/:id', (req, res) => ReceptionController.updateQueueStatus(req, res));
+router.delete('/queue/:id', (req, res) => ReceptionController.deleteQueue(req, res));
 
 // 6. Visitor Pass Issuance
 router.post('/passes/generate', (req, res) => ReceptionController.generatePass(req, res));
@@ -41,7 +43,7 @@ router.get('/reports', (req, res) => ReceptionController.getReports(req, res));
 router.get('/activity-logs', (req, res) => ReceptionController.getActivityLogs(req, res));
 
 // 12. Profile & Settings
-router.get('/profile', (req, res) => ReceptionController.getProfile(req, res));
-router.put('/profile', (req, res) => ReceptionController.updateProfile(req, res));
+router.get('/profile', authenticate, (req, res) => ReceptionController.getProfile(req, res));
+router.put('/profile', authenticate, (req, res) => ReceptionController.updateProfile(req, res));
 
 module.exports = router;

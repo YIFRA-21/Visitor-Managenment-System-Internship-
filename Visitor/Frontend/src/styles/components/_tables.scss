@@ -325,9 +325,9 @@ tbody tr:hover .vms-btn {
 }
 
 /* ── 5. Action buttons & icons 100% visible inside tables ───────────────── */
-tbody tr td button,
-table td button,
-.table td button {
+tbody tr td button:not([class*="px-"]):not([class*="w-auto"]),
+table td button:not([class*="px-"]):not([class*="w-auto"]),
+.table td button:not([class*="px-"]):not([class*="w-auto"]) {
   height: 32px !important;
   min-height: 32px !important;
   max-height: 32px !important;

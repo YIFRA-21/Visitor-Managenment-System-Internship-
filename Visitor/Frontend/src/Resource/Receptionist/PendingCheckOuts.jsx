@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Search, RefreshCw, Loader2, AlertCircle, LogOut, ShieldAlert } from 'lucide-react';
-import { checkoutApi, getErrorMessage } from '../../services/api';
+import { Users, Search, RefreshCw, Loader2, AlertCircle, LogOut, ShieldAlert, Trash2 } from 'lucide-react';
+import { checkinApi, checkoutApi, getErrorMessage } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 const fmt = (dt) => dt ? new Date(dt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
 export default function PendingCheckOuts() {
@@ -36,6 +36,17 @@ export default function PendingCheckOuts() {
         }
         finally {
             setCheckoutLoading(null);
+        }
+    };
+    const handleDeleteCheckin = async (item) => {
+        const targetName = item.visitorName || 'this visitor';
+        if (!window.confirm(`Are you sure you want to delete the check-in record for "${targetName}"?`)) return;
+        try {
+            await checkinApi.delete(item.checkinId);
+            setItems(prev => prev.filter(x => x.checkinId !== item.checkinId));
+        }
+        catch (err) {
+            alert(getErrorMessage(err, 'Failed to delete check-in record'));
         }
     };
     return (<div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-6 space-y-5">
@@ -99,10 +110,23 @@ export default function PendingCheckOuts() {
                       </span>)}
                   </td>
                   <td className="px-4 py-3">
-                    <button onClick={() => handleQuickCheckout(item)} disabled={checkoutLoading === item.checkinId} className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1 disabled:opacity-50">
-                      {checkoutLoading === item.checkinId ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <LogOut className="h-3.5 w-3.5"/>}
-                      Check Out
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleQuickCheckout(item)}
+                        disabled={checkoutLoading === item.checkinId}
+                        className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-500 hover:bg-amber-600 hover:text-white border border-amber-500/30 flex items-center justify-center transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                        title="Check Out"
+                      >
+                        {checkoutLoading === item.checkinId ? <Loader2 className="h-4 w-4 animate-spin"/> : <LogOut className="h-4 w-4"/>}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCheckin(item)}
+                        className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-500 border border-rose-500/30 hover:bg-rose-600 hover:text-white hover:border-rose-500 hover:shadow-lg hover:shadow-rose-500/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                        title="Delete Check-In Record"
+                      >
+                        <Trash2 className="h-4 w-4"/>
+                      </button>
+                    </div>
                   </td>
                 </tr>))}
             </tbody>

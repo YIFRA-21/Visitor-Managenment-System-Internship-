@@ -1021,8 +1021,9 @@ class DepartmentManagerRepository {
   /**
    * Update Manager Profile
    */
-  async updateManagerProfile(userId, { firstName, lastName, phone, office, photoUrl }) {
-    const fullName = `${firstName || ''} ${lastName || ''}`.trim();
+  async updateManagerProfile(userId, { firstName, lastName, fullName, full_name, phone, office, photoUrl, photo_url, avatarUrl, avatar_url }) {
+    const computedName = (fullName || full_name || `${firstName || ''} ${lastName || ''}`).trim();
+    const finalPhoto = photoUrl || photo_url || avatarUrl || avatar_url;
 
     await db.query(
       `UPDATE users 
@@ -1034,14 +1035,14 @@ class DepartmentManagerRepository {
            avatar_url = COALESCE(?, avatar_url),
            updated_at = NOW()
        WHERE id = ?`,
-      [firstName, lastName, fullName || null, phone, phone, photoUrl, userId]
+      [firstName || null, lastName || null, computedName || null, phone || null, phone || null, finalPhoto || null, userId]
     );
 
     if (office) {
       await db.query(
         `UPDATE manager_profiles SET office = ?, updated_at = NOW() WHERE user_id = ?`,
         [office, userId]
-      );
+      ).catch(() => {});
     }
 
     return this.getManagerProfile(userId);

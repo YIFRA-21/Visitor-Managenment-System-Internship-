@@ -31,7 +31,8 @@ import {
   Sparkles,
   Timer,
   Tag,
-  ArrowRight
+  ArrowRight,
+  Trash2
 } from 'lucide-react';
 import { checkinApi, checkoutApi, getErrorMessage } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -432,6 +433,30 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
     }
   };
 
+  // Delete record handler
+  const handleDeleteRecord = async (record) => {
+    const targetName = record.visitorName || record.visitor_name || 'this visitor';
+    if (!window.confirm(`Are you sure you want to delete the visit record for "${targetName}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      if (record.eventType === 'CHECK_OUT' && (record.id || record.checkoutId)) {
+        await checkoutApi.delete(record.checkoutId || record.id);
+      } else {
+        const idToDelete = record.checkinId || record.id;
+        if (idToDelete) {
+          await checkinApi.delete(idToDelete);
+        }
+      }
+      showToast(`Visit entry for "${targetName}" was deleted successfully.`, 'success');
+      loadRecords();
+      fetchStats();
+    } catch (err) {
+      console.error('Delete record error:', err);
+      showToast(getErrorMessage(err, 'Failed to delete visit record'), 'error');
+    }
+  };
+
   // Export to CSV
   const handleExportCSV = () => {
     if (!records || records.length === 0) {
@@ -551,30 +576,6 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <BackButton />
-            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              <span>Operations</span>
-              <span>/</span>
-              <span className="text-indigo-400 font-extrabold flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Check-In &amp; Check-Out
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white shrink-0">
-              <Clock className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                Check-In &amp; Check-Out History
-                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
-                  Real-Time Audit
-                </span>
-              </h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Complete historical record of visitor arrivals, departures, physical durations, and entrance security checks.
-              </p>
-            </div>
           </div>
         </div>
 
@@ -1200,24 +1201,31 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
                             <button
                               type="button"
                               onClick={() => setInspectedRecord(r)}
-                              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition flex items-center gap-1"
+                              className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-sm"
                               title="View Details"
                             >
-                              <Eye className="h-3.5 w-3.5 text-indigo-400" />
-                              <span>Details</span>
+                              <Eye className="h-4 w-4" />
                             </button>
 
                             {isInside && (
                               <button
                                 type="button"
                                 onClick={() => setCheckoutTarget(r)}
-                                className="px-2.5 py-1.5 bg-rose-600/90 hover:bg-rose-500 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1"
+                                className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-600 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-sm"
                                 title="Quick Check-Out"
                               >
-                                <LogOut className="h-3.5 w-3.5" />
-                                <span>Check-Out</span>
+                                <LogOut className="h-4 w-4" />
                               </button>
                             )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRecord(r)}
+                              className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-500 border border-rose-500/30 hover:bg-rose-600 hover:text-white hover:border-rose-500 hover:shadow-lg hover:shadow-rose-500/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                              title="Delete Record"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1307,19 +1315,31 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
 
                     <div className="flex items-center justify-end gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
                       <button
+                        type="button"
                         onClick={() => setInspectedRecord(r)}
-                        className="px-3 py-1.5 bg-slate-800 text-slate-200 text-xs font-bold rounded-lg border border-slate-700"
+                        className="px-3 py-1.5 bg-blue-500/15 text-blue-400 hover:bg-blue-600 hover:text-white border border-blue-500/30 text-xs font-bold rounded-lg flex items-center gap-1.5 transition"
                       >
-                        Details
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>Details</span>
                       </button>
                       {isInside && (
                         <button
+                          type="button"
                           onClick={() => setCheckoutTarget(r)}
-                          className="px-3 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg shadow"
+                          className="px-3 py-1.5 bg-amber-500/15 text-amber-400 hover:bg-amber-600 hover:text-white border border-amber-500/30 text-xs font-bold rounded-lg flex items-center gap-1.5 transition"
                         >
-                          Quick Check-Out
+                          <LogOut className="h-3.5 w-3.5" />
+                          <span>Quick Check-Out</span>
                         </button>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRecord(r)}
+                        className="px-3 py-1.5 bg-rose-500/15 text-rose-500 hover:bg-rose-600 hover:text-white border border-rose-500/30 text-xs font-bold rounded-lg flex items-center gap-1.5 transition"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
                 );

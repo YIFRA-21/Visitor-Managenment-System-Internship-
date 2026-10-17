@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LogOut, Camera, Search, QrCode, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Sparkles, Building, User, Clock, Mail, UserCheck } from 'lucide-react';
+import { LogOut, Camera, Search, QrCode, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Sparkles, Building, User, Clock, Mail, UserCheck, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { checkinApi, checkoutApi, getErrorMessage } from '../../services/api';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
@@ -47,6 +47,21 @@ export default function CheckOut() {
         }
         finally {
             setLoadingPending(false);
+        }
+    };
+    const handleDeleteSession = async (item) => {
+        const name = item.visitorName || item.visitor_name || 'this visitor';
+        if (!window.confirm(`Are you sure you want to delete the active session for "${name}"? This action cannot be undone.`)) return;
+        try {
+            const idToDelete = item.checkinId || item.id;
+            if (idToDelete) {
+                await checkinApi.delete(idToDelete);
+            }
+            loadPendingInside();
+            setMessage({ type: 'success', text: `Active visit session for "${name}" removed.` });
+        } catch (err) {
+            console.error(err);
+            setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to delete visit session') });
         }
     };
     // Camera stream controls
@@ -544,12 +559,26 @@ export default function CheckOut() {
                             {item.minutesInside || item.minutes_inside || 0} min
                           </td>
                           <td className="py-2.5 px-3 text-right">
-                            <button onClick={() => {
-                        selectSession(item);
-                        executeCheckOut(item);
-                    }} disabled={loading} className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold rounded-lg transition">
-                              Check-Out
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  selectSession(item);
+                                  executeCheckOut(item);
+                                }}
+                                disabled={loading}
+                                className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 hover:bg-amber-600 hover:text-white border border-amber-500/30 flex items-center justify-center transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                                title="Quick Check-Out"
+                              >
+                                <LogOut className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSession(item)}
+                                className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-500 border border-rose-500/30 hover:bg-rose-600 hover:text-white hover:border-rose-500 hover:shadow-lg hover:shadow-rose-500/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                                title="Delete Active Session"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>))}
                     </tbody>

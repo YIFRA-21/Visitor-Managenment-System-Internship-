@@ -138,7 +138,7 @@ export default function ReceptionReportsView() {
         {/* Action Controls - Strictly Horizontal Row */}
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={fetchReport} disabled={loading} className="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 rounded-xl text-xs transition-colors flex items-center gap-1.5 shrink-0" title="Refresh Data">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-emerald-400' : ''}`}/>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-emerald-400' : ''}`}/>Refresh
           </button>
           <button onClick={handleExportCSV} className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 transition-colors whitespace-nowrap shrink-0">
             <Download className="h-4 w-4"/>
