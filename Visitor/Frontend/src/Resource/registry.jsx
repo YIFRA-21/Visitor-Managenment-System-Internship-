@@ -224,6 +224,7 @@ import VerificationStatusPage from '../modules/identity-verification/pages/Verif
 import ReviewerQueuePage from '../modules/identity-verification/pages/ReviewerQueuePage';
 import ReviewerCaseDetailPage from '../modules/identity-verification/pages/ReviewerCaseDetailPage';
 import VerificationPolicySettingsPage from '../modules/identity-verification/pages/VerificationPolicySettingsPage';
+import CheckInOutHistory from './Receptionist/CheckInOutHistory';
 
 export const componentRegistry = {
     // Admin
@@ -498,6 +499,9 @@ export const componentRegistry = {
     VisitHistory,
     visit_history: VisitHistory,
     'visit-history': VisitHistory,
+    CheckInOutHistory,
+    checkin_checkout_history: CheckInOutHistory,
+    'checkin-checkout-history': CheckInOutHistory,
     VisitorPass,
     visitor_pass: VisitorPass,
     'visitor-pass': VisitorPass,

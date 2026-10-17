@@ -102,6 +102,7 @@ import ReceptionReportsView from '../../../Resource/Receptionist/ReceptionReport
 import ReceptionActivityLogView from '../../../Resource/Receptionist/ReceptionActivityLogView';
 import CheckInDashboard from '../../../Resource/Receptionist/CheckInDashboard';
 import CheckInHistory from '../../../Resource/Receptionist/CheckInHistory';
+import CheckInOutHistory from '../../../Resource/Receptionist/CheckInOutHistory';
 import CheckInAnalytics from '../../../Resource/Receptionist/CheckInAnalytics';
 import CheckInValidation from '../../../Resource/Receptionist/CheckInValidation';
 import GroupCheckIn from '../../../Resource/Receptionist/GroupCheckIn';
@@ -719,9 +720,17 @@ export default function DashboardPage() {
             case 'checkin_dashboard':
             case 'checkin-dashboard':
                 return <CheckInDashboard />;
+            case 'checkin_checkout_history':
+            case 'checkin-checkout-history':
+            case 'checkin_checkout':
+            case 'checkin-checkout':
+            case 'movement_history':
+            case 'movement-history':
+            case 'visitor_checkin_checkout_history':
+                return <CheckInOutHistory initialTab="all" />;
             case 'checkin_history':
             case 'checkin-history':
-                return <CheckInHistory />;
+                return <CheckInOutHistory initialTab="checkin" />;
             case 'checkin_analytics':
             case 'checkin-analytics':
                 return <CheckInAnalytics />;
@@ -767,7 +776,7 @@ export default function DashboardPage() {
                 return <EmergencyEvacuationStatus />;
             case 'checkout_history':
             case 'checkout-history':
-                return <CheckOutHistory />;
+                return <CheckInOutHistory initialTab="checkout" />;
             case 'badge_management':
             case 'badge-management':
                 return <BadgeManagement />;

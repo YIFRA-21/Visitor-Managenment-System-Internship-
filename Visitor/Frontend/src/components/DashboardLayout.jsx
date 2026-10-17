@@ -158,8 +158,9 @@ const sidebarConfig = [
         key: 'reception-checkin-checkout',
         label: 'Check-In & Check-Out Ops',
         iconClass: 'bi-door-open',
-        roles: ['admin', 'receptionist', 'security_officer'],
+        roles: ['admin', 'receptionist', 'security_officer', 'manager'],
         submenus: [
+            { key: 'checkin-checkout-history', label: 'Check-In & Check-Out History', view: 'checkin_checkout_history' },
             { key: 'checkin-main', label: 'Check-In Console', view: 'checkin' },
             { key: 'checkin-dashboard', label: 'Check-In Dashboard', view: 'checkin_dashboard' },
             { key: 'checkin-history', label: 'Check-In History', view: 'checkin_history' },
