@@ -862,7 +862,9 @@ const {
   getModulesCatalog,
   getAllEndpoints,
   generatePostmanCollection,
-  renderHtmlCatalog
+  renderHtmlCatalog,
+  findEndpointByPath,
+  renderSingleEndpointTester
 } = require('./utils/apiEndpointsRegistry');
 
 app.get(['/', '/api'], (req, res) => {
@@ -1014,6 +1016,20 @@ try {
 } catch (err) {
   console.error('Error initializing NotificationEventListener:', err);
 }
+
+// Browser Fallback: When a user clicks or navigates directly to a POST / PUT / PATCH / DELETE endpoint in a browser address bar,
+// instead of returning Express's default raw "Cannot GET /api/...", render an interactive Form Tester pre-filled with database payload.
+app.use((req, res, next) => {
+  const acceptHeader = req.headers.accept || '';
+  const isBrowserHtml = acceptHeader.includes('text/html') && !acceptHeader.includes('application/json') && !req.xhr;
+  if (isBrowserHtml && req.method === 'GET' && req.path.startsWith('/api/')) {
+    const ep = findEndpointByPath(req.path);
+    if (ep && ep.method !== 'GET') {
+      return res.status(200).send(renderSingleEndpointTester(req, ep));
+    }
+  }
+  next();
+});
 
 // Centralized error handling middleware
 app.use(errorHandler);

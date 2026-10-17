@@ -68,23 +68,23 @@ router.post('/bulk-upload', authenticate, upload.array('files', 10), controller.
 
 // Document Listing & CRUD
 router.get('/', authenticate, controller.getDocuments);
-router.get('/:id', authenticate, controller.getDocumentById);
+router.get('/:id(\\d+)', authenticate, controller.getDocumentById);
 router.post('/', authenticate, upload.single('file'), controller.uploadDocument);
-router.put('/:id', authenticate, controller.updateMetadata);
-router.post('/:id/replace', authenticate, upload.single('file'), controller.replaceDocument);
-router.get('/:id/download', authenticate, controller.downloadDocument);
-router.get('/:id/view', authenticate, (req, res, next) => { req.query.inline = 'true'; controller.downloadDocument(req, res, next); });
-router.get('/:id/preview', authenticate, (req, res, next) => { req.query.inline = 'true'; controller.downloadDocument(req, res, next); });
+router.put('/:id(\\d+)', authenticate, controller.updateMetadata);
+router.post('/:id(\\d+)/replace', authenticate, upload.single('file'), controller.replaceDocument);
+router.get('/:id(\\d+)/download', authenticate, controller.downloadDocument);
+router.get('/:id(\\d+)/view', authenticate, (req, res, next) => { req.query.inline = 'true'; controller.downloadDocument(req, res, next); });
+router.get('/:id(\\d+)/preview', authenticate, (req, res, next) => { req.query.inline = 'true'; controller.downloadDocument(req, res, next); });
 
 // Verifications & Approvals
-router.post('/:id/verify', authenticate, controller.verifyDocument);
-router.post('/:id/approve', authenticate, controller.approveDocument);
-router.post('/:id/restore-version/:versionNumber', authenticate, controller.restoreVersion);
+router.post('/:id(\\d+)/verify', authenticate, controller.verifyDocument);
+router.post('/:id(\\d+)/approve', authenticate, controller.approveDocument);
+router.post('/:id(\\d+)/restore-version/:versionNumber', authenticate, controller.restoreVersion);
 
 // Status & Lifecycle Actions
-router.patch('/:id/status', authenticate, controller.updateStatus);
-router.patch('/:id/archive', authenticate, controller.archiveDocument);
-router.patch('/:id/restore', authenticate, controller.restoreDocument);
-router.delete('/:id', authenticate, controller.deleteDocument);
+router.patch('/:id(\\d+)/status', authenticate, controller.updateStatus);
+router.patch('/:id(\\d+)/archive', authenticate, controller.archiveDocument);
+router.patch('/:id(\\d+)/restore', authenticate, controller.restoreDocument);
+router.delete('/:id(\\d+)', authenticate, controller.deleteDocument);
 
 module.exports = router;
