@@ -93,7 +93,14 @@ function getDefaultPayload(method, endpointPath) {
     return { email: 'admin@vms.com', password: 'Password123!' };
   }
   if (p.includes('register') || p.includes('signup')) {
-    return { username: 'new_visitor_user', email: 'visitor.user@example.com', password: 'Password123!', full_name: 'Visitor User', role: 'receptionist' };
+    return {
+      username: `user_${Date.now().toString().slice(-4)}`,
+      email: `visitor_${Date.now().toString().slice(-4)}@example.com`,
+      password: 'Password123!',
+      fullName: 'Visitor User',
+      full_name: 'Visitor User',
+      role: 'visitor'
+    };
   }
   if (p.includes('change-password') || p.includes('reset-password')) {
     return { currentPassword: 'Password123!', newPassword: 'NewPassword123!' };

@@ -234,12 +234,24 @@ class AuthService {
   }
 
   async register(userData, initiatorId = null) {
-    const { email, password, fullName, role = 'visitor' } = userData;
+    const email = userData.email || userData.email_address;
+    const password = userData.password;
+    const role = (userData.role || 'visitor').toLowerCase();
 
-    if (!email || !email.trim()) {
+    const rawFullName = userData.fullName || userData.full_name || userData.name ||
+      [userData.firstName || userData.first_name, userData.lastName || userData.last_name].filter(Boolean).join(' ') ||
+      userData.username ||
+      (email ? email.split('@')[0] : 'User');
+    const fullName = (rawFullName || 'User').trim();
+    const nameParts = fullName.split(' ').filter(Boolean);
+    const firstName = userData.firstName || userData.first_name || nameParts[0] || 'User';
+    const middleName = userData.middleName || userData.middle_name || (nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '');
+    const lastName = userData.lastName || userData.last_name || (nameParts.length > 1 ? nameParts.slice(-1).join(' ') : firstName);
+
+    if (!email || !String(email).trim()) {
       throw new AppError('Email address is required', 400);
     }
-    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedEmail = String(email).trim().toLowerCase();
 
     // Ensure any legacy archived/deleted user, employee, or visitor record frees this email so unique key constraints never collide
     const db = require('../../../config/db');
@@ -312,17 +324,17 @@ class AuthService {
     return db.transaction(async (tx) => {
       // 1. Create base user record
       const userId = await userRepository.create({
-        username: userData.username || email.split('@')[0],
-        email,
+        username: userData.username || (email ? email.split('@')[0] : 'user') + '_' + Math.floor(Math.random() * 1000),
+        email: trimmedEmail,
         passwordHash,
-        firstName: userData.firstName || fullName.split(' ')[0] || '',
-        middleName: userData.middleName || '',
-        lastName: userData.lastName || fullName.split(' ').slice(1).join(' ') || '',
+        firstName,
+        middleName,
+        lastName,
         fullName,
         phone: userData.phone || null,
         role: role.toLowerCase(),
-        departmentId: userData.departmentId || null,
-        jobTitle: userData.position || userData.jobTitle || null,
+        departmentId: userData.departmentId || userData.department_id || null,
+        jobTitle: userData.position || userData.jobTitle || userData.job_title || null,
         firstLoginRequired: role.toLowerCase() !== 'visitor' // staff/mgr require password change on first login
       });
 
@@ -336,11 +348,11 @@ class AuthService {
       if (role.toLowerCase() === 'visitor') {
         const tempVisitorId = await visitorRepository.create({
           userId,
-          firstName: userData.firstName || fullName.split(' ')[0] || '',
-          middleName: userData.middleName || '',
-          lastName: userData.lastName || fullName.split(' ').slice(1).join(' ') || '',
+          firstName,
+          middleName,
+          lastName,
           fullName,
-          email,
+          email: trimmedEmail,
           phone: userData.phone || '',
           gender: userData.gender || null,
           dateOfBirth: userData.dateOfBirth || null,
@@ -1281,7 +1293,7 @@ class AuthService {
     }
 
     // Mask user's email: ye***@gmail.com
-    const [local, domain] = user.email.split('@');
+    const [local, domain] = (user.email || '').split('@');
     const maskedEmail = domain ? (local.slice(0, 2) + '***@' + domain) : user.email;
 
     console.log(`[AuthService] Real Password Reset OTP (${otpCode}) dispatched to: ${user.email} (User: ${user.username}, ID: ${user.id})`);
@@ -1549,7 +1561,7 @@ class AuthService {
 
     await emailService.sendOtp(user.email, user.id);
 
-    const [local, domain] = user.email.split('@');
+    const [local, domain] = (user.email || '').split('@');
     const maskedEmail = domain ? (local.slice(0, 2) + '***@' + domain) : user.email;
 
     return {
