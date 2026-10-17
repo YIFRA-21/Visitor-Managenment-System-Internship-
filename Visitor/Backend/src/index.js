@@ -858,62 +858,20 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-const apiCatalog = [
-  // 1. Authentication
-  { module: 'Authentication', method: 'POST', path: '/api/auth/login', auth: 'Public', description: 'Log in with email & password, returns JWT token' },
-  { module: 'Authentication', method: 'GET',  path: '/api/auth/login', auth: 'Public', description: 'Helpful instructions for login endpoint' },
-  { module: 'Authentication', method: 'POST', path: '/api/auth/register', auth: 'Public', description: 'Register a new user account' },
-  { module: 'Authentication', method: 'POST', path: '/api/auth/logout', auth: 'Bearer Token', description: 'Log out user and invalidate session' },
-  { module: 'Authentication', method: 'POST', path: '/api/auth/refresh-token', auth: 'Public', description: 'Refresh JWT access token' },
-  { module: 'Authentication', method: 'GET',  path: '/api/auth/me', auth: 'Bearer Token', description: 'Get authenticated user details' },
-  { module: 'Authentication', method: 'GET',  path: '/api/auth/profile', auth: 'Bearer Token', description: 'Get user profile' },
-  { module: 'Authentication', method: 'PUT',  path: '/api/auth/change-password', auth: 'Bearer Token', description: 'Change user password' },
+const {
+  modulesCatalog,
+  getAllEndpoints,
+  generatePostmanCollection,
+  renderHtmlCatalog
+} = require('./utils/apiEndpointsRegistry');
 
-  // 2. Departments
-  { module: 'Departments', method: 'GET',    path: '/api/departments', auth: 'Bearer Token', description: 'List all departments' },
-  { module: 'Departments', method: 'POST',   path: '/api/departments', auth: 'Bearer Token', description: 'Create a new department' },
-  { module: 'Departments', method: 'GET',    path: '/api/departments/:id', auth: 'Bearer Token', description: 'Get department by ID' },
-  { module: 'Departments', method: 'PUT',    path: '/api/departments/:id', auth: 'Bearer Token', description: 'Update department' },
-  { module: 'Departments', method: 'DELETE', path: '/api/departments/:id', auth: 'Bearer Token', description: 'Delete department' },
+app.get(['/', '/api'], (req, res) => {
+  const wantsJson = req.query.format === 'json' || (req.headers.accept && req.headers.accept.includes('application/json') && !req.headers.accept.includes('text/html'));
+  if (!wantsJson && req.accepts && req.accepts('html')) {
+    return res.send(renderHtmlCatalog(req));
+  }
 
-  // 3. Employees
-  { module: 'Employees', method: 'GET',    path: '/api/employees', auth: 'Bearer Token', description: 'List all employees' },
-  { module: 'Employees', method: 'POST',   path: '/api/employees', auth: 'Bearer Token', description: 'Add new employee' },
-  { module: 'Employees', method: 'GET',    path: '/api/employees/:id', auth: 'Bearer Token', description: 'Get employee details' },
-  { module: 'Employees', method: 'PUT',    path: '/api/employees/:id', auth: 'Bearer Token', description: 'Update employee' },
-  { module: 'Employees', method: 'DELETE', path: '/api/employees/:id', auth: 'Bearer Token', description: 'Delete employee' },
-
-  // 4. Visitors & Registration
-  { module: 'Visitors', method: 'GET',    path: '/api/visitor-profiles', auth: 'Bearer Token', description: 'List visitor profiles' },
-  { module: 'Visitors', method: 'POST',   path: '/api/visitors/registration/pre-register', auth: 'Public', description: 'Pre-register a visitor' },
-  { module: 'Visitors', method: 'GET',    path: '/api/visitor-categories', auth: 'Bearer Token', description: 'List visitor categories' },
-  { module: 'Visitors', method: 'GET',    path: '/api/visitor-history', auth: 'Bearer Token', description: 'Get visitor history log' },
-
-  // 5. Appointments & Workflow
-  { module: 'Appointments', method: 'GET',    path: '/api/appointments', auth: 'Bearer Token', description: 'List appointments' },
-  { module: 'Appointments', method: 'POST',   path: '/api/appointments', auth: 'Bearer Token', description: 'Create a new appointment' },
-  { module: 'Appointments', method: 'GET',    path: '/api/appointments/:id', auth: 'Bearer Token', description: 'Get appointment details' },
-  { module: 'Appointments', method: 'PUT',    path: '/api/appointments/:id', auth: 'Bearer Token', description: 'Update appointment' },
-  { module: 'Appointments', method: 'DELETE', path: '/api/appointments/:id', auth: 'Bearer Token', description: 'Cancel/Delete appointment' },
-
-  // 6. Check-in & Check-out
-  { module: 'Check-In/Out', method: 'POST', path: '/api/checkin', auth: 'Bearer Token', description: 'Check-in visitor' },
-  { module: 'Check-In/Out', method: 'POST', path: '/api/checkout', auth: 'Bearer Token', description: 'Check-out visitor' },
-  { module: 'Check-In/Out', method: 'GET',  path: '/api/checkin/active', auth: 'Bearer Token', description: 'Get active on-premises visitors' },
-
-  // 7. Users & Roles
-  { module: 'Users', method: 'GET',    path: '/api/users', auth: 'Bearer Token', description: 'List all system users' },
-  { module: 'Users', method: 'POST',   path: '/api/users', auth: 'Bearer Token', description: 'Create a system user' },
-  { module: 'Roles', method: 'GET',    path: '/api/roles', auth: 'Bearer Token', description: 'List all roles' },
-  { module: 'Roles', method: 'POST',   path: '/api/roles', auth: 'Bearer Token', description: 'Create a new role' },
-
-  // 8. System & Health
-  { module: 'System', method: 'GET', path: '/api/health', auth: 'Public', description: 'System health check' },
-  { module: 'System', method: 'GET', path: '/api/endpoints', auth: 'Public', description: 'Interactive catalog of all backend API endpoints' },
-  { module: 'System', method: 'GET', path: '/api/reports/dashboard', auth: 'Bearer Token', description: 'Executive dashboard analytics' }
-];
-
-app.get(['/', '/api'], (_req, res) => {
+  const allEndpoints = getAllEndpoints();
   res.json({
     name: 'Visitor Management System API',
     status: 'running',
@@ -921,26 +879,48 @@ app.get(['/', '/api'], (_req, res) => {
     frontend: process.env.CLIENT_URL || 'http://localhost:3000',
     health: '/api/health',
     endpoints_catalog: '/api/endpoints',
-    total_endpoints: apiCatalog.length,
+    total_endpoints: allEndpoints.length,
+    total_modules: modulesCatalog.length,
     postman_collection: '/api/postman-collection',
+    modules: modulesCatalog.map(m => ({
+      id: m.id,
+      name: m.name,
+      description: m.description,
+      endpoint_count: m.endpoints.length
+    })),
     quick_links: {
+      html_catalog: '/api/endpoints',
       auth_login_help: '/api/auth/login',
       health_check: '/api/health',
-      all_endpoints: '/api/endpoints'
+      all_endpoints: '/api/endpoints?format=json',
+      postman_collection: '/api/postman-collection'
     }
   });
 });
 
-app.get('/api/endpoints', (_req, res) => {
+app.get('/api/endpoints', (req, res) => {
+  const wantsJson = req.query.format === 'json' || (req.headers.accept && req.headers.accept.includes('application/json') && !req.headers.accept.includes('text/html'));
+  if (!wantsJson && req.accepts && req.accepts('html')) {
+    return res.send(renderHtmlCatalog(req));
+  }
+
+  const all = getAllEndpoints();
   res.json({
-    name: 'Visitor Management System API Catalog',
-    total: apiCatalog.length,
-    endpoints: apiCatalog
+    name: 'Visitor Management System API - Complete Collection by Module',
+    version: '1.0.0',
+    total_endpoints: all.length,
+    total_modules: modulesCatalog.length,
+    collections: modulesCatalog,
+    endpoints: all
   });
 });
 
-app.get('/api/postman-collection', (_req, res) => {
-  res.download(path.join(__dirname, '../VMS_Postman_Collection.json'));
+app.get('/api/postman-collection', (req, res) => {
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const collection = generatePostmanCollection(baseUrl);
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', 'attachment; filename="VMS_Postman_Collection.json"');
+  res.send(JSON.stringify(collection, null, 2));
 });
 
 app.use('/api/auth', authRoutes);
