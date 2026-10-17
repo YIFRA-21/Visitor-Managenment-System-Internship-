@@ -859,7 +859,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 const {
-  modulesCatalog,
+  getModulesCatalog,
   getAllEndpoints,
   generatePostmanCollection,
   renderHtmlCatalog
@@ -872,6 +872,7 @@ app.get(['/', '/api'], (req, res) => {
   }
 
   const allEndpoints = getAllEndpoints();
+  const modulesCatalog = getModulesCatalog();
   res.json({
     name: 'Visitor Management System API',
     status: 'running',
@@ -905,6 +906,7 @@ app.get('/api/endpoints', (req, res) => {
   }
 
   const all = getAllEndpoints();
+  const modulesCatalog = getModulesCatalog();
   res.json({
     name: 'Visitor Management System API - Complete Collection by Module',
     version: '1.0.0',
