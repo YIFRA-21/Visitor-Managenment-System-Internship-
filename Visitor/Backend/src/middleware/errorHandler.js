@@ -12,7 +12,7 @@ class AppError extends Error {
 }
 
 function errorHandler(err, req, res, next) {
-  err.statusCode = err.statusCode || 500;
+  err.statusCode = err.statusCode || (typeof err.status === 'number' ? err.status : undefined) || 500;
   err.status = err.status || 'error';
 
   if (err.statusCode === 409 || err.field === 'email' || (err.message && (err.message.toLowerCase().includes('already registered') || err.message.toLowerCase().includes('already exists')))) {
