@@ -68,15 +68,13 @@ class VisitorCategoryService {
     let code = String(rawCode).trim().toUpperCase();
 
     // Ensure name uniqueness
-    const nameExists = await repo.checkNameExists(name);
-    if (nameExists) {
-      name = `${name} ${Math.floor(10 + Math.random() * 90)}`;
+    if (await repo.checkNameExists(name)) {
+      name = `${name} ${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
     }
 
     // Ensure code uniqueness
-    const codeExists = await repo.checkCodeExists(code);
-    if (codeExists) {
-      code = `${code}-${Math.floor(10 + Math.random() * 90)}`;
+    if (await repo.checkCodeExists(code)) {
+      code = `${code.slice(0, 20)}-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
     }
 
     const formattedData = {
@@ -87,7 +85,18 @@ class VisitorCategoryService {
       status: data.status || 'Active'
     };
 
-    const newCategory = await repo.create(formattedData, user?.id);
+    let newCategory;
+    try {
+      newCategory = await repo.create(formattedData, user?.id);
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        formattedData.category_code = `${code.slice(0, 15)}-${Date.now().toString().slice(-5)}`;
+        formattedData.category_name = `${name} ${Date.now().toString().slice(-4)}`;
+        newCategory = await repo.create(formattedData, user?.id);
+      } else {
+        throw err;
+      }
+    }
 
     // Audit Logging
     await this.logAudit({
