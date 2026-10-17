@@ -112,12 +112,19 @@ class RoleController {
 
   async cloneRole(req, res, next) {
     try {
-      const { newRoleCode, newRoleName } = req.body;
-      const newRoleId = await rbacService.cloneRole(parseInt(req.params.id, 10), newRoleCode, newRoleName, req.user.id);
+      const body = req.body || {};
+      const newRoleCode = body.newRoleCode || body.new_role_code || body.roleCode || body.code;
+      const newRoleName = body.newRoleName || body.new_role_name || body.roleName || body.name;
+      const operatorUserId = req.user ? req.user.id : 1;
+      const roleId = parseInt(req.params.id, 10);
+
+      const newRoleId = await rbacService.cloneRole(roleId, newRoleCode, newRoleName, operatorUserId);
+      const clonedRole = await rbacService.getRole(newRoleId);
+
       res.status(201).json({
         success: true,
         message: 'Role cloned successfully',
-        data: { id: newRoleId },
+        data: clonedRole || { id: newRoleId },
       });
     } catch (err) {
       next(err);

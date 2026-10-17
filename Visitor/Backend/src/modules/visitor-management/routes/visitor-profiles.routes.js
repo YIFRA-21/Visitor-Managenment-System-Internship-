@@ -33,7 +33,9 @@ router.post('/:id/restore', (req, res, next) => controller.restore(req, res, nex
 // Photo management
 router.post('/:id/photos', validator.validatePhotoUpload, (req, res, next) => controller.addPhoto(req, res, next));
 router.patch('/:id/photos/:photoId/active', (req, res, next) => controller.setActivePhoto(req, res, next));
+router.patch('/photos/:photoId/active', (req, res, next) => controller.setActivePhoto(req, res, next));
 router.delete('/photos/:photoId', (req, res, next) => controller.deletePhoto(req, res, next));
+router.delete('/:id/photos/:photoId', (req, res, next) => controller.deletePhoto(req, res, next));
 
 // Notes
 router.post('/:id/notes', validator.validateNote, (req, res, next) => controller.addNote(req, res, next));

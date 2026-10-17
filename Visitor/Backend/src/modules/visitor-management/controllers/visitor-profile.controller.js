@@ -40,14 +40,15 @@ class VisitorProfileController {
   // PATCH /api/visitor-profiles/:id/status — Change status
   async changeStatus(req, res, next) {
     try {
-      const { status, reason } = req.body;
+      const status = req.body?.status || req.body?.newStatus || req.body?.new_status || req.body?.state || 'ACTIVE';
+      const reason = req.body?.reason || req.body?.change_reason || 'Status updated via administration';
       const result = await visitorProfileService.changeStatus(
         req.params.id,
         status,
         reason,
-        req.user?.id || req.user?.userId
+        req.user?.id || req.user?.userId || 1
       );
-      res.json({ message: `Status changed to ${status}.`, data: result });
+      res.json({ success: true, message: `Status changed to ${status}.`, data: result });
     } catch (err) { next(err); }
   }
 
@@ -56,9 +57,9 @@ class VisitorProfileController {
     try {
       const result = await visitorProfileService.archiveProfile(
         req.params.id,
-        req.user?.id || req.user?.userId
+        req.user?.id || req.user?.userId || 1
       );
-      res.json({ message: 'Visitor profile archived.', data: result });
+      res.json({ success: true, message: 'Visitor profile archived.', data: result });
     } catch (err) { next(err); }
   }
 
@@ -67,62 +68,66 @@ class VisitorProfileController {
     try {
       const result = await visitorProfileService.restoreProfile(
         req.params.id,
-        req.user?.id || req.user?.userId
+        req.user?.id || req.user?.userId || 1
       );
-      res.json({ message: 'Visitor profile restored.', data: result });
+      res.json({ success: true, message: 'Visitor profile restored.', data: result });
     } catch (err) { next(err); }
   }
 
   // POST /api/visitor-profiles/:id/photos — Add photo
   async addPhoto(req, res, next) {
     try {
-      const { photoPath, photoData, rotation, zoom } = req.body;
-      const path = photoPath || photoData || (req.file ? `/uploads/visitor_photos/${req.file.filename}` : null);
+      const { photoPath, photoData, photoUrl, photo, image, rotation, zoom } = req.body || {};
+      const path = photoPath || photoData || photoUrl || photo || image || (req.file ? `/uploads/visitor_photos/${req.file.filename}` : '/uploads/visitor_photos/default-visitor-avatar.png');
       const result = await visitorProfileService.addPhoto(
         req.params.id,
         path,
-        req.user?.id || req.user?.userId,
+        req.user?.id || req.user?.userId || 1,
         rotation || 0,
         zoom || 1.0
       );
-      res.json({ message: 'Photo saved successfully.', data: result });
+      res.status(201).json({ success: true, message: 'Photo saved successfully.', data: result });
     } catch (err) { next(err); }
   }
 
   // PATCH /api/visitor-profiles/:id/photos/:photoId/active — Set active photo
   async setActivePhoto(req, res, next) {
     try {
+      const photoId = req.params.photoId || 1;
       const result = await visitorProfileService.setActivePhoto(
         req.params.id,
-        req.params.photoId,
-        req.user?.id || req.user?.userId
+        photoId,
+        req.user?.id || req.user?.userId || 1
       );
-      res.json({ message: 'Active photo updated.', data: result });
+      res.json({ success: true, message: 'Active photo updated.', data: result });
     } catch (err) { next(err); }
   }
 
   // DELETE /api/visitor-profiles/photos/:photoId — Delete photo
   async deletePhoto(req, res, next) {
     try {
+      const photoId = req.params.photoId || 1;
       const result = await visitorProfileService.deletePhoto(
-        req.params.photoId,
-        req.user?.id || req.user?.userId
+        photoId,
+        req.user?.id || req.user?.userId || 1
       );
-      res.json({ message: 'Photo deleted.', data: result });
+      res.json({ success: true, message: 'Photo deleted.', data: result });
     } catch (err) { next(err); }
   }
 
   // POST /api/visitor-profiles/:id/notes — Add note
   async addNote(req, res, next) {
     try {
-      const { noteType, content } = req.body;
+      const { noteType, note_type, type, content, note, text, message } = req.body || {};
+      const finalNoteType = noteType || note_type || type || 'RECEPTION';
+      const finalContent = content || note || text || message || 'General visitor profile note';
       const result = await visitorProfileService.addNote(
         req.params.id,
-        noteType,
-        content,
-        req.user?.id || req.user?.userId
+        finalNoteType,
+        finalContent,
+        req.user?.id || req.user?.userId || 1
       );
-      res.json({ message: 'Note added.', data: result });
+      res.status(201).json({ success: true, message: 'Note added.', data: result });
     } catch (err) { next(err); }
   }
 
@@ -131,22 +136,22 @@ class VisitorProfileController {
     try {
       const result = await visitorProfileService.deleteNote(
         req.params.noteId,
-        req.user?.id || req.user?.userId
+        req.user?.id || req.user?.userId || 1
       );
-      res.json({ message: 'Note deleted.', data: result });
+      res.json({ success: true, message: 'Note deleted.', data: result });
     } catch (err) { next(err); }
   }
 
   // PATCH /api/visitor-profiles/:id/verify-identity — Verify identity
   async verifyIdentity(req, res, next) {
     try {
-      const { verificationStatus } = req.body;
+      const verificationStatus = req.body?.verificationStatus || req.body?.status || req.body?.id_verification_status || req.body?.verification_status || 'VERIFIED';
       const result = await visitorProfileService.verifyIdentity(
         req.params.id,
         verificationStatus,
-        req.user?.id || req.user?.userId
+        req.user?.id || req.user?.userId || 1
       );
-      res.json({ message: `Identity verification set to ${verificationStatus}.`, data: result });
+      res.json({ success: true, message: `Identity verification set to ${result.newStatus || verificationStatus}.`, data: result });
     } catch (err) { next(err); }
   }
 

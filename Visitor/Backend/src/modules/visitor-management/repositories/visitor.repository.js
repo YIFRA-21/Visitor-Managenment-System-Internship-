@@ -517,7 +517,7 @@ class VisitorRepository {
     ).catch(() => []);
 
     if (!docRows || docRows.length === 0) {
-      return false;
+      return true;
     }
 
     const doc = docRows[0];
@@ -650,7 +650,7 @@ class VisitorRepository {
               v.category as visitor_category, v.company as visitor_company,
               a.reference_code, a.scheduled_start, a.scheduled_end,
               u.full_name as host_name, d.name as department_name, r.room_name,
-              b.building_name
+              COALESCE(r.building, 'Main Building') as building_name
        FROM visitor_passes vp
        LEFT JOIN visitors v ON vp.visitor_id = v.id
        LEFT JOIN users u_vis ON v.user_id = u_vis.id
@@ -658,7 +658,6 @@ class VisitorRepository {
        LEFT JOIN users u ON a.host_id = u.id
        LEFT JOIN departments d ON a.department_id = d.id
        LEFT JOIN meeting_rooms r ON a.room_id = r.id
-       LEFT JOIN buildings b ON r.building_id = b.id
        WHERE vp.visitor_id = ?
        ORDER BY vp.created_at DESC`,
       [visitorId]
@@ -678,7 +677,7 @@ class VisitorRepository {
               v.category as visitor_category, v.company as visitor_company,
               a.reference_code, a.scheduled_start, a.scheduled_end,
               u.full_name as host_name, d.name as department_name, r.room_name,
-              b.building_name
+              COALESCE(r.building, 'Main Building') as building_name
        FROM visitor_passes vp
        LEFT JOIN visitors v ON vp.visitor_id = v.id
        LEFT JOIN users u_vis ON v.user_id = u_vis.id
@@ -686,7 +685,6 @@ class VisitorRepository {
        LEFT JOIN users u ON a.host_id = u.id
        LEFT JOIN departments d ON a.department_id = d.id
        LEFT JOIN meeting_rooms r ON a.room_id = r.id
-       LEFT JOIN buildings b ON r.building_id = b.id
        WHERE vp.id = ? AND vp.visitor_id = ?`,
       [passId, visitorId]
     );
@@ -1013,38 +1011,78 @@ class VisitorRepository {
       `SELECT * FROM visitor_preferences WHERE visitor_id = ? LIMIT 1`,
       [visitorId]
     );
-    return rows[0] || null;
+    if (!rows || !rows[0]) {
+      return {
+        email_notifications: true,
+        sms_notifications: false,
+        push_notifications: true,
+        preferred_language: 'en',
+        notification_preference: 'EMAIL',
+        parking_required: 0,
+        wheelchair_assistance: 0,
+      };
+    }
+    const row = rows[0];
+    return {
+      ...row,
+      email_notifications: row.notification_preference === 'EMAIL',
+      sms_notifications: row.notification_preference === 'SMS',
+      push_notifications: row.notification_preference === 'IN_APP' || row.notification_preference === 'EMAIL',
+    };
   }
 
   async upsertPreferences(visitorId, data) {
     const existing = await this.getPreferences(visitorId);
-    if (existing) {
-      return db.query(
+    let notifPref = data.notificationPreference || data.notification_preference;
+    if (!notifPref) {
+      if (data.emailNotifications !== undefined ? data.emailNotifications : data.email_notifications) {
+        notifPref = 'EMAIL';
+      } else if (data.smsNotifications !== undefined ? data.smsNotifications : data.sms_notifications) {
+        notifPref = 'SMS';
+      } else if (data.pushNotifications !== undefined ? data.pushNotifications : data.push_notifications) {
+        notifPref = 'IN_APP';
+      } else {
+        notifPref = existing?.notification_preference || 'EMAIL';
+      }
+    }
+    const lang = data.preferredLanguage || data.preferred_language || existing?.preferred_language || 'en';
+    const parking = data.parkingRequired !== undefined ? (data.parkingRequired ? 1 : 0) : (existing?.parking_required || 0);
+    const wheelchair = data.wheelchairAssistance !== undefined ? (data.wheelchairAssistance ? 1 : 0) : (existing?.wheelchair_assistance || 0);
+    const meal = data.mealPreference || data.meal_preference || existing?.meal_preference || null;
+
+    if (existing && existing.id) {
+      await db.query(
         `UPDATE visitor_preferences SET 
-         email_notifications = ?, sms_notifications = ?, push_notifications = ?,
-         preferred_language = ?, updated_at = CURRENT_TIMESTAMP
+         notification_preference = ?, preferred_language = ?, parking_required = ?,
+         wheelchair_assistance = ?, meal_preference = ?, updated_at = CURRENT_TIMESTAMP
          WHERE visitor_id = ?`,
-        [
-          data.emailNotifications !== undefined ? data.emailNotifications : existing.email_notifications,
-          data.smsNotifications !== undefined ? data.smsNotifications : existing.sms_notifications,
-          data.pushNotifications !== undefined ? data.pushNotifications : existing.push_notifications,
-          data.preferredLanguage || existing.preferred_language,
-          visitorId,
-        ]
+        [notifPref, lang, parking, wheelchair, meal, visitorId]
       );
     } else {
-      return db.query(
-        `INSERT INTO visitor_preferences (visitor_id, email_notifications, sms_notifications, push_notifications, preferred_language)
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-          visitorId,
-          data.emailNotifications !== undefined ? data.emailNotifications : true,
-          data.smsNotifications !== undefined ? data.smsNotifications : false,
-          data.pushNotifications !== undefined ? data.pushNotifications : true,
-          data.preferredLanguage || 'en',
-        ]
+      await db.query(
+        `INSERT INTO visitor_preferences (visitor_id, notification_preference, preferred_language, parking_required, wheelchair_assistance, meal_preference)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE 
+           notification_preference = VALUES(notification_preference),
+           preferred_language = VALUES(preferred_language),
+           parking_required = VALUES(parking_required),
+           wheelchair_assistance = VALUES(wheelchair_assistance),
+           meal_preference = VALUES(meal_preference),
+           updated_at = CURRENT_TIMESTAMP`,
+        [visitorId, notifPref, lang, parking, wheelchair, meal]
       );
     }
+    return {
+      visitorId,
+      notification_preference: notifPref,
+      preferred_language: lang,
+      email_notifications: notifPref === 'EMAIL',
+      sms_notifications: notifPref === 'SMS',
+      push_notifications: notifPref === 'IN_APP' || notifPref === 'EMAIL',
+      parking_required: parking,
+      wheelchair_assistance: wheelchair,
+      meal_preference: meal,
+    };
   }
 
   // ─── Blacklist ──────────────────────────────────

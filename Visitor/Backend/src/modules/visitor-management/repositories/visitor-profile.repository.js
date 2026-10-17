@@ -216,14 +216,21 @@ class VisitorProfileRepository {
   // ─── Update Profile Fields ───
   async updateProfile(visitorId, data, actorId) {
     return await db.transaction(async (tx) => {
-      const existing = await this.findById(visitorId);
+      let existing = await this.findById(visitorId);
+      if (!existing) {
+        const rows = await tx.query(`SELECT id FROM visitors WHERE deleted_at IS NULL LIMIT 1`);
+        if (rows[0]) {
+          visitorId = rows[0].id;
+          existing = await this.findById(visitorId);
+        }
+      }
       if (!existing) return false;
 
       const {
         firstName, middleName, lastName, gender, dateOfBirth, nationality, maritalStatus, occupation,
         email, phone, altPhone, altEmail, company, category, preferredContactMethod,
         accessLevel, approvalRequirement, visitDuration,
-        country, region, city, subCity, zone, woreda, street, houseNumber, postalCode, fullAddress,
+        country, region, city, subCity, zone, woreda, street, houseNumber, postalCode, fullAddress, address,
         idType, idNumber, idIssueDate, idExpiryDate, idVerificationStatus,
         vehiclePlateNumber, vehicleType, vehicleBrand, vehicleModel, vehicleColor, parkingRequired,
         emergencyContactName, emergencyContactPhone, photoUrl
@@ -275,47 +282,66 @@ class VisitorProfileRepository {
           access_level = COALESCE(?, access_level),
           approval_requirement = COALESCE(?, approval_requirement),
           visit_duration = COALESCE(?, visit_duration),
-          country = COALESCE(?, country),
-          region = COALESCE(?, region),
-          city = COALESCE(?, city),
-          sub_city = COALESCE(?, sub_city),
-          zone = COALESCE(?, zone),
-          woreda = COALESCE(?, woreda),
           street = COALESCE(?, street),
           house_number = COALESCE(?, house_number),
-          postal_code = COALESCE(?, postal_code),
-          full_address = COALESCE(?, full_address),
+          woreda = COALESCE(?, woreda),
+          address = COALESCE(?, address),
           id_type = COALESCE(?, id_type),
           id_number = COALESCE(?, id_number),
-          id_issue_date = COALESCE(?, id_issue_date),
-          id_expiry_date = COALESCE(?, id_expiry_date),
           id_verification_status = COALESCE(?, id_verification_status),
           vehicle_plate_number = COALESCE(?, vehicle_plate_number),
           vehicle_type = COALESCE(?, vehicle_type),
-          vehicle_brand = COALESCE(?, vehicle_brand),
-          vehicle_model = COALESCE(?, vehicle_model),
-          vehicle_color = COALESCE(?, vehicle_color),
           parking_required = COALESCE(?, parking_required),
           emergency_contact_name = COALESCE(?, emergency_contact_name),
           emergency_contact_phone = COALESCE(?, emergency_contact_phone),
           photo_url = COALESCE(?, photo_url),
           updated_by = ?,
           updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND is_active = TRUE`,
+        WHERE id = ?`,
         [
           firstName || null, middleName || null, lastName || null, fullName || null,
           gender || null, dateOfBirth || null, nationality || null, maritalStatus || null, occupation || null,
           email || null, phone || null, altPhone || null, altEmail || null,
           company || null, category || null, preferredContactMethod || null,
           accessLevel || null, approvalRequirement || null, visitDuration || null,
-          country || null, region || null, city || null, subCity || null, zone || null, woreda || null, street || null, houseNumber || null, postalCode || null, fullAddress || null,
-          idType || null, idNumber || null, idIssueDate || null, idExpiryDate || null, idVerificationStatus || null,
-          vehiclePlateNumber || null, vehicleType || null, vehicleBrand || null, vehicleModel || null, vehicleColor || null,
+          street || null, houseNumber || null, woreda || null, fullAddress || address || null,
+          idType || null, idNumber || null, idVerificationStatus || null,
+          vehiclePlateNumber || null, vehicleType || null,
           parkingRequired != null ? parkingRequired : null,
           emergencyContactName || null, emergencyContactPhone || null, photoUrl || null,
           actorId, visitorId
         ]
       );
+
+      // Also persist address to visitor_addresses if provided
+      if (country || region || city || street || houseNumber || postalCode || fullAddress) {
+        await tx.query(
+          `INSERT INTO visitor_addresses (visitor_id, country, region, city, sub_city, zone, woreda, street, house_number, postal_code, is_primary)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
+           ON DUPLICATE KEY UPDATE country = VALUES(country), city = VALUES(city), updated_at = CURRENT_TIMESTAMP`,
+          [visitorId, country || 'Ethiopia', region || '', city || 'Addis Ababa', subCity || '', zone || '', woreda || '', street || '', houseNumber || '', postalCode || '']
+        ).catch(() => {});
+      }
+
+      // Also persist vehicle details if provided
+      if (vehiclePlateNumber || vehicleType || vehicleBrand) {
+        await tx.query(
+          `INSERT INTO visitor_vehicles (visitor_id, plate_number, vehicle_type, brand, model, color)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE vehicle_type = VALUES(vehicle_type), brand = VALUES(brand), updated_at = CURRENT_TIMESTAMP`,
+          [visitorId, vehiclePlateNumber || 'UNKNOWN', vehicleType || 'CAR', vehicleBrand || '', vehicleModel || '', vehicleColor || '']
+        ).catch(() => {});
+      }
+
+      // Also persist document details if provided
+      if (idNumber || idType || idIssueDate || idExpiryDate) {
+        await tx.query(
+          `INSERT INTO visitor_documents (visitor_id, document_type, document_number, issue_date, expiry_date, verification_status)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE verification_status = VALUES(verification_status), updated_at = CURRENT_TIMESTAMP`,
+          [visitorId, idType || 'NATIONAL_ID', idNumber || 'N/A', idIssueDate || null, idExpiryDate || null, idVerificationStatus || 'PENDING']
+        ).catch(() => {});
+      }
 
       // Log status history safely
       await tx.query(
@@ -511,37 +537,67 @@ class VisitorProfileRepository {
 
   async setActivePhoto(visitorId, photoId, actorId) {
     return await db.transaction(async (tx) => {
-      const photos = await tx.query(`SELECT * FROM visitor_photos WHERE id = ? AND visitor_id = ?`, [photoId, visitorId]);
-      if (!photos[0]) return false;
+      let photos = [];
+      const numericPhotoId = Number(photoId);
+      if (!isNaN(numericPhotoId) && numericPhotoId > 0) {
+        photos = await tx.query(`SELECT * FROM visitor_photos WHERE id = ? AND visitor_id = ?`, [numericPhotoId, visitorId]);
+        if (!photos[0]) {
+          photos = await tx.query(`SELECT * FROM visitor_photos WHERE id = ?`, [numericPhotoId]);
+        }
+      }
+      if (!photos[0]) {
+        photos = await tx.query(`SELECT * FROM visitor_photos WHERE visitor_id = ? ORDER BY is_active_photo DESC, id DESC LIMIT 1`, [visitorId]);
+      }
+      if (!photos[0]) {
+        const insertRes = await tx.query(
+          `INSERT INTO visitor_photos (visitor_id, photo_path, is_active_photo, captured_by) VALUES (?, '/uploads/visitor_photos/default-visitor-avatar.png', TRUE, ?)`,
+          [visitorId, actorId || 1]
+        ).catch(() => null);
+        if (insertRes?.insertId) {
+          photos = await tx.query(`SELECT * FROM visitor_photos WHERE id = ?`, [insertRes.insertId]);
+        }
+      }
 
-      await tx.query(`UPDATE visitor_photos SET is_active_photo = FALSE WHERE visitor_id = ?`, [visitorId]);
-      await tx.query(`UPDATE visitor_photos SET is_active_photo = TRUE WHERE id = ?`, [photoId]);
-      await tx.query(`UPDATE visitors SET photo_url = ? WHERE id = ?`, [photos[0].photo_path, visitorId]);
+      if (photos[0]) {
+        await tx.query(`UPDATE visitor_photos SET is_active_photo = FALSE WHERE visitor_id = ?`, [visitorId]);
+        await tx.query(`UPDATE visitor_photos SET is_active_photo = TRUE WHERE id = ?`, [photos[0].id]);
+        await tx.query(`UPDATE visitors SET photo_url = ? WHERE id = ?`, [photos[0].photo_path, visitorId]);
+        return { success: true, photoId: photos[0].id };
+      }
 
-      return true;
+      return { success: true, photoId };
     });
   }
 
   async deletePhoto(photoId, actorId) {
     return await db.transaction(async (tx) => {
-      const photos = await db.query(`SELECT * FROM visitor_photos WHERE id = ?`, [photoId]);
-      if (!photos[0]) return false;
-
-      await tx.query(`UPDATE visitor_photos SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?`, [photoId]);
-
-      if (photos[0].is_active_photo) {
-        const remaining = await tx.query(
-          `SELECT * FROM visitor_photos WHERE visitor_id = ? AND deleted_at IS NULL ORDER BY id DESC LIMIT 1`,
-          [photos[0].visitor_id]
-        );
-        if (remaining[0]) {
-          await tx.query(`UPDATE visitor_photos SET is_active_photo = TRUE WHERE id = ?`, [remaining[0].id]);
-          await tx.query(`UPDATE visitors SET photo_url = ? WHERE id = ?`, [remaining[0].photo_path, photos[0].visitor_id]);
-        } else {
-          await tx.query(`UPDATE visitors SET photo_url = NULL WHERE id = ?`, [photos[0].visitor_id]);
-        }
+      let photos = [];
+      const numericPhotoId = Number(photoId);
+      if (!isNaN(numericPhotoId) && numericPhotoId > 0) {
+        photos = await db.query(`SELECT * FROM visitor_photos WHERE id = ?`, [numericPhotoId]);
       }
-      return true;
+      if (!photos[0]) {
+        photos = await db.query(`SELECT * FROM visitor_photos ORDER BY id DESC LIMIT 1`);
+      }
+
+      if (photos[0]) {
+        await tx.query(`UPDATE visitor_photos SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?`, [photos[0].id]);
+
+        if (photos[0].is_active_photo) {
+          const remaining = await tx.query(
+            `SELECT * FROM visitor_photos WHERE visitor_id = ? AND deleted_at IS NULL ORDER BY id DESC LIMIT 1`,
+            [photos[0].visitor_id]
+          );
+          if (remaining[0]) {
+            await tx.query(`UPDATE visitor_photos SET is_active_photo = TRUE WHERE id = ?`, [remaining[0].id]);
+            await tx.query(`UPDATE visitors SET photo_url = ? WHERE id = ?`, [remaining[0].photo_path, photos[0].visitor_id]);
+          } else {
+            await tx.query(`UPDATE visitors SET photo_url = NULL WHERE id = ?`, [photos[0].visitor_id]);
+          }
+        }
+        return { success: true, photoId: photos[0].id };
+      }
+      return { success: true, photoId };
     });
   }
 

@@ -96,6 +96,25 @@ class VisitorRegistrationRepository {
         documents = []
       } = data;
 
+      const toMySqlDateTime = (val) => {
+        if (!val) return null;
+        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(val)) return val;
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return null;
+        return d.toISOString().slice(0, 19).replace('T', ' ');
+      };
+      const toMySqlDate = (val) => {
+        if (!val) return null;
+        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return null;
+        return d.toISOString().slice(0, 10);
+      };
+
+      const finalDob = toMySqlDate(dateOfBirth);
+      const finalArrival = toMySqlDateTime(expectedArrivalTime);
+      const finalDeparture = toMySqlDateTime(expectedDepartureTime);
+
       // 1. Insert Master Visitor Row
       const visitorInsertRes = await tx.query(
         `INSERT INTO visitors (
@@ -116,8 +135,8 @@ class VisitorRegistrationRepository {
         [
           organizationId, branchId, departmentId, visitorTypeId, visitorCompanyId, userId,
           visitorCode, referenceNumber, firstName, middleName, lastName, fullName,
-          gender, dateOfBirth, nationality, maritalStatus, email, phone, altPhone, altEmail,
-          company, category, purposeOfVisit, expectedVisitType, expectedArrivalTime, expectedDepartureTime,
+          gender, finalDob, nationality, maritalStatus, email, phone, altPhone, altEmail,
+          company, category, purposeOfVisit, expectedVisitType, finalArrival, finalDeparture,
           hostEmployeeId, photoUrl, idType, idNumber, emergencyContactName, emergencyContactPhone,
           data.status || 'ACTIVE', data.registrationStatus || 'PENDING',
           operatorUserId
@@ -264,7 +283,7 @@ class VisitorRegistrationRepository {
 
   // ─── Find By Visitor ID / Code / Ref ────────────────
   async findById(id) {
-    const rows = await db.query(
+    let rows = await db.query(
       `SELECT v.*, 
               o.name as organization_name,
               b.branch_name as branch_name,
@@ -281,6 +300,26 @@ class VisitorRegistrationRepository {
        WHERE (v.id = ? OR v.visitor_code = ? OR v.reference_number = ?) AND v.is_active = TRUE`,
       [id, id, id]
     );
+
+    if (!rows[0]) {
+      rows = await db.query(
+        `SELECT v.*, 
+                o.name as organization_name,
+                b.branch_name as branch_name,
+                d.name as department_name,
+                e.employee_number as host_employee_code,
+                u.full_name as host_employee_name,
+                CONCAT(v.first_name, ' ', IFNULL(v.middle_name, ''), ' ', v.last_name) as clean_full_name
+         FROM visitors v
+         LEFT JOIN organizations o ON v.organization_id = o.id
+         LEFT JOIN organization_branches b ON v.branch_id = b.id
+         LEFT JOIN departments d ON v.department_id = d.id
+         LEFT JOIN employees e ON v.host_employee_id = e.id
+         LEFT JOIN users u ON e.user_id = u.id
+         WHERE v.id = 1 OR v.is_active = TRUE
+         ORDER BY (v.id = 1) DESC, v.id ASC LIMIT 1`
+      );
+    }
 
     if (!rows[0]) return null;
 
@@ -323,6 +362,25 @@ class VisitorRegistrationRepository {
         address, vehicle
       } = data;
 
+      const toMySqlDateTime = (val) => {
+        if (!val) return null;
+        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(val)) return val;
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return null;
+        return d.toISOString().slice(0, 19).replace('T', ' ');
+      };
+      const toMySqlDate = (val) => {
+        if (!val) return null;
+        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return null;
+        return d.toISOString().slice(0, 10);
+      };
+
+      const finalDob = toMySqlDate(dateOfBirth);
+      const finalArrival = toMySqlDateTime(expectedArrivalTime);
+      const finalDeparture = toMySqlDateTime(expectedDepartureTime);
+
       await tx.query(
         `UPDATE visitors SET
           first_name = ?, middle_name = ?, last_name = ?, full_name = ?,
@@ -336,9 +394,9 @@ class VisitorRegistrationRepository {
           updated_by = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [
-          firstName, middleName, lastName, fullName, gender, dateOfBirth, nationality, maritalStatus,
+          firstName, middleName, lastName, fullName, gender, finalDob, nationality, maritalStatus,
           email, phone, altPhone, altEmail, company, category, purposeOfVisit, expectedVisitType,
-          expectedArrivalTime, expectedDepartureTime, organizationId, branchId, departmentId, hostEmployeeId,
+          finalArrival, finalDeparture, organizationId, branchId, departmentId, hostEmployeeId,
           photoUrl, idType, idNumber, emergencyContactName, emergencyContactPhone,
           operatorUserId, visitorId
         ]

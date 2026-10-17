@@ -11,17 +11,18 @@ const { checkPermission, checkRole } = require('../../../middleware/rbac');
 const systemController = require('../controllers/system.controller');
 const { paramIsPositiveInt } = require('../../../middleware/validators/commonValidator');
 
+// ── System Health (Public Monitoring) ───────────────────────────────────────
+
+// GET /api/system/health — System health monitoring
+router.get('/health', systemController.getHealth);
+
+// All subsequent routes require authentication
 router.use(authenticate);
 
 // ── Dashboard ───────────────────────────────────────────────────────────────
 
 // GET /api/system/dashboard — Admin dashboard stats
 router.get('/dashboard', checkRole('admin'), systemController.getDashboardStats);
-
-// ── System Health ───────────────────────────────────────────────────────────
-
-// GET /api/system/health — System health monitoring
-router.get('/health', checkRole('admin'), systemController.getHealth);
 
 // ── System Settings ─────────────────────────────────────────────────────────
 

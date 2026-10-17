@@ -199,6 +199,14 @@ async function authenticate(req, res, next) {
         };
         return next();
       }
+      return res.status(401).json({
+        success: false,
+        error: err.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token',
+        message: err.name === 'TokenExpiredError'
+          ? 'Your session token has expired. Please re-authenticate at POST /api/auth/login to get a fresh token.'
+          : `Token verification failed: ${err.message}.`,
+        code: err.name === 'TokenExpiredError' ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN'
+      });
     }
   }
 

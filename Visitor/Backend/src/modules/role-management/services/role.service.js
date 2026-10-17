@@ -356,11 +356,60 @@ class RbacService {
     const sourceRole = await roleRepository.findById(sourceRoleId);
     if (!sourceRole) throw new AppError('Source role not found', 404);
 
-    const generatedCode = (newRoleCode || `${sourceRole.role_code}_CLONE_${Date.now().toString().slice(-4)}`).toUpperCase();
-    const generatedName = newRoleName || `${sourceRole.role_name} (Copy)`;
+    const targetUserId = operatorUserId || 1;
 
-    const existingCode = await roleRepository.findByCode(generatedCode);
-    if (existingCode) throw new AppError('Target role code already exists', 409);
+    // ── Generate or validate Role Name ─────────────────────────────────────────
+    let generatedName = (newRoleName || '').trim();
+    if (generatedName) {
+      const existingName = await roleRepository.findByName(generatedName);
+      if (existingName) {
+        throw new AppError(`A role with name "${generatedName}" already exists`, 409);
+      }
+    } else {
+      // Auto-generate unique name
+      let candidateName = `${sourceRole.role_name} (Copy)`;
+      if (candidateName.length > 80) {
+        candidateName = candidateName.slice(0, 80);
+      }
+      let counter = 2;
+      while (await roleRepository.findByName(candidateName)) {
+        const suffix = ` (Copy ${counter})`;
+        const maxBaseLen = Math.max(10, 80 - suffix.length);
+        const base = sourceRole.role_name.slice(0, maxBaseLen);
+        candidateName = `${base}${suffix}`;
+        counter++;
+        if (counter > 100) {
+          candidateName = `${sourceRole.role_name.slice(0, 60)} (Copy ${Date.now().toString().slice(-4)})`;
+          break;
+        }
+      }
+      generatedName = candidateName;
+    }
+
+    // ── Generate or validate Role Code ─────────────────────────────────────────
+    let generatedCode = (newRoleCode || '').trim().toUpperCase();
+    if (generatedCode) {
+      const existingCode = await roleRepository.findByCode(generatedCode);
+      if (existingCode) {
+        throw new AppError(`Target role code "${generatedCode}" already exists`, 409);
+      }
+    } else {
+      // Auto-generate unique code (VARCHAR 40)
+      const cleanBaseCode = sourceRole.role_code.replace(/(_CLONE_\d+|_COPY.*)$/i, '').toUpperCase();
+      let candidateCode = `${cleanBaseCode}_COPY`.slice(0, 40);
+      let counter = 2;
+      while (await roleRepository.findByCode(candidateCode)) {
+        const suffix = `_COPY_${counter}`;
+        const maxBaseLen = Math.max(5, 40 - suffix.length);
+        candidateCode = `${cleanBaseCode.slice(0, maxBaseLen)}${suffix}`;
+        counter++;
+        if (counter > 100) {
+          candidateCode = `${cleanBaseCode.slice(0, 25)}_CLONE_${Date.now().toString().slice(-6)}`;
+          break;
+        }
+      }
+      generatedCode = candidateCode;
+    }
 
     const sourcePermissions = await roleRepository.findPermissionsByRoleId(sourceRoleId);
     const permissionIds = sourcePermissions.map((p) => p.id);
@@ -373,20 +422,20 @@ class RbacService {
         {
           roleName: generatedName,
           roleCode: generatedCode,
-          description: `Cloned from ${sourceRole.role_name} (${sourceRole.role_code}). ${sourceRole.description || ''}`,
+          description: `Cloned from ${sourceRole.role_name} (${sourceRole.role_code}). ${sourceRole.description || ''}`.trim(),
           isSystemRole: false,
           status: 'ACTIVE',
-          scopeType: sourceRole.scope_type,
+          scopeType: sourceRole.scope_type || 'SYSTEM',
           roleType: 'CUSTOM',
-          priority: sourceRole.priority,
-          isAssignmentAllowed: sourceRole.is_assignment_allowed,
-          isTemporaryAllowed: sourceRole.is_temporary_allowed,
-          isMultipleAllowed: sourceRole.is_multiple_allowed,
-          requiresApproval: sourceRole.requires_approval,
-          riskLevel: sourceRole.risk_level,
-          parentRoleId: sourceRole.parent_role_id,
-          organizationId: sourceRole.organization_id,
-          createdBy: operatorUserId,
+          priority: sourceRole.priority || 10,
+          isAssignmentAllowed: sourceRole.is_assignment_allowed !== undefined ? sourceRole.is_assignment_allowed : true,
+          isTemporaryAllowed: sourceRole.is_temporary_allowed !== undefined ? sourceRole.is_temporary_allowed : true,
+          isMultipleAllowed: sourceRole.is_multiple_allowed !== undefined ? sourceRole.is_multiple_allowed : true,
+          requiresApproval: sourceRole.requires_approval || false,
+          riskLevel: sourceRole.risk_level || 'LOW',
+          parentRoleId: sourceRole.parent_role_id || null,
+          organizationId: sourceRole.organization_id || null,
+          createdBy: targetUserId,
         },
         conn
       );
@@ -395,7 +444,7 @@ class RbacService {
         await roleRepository.assignPermissions(newRoleId, permissionIds, conn);
       }
 
-      await roleRepository.createVersionSnapshot(newRoleId, operatorUserId, `Cloned from Role ID ${sourceRoleId}`, conn);
+      await roleRepository.createVersionSnapshot(newRoleId, targetUserId, `Cloned from Role ID ${sourceRoleId}`, conn);
 
       await conn.commit();
       conn.release();
@@ -403,7 +452,7 @@ class RbacService {
       invalidatePermissionCache();
 
       await auditRepository.log({
-        userId: operatorUserId,
+        userId: targetUserId,
         action: 'ROLE_CLONED',
         module: 'RBAC',
         entity: 'roles',
@@ -417,6 +466,9 @@ class RbacService {
     } catch (err) {
       await conn.rollback();
       conn.release();
+      if (err.code === 'ER_DUP_ENTRY' || err.errno === 1062) {
+        throw new AppError('A role with this name or code already exists.', 409);
+      }
       throw err;
     }
   }

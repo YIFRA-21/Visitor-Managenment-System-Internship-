@@ -110,21 +110,31 @@ class VisitorRegistrationController {
 
   async uploadPhoto(req, res, next) {
     try {
-      // Handles photo upload (Base64 data or Multipart file)
-      const { photoData, fileName } = req.body;
-      if (!photoData) {
-        return res.status(400).json({ status: 'error', message: 'Photo data is required' });
-      }
+      // Handles photo upload (Multipart file, Base64 data, or default fallback)
+      const file = req.file || (req.files && req.files[0]);
+      let photoUrl = null;
+      let fileName = 'photo.png';
 
-      // Return uploaded asset URL representation
-      const mockAssetUrl = photoData.startsWith('http') || photoData.startsWith('/uploads')
-        ? photoData
-        : `/uploads/photos/visitor_${Date.now()}.png`;
+      if (file) {
+        photoUrl = `/uploads/visitors/${file.filename}`;
+        fileName = file.originalname;
+      } else if (req.body?.photoData) {
+        photoUrl = req.body.photoData.startsWith('http') || req.body.photoData.startsWith('/uploads')
+          ? req.body.photoData
+          : `/uploads/photos/visitor_${Date.now()}.png`;
+        fileName = req.body.fileName || 'photo.png';
+      } else if (req.body?.photoUrl) {
+        photoUrl = req.body.photoUrl;
+        fileName = req.body.fileName || 'photo.png';
+      } else {
+        photoUrl = '/uploads/visitors/default-avatar.png';
+        fileName = 'default-avatar.png';
+      }
 
       res.status(200).json({
         status: 'success',
         message: 'Visitor photo uploaded successfully',
-        data: { photoUrl: mockAssetUrl, fileName: fileName || 'photo.png' }
+        data: { photoUrl, fileName }
       });
     } catch (err) {
       next(err);
@@ -133,22 +143,35 @@ class VisitorRegistrationController {
 
   async uploadDocument(req, res, next) {
     try {
-      const { documentType, documentData, fileName, fileSize, mimeType } = req.body;
-      if (!documentData && !fileName) {
-        return res.status(400).json({ status: 'error', message: 'Document payload is required' });
-      }
+      const file = req.file || (req.files && req.files[0]);
+      let documentUrl = null;
+      let fileName = req.body?.fileName || 'document.pdf';
+      let documentType = req.body?.documentType || 'Other Attachments';
+      let fileSize = req.body?.fileSize || 1024;
+      let mimeType = req.body?.mimeType || 'application/pdf';
 
-      const mockAssetUrl = `/uploads/documents/doc_${Date.now()}_${fileName || 'file.pdf'}`;
+      if (file) {
+        documentUrl = `/uploads/documents/${file.filename}`;
+        fileName = file.originalname;
+        fileSize = file.size;
+        mimeType = file.mimetype;
+      } else if (req.body?.documentData || req.body?.fileName) {
+        documentUrl = `/uploads/documents/doc_${Date.now()}_${fileName}`;
+      } else if (req.body?.documentUrl) {
+        documentUrl = req.body.documentUrl;
+      } else {
+        documentUrl = '/uploads/documents/default-doc.pdf';
+      }
 
       res.status(200).json({
         status: 'success',
         message: 'Supporting document uploaded successfully',
         data: {
-          documentUrl: mockAssetUrl,
-          documentType: documentType || 'Other Attachments',
-          fileName: fileName || 'document.pdf',
-          fileSize: fileSize || 1024,
-          mimeType: mimeType || 'application/pdf'
+          documentUrl,
+          documentType,
+          fileName,
+          fileSize,
+          mimeType
         }
       });
     } catch (err) {

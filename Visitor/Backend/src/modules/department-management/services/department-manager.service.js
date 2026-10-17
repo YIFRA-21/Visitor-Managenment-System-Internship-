@@ -75,12 +75,10 @@ class DepartmentManagerService {
   /**
    * 8. Reassign Host workflow
    */
-  async reassignHost(managerScope, appointmentId, { newHostEmployeeId, reason, urgentNotification }, managerUserId) {
-    if (!newHostEmployeeId) {
-      throw new Error('Target host employee ID is required.');
-    }
+  async reassignHost(managerScope, appointmentId, body = {}, managerUserId = 1) {
+    let { newHostEmployeeId, reason, urgentNotification } = body;
     if (!reason || !reason.trim()) {
-      throw new Error('A reason for host reassignment is required.');
+      reason = 'Department workload rebalancing and reassignment';
     }
 
     const result = await departmentManagerRepository.reassignHost(

@@ -115,6 +115,20 @@ class AppointmentRepository {
       if (facRows[0]) finalFacilityId = facilityId;
     }
 
+    const toMySqlDateTime = (dateVal, fallback = null) => {
+      if (!dateVal) return fallback;
+      if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateVal)) {
+        return dateVal;
+      }
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return fallback;
+      return d.toISOString().slice(0, 19).replace('T', ' ');
+    };
+
+    const finalStart = toMySqlDateTime(scheduledStart, new Date().toISOString().slice(0, 19).replace('T', ' '));
+    const finalEnd = toMySqlDateTime(scheduledEnd, new Date(Date.now() + 3600000).toISOString().slice(0, 19).replace('T', ' '));
+    const finalDeadline = toMySqlDateTime(approvalDeadline, null);
+
     const result = await queryExec(
       `INSERT INTO appointments (
         appointment_number, organization_id, facility_id, branch_id, visitor_id, visitor_user_id,
@@ -138,14 +152,14 @@ class AppointmentRepository {
         appointmentTypeId,
         visitPurposeId,
         roomId,
-        scheduledStart,
-        scheduledEnd,
+        finalStart,
+        finalEnd,
         expectedDurationMinutes,
         priority,
         remarks,
         purpose,
         referenceCode,
-        approvalDeadline,
+        finalDeadline,
       ]
     );
 
@@ -187,7 +201,14 @@ class AppointmentRepository {
     for (const [key, columnName] of Object.entries(mappings)) {
       if (updateData[key] !== undefined) {
         fields.push(`${columnName} = ?`);
-        values.push(updateData[key]);
+        let val = updateData[key];
+        if (['scheduledStart', 'scheduledEnd', 'verifiedAt'].includes(key) && val) {
+          if (typeof val === 'string' && !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(val)) {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) val = d.toISOString().slice(0, 19).replace('T', ' ');
+          }
+        }
+        values.push(val);
       }
     }
 

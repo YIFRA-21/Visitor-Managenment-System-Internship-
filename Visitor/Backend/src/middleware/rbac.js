@@ -139,7 +139,7 @@ function checkPermission(requiredPermission) {
     }
 
     // Admins always have access
-    if (req.user.role === 'admin') {
+    if (req.user.role && req.user.role.toLowerCase() === 'admin') {
       return next();
     }
 
@@ -171,7 +171,7 @@ function checkRole(roleCode) {
     }
 
     // Admins always have access
-    if (req.user.role === 'admin') {
+    if (req.user.role && req.user.role.toLowerCase() === 'admin') {
       return next();
     }
 

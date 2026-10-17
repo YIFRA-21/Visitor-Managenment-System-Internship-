@@ -7,6 +7,17 @@
 
 const db = require('../../../config/db');
 
+async function executeQuery(connOrDb, sql, params = []) {
+  if (connOrDb === db || !connOrDb) {
+    return db.query(sql, params);
+  }
+  const result = await connOrDb.query(sql, params);
+  if (Array.isArray(result) && result.length === 2 && (Array.isArray(result[0]) || (result[0] && typeof result[0] === 'object'))) {
+    return result[0];
+  }
+  return result;
+}
+
 class RoleRepository {
   // ── Statistics / KPI Metrics ──────────────────────────────────────────────
 
@@ -242,8 +253,9 @@ class RoleRepository {
     };
   }
 
-  async findById(id) {
-    const rows = await db.query(
+  async findById(id, conn = db) {
+    const rows = await executeQuery(
+      conn,
       `SELECT r.*, pr.role_name AS parent_role_name,
               COUNT(DISTINCT rp.permission_id) AS permission_count,
               COUNT(DISTINCT u.id) AS user_count
@@ -268,10 +280,20 @@ class RoleRepository {
     return rows[0] || null;
   }
 
-  async findByCode(code) {
-    const rows = await db.query(
-      `SELECT * FROM roles WHERE UPPER(role_code) = UPPER(?) AND deleted_at IS NULL LIMIT 1`,
+  async findByCode(code, conn = db) {
+    const rows = await executeQuery(
+      conn,
+      `SELECT * FROM roles WHERE UPPER(role_code) = UPPER(?) LIMIT 1`,
       [code]
+    );
+    return rows[0] || null;
+  }
+
+  async findByName(name, conn = db) {
+    const rows = await executeQuery(
+      conn,
+      `SELECT * FROM roles WHERE UPPER(role_name) = UPPER(?) LIMIT 1`,
+      [name]
     );
     return rows[0] || null;
   }
@@ -280,7 +302,8 @@ class RoleRepository {
     const roleName = (data.roleName || data.name || data.role_name || `Custom Role ${Date.now().toString().slice(-4)}`).trim();
     const roleCode = (data.roleCode || data.code || data.role_code || `ROLE_${Date.now().toString().slice(-4)}`).trim().toUpperCase();
 
-    const res = await conn.query(
+    const res = await executeQuery(
+      conn,
       `INSERT INTO roles (
         role_name, role_code, description, is_system_role, status, scope_type, role_type,
         priority, is_assignment_allowed, is_temporary_allowed, is_multiple_allowed,
@@ -377,13 +400,14 @@ class RoleRepository {
   // ── Version Snapshots ──────────────────────────────────────────────────────
 
   async createVersionSnapshot(roleId, operatorUserId, changeReason = 'Role update', conn = db) {
-    const role = await this.findById(roleId);
+    const role = await this.findById(roleId, conn);
     if (!role) return;
 
-    const perms = await this.findPermissionsByRoleId(roleId);
+    const perms = await this.findPermissionsByRoleId(roleId, conn);
     const permsJson = JSON.stringify(perms.map((p) => ({ id: p.id, code: p.permission_code, name: p.permission_name })));
 
-    await conn.query(
+    await executeQuery(
+      conn,
       `INSERT INTO role_versions (role_id, version_number, role_name, role_code, scope_type, description, permissions_snapshot_json, created_by, change_reason)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [role.id, role.version || 1, role.role_name, role.role_code, role.scope_type, role.description, permsJson, operatorUserId, changeReason]
@@ -430,8 +454,9 @@ class RoleRepository {
     return db.query(sql, params);
   }
 
-  async findPermissionsByRoleId(roleId) {
-    return db.query(
+  async findPermissionsByRoleId(roleId, conn = db) {
+    return executeQuery(
+      conn,
       `SELECT p.id, p.permission_name, p.permission_code, p.module, p.description
        FROM role_permissions rp
        JOIN permissions p ON rp.permission_id = p.id
@@ -453,14 +478,15 @@ class RoleRepository {
     const placeholders = permissionIds.map(() => '(?, ?)').join(', ');
     const params = permissionIds.flatMap((pid) => [roleId, pid]);
 
-    return conn.query(
+    return executeQuery(
+      conn,
       `INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES ${placeholders}`,
       params
     );
   }
 
   async syncPermissions(roleId, permissionIds, conn = db) {
-    await conn.query(`DELETE FROM role_permissions WHERE role_id = ?`, [roleId]);
+    await executeQuery(conn, `DELETE FROM role_permissions WHERE role_id = ?`, [roleId]);
     if (permissionIds && permissionIds.length > 0) {
       await this.assignPermissions(roleId, permissionIds, conn);
     }
