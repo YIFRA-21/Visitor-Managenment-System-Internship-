@@ -457,6 +457,9 @@ try {
 
         await originalQuery(`INSERT IGNORE INTO appointment_types (id, name, type_name, code, type_code, status) VALUES (1, 'General Meeting', 'General Meeting', 'MEETING', 'MEETING', 'ACTIVE')`);
         await originalQuery(`INSERT IGNORE INTO visit_purposes (id, name, purpose_name, code, purpose_code, status) VALUES (1, 'General Business', 'General Business', 'BUSINESS', 'BUSINESS', 'ACTIVE')`);
+        try {
+          await originalQuery(`INSERT IGNORE INTO pass_types (id, pass_type_uid, type_code, type_name, type_description, validity_duration_hours, access_level, is_active) VALUES (1, 'PT-DEFAULT-001', 'STANDARD', 'Standard Visitor Pass', 'Default visitor lobby access pass', 12, 'GENERAL', 1)`);
+        } catch (_) {}
         // Ensure visitor profile address, identity and vehicle columns exist
         const visitorCols = [
           'country VARCHAR(100) DEFAULT "Ethiopia"',
