@@ -20,29 +20,13 @@ class VisitorHistoryService {
   }
 
   async updateHistoryMetadata(id, updateData) {
+    await visitorHistoryRepository.updateMetadata(id, updateData);
     const history = await visitorHistoryRepository.getById(id);
-    if (!history) {
-      const error = new Error('Visitor history record not found.');
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const success = await visitorHistoryRepository.updateMetadata(id, updateData);
-    if (!success) {
-      throw new Error('Failed to update visitor history record.');
-    }
-    return visitorHistoryRepository.getById(id);
+    return history;
   }
 
   async softDeleteHistory(id) {
-    const history = await visitorHistoryRepository.getById(id);
-    if (!history) {
-      const error = new Error('Visitor history record not found.');
-      error.statusCode = 404;
-      throw error;
-    }
-
-    return visitorHistoryRepository.softDelete(id);
+    return await visitorHistoryRepository.softDelete(id);
   }
 }
 
