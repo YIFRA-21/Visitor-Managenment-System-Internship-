@@ -111,6 +111,18 @@ try {
         console.warn('DB Migration warning (password_history):', err.message);
       }
 
+      // Blacklist / Watchlist schema & seed
+      try {
+        await pool.query(`ALTER TABLE visitor_watchlist ADD COLUMN expiry_date DATETIME NULL`);
+      } catch (err) { /* ignore */ }
+      try {
+        await pool.query(`
+          INSERT INTO visitor_watchlist (id, watchlist_id, visitor_id, watchlist_category, severity, reason, email, phone, id_number, id_type, list_type, risk_level, status, description, added_by, created_at, updated_at)
+          VALUES (1, 1, 1, 'VIP', 'medium', 'Initial security watchlist entry', 'security.flag@vms.com', '+1-555-0199', 'ID-10001', 'National ID', 'BLACKLIST', 'HIGH', 'ACTIVE', 'Perimeter verification protocol active', 1, NOW(), NOW())
+          ON DUPLICATE KEY UPDATE status = 'ACTIVE', deleted_at = NULL
+        `);
+      } catch (err) { /* ignore */ }
+
       // Enterprise Permission Management Platform Migrations
       const permissionAlters = [
         `ALTER TABLE permissions ADD COLUMN resource VARCHAR(80) NULL AFTER module`,

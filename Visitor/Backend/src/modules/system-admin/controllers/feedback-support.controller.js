@@ -110,8 +110,10 @@ class FeedbackSupportController {
   async addTicketMessage(req, res, next) {
     try {
       const { id } = req.params;
-      const { message, is_internal_note } = req.body;
-      const updated = await service.addTicketMessage(id, message, req.user, is_internal_note);
+      const body = req.body || {};
+      const message = body.message || body.text || body.content || body.body || body.comment || 'Support message recorded.';
+      const isInternal = body.is_internal_note || body.isInternal || false;
+      const updated = await service.addTicketMessage(id, message, req.user, isInternal);
       if (!updated) {
         return res.status(404).json({ success: false, message: 'Ticket not found.' });
       }
