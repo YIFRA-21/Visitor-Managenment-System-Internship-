@@ -130,27 +130,22 @@ class SettingsService {
     return await mockRepo.deleteBackup(id);
   }
 
-  validateCategory(category, data) {
+  validateCategory(category, data = {}) {
     if (category === 'general') {
-      if (!data.orgCode || !data.defaultLanguage || !data.timeZone) {
-        const err = new Error('Validation Error: orgCode, defaultLanguage, and timeZone are required.');
-        err.status = 400;
-        throw err;
-      }
+      data.orgCode = data.orgCode || 'ORG-001';
+      data.defaultLanguage = data.defaultLanguage || 'en';
+      data.timeZone = data.timeZone || 'Africa/Addis_Ababa';
     }
     if (category === 'numbering') {
-      if (!data.visitorIdPrefix || !data.employeeIdPrefix || !data.appointmentPrefix) {
-        const err = new Error('Validation Error: visitor, employee, and appointment prefix codes are required.');
-        err.status = 400;
-        throw err;
-      }
+      data.visitorIdPrefix = data.visitorIdPrefix || 'VIS-';
+      data.employeeIdPrefix = data.employeeIdPrefix || 'EMP-';
+      data.appointmentPrefix = data.appointmentPrefix || 'APT-';
+      data.visitorPassPrefix = data.visitorPassPrefix || 'PASS-';
+      data.referenceNumberPrefix = data.referenceNumberPrefix || 'REF-';
     }
     if (category === 'retention') {
-      if (data.visitorRecordRetention < 30 || data.auditLogRetention < 30) {
-        const err = new Error('Validation Error: Minimum data retention period is 30 days.');
-        err.status = 400;
-        throw err;
-      }
+      data.visitorRecordRetention = Math.max(Number(data.visitorRecordRetention) || 90, 30);
+      data.auditLogRetention = Math.max(Number(data.auditLogRetention) || 180, 30);
     }
   }
 

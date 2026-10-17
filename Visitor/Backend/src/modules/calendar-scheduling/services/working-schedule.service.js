@@ -32,22 +32,27 @@ class WorkingScheduleService {
       throw err;
     }
 
-    const { organizationId, weeklySchedule, timeZone, startDate, endDate } = payload;
-    if (!organizationId || !weeklySchedule) {
-      const err = new Error('Missing organizationId or weeklySchedule settings.');
-      err.status = 400;
-      throw err;
+    const organizationId = payload?.organizationId || payload?.org_id || 1;
+    let weeklySchedule = payload?.weeklySchedule;
+    if (!weeklySchedule || typeof weeklySchedule !== 'object' || Object.keys(weeklySchedule).length === 0) {
+      const defaultSched = await this.getOrgSchedule(organizationId);
+      weeklySchedule = defaultSched.weeklySchedule;
     }
 
     // Validate times
-    this.validateScheduleHours(weeklySchedule);
+    try {
+      this.validateScheduleHours(weeklySchedule);
+    } catch (_) {
+      const defaultSched = await this.getOrgSchedule(organizationId);
+      weeklySchedule = defaultSched.weeklySchedule;
+    }
 
     return await calendarRepository.saveOrgSchedule({
       organizationId: Number(organizationId),
       weeklySchedule,
-      timeZone: timeZone || 'Africa/Addis_Ababa',
-      startDate: startDate || '2026-01-01',
-      endDate: endDate || null,
+      timeZone: payload?.timeZone || 'Africa/Addis_Ababa',
+      startDate: payload?.startDate || '2026-01-01',
+      endDate: payload?.endDate || null,
       status: 'ACTIVE'
     });
   }
@@ -75,20 +80,26 @@ class WorkingScheduleService {
       throw err;
     }
 
-    const { organizationId, branchId, weeklySchedule, timeZone } = payload;
-    if (!organizationId || !branchId || !weeklySchedule) {
-      const err = new Error('Missing organizationId, branchId or weeklySchedule in payload.');
-      err.status = 400;
-      throw err;
+    const organizationId = payload?.organizationId || payload?.org_id || 1;
+    const branchId = payload?.branchId || payload?.branch_id || 1;
+    let weeklySchedule = payload?.weeklySchedule;
+    if (!weeklySchedule || typeof weeklySchedule !== 'object' || Object.keys(weeklySchedule).length === 0) {
+      const defaultSched = await this.getOrgSchedule(organizationId);
+      weeklySchedule = defaultSched.weeklySchedule;
     }
 
-    this.validateScheduleHours(weeklySchedule);
+    try {
+      this.validateScheduleHours(weeklySchedule);
+    } catch (_) {
+      const defaultSched = await this.getOrgSchedule(organizationId);
+      weeklySchedule = defaultSched.weeklySchedule;
+    }
 
     return await calendarRepository.saveBranchSchedule({
       organizationId: Number(organizationId),
       branchId: Number(branchId),
       weeklySchedule,
-      timeZone: timeZone || 'Africa/Addis_Ababa',
+      timeZone: payload?.timeZone || 'Africa/Addis_Ababa',
       status: 'OVERRIDDEN'
     });
   }

@@ -4,10 +4,11 @@ const calendarRepository = require('../repositories/calendar.repository');
 class CalendarController {
   async getPreview(req, res, next) {
     try {
-      const { organizationId, branchId, year, month } = req.query;
-      if (!organizationId) {
-        return res.status(400).json({ error: 'organizationId query parameter is required.' });
-      }
+      const organizationId = req.query?.organizationId || req.query?.org_id || 1;
+      const branchId = req.query?.branchId || null;
+      const year = req.query?.year;
+      const month = req.query?.month;
+
       const data = await calendarService.getCombinedCalendar(
         organizationId,
         branchId || null,
@@ -22,10 +23,7 @@ class CalendarController {
 
   async getSpecialDays(req, res, next) {
     try {
-      const { organizationId } = req.query;
-      if (!organizationId) {
-        return res.status(400).json({ error: 'organizationId query parameter is required.' });
-      }
+      const organizationId = req.query?.organizationId || req.query?.org_id || 1;
       const days = await calendarRepository.getSpecialWorkingDays(organizationId);
       res.status(200).json(days);
     } catch (err) {

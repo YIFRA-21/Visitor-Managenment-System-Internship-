@@ -3,11 +3,9 @@ const timeZoneService = require('../services/timezone.service');
 class TimeZoneController {
   async get(req, res, next) {
     try {
-      const { organizationId, branchId } = req.query;
-      if (!organizationId) {
-        return res.status(400).json({ error: 'organizationId is required.' });
-      }
-      const data = await timeZoneService.getTimeZones(organizationId, branchId || null);
+      const organizationId = req.query?.organizationId || req.query?.org_id || 1;
+      const branchId = req.query?.branchId || null;
+      const data = await timeZoneService.getTimeZones(organizationId, branchId);
       res.status(200).json(data);
     } catch (err) {
       next(err);

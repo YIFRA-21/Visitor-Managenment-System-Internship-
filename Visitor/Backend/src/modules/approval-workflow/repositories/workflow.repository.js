@@ -109,14 +109,17 @@ class WorkflowRepository {
 
   async create(data) {
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const wfName = data.workflow_name || data.name || 'Custom Workflow';
+    const wfCode = data.workflow_code || `WF-${Date.now()}`;
     const result = await db.query(
       `INSERT INTO approval_workflows (
-        workflow_name, workflow_code, description, workflow_type, category_id,
+        name, workflow_name, workflow_code, description, workflow_type, category_id,
         department_id, branch_id, priority, approval_mode, status, version, is_default, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        data.workflow_name,
-        data.workflow_code,
+        wfName,
+        wfName,
+        wfCode,
         data.description || '',
         data.workflow_type || 'Custom',
         data.category_id || null,

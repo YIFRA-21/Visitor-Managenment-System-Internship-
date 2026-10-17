@@ -123,6 +123,123 @@ try {
         `);
       } catch (err) { /* ignore */ }
 
+      // Enterprise Workflows, Documents, and Calendar Seeds
+      try {
+        const wfAlters = [
+          "ALTER TABLE approval_workflows MODIFY COLUMN workflow_id BIGINT UNSIGNED NULL",
+          "ALTER TABLE approval_workflows MODIFY COLUMN name VARCHAR(255) NULL",
+          "ALTER TABLE approval_workflows ADD COLUMN workflow_name VARCHAR(150) NULL",
+          "ALTER TABLE approval_workflows ADD COLUMN workflow_code VARCHAR(50) NULL",
+          "ALTER TABLE approval_workflows ADD COLUMN workflow_type VARCHAR(50) DEFAULT 'Custom'",
+          "ALTER TABLE approval_workflows ADD COLUMN category_id BIGINT UNSIGNED NULL",
+          "ALTER TABLE approval_workflows ADD COLUMN branch_id BIGINT UNSIGNED NULL",
+          "ALTER TABLE approval_workflows ADD COLUMN priority INT DEFAULT 1",
+          "ALTER TABLE approval_workflows ADD COLUMN approval_mode VARCHAR(50) DEFAULT 'Sequential'",
+          "ALTER TABLE approval_workflows ADD COLUMN status VARCHAR(50) DEFAULT 'Active'",
+          "ALTER TABLE approval_workflows ADD COLUMN version VARCHAR(50) DEFAULT 'v1.0'",
+          "ALTER TABLE approval_workflows ADD COLUMN is_default TINYINT(1) DEFAULT 0",
+          "ALTER TABLE approval_delegations ADD COLUMN status VARCHAR(50) DEFAULT 'Active'",
+          "ALTER TABLE approval_workflow_audit_logs ADD COLUMN details JSON NULL",
+          "ALTER TABLE approval_workflow_audit_logs ADD COLUMN performed_by BIGINT UNSIGNED NULL"
+        ];
+        for (const q of wfAlters) {
+          try { await pool.query(q); } catch {}
+        }
+
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS approval_workflow_levels (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            workflow_id BIGINT UNSIGNED NOT NULL,
+            level_order INT NOT NULL DEFAULT 1,
+            level_name VARCHAR(100) NOT NULL DEFAULT 'Level 1',
+            approver_role VARCHAR(100) NOT NULL DEFAULT 'Host',
+            approver_user_id BIGINT UNSIGNED NULL,
+            department_id BIGINT UNSIGNED NULL,
+            timeout_minutes INT NOT NULL DEFAULT 60,
+            sla_minutes INT NOT NULL DEFAULT 120,
+            escalation_target VARCHAR(100) NOT NULL DEFAULT 'Manager',
+            notification_rule VARCHAR(100) NOT NULL DEFAULT 'Email & Push',
+            comments_required TINYINT(1) NOT NULL DEFAULT 0,
+            attachment_required TINYINT(1) NOT NULL DEFAULT 0,
+            is_required TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            deleted_at DATETIME NULL
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS approval_workflow_rules (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            workflow_id BIGINT UNSIGNED NOT NULL,
+            rule_name VARCHAR(100) NOT NULL DEFAULT 'Rule',
+            field_name VARCHAR(100) NOT NULL DEFAULT 'visitor_category',
+            operator VARCHAR(20) NOT NULL DEFAULT '=',
+            field_value VARCHAR(100) NOT NULL DEFAULT '',
+            target_workflow_id BIGINT UNSIGNED NULL,
+            target_level_order INT NULL,
+            priority INT NOT NULL DEFAULT 1,
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            deleted_at DATETIME NULL
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS approval_workflow_versions (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            workflow_id BIGINT UNSIGNED NOT NULL,
+            version_number VARCHAR(50) NOT NULL DEFAULT 'v1.0',
+            configuration_json JSON NULL,
+            created_by BIGINT UNSIGNED NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS approval_workflow_audit_logs (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            workflow_id BIGINT UNSIGNED NOT NULL,
+            action VARCHAR(100) NOT NULL,
+            details_json JSON NULL,
+            details JSON NULL,
+            user_id BIGINT UNSIGNED NULL,
+            performed_by BIGINT UNSIGNED NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        await pool.query(`
+          INSERT INTO approval_workflows 
+          (id, workflow_id, name, workflow_name, workflow_code, description, workflow_type, priority, approval_mode, status, version, is_default, created_at, updated_at)
+          VALUES (1, 1, 'Standard Visitor Approval', 'Standard Visitor Approval', 'WF-DEFAULT-001', 'Default standard visitor appointment workflow', 'Standard', 1, 'Sequential', 'Active', 'v1.0', 1, NOW(), NOW())
+          ON DUPLICATE KEY UPDATE status = 'Active', deleted_at = NULL, workflow_name = 'Standard Visitor Approval';
+        `);
+
+        // Seed visitor document 1
+        await pool.query(`
+          INSERT INTO visitor_documents 
+          (id, visitor_id, document_type, document_name, original_file_name, file_path, file_url, document_url, file_type, mime_type, file_size_bytes, status, verification_status, approval_status, version_number, is_active, is_deleted, created_at, updated_at)
+          VALUES (1, 1, 'National ID', 'National ID Card', 'National_ID_Belay.pdf', '/uploads/documents/doc-sample-1.pdf', '/uploads/documents/doc-sample-1.pdf', '/uploads/documents/doc-sample-1.pdf', 'application/pdf', 'application/pdf', 1024, 'Uploaded', 'VERIFIED', 'Approved', 1, 1, 0, NOW(), NOW())
+          ON DUPLICATE KEY UPDATE status = 'Uploaded', is_deleted = 0;
+        `);
+
+        await pool.query(`
+          INSERT INTO document_version_history
+          (document_id, version_number, file_path, original_file_name, file_type, file_size_bytes, checksum_sha256, changes_description, uploaded_by, uploaded_by_name)
+          VALUES (1, 1, '/uploads/documents/doc-sample-1.pdf', 'National_ID_Belay.pdf', 'application/pdf', 1024, 'abc123samplechecksum', 'Initial document upload', 1, 'Reception Officer')
+          ON DUPLICATE KEY UPDATE version_number = 1;
+        `);
+
+        // Seed holiday 1
+        await pool.query(`
+          INSERT INTO holidays (id, name, type, date, applies_to, organization_id, branch_id, status, created_at, updated_at)
+          VALUES (1, 'New Year Holiday', 'PUBLIC', '2026-01-01', 'ALL', 1, NULL, 'ACTIVE', NOW(), NOW())
+          ON DUPLICATE KEY UPDATE status = 'ACTIVE';
+        `);
+      } catch (err) { /* ignore */ }
+
       // Enterprise Permission Management Platform Migrations
       const permissionAlters = [
         `ALTER TABLE permissions ADD COLUMN resource VARCHAR(80) NULL AFTER module`,

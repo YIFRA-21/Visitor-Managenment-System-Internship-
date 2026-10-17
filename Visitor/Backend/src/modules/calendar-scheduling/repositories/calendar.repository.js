@@ -105,16 +105,22 @@ class CalendarRepository {
     }));
   }
 
-  async saveTimeZone(tzData) {
+  async saveTimeZone(tzData = {}) {
+    const orgId = tzData.organizationId || 1;
+    const branchId = tzData.branchId || null;
+    const timeZone = tzData.timeZone || 'Africa/Addis_Ababa';
+    const utcOffset = tzData.utcOffset || '+03:00';
+    const dst = tzData.dst ? 1 : 0;
+
     const res = await db.query(
       `INSERT INTO timezone_settings (organization_id, branch_id, timezone, utc_offset, dst) VALUES (?, ?, ?, ?, ?)`,
-      [tzData.organizationId, tzData.branchId || null, tzData.timeZone, tzData.utcOffset || '+03:00', tzData.dst ? 1 : 0]
+      [orgId, branchId, timeZone, utcOffset, dst]
     );
-    return { id: res.insertId || 1, ...tzData };
+    return { id: res.insertId || 1, organizationId: orgId, branchId, timeZone, utcOffset, dst: Boolean(dst) };
   }
 
   async getSpecialWorkingDays(orgId) {
-    const rows = await db.query(`SELECT * FROM special_working_days WHERE organization_id = ?`, [orgId]);
+    const rows = await db.query(`SELECT * FROM special_working_days WHERE organization_id = ?`, [orgId || 1]);
     return rows.map(r => ({
       id: r.id,
       date: r.date,
@@ -127,19 +133,37 @@ class CalendarRepository {
     }));
   }
 
-  async saveSpecialWorkingDay(dayData) {
+  async saveSpecialWorkingDay(dayData = {}) {
+    const today = new Date().toISOString().split('T')[0];
+    const date = dayData.date || today;
+    const reason = dayData.reason || 'Special Operations Day';
+    const openingTime = dayData.openingTime || '09:00';
+    const closingTime = dayData.closingTime || '17:00';
+    const appliesTo = dayData.appliesTo || 'ALL';
+    const organizationId = dayData.organizationId || 1;
+    const branchId = dayData.branchId || null;
+
     if (dayData.id) {
       await db.query(
         `UPDATE special_working_days SET date = ?, reason = ?, opening_time = ?, closing_time = ?, applies_to = ? WHERE id = ?`,
-        [dayData.date, dayData.reason, dayData.openingTime, dayData.closingTime, dayData.appliesTo || 'ALL', dayData.id]
+        [date, reason, openingTime, closingTime, appliesTo, dayData.id]
       );
-      return dayData;
+      return { id: dayData.id, date, reason, openingTime, closingTime, appliesTo, organizationId, branchId };
     }
     const res = await db.query(
       `INSERT INTO special_working_days (date, reason, opening_time, closing_time, applies_to, organization_id, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [dayData.date, dayData.reason, dayData.openingTime, dayData.closingTime, dayData.appliesTo || 'ALL', dayData.organizationId, dayData.branchId || null]
+      [date, reason, openingTime, closingTime, appliesTo, organizationId, branchId]
     );
-    return { id: res.insertId || 1, ...dayData };
+    return {
+      id: res.insertId || 1,
+      date,
+      reason,
+      openingTime,
+      closingTime,
+      appliesTo,
+      organizationId,
+      branchId
+    };
   }
 
   async deleteSpecialWorkingDay(id) {

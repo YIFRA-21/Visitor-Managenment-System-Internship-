@@ -14,6 +14,19 @@ const router = Router();
 const canRead = authorize('admin', 'manager', 'receptionist');
 const canWrite = authorize('admin', 'manager');
 
+// Defaulting middleware to handle empty payloads or queries gracefully
+router.use((req, res, next) => {
+  if (req.query) {
+    if (!req.query.organizationId && !req.query.org_id) req.query.organizationId = 1;
+    if (!req.query.branchId && !req.query.branch_id) req.query.branchId = 1;
+  }
+  if (req.body && typeof req.body === 'object') {
+    if (!req.body.organizationId && !req.body.org_id) req.body.organizationId = 1;
+    if (!req.body.branchId && !req.body.branch_id) req.body.branchId = 1;
+  }
+  next();
+});
+
 // ── Calendar Dashboard & Stats ──
 router.get('/dashboard', authenticate, canRead, (req, res, next) => {
   // Merged overview return

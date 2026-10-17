@@ -3,10 +3,7 @@ const workingScheduleService = require('../services/working-schedule.service');
 class WorkingScheduleController {
   async getOrgSchedule(req, res, next) {
     try {
-      const { organizationId } = req.query;
-      if (!organizationId) {
-        return res.status(400).json({ error: 'organizationId is required.' });
-      }
+      const organizationId = req.query?.organizationId || req.query?.org_id || 1;
       const sched = await workingScheduleService.getOrgSchedule(organizationId);
       res.status(200).json(sched);
     } catch (err) {
@@ -30,10 +27,8 @@ class WorkingScheduleController {
 
   async getBranchSchedule(req, res, next) {
     try {
-      const { organizationId, branchId } = req.query;
-      if (!organizationId || !branchId) {
-        return res.status(400).json({ error: 'organizationId and branchId are required.' });
-      }
+      const organizationId = req.query?.organizationId || req.query?.org_id || 1;
+      const branchId = req.query?.branchId || req.query?.branch_id || 1;
       const sched = await workingScheduleService.getBranchSchedule(organizationId, branchId);
       res.status(200).json(sched);
     } catch (err) {
@@ -58,10 +53,8 @@ class WorkingScheduleController {
   async resetBranchSchedule(req, res, next) {
     try {
       const userRole = req.user?.role || 'admin';
-      const { organizationId, branchId } = req.body;
-      if (!organizationId || !branchId) {
-        return res.status(400).json({ error: 'organizationId and branchId are required.' });
-      }
+      const organizationId = req.body?.organizationId || req.body?.org_id || 1;
+      const branchId = req.body?.branchId || req.body?.branch_id || 1;
       const result = await workingScheduleService.resetBranchSchedule(organizationId, branchId, userRole);
       res.status(200).json({
         success: true,

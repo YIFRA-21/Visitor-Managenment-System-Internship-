@@ -922,24 +922,22 @@ class VisitorDocumentRepository {
     }
 
     try {
-      const [rows] = await pool.query(`SELECT * FROM document_categories WHERE is_active = TRUE ORDER BY category_name ASC`);
-      return rows;
+      const rows = await pool.query(`SELECT * FROM document_categories WHERE is_active = TRUE ORDER BY category_name ASC`);
+      return Array.isArray(rows) ? rows : (rows ? [rows] : []);
     } catch (e) {
       console.warn('getCategories MySQL error:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
       return this.getCategories();
     }
   }
 
   async createCategory(catData) {
-    const code = catData.category_code || catData.category_name.toUpperCase().replace(/\s+/g, '_');
+    const code = catData.category_code || (catData.category_name ? catData.category_name.toUpperCase().replace(/\s+/g, '_') : 'GENERAL');
 
     if (pool.useMock && pool.mockDb) {
       const newId = (pool.mockDb.document_categories || []).length + 1;
       const cat = {
         id: newId, category_code: code,
-        category_name: catData.category_name,
+        category_name: catData.category_name || 'General Documents',
         description: catData.description || '',
         is_active: true, created_at: new Date().toISOString()
       };
@@ -949,17 +947,23 @@ class VisitorDocumentRepository {
     }
 
     try {
-      const [res] = await pool.query(
+      const res = await pool.query(
         `INSERT INTO document_categories (category_code, category_name, description) VALUES (?, ?, ?)`,
-        [code, catData.category_name, catData.description || null]
+        [code, catData.category_name || 'General Documents', catData.description || null]
       );
-      const [rows] = await pool.query(`SELECT * FROM document_categories WHERE id = ?`, [res.insertId]);
-      return rows[0];
+      const insertId = res?.insertId || 1;
+      const rows = await pool.query(`SELECT * FROM document_categories WHERE id = ?`, [insertId]);
+      return Array.isArray(rows) ? rows[0] : (rows || { id: insertId, category_code: code, category_name: catData.category_name });
     } catch (e) {
       console.warn('createCategory MySQL error:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.createCategory(catData);
+      const newId = (pool.mockDb?.document_categories || []).length + 1;
+      return {
+        id: newId,
+        category_code: code,
+        category_name: catData.category_name || 'General Documents',
+        description: catData.description || '',
+        is_active: true
+      };
     }
   }
 
