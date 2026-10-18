@@ -3,6 +3,7 @@ import { Bell, Send, Search, ChevronRight, Calendar, MessageSquare, FileText, Me
 import { employeeNotificationApi } from '../../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useNotification } from '../../contexts/NotificationContext';
 // Initial Stored Chat Messages History for Each Unique Channel
 const INITIAL_CHAT_HISTORIES = {
     201: [
@@ -124,13 +125,12 @@ const INITIAL_CHAT_HISTORIES = {
 };
 export default function EmployeeNotifications({ initialTab }) {
     const { t } = useLanguage();
+    const { showNotification } = useNotification();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    // Toast alert system
-    const [toastMsg, setToastMsg] = useState(null);
+    // Toast alert system routed to global notification
     const showToast = (text, type = 'success') => {
-        setToastMsg({ text, type });
-        setTimeout(() => setToastMsg(null), 3500);
+        showNotification(text, type);
     };
     // Primary Tab state: 'messages' | 'chat' | 'announcements'
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || initialTab || 'messages');

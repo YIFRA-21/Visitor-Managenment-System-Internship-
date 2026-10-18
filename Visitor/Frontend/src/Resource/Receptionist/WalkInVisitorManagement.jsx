@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
     User, Mail, MapPin, Briefcase, Phone, Car, Camera, FileText, CheckSquare, 
     CheckCircle, CheckCircle2, AlertCircle, Printer, ChevronLeft, ChevronRight, 
@@ -10,10 +10,25 @@ import api from '../../services/api';
 import BackButton from '../../components/common/BackButton';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import CountryNationalitySelect from '../../components/common/CountryNationalitySelect';
 import CountryPhoneInput from '../../components/common/CountryPhoneInput';
-import { validateDateOfBirth, validatePhoneNumber } from '../../data/countriesData';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
+import {
+    validateName,
+    validateMiddleName,
+    validateGender,
+    validateDateOfBirth,
+    validateNationality,
+    validateMaritalStatus,
+    validateEmail,
+    validatePhone,
+    validateSelection,
+    validateText,
+    validateVehicle,
+    validateIdentityDoc,
+    validateFile
+} from '../../utils/formValidation';
 
 const maxAllowedDob = (() => {
   const d = new Date();
@@ -24,6 +39,7 @@ const maxAllowedDob = (() => {
 export default function WalkInVisitorManagement({ onNavigate }) {
     const { t, language } = useLanguage();
     const isAm = language === 'am';
+    const { notify } = useNotification();
 
     // Dynamic Organization Context
     const { organization, logoUrl: orgLogoUrl, orgName: organizationName } = useOrganization();
@@ -41,8 +57,11 @@ export default function WalkInVisitorManagement({ onNavigate }) {
     const [departments, setDepartments] = useState([]);
     const [registeredResult, setRegisteredResult] = useState(null);
 
-    // Validation Errors state
+    // Validation Errors state & Refs
     const [errors, setErrors] = useState({});
+    const photoInputRef = useRef(null);
+    const docInputRef = useRef(null);
+    const [attachedDocName, setAttachedDocName] = useState('');
 
     // Wizard Form Data (all required fields start empty so validation triggers properly on empty submission)
     const [form, setForm] = useState({
@@ -137,163 +156,242 @@ export default function WalkInVisitorManagement({ onNavigate }) {
         fetchWalkInHistory();
     }, [activeTab]);
 
-    // Handle field updates with automatic error clearing
-    const handleFieldChange = (field, value) => {
-        setForm(prev => ({ ...prev, [field]: value }));
-        if (errors[field]) {
-            setErrors(prev => {
-                const updated = { ...prev };
-                delete updated[field];
-                return updated;
-            });
+    // Helper to scroll and focus the first invalid field
+    const focusFirstInvalidField = () => {
+        setTimeout(() => {
+            const firstInvalidEl = document.querySelector('[data-invalid="true"], [aria-invalid="true"]');
+            if (firstInvalidEl) {
+                firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (typeof firstInvalidEl.focus === 'function') {
+                    firstInvalidEl.focus();
+                }
+            }
+        }, 80);
+    };
+
+    // ── COMPREHENSIVE FIELD VALIDATOR ──
+    const validateSingleField = (field, currentForm = form) => {
+        switch (field) {
+            case 'first_name':
+                return validateName(currentForm.first_name, isAm ? 'የመጀመሪያ ስም' : 'First name', true, isAm);
+            case 'middle_name':
+                return validateMiddleName(currentForm.middle_name, false, isAm);
+            case 'last_name':
+                return validateName(currentForm.last_name, isAm ? 'የአያት ስም' : 'Last name', true, isAm);
+            case 'gender':
+                return validateGender(currentForm.gender, isAm);
+            case 'date_of_birth':
+                return validateDateOfBirth(currentForm.date_of_birth, 18, isAm);
+            case 'nationality':
+                return validateNationality(currentForm.nationality, isAm);
+            case 'marital_status':
+                return validateMaritalStatus(currentForm.marital_status, isAm);
+            case 'phone':
+                return validatePhone(currentForm.phone, currentForm.phonePrefix || '+251', true, isAm);
+            case 'email':
+                return validateEmail(currentForm.email, true, isAm);
+            case 'company':
+                return validateText(currentForm.company, isAm ? 'ድርጅት' : 'Organization / Company', 2, 100, true, isAm);
+            case 'job_title':
+                return validateText(currentForm.job_title, isAm ? 'የሥራ መደብ' : 'Job title / Occupation', 2, 100, true, isAm);
+            case 'city':
+                return validateText(currentForm.city, isAm ? 'ከተማ' : 'City / Region', 2, 80, true, isAm);
+            case 'subcity':
+                return validateText(currentForm.subcity, isAm ? 'ክፍለ ከተማ' : 'Subcity / Zone', 2, 80, true, isAm);
+            case 'woreda':
+                return validateText(currentForm.woreda, isAm ? 'ወረዳ' : 'Woreda / District', 1, 40, true, isAm);
+            case 'house_number':
+                return validateText(currentForm.house_number, isAm ? 'የቤት ቁጥር' : 'House number', 1, 40, true, isAm);
+            case 'department_id':
+                return validateSelection(currentForm.department_id, isAm ? 'ክፍል' : 'target department', isAm);
+            case 'host_id':
+                return validateSelection(currentForm.host_id, isAm ? 'ተቀባይ ሠራተኛ' : 'host employee', isAm);
+            case 'visitor_category':
+                return validateSelection(currentForm.visitor_category, isAm ? 'የጎብኝ ምድብ' : 'visitor pass category', isAm);
+            case 'expected_duration':
+                return validateSelection(currentForm.expected_duration, isAm ? 'የቆይታ ጊዜ' : 'expected duration', isAm);
+            case 'visit_purpose':
+                return validateText(currentForm.visit_purpose, isAm ? 'የጉብኝቱ ምክንያት' : 'Purpose of visit', 3, 500, true, isAm);
+            case 'emergency_name':
+                return validateName(currentForm.emergency_name, isAm ? 'የአደጋ ጊዜ ተጠሪ ስም' : 'Emergency contact name', true, isAm);
+            case 'emergency_phone':
+                return validatePhone(currentForm.emergency_phone, '+251', true, isAm);
+            case 'emergency_relation':
+                return validateSelection(currentForm.emergency_relation, isAm ? 'ዝምድና' : 'relationship', isAm);
+            case 'plate_number':
+                if (currentForm.has_vehicle) {
+                    return validateVehicle(true, currentForm, isAm).plate_number || null;
+                }
+                return null;
+            case 'vehicle_type':
+                if (currentForm.has_vehicle) {
+                    return validateVehicle(true, currentForm, isAm).vehicle_type || null;
+                }
+                return null;
+            case 'photo_url':
+                if (!currentForm.photo_url || !currentForm.photo_url.toString().trim()) {
+                    return isAm ? 'የጎብኝ ፎቶ ማንሳት ወይም ማያያዝ ያስፈልጋል.' : 'Visitor photograph is required.';
+                }
+                return null;
+            case 'id_type':
+                return validateIdentityDoc(currentForm.id_type, currentForm.id_number, currentForm.expiry_date, true, isAm).id_type || null;
+            case 'id_number':
+                return validateIdentityDoc(currentForm.id_type, currentForm.id_number, currentForm.expiry_date, true, isAm).id_number || null;
+            case 'expiry_date':
+                return validateIdentityDoc(currentForm.id_type, currentForm.id_number, currentForm.expiry_date, false, isAm).expiry_date || null;
+            case 'confirmed_terms':
+                if (!currentForm.confirmed_terms) {
+                    return isAm ? 'ማረጋገጫ ያስፈልጋል.' : 'You must confirm visitor details and accept gate policies.';
+                }
+                return null;
+            default:
+                return null;
         }
+    };
+
+    // Return the list of fields that belong to a specific wizard step
+    const getStepFields = (stepNumber) => {
+        switch (stepNumber) {
+            case 1:
+                return ['first_name', 'middle_name', 'last_name', 'gender', 'date_of_birth', 'nationality', 'marital_status'];
+            case 2:
+                return ['phone', 'email', 'company', 'job_title'];
+            case 3:
+                return ['city', 'subcity', 'woreda', 'house_number'];
+            case 4:
+                return ['department_id', 'host_id', 'visitor_category', 'expected_duration', 'visit_purpose'];
+            case 5:
+                return ['emergency_name', 'emergency_phone', 'emergency_relation'];
+            case 6:
+                return form.has_vehicle ? ['plate_number', 'vehicle_type'] : [];
+            case 7:
+                return ['photo_url'];
+            case 8:
+                return ['id_type', 'id_number', 'expiry_date'];
+            case 9:
+                return ['confirmed_terms'];
+            default:
+                return [];
+        }
+    };
+
+    // Handle field updates with automatic error clearing once valid
+    const handleFieldChange = (field, value) => {
+        setForm(prev => {
+            const nextForm = { ...prev, [field]: value };
+            if (errors[field]) {
+                const err = validateSingleField(field, nextForm);
+                setErrors(prevErrors => {
+                    const updated = { ...prevErrors };
+                    if (!err) {
+                        delete updated[field];
+                    } else {
+                        updated[field] = err;
+                    }
+                    return updated;
+                });
+            }
+            return nextForm;
+        });
     };
 
     // Helper to render concise error under each input field matching the user's design
     const renderFieldError = (field) => {
         if (!errors[field]) return null;
         return (
-            <div className="flex items-center gap-1.5 mt-1.5 text-rose-400 text-xs font-semibold animate-fadeIn">
+            <div id={`error-${field}`} role="alert" className="flex items-center gap-1.5 mt-1.5 text-rose-400 text-xs font-semibold animate-fadeIn">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>{errors[field]}</span>
             </div>
         );
     };
 
-    // ── STEP-BY-STEP VALIDATION LOGIC ──
-    const validateStep = (stepNumber) => {
-        const newErrors = {};
+    // Validate a specific step and set step-specific errors
+    const validateStep = (stepNumber, currentForm = form) => {
+        const stepFields = getStepFields(stepNumber);
+        const stepErrors = {};
 
-        if (stepNumber === 1) {
-            if (!form.first_name || form.first_name.trim().length < 2) {
-                newErrors.first_name = isAm ? 'የመጀመሪያ ስም ያስፈልጋል.' : 'First Name is required.';
+        stepFields.forEach(field => {
+            const err = validateSingleField(field, currentForm);
+            if (err) {
+                stepErrors[field] = err;
             }
-            if (!form.last_name || form.last_name.trim().length < 2) {
-                newErrors.last_name = isAm ? 'የአያት ስም ያስፈልጋል.' : 'Last Name is required.';
-            }
-            if (!form.gender) {
-                newErrors.gender = isAm ? 'ጾታ ያስፈልጋል.' : 'Gender is required.';
-            }
-            if (!form.date_of_birth) {
-                newErrors.date_of_birth = isAm ? 'የትውልድ ቀን ያስፈልጋል.' : 'Date of birth is required.';
-            } else {
-                const dobCheck = validateDateOfBirth(form.date_of_birth, 18);
-                if (!dobCheck.valid) {
-                    newErrors.date_of_birth = isAm ? 'ዕድሜ 18+ መሆን አለበት.' : 'Must be at least 18 years.';
+        });
+
+        setErrors(prev => {
+            const updated = { ...prev };
+            // Clear errors for fields belonging to this step that are now valid
+            stepFields.forEach(f => {
+                if (!stepErrors[f]) {
+                    delete updated[f];
+                } else {
+                    updated[f] = stepErrors[f];
                 }
-            }
-            if (!form.nationality) {
-                newErrors.nationality = isAm ? 'ዜግነት ያስፈልጋል.' : 'Nationality is required.';
-            }
-            if (!form.marital_status) {
-                newErrors.marital_status = isAm ? 'የጋብቻ ሁኔታ ያስፈልጋል.' : 'Marital status is required.';
+            });
+            return updated;
+        });
+
+        const isValid = Object.keys(stepErrors).length === 0;
+        if (!isValid) {
+            focusFirstInvalidField();
+        }
+        return isValid;
+    };
+
+    // Validate all steps from 1 to 9
+    const validateAllSteps = (currentForm = form) => {
+        for (let s = 1; s <= 9; s++) {
+            if (!validateStep(s, currentForm)) {
+                return s; // returns the first failing step
             }
         }
+        return null;
+    };
 
-        if (stepNumber === 2) {
-            if (!form.phone || !form.phone.trim()) {
-                newErrors.phone = isAm ? 'ስልክ ቁጥር ያስፈልጋል.' : 'Phone number is required.';
-            } else {
-                const phoneCheck = validatePhoneNumber(form.phone, form.phonePrefix || '+251');
-                if (!phoneCheck.valid) {
-                    newErrors.phone = isAm ? 'ትክክለኛ ስልክ ቁጥር ያስገቡ.' : 'Valid phone number is required.';
-                }
-            }
-            if (!form.email || !form.email.trim()) {
-                newErrors.email = isAm ? 'ኢሜይል አድራሻ ያስፈልጋል.' : 'Email is required.';
-            } else {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(form.email.trim())) {
-                    newErrors.email = isAm ? 'ትክክለኛ ኢሜይል ያስገቡ.' : 'Valid email is required.';
-                }
-            }
-            if (!form.company || form.company.trim().length < 2) {
-                newErrors.company = isAm ? 'ድርጅት ያስፈልጋል.' : 'Company is required.';
-            }
-            if (!form.job_title || form.job_title.trim().length < 2) {
-                newErrors.job_title = isAm ? 'የሥራ መደብ ያስፈልጋል.' : 'Job title is required.';
-            }
+    // Photo File Upload Handler with size & format validation
+    const handlePhotoFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const fileError = validateFile(file, {
+            allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+            maxSizeBytes: 5 * 1024 * 1024,
+            fileLabel: isAm ? 'ፎቶ' : 'Photo'
+        }, isAm);
+
+        if (fileError) {
+            setErrors(prev => ({ ...prev, photo_url: fileError }));
+            return;
         }
 
-        if (stepNumber === 3) {
-            if (!form.city || form.city.trim().length < 2) {
-                newErrors.city = isAm ? 'ከተማ ያስፈልጋል.' : 'City is required.';
-            }
-            if (!form.subcity || form.subcity.trim().length < 2) {
-                newErrors.subcity = isAm ? 'ክፍለ ከተማ ያስፈልጋል.' : 'Subcity is required.';
-            }
-            if (!form.woreda || form.woreda.trim().length < 1) {
-                newErrors.woreda = isAm ? 'ወረዳ ያስፈልጋል.' : 'Woreda is required.';
-            }
-            if (!form.house_number || form.house_number.trim().length < 1) {
-                newErrors.house_number = isAm ? 'የቤት ቁጥር ያስፈልጋል.' : 'House number is required.';
-            }
+        const reader = new FileReader();
+        reader.onload = (uploadEvent) => {
+            const dataUrl = uploadEvent.target?.result;
+            handleFieldChange('photo_url', dataUrl);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // Document File Upload Handler with size & format validation
+    const handleDocFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const fileError = validateFile(file, {
+            allowedTypes: ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx'],
+            maxSizeBytes: 10 * 1024 * 1024,
+            fileLabel: isAm ? 'ሰነድ' : 'Document'
+        }, isAm);
+
+        if (fileError) {
+            setErrors(prev => ({ ...prev, document_file: fileError }));
+            return;
         }
 
-        if (stepNumber === 4) {
-            if (!form.department_id) {
-                newErrors.department_id = isAm ? 'ክፍል ያስፈልጋል.' : 'Department is required.';
-            }
-            if (!form.host_id) {
-                newErrors.host_id = isAm ? 'ተቀባይ ሠራተኛ ያስፈልጋል.' : 'Host employee is required.';
-            }
-            if (!form.visitor_category) {
-                newErrors.visitor_category = isAm ? 'የጎብኝ ምድብ ያስፈልጋል.' : 'Visitor category is required.';
-            }
-            if (!form.expected_duration) {
-                newErrors.expected_duration = isAm ? 'የቆይታ ጊዜ ያስፈልጋል.' : 'Expected duration is required.';
-            }
-            if (!form.visit_purpose || form.visit_purpose.trim().length < 2) {
-                newErrors.visit_purpose = isAm ? 'የጉብኝቱ ምክንያት ያስፈልጋል.' : 'Visit purpose is required.';
-            }
-        }
-
-        if (stepNumber === 5) {
-            if (!form.emergency_name || form.emergency_name.trim().length < 2) {
-                newErrors.emergency_name = isAm ? 'የአደጋ ጊዜ ተጠሪ ስም ያስፈልጋል.' : 'Emergency contact name is required.';
-            }
-            if (!form.emergency_phone || form.emergency_phone.trim().length < 8) {
-                newErrors.emergency_phone = isAm ? 'ስልክ ቁጥር ያስፈልጋል.' : 'Emergency phone is required.';
-            }
-            if (!form.emergency_relation) {
-                newErrors.emergency_relation = isAm ? 'ዝምድና ያስፈልጋል.' : 'Relationship is required.';
-            }
-        }
-
-        if (stepNumber === 6) {
-            if (form.has_vehicle) {
-                if (!form.plate_number || form.plate_number.trim().length < 2) {
-                    newErrors.plate_number = isAm ? 'ታርጋ ቁጥር ያስፈልጋል.' : 'Plate number is required.';
-                }
-                if (!form.vehicle_type) {
-                    newErrors.vehicle_type = isAm ? 'የተሽከርካሪ ዓይነት ያስፈልጋል.' : 'Vehicle type is required.';
-                }
-            }
-        }
-
-        if (stepNumber === 8) {
-            if (!form.id_type) {
-                newErrors.id_type = isAm ? 'የመታወቂያ ዓይነት ያስፈልጋል.' : 'ID type is required.';
-            }
-            if (!form.id_number || form.id_number.trim().length < 2) {
-                newErrors.id_number = isAm ? 'የመታወቂያ ቁጥር ያስፈልጋል.' : 'ID number is required.';
-            }
-            if (form.expiry_date) {
-                const today = new Date().toISOString().split('T')[0];
-                if (form.expiry_date < today) {
-                    newErrors.expiry_date = isAm ? 'መታወቂያው ጊዜው ያለፈበት ነው.' : 'ID Document has expired.';
-                }
-            }
-        }
-
-        if (stepNumber === 9) {
-            if (!form.confirmed_terms) {
-                newErrors.confirmed_terms = isAm ? 'ማረጋገጫ ያስፈልጋል.' : 'Confirmation is required.';
-            }
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        setAttachedDocName(`${file.name} (${(file.size / 1024).toFixed(0)} KB)`);
+        setErrors(prev => {
+            const updated = { ...prev };
+            delete updated.document_file;
+            return updated;
+        });
     };
 
     // Wizard Steps Configuration
@@ -314,7 +412,6 @@ export default function WalkInVisitorManagement({ onNavigate }) {
         setMessage(null);
         const isValid = validateStep(currentStep);
         if (!isValid) {
-            // Do NOT display the large top banner. The red message appears cleanly under each invalid input.
             return;
         }
 
@@ -327,14 +424,19 @@ export default function WalkInVisitorManagement({ onNavigate }) {
 
     const handlePrev = () => {
         setMessage(null);
-        setErrors({});
+        // Preserves all entered data and validation state
         if (currentStep > 1) {
             setCurrentStep(prev => prev - 1);
         }
     };
 
     const handleSubmitFinal = async () => {
-        if (!validateStep(9)) {
+        // Full comprehensive validation: Validate all steps 1 through 9 again before final submission
+        const failingStep = validateAllSteps(form);
+        if (failingStep !== null) {
+            setCurrentStep(failingStep);
+            focusFirstInvalidField();
+            notify.error(`Please correct the errors in Step ${failingStep} before submitting.`);
             return;
         }
 
@@ -345,17 +447,20 @@ export default function WalkInVisitorManagement({ onNavigate }) {
             ...form,
             full_name: fullName || 'Walk-In Guest',
             vehicle_plate: form.has_vehicle ? form.plate_number : '',
+            document_file_name: attachedDocName || undefined
         };
 
         try {
             const res = await api.post('/reception/walk-ins', payload);
             setRegisteredResult(res.data);
-            setMessage({ type: 'success', text: res.data.message || 'Walk-in visitor registered successfully!' });
+            notify.success(res.data?.message || 'Walk-in visitor registered and pass issued successfully!');
             setCurrentStep(10);
             fetchWalkInHistory();
         } catch (err) {
             console.error(err);
-            setMessage({ type: 'error', text: err.response?.data?.error || 'Registration failed. Please check form entries.' });
+            const errText = err.response?.data?.error || err.response?.data?.message || 'Registration failed. Please check form entries.';
+            setMessage({ type: 'error', text: errText });
+            notify.error(errText);
         } finally {
             setLoading(false);
         }
@@ -548,7 +653,19 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                                             key={step.id} 
                                             type="button" 
                                             onClick={() => {
-                                                if (step.id < currentStep || currentStep === 10) {
+                                                if (currentStep === 10) return;
+                                                if (step.id < currentStep) {
+                                                    // Going back to earlier steps preserves all data and errors
+                                                    setCurrentStep(step.id);
+                                                } else if (step.id > currentStep) {
+                                                    // Block navigating forward if any step prior to the target step fails
+                                                    for (let s = 1; s < step.id; s++) {
+                                                        if (!validateStep(s, form)) {
+                                                            setCurrentStep(s);
+                                                            focusFirstInvalidField();
+                                                            return;
+                                                        }
+                                                    }
                                                     setCurrentStep(step.id);
                                                 }
                                             }} 
@@ -608,6 +725,8 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                                                 placeholder="e.g. Abebe" 
                                                 value={form.first_name} 
                                                 onChange={(e) => handleFieldChange('first_name', e.target.value)} 
+                                                data-invalid={!!errors.first_name}
+                                                aria-invalid={!!errors.first_name}
                                                 className={`w-full bg-[#070c16] border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none transition-colors ${errors.first_name ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-indigo-500'}`}
                                             />
                                             {renderFieldError('first_name')}
@@ -619,8 +738,11 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                                                 placeholder="e.g. Kebede" 
                                                 value={form.middle_name} 
                                                 onChange={(e) => handleFieldChange('middle_name', e.target.value)} 
-                                                className="w-full bg-[#070c16] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                                                data-invalid={!!errors.middle_name}
+                                                aria-invalid={!!errors.middle_name}
+                                                className={`w-full bg-[#070c16] border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none transition-colors ${errors.middle_name ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-indigo-500'}`}
                                             />
+                                            {renderFieldError('middle_name')}
                                         </div>
                                         <div>
                                             <label className="block text-slate-300 text-xs font-bold uppercase mb-1">Last Name *</label>
@@ -630,6 +752,8 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                                                 placeholder="e.g. Tessema" 
                                                 value={form.last_name} 
                                                 onChange={(e) => handleFieldChange('last_name', e.target.value)} 
+                                                data-invalid={!!errors.last_name}
+                                                aria-invalid={!!errors.last_name}
                                                 className={`w-full bg-[#070c16] border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none transition-colors ${errors.last_name ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-indigo-500'}`}
                                             />
                                             {renderFieldError('last_name')}
@@ -918,15 +1042,16 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                                         {renderFieldError('emergency_name')}
                                     </div>
                                     <div>
-                                        <label className="block text-slate-300 text-xs font-bold uppercase mb-1">Emergency Phone Number *</label>
-                                        <input 
-                                            type="text" 
-                                            placeholder="+251 922 000 000" 
-                                            value={form.emergency_phone} 
-                                            onChange={(e) => handleFieldChange('emergency_phone', e.target.value)} 
-                                            className={`w-full bg-[#070c16] border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none ${errors.emergency_phone ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-indigo-500'}`}
+                                        <CountryPhoneInput
+                                            id="walkin-emergency-phone"
+                                            label={isAm ? 'የአደጋ ጊዜ ስልክ ቁጥር' : 'Emergency Phone Number'}
+                                            required
+                                            value={form.emergency_phone}
+                                            dialCode={form.phonePrefix || '+251'}
+                                            onChange={(e) => handleFieldChange('emergency_phone', e.target.value)}
+                                            error={errors.emergency_phone}
+                                            placeholder="+251 922 000 000"
                                         />
-                                        {renderFieldError('emergency_phone')}
                                     </div>
                                     <div>
                                         <label className="block text-slate-300 text-xs font-bold uppercase mb-1">Relationship *</label>
@@ -1012,7 +1137,16 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                             {/* ══════ STEP 7: VISITOR PHOTO CAPTURE ══════ */}
                             {currentStep === 7 && (
                                 <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-700 rounded-2xl bg-[#070c16] space-y-4">
-                                    <div className="w-28 h-28 rounded-full bg-slate-800 border-2 border-indigo-500/40 flex items-center justify-center text-slate-400 overflow-hidden shadow-xl ring-4 ring-indigo-500/10">
+                                    {/* Hidden Real Photo Input */}
+                                    <input 
+                                        type="file" 
+                                        ref={photoInputRef} 
+                                        accept="image/png,image/jpeg,image/jpg,image/webp" 
+                                        className="hidden" 
+                                        onChange={handlePhotoFileChange} 
+                                    />
+
+                                    <div className={`w-28 h-28 rounded-full bg-slate-800 border-2 ${errors.photo_url ? 'border-rose-500 ring-4 ring-rose-500/20' : 'border-indigo-500/40 ring-4 ring-indigo-500/10'} flex items-center justify-center text-slate-400 overflow-hidden shadow-xl`}>
                                         {form.photo_url ? (
                                             <img src={resolvePhotoUrl(form.photo_url)} alt="Visitor" className="w-full h-full object-cover" />
                                         ) : (
@@ -1021,20 +1155,27 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                                     </div>
                                     <div className="text-center">
                                         <span className="text-xs font-bold text-slate-200 block">Capture WebCam Snapshot or Upload Profile Photo</span>
-                                        <p className="text-[11px] text-slate-400">Photo will be printed onto the physical visitor pass and digital badge</p>
+                                        <p className="text-[11px] text-slate-400">Photo will be printed onto the physical visitor pass and digital badge (PNG, JPG, WEBP • Max 5MB)</p>
                                     </div>
                                     <div className="flex flex-wrap gap-3 justify-center">
                                         <button 
                                             type="button" 
+                                            onClick={() => photoInputRef.current?.click()} 
+                                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-xl text-xs font-bold uppercase flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
+                                        >
+                                            <Upload className="w-3.5 h-3.5" /> Upload Photo File
+                                        </button>
+                                        <button 
+                                            type="button" 
                                             onClick={() => handleFieldChange('photo_url', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300')} 
-                                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold uppercase flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+                                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold uppercase flex items-center gap-1.5 border border-slate-700"
                                         >
                                             <Camera className="w-3.5 h-3.5" /> Fast Snapshot (Demo)
                                         </button>
                                         <button 
                                             type="button" 
                                             onClick={() => handleFieldChange('photo_url', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300')} 
-                                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold uppercase flex items-center gap-1.5"
+                                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold uppercase flex items-center gap-1.5 border border-slate-700"
                                         >
                                             <Upload className="w-3.5 h-3.5" /> Sample Photo 2
                                         </button>
@@ -1048,64 +1189,116 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                                             </button>
                                         )}
                                     </div>
+                                    {renderFieldError('photo_url')}
                                 </div>
                             )}
 
                             {/* ══════ STEP 8: IDENTITY DOCUMENTS ══════ */}
                             {currentStep === 8 && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-slate-300 text-xs font-bold uppercase mb-1">Identity Document Type *</label>
-                                        <select 
-                                            value={form.id_type} 
-                                            onChange={(e) => handleFieldChange('id_type', e.target.value)} 
-                                            className={`w-full bg-[#070c16] border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none font-semibold ${errors.id_type ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-indigo-500'}`}
-                                        >
-                                            <option value="">{isAm ? 'የመታወቂያ ዓይነት ይምረጡ...' : 'Select Identity Document Type...'}</option>
-                                            <option value="National ID Card">National ID Card (ፋይዳ / Kebele)</option>
-                                            <option value="Passport">Passport</option>
-                                            <option value="Driver License">Driver's License</option>
-                                            <option value="Employee Badge">External Corporate Badge</option>
-                                            <option value="Student ID">Student ID</option>
-                                        </select>
-                                        {renderFieldError('id_type')}
-                                    </div>
+                                <div className="space-y-4">
+                                    {/* Hidden Document Input */}
+                                    <input 
+                                        type="file" 
+                                        ref={docInputRef} 
+                                        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" 
+                                        className="hidden" 
+                                        onChange={handleDocFileChange} 
+                                    />
 
-                                    <div>
-                                        <label className="block text-slate-300 text-xs font-bold uppercase mb-1">ID Identification Number *</label>
-                                        <input 
-                                            type="text" 
-                                            placeholder="e.g. ET-ID-8849201" 
-                                            value={form.id_number} 
-                                            onChange={(e) => handleFieldChange('id_number', e.target.value)} 
-                                            className={`w-full bg-[#070c16] border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none font-mono ${errors.id_number ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-indigo-500'}`}
-                                        />
-                                        {renderFieldError('id_number')}
-                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-slate-300 text-xs font-bold uppercase mb-1">Identity Document Type *</label>
+                                            <select 
+                                                value={form.id_type} 
+                                                onChange={(e) => handleFieldChange('id_type', e.target.value)} 
+                                                data-invalid={!!errors.id_type}
+                                                aria-invalid={!!errors.id_type}
+                                                className={`w-full bg-[#070c16] border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none font-semibold ${errors.id_type ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-indigo-500'}`}
+                                            >
+                                                <option value="">{isAm ? 'የመታወቂያ ዓይነት ይምረጡ...' : 'Select Identity Document Type...'}</option>
+                                                <option value="National ID Card">National ID Card (ፋይዳ / Kebele)</option>
+                                                <option value="Passport">Passport</option>
+                                                <option value="Driver License">Driver's License</option>
+                                                <option value="Employee Badge">External Corporate Badge</option>
+                                                <option value="Student ID">Student ID</option>
+                                            </select>
+                                            {renderFieldError('id_type')}
+                                        </div>
 
-                                    <div>
-                                        <label className="block text-slate-300 text-xs font-bold uppercase mb-1">Asset / Laptop Serial # (Optional)</label>
-                                        <div className="relative">
-                                            <Laptop className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                                        <div>
+                                            <label className="block text-slate-300 text-xs font-bold uppercase mb-1">ID Identification Number *</label>
                                             <input 
                                                 type="text" 
-                                                placeholder="e.g. Dell XPS Serial #ABC-123" 
-                                                value={form.asset_serial} 
-                                                onChange={(e) => handleFieldChange('asset_serial', e.target.value)} 
-                                                className="w-full bg-[#070c16] border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                                                placeholder="e.g. ET-ID-8849201" 
+                                                value={form.id_number} 
+                                                onChange={(e) => handleFieldChange('id_number', e.target.value)} 
+                                                data-invalid={!!errors.id_number}
+                                                aria-invalid={!!errors.id_number}
+                                                className={`w-full bg-[#070c16] border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none font-mono ${errors.id_number ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-indigo-500'}`}
                                             />
+                                            {renderFieldError('id_number')}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-slate-300 text-xs font-bold uppercase mb-1">Asset / Laptop Serial # (Optional)</label>
+                                            <div className="relative">
+                                                <Laptop className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="e.g. Dell XPS Serial #ABC-123" 
+                                                    value={form.asset_serial} 
+                                                    onChange={(e) => handleFieldChange('asset_serial', e.target.value)} 
+                                                    className="w-full bg-[#070c16] border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-slate-300 text-xs font-bold uppercase mb-1">ID Document Expiry Date</label>
+                                            <input 
+                                                type="date" 
+                                                value={form.expiry_date} 
+                                                onChange={(e) => handleFieldChange('expiry_date', e.target.value)} 
+                                                data-invalid={!!errors.expiry_date}
+                                                aria-invalid={!!errors.expiry_date}
+                                                className={`w-full bg-[#070c16] border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none ${errors.expiry_date ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-indigo-500'}`}
+                                            />
+                                            {renderFieldError('expiry_date')}
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-slate-300 text-xs font-bold uppercase mb-1">ID Document Expiry Date</label>
-                                        <input 
-                                            type="date" 
-                                            value={form.expiry_date} 
-                                            onChange={(e) => handleFieldChange('expiry_date', e.target.value)} 
-                                            className={`w-full bg-[#070c16] border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none ${errors.expiry_date ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-indigo-500'}`}
-                                        />
-                                        {renderFieldError('expiry_date')}
+                                    {/* Optional Document Attachment Upload Box */}
+                                    <div className="pt-2">
+                                        <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#070c16] border border-slate-700/80 rounded-xl">
+                                            <div>
+                                                <span className="text-xs font-bold text-slate-200 block">Supporting Document / ID Scan Attachment (Optional)</span>
+                                                <span className="text-[11px] text-slate-400">PDF, PNG, JPG, DOCX • Max 10MB</span>
+                                                {attachedDocName && (
+                                                    <span className="text-xs font-bold text-emerald-400 block mt-1">
+                                                        ✓ Attached: {attachedDocName}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => docInputRef.current?.click()}
+                                                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold uppercase flex items-center gap-1.5 border border-slate-700"
+                                                >
+                                                    <Upload className="w-3.5 h-3.5" /> {attachedDocName ? 'Replace Document' : 'Attach Document File'}
+                                                </button>
+                                                {attachedDocName && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAttachedDocName('')}
+                                                        className="px-2.5 py-2 bg-rose-500/10 text-rose-300 rounded-xl text-xs font-bold uppercase"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {renderFieldError('document_file')}
                                     </div>
                                 </div>
                             )}
@@ -1690,13 +1883,13 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-slate-400 font-bold uppercase mb-1">Phone Number *</label>
-                                    <input 
-                                        type="text" 
-                                        required 
-                                        value={editingWalkIn.phone || ''} 
-                                        onChange={(e) => setEditingWalkIn({ ...editingWalkIn, phone: e.target.value })} 
-                                        className="w-full bg-[#070c16] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                                    <CountryPhoneInput
+                                        id="edit-walkin-phone"
+                                        label={isAm ? 'ስልክ ቁጥር' : 'Phone Number'}
+                                        required
+                                        value={editingWalkIn.phone || ''}
+                                        onChange={(e) => setEditingWalkIn({ ...editingWalkIn, phone: e.target.value })}
+                                        placeholder="Phone number"
                                     />
                                 </div>
                                 <div>

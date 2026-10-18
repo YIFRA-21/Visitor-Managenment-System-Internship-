@@ -4,6 +4,9 @@ import { ArrowLeft, ArrowRight, Save, GitBranch, Phone, MapPin, Clock, CheckCirc
 import api from '../../../../services/api';
 import OperatingHoursForm from './components/OperatingHoursForm';
 import { useLanguage } from '../../../../contexts/LanguageContext';
+import CountryNationalitySelect from '../../../../components/common/CountryNationalitySelect';
+import CountryPhoneInput from '../../../../components/common/CountryPhoneInput';
+import { validatePhoneNumber } from '../../../../data/countriesData';
 
 export default function CreateBranchWizard() {
     const { t, language } = useLanguage();
@@ -94,6 +97,12 @@ export default function CreateBranchWizard() {
         if (s === 2) {
             if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
                 errs.email = isAm ? 'ትክክለኛ ኢሜይል ያስገቡ' : 'Invalid email address';
+            }
+            if (formData.phone && formData.phone.trim()) {
+                const phoneCheck = validatePhoneNumber(formData.phone);
+                if (!phoneCheck.isValid) {
+                    errs.phone = isAm ? 'ትክክለኛ ስልክ ቁጥር ያስገቡ' : (phoneCheck.error || 'Invalid phone number');
+                }
             }
         }
         if (s === 3) {
@@ -251,7 +260,19 @@ export default function CreateBranchWizard() {
                                 <label className="form-label font-bold text-xxs uppercase text-slate-400">
                                     {isAm ? 'ስልክ ቁጥር' : 'Phone Number'}
                                 </label>
-                                <input type="text" name="phone" className={`form-control text-xs font-semibold ${fieldErrors.phone ? 'is-invalid' : ''}`} value={formData.phone} onChange={handleChange} placeholder="+251 11..." />
+                                <CountryPhoneInput
+                                    id="branch-phone"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={(val) => {
+                                        setFormData(prev => ({ ...prev, phone: val }));
+                                        if (fieldErrors.phone) {
+                                            setFieldErrors(prev => { const n = { ...prev }; delete n.phone; return n; });
+                                        }
+                                    }}
+                                    error={fieldErrors.phone}
+                                    placeholder={isAm ? 'የስልክ ቁጥር ያስገቡ' : 'e.g. 0911234567'}
+                                />
                                 {renderFieldError('phone')}
                             </div>
                             <div className="col-12">
@@ -276,7 +297,20 @@ export default function CreateBranchWizard() {
                                 <label className="form-label font-bold text-xxs uppercase text-slate-400">
                                     {isAm ? 'ሀገር *' : 'Country *'}
                                 </label>
-                                <input type="text" name="country" className={`form-control text-xs font-semibold ${fieldErrors.country ? 'is-invalid' : ''}`} value={formData.country} onChange={handleChange} />
+                                <CountryNationalitySelect
+                                    id="branch-country"
+                                    name="country"
+                                    value={formData.country}
+                                    returnMode="country"
+                                    onChange={(val) => {
+                                        setFormData(prev => ({ ...prev, country: val }));
+                                        if (fieldErrors.country) {
+                                            setFieldErrors(prev => { const n = { ...prev }; delete n.country; return n; });
+                                        }
+                                    }}
+                                    error={fieldErrors.country}
+                                    placeholder={isAm ? 'ሀገር ይምረጡ...' : 'Select Country...'}
+                                />
                                 {renderFieldError('country')}
                             </div>
                             <div className="col-12 col-md-4">

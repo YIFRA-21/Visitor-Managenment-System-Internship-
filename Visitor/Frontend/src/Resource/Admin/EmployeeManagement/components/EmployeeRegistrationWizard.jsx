@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, CheckCircle2, ArrowRight, AlertCircle } from 'lucide-react';
+import CountryNationalitySelect from '../../../../components/common/CountryNationalitySelect';
+import CountryPhoneInput from '../../../../components/common/CountryPhoneInput';
 // Complete list of all world countries / nationalities with flag emojis
 const ALL_NATIONALITIES = [
     { label: 'Afghan', flag: '🇦🇫' },
@@ -693,20 +695,17 @@ export default function EmployeeRegistrationWizard({ employee, existingEmployees
                     </span>)}
                 </div>
 
-                {/* Nationality (All World Countries Selector with Container Bounds) */}
+                {/* Nationality (Searchable Standard Component) */}
                 <div className="col-12 col-md-4 position-relative">
-                  <label className={`text-[11px] font-bold uppercase tracking-wider mb-1 block ${touched.nationality && errors.nationality ? 'text-rose-400' : 'text-slate-400'}`}>
-                    Nationality <span className="text-rose-500">*</span>
-                  </label>
-                  <select data-invalid={Boolean(touched.nationality && errors.nationality)} className={getSelectClass('nationality')} value={formData.nationality} onChange={(e) => handleFieldChange('nationality', e.target.value)} onBlur={() => handleBlur('nationality')} style={{ width: '100%', maxWidth: '100%', textOverflow: 'ellipsis' }}>
-                    <option value="">Select Nationality *</option>
-                    {ALL_NATIONALITIES.map((nat) => (<option key={nat.label} value={nat.label}>
-                        {nat.flag} {nat.label}
-                      </option>))}
-                  </select>
-                  {touched.nationality && errors.nationality && (<span className="text-[11px] font-semibold text-rose-300 mt-1.5 d-flex align-items-center gap-1.5">
-                      <AlertCircle size={13} className="text-rose-400 shrink-0"/> {errors.nationality}
-                    </span>)}
+                  <CountryNationalitySelect
+                    id="emp-nationality-select"
+                    label="Nationality"
+                    required
+                    value={formData.nationality}
+                    onChange={(e) => handleFieldChange('nationality', e.target.value)}
+                    error={touched.nationality && errors.nationality ? errors.nationality : ''}
+                    placeholder="Select Nationality *"
+                  />
                 </div>
               </div>
             </div>)}
@@ -831,8 +830,13 @@ export default function EmployeeRegistrationWizard({ employee, existingEmployees
 
                 {/* Mobile Phone Number */}
                 <div className="col-12 col-md-6">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Mobile Phone Number</label>
-                  <input type="text" className={getInputClass('mobile_number')} value={formData.mobile_number} onChange={(e) => handleFieldChange('mobile_number', e.target.value)} placeholder="+2519..."/>
+                  <CountryPhoneInput
+                    id="emp-mobile-number"
+                    label="Mobile Phone Number"
+                    value={formData.mobile_number}
+                    onChange={(e) => handleFieldChange('mobile_number', e.target.value)}
+                    placeholder="+251 9..."
+                  />
                 </div>
 
                 {/* Emergency Contact Name */}
@@ -843,8 +847,13 @@ export default function EmployeeRegistrationWizard({ employee, existingEmployees
 
                 {/* Emergency Contact Phone */}
                 <div className="col-12 col-md-6">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Emergency Contact Phone</label>
-                  <input type="text" className={getInputClass('emergency_contact_phone')} value={formData.emergency_contact_phone} onChange={(e) => handleFieldChange('emergency_contact_phone', e.target.value)}/>
+                  <CountryPhoneInput
+                    id="emp-emergency-contact-phone"
+                    label="Emergency Contact Phone"
+                    value={formData.emergency_contact_phone}
+                    onChange={(e) => handleFieldChange('emergency_contact_phone', e.target.value)}
+                    placeholder="+251 9..."
+                  />
                 </div>
               </div>
             </div>)}

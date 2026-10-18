@@ -55,11 +55,26 @@ export default function CountryNationalitySelect({
   returnMode = 'nationality', // 'nationality' | 'country' | 'code' | 'object'
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const [search, setSearch] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef(null);
   const searchInputRef = useRef(null);
   const listRef = useRef(null);
+
+  // Dynamically calculate whether dropdown opens upward or downward based on viewport
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceAbove = rect.top;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 320 && spaceAbove > spaceBelow) {
+        setOpenUpward(true);
+      } else {
+        setOpenUpward(false);
+      }
+    }
+  }, [isOpen]);
 
   // Find currently selected country
   const selectedCountry = useMemo(() => {
@@ -213,6 +228,8 @@ export default function CountryNationalitySelect({
         id={id}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-invalid={error ? 'true' : undefined}
+        data-invalid={error ? 'true' : undefined}
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(prev => !prev)}
         onKeyDown={handleKeyDown}
@@ -278,7 +295,9 @@ export default function CountryNationalitySelect({
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className="absolute z-50 mt-1.5 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+          className={`absolute z-[100] left-0 ${
+            openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+          } w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150`}
           style={{ maxHeight: '360px' }}
         >
           {/* Search Header */}

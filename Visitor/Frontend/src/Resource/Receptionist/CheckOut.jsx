@@ -919,12 +919,13 @@ export default function CheckOut() {
                 </div>
 
                 <button
+                  type="button"
                   disabled={loading}
                   onClick={() => executeCheckOut()}
-                  className="w-full py-3.5 bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-rose-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                  className="w-full h-12 min-h-[48px] bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-rose-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
                 >
-                  {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-                  <span>Authorize Turnstile Egress & Unlock Gate</span>
+                  {loading ? <RefreshCw className="h-4 w-4 animate-spin shrink-0" /> : <LogOut className="h-4 w-4 shrink-0" />}
+                  <span>{loading ? 'Authorizing Turnstile Egress & Checking Out...' : 'Authorize Turnstile Egress & Unlock Gate'}</span>
                 </button>
               </div>
             ) : hasSearched && !searching ? (
@@ -1063,12 +1064,13 @@ export default function CheckOut() {
                 </div>
 
                 <button
+                  type="button"
                   disabled={loading}
                   onClick={() => executeCheckOut(facialMatch.visitor)}
-                  className="w-full py-3 bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-colors"
+                  className="w-full h-12 min-h-[48px] bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-colors disabled:opacity-50"
                 >
-                  {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-                  <span>Release & Authorize Turnstile Egress</span>
+                  {loading ? <RefreshCw className="h-4 w-4 animate-spin shrink-0" /> : <LogOut className="h-4 w-4 shrink-0" />}
+                  <span>{loading ? 'Authorizing Turnstile Egress & Checking Out...' : 'Release & Authorize Turnstile Egress'}</span>
                 </button>
               </div>
             )}
@@ -1419,10 +1421,10 @@ export default function CheckOut() {
                   type="button"
                   disabled={loading}
                   onClick={() => executeCheckOut(inspectingGuest)}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold uppercase tracking-wide flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition"
+                  className="h-10 min-h-[40px] px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold uppercase tracking-wide flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition disabled:opacity-50"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Tap Out & Release Gate
+                  {loading ? <RefreshCw className="w-4 h-4 animate-spin shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                  <span>{loading ? 'Releasing Gate...' : 'Tap Out & Release Gate'}</span>
                 </button>
               </div>
             </motion.div>
@@ -1464,7 +1466,7 @@ export default function CheckOut() {
                 <button
                   type="button"
                   onClick={() => setVoidingGuest(null)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
+                  className="h-10 min-h-[40px] px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
                 >
                   Cancel
                 </button>
@@ -1472,10 +1474,10 @@ export default function CheckOut() {
                   type="button"
                   disabled={actionInProgressId !== null}
                   onClick={() => handleDeleteSession(voidingGuest)}
-                  className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold tracking-wide uppercase shadow-lg shadow-red-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+                  className="h-10 min-h-[40px] px-6 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold tracking-wide uppercase shadow-lg shadow-red-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  Confirm Void
+                  {actionInProgressId !== null ? <RefreshCw className="w-4 h-4 animate-spin shrink-0" /> : <Trash2 className="w-4 h-4 shrink-0" />}
+                  <span>{actionInProgressId !== null ? 'Voiding...' : 'Confirm Void'}</span>
                 </button>
               </div>
             </motion.div>

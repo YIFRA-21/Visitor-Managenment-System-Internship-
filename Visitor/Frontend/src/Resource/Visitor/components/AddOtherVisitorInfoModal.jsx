@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, User, MapPin, Phone, Shield, FileText, Upload, Check, AlertCircle, Save } from 'lucide-react';
 import { visitorPortalApi } from '../../../services/api';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import CountryPhoneInput from '../../../components/common/CountryPhoneInput';
 
 export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, initialData = {} }) {
     const { t } = useLanguage();
@@ -315,16 +316,22 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] uppercase font-extrabold text-slate-400 mb-1">
-                    {t('form.emergencyContactPhone', 'Emergency Phone Number')}
-                  </label>
-                  <input type="tel" placeholder={t('placeholder.phone', '+251 9... or Phone')} className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500" value={emergencyPhone} onChange={e => setEmergencyPhone(e.target.value)}/>
+                  <CountryPhoneInput
+                    id="add-other-emergency-phone"
+                    label={t('form.emergencyContactPhone', 'Emergency Phone Number')}
+                    value={emergencyPhone}
+                    onChange={e => setEmergencyPhone(e.target.value)}
+                    placeholder="+251 9... or Phone"
+                  />
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase font-extrabold text-slate-400 mb-1">
-                    {t('form.altPhone', 'Secondary Emergency Phone')}
-                  </label>
-                  <input type="tel" placeholder={t('placeholder.altPhone', 'Alternative Contact Phone')} className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500" value={secondaryEmergencyPhone} onChange={e => setSecondaryEmergencyPhone(e.target.value)}/>
+                  <CountryPhoneInput
+                    id="add-other-sec-emergency-phone"
+                    label={t('form.altPhone', 'Secondary Emergency Phone')}
+                    value={secondaryEmergencyPhone}
+                    onChange={e => setSecondaryEmergencyPhone(e.target.value)}
+                    placeholder="+251 9... or Phone"
+                  />
                 </div>
               </div>
             </div>)}
@@ -339,10 +346,13 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                   <input type="email" placeholder={t('placeholder.email', 'work.email@company.com')} className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500" value={workEmail} onChange={e => setWorkEmail(e.target.value)}/>
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase font-extrabold text-slate-400 mb-1">
-                    {t('form.altPhone', 'Alternative Phone Number')}
-                  </label>
-                  <input type="tel" placeholder={t('placeholder.phone', 'Alternative Phone')} className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500" value={altPhone} onChange={e => setAltPhone(e.target.value)}/>
+                  <CountryPhoneInput
+                    id="add-other-alt-phone"
+                    label={t('form.altPhone', 'Alternative Phone Number')}
+                    value={altPhone}
+                    onChange={e => setAltPhone(e.target.value)}
+                    placeholder="+251 9... or Phone"
+                  />
                 </div>
               </div>
 

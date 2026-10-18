@@ -39,6 +39,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { resolvePhotoUrl, getPhotoFallbackInitials } from '../../utils/photoUtils';
 import BackButton from '../../components/common/BackButton';
+import { useNotification } from '../../contexts/NotificationContext';
 
 // Formatting helpers
 const formatDateTime = (dateStr) => {
@@ -190,6 +191,7 @@ function HistoryKpiCard({ title, value, subtitle, badge, icon, theme, onClick })
 
 export default function CheckInOutHistory({ initialTab = 'all' }) {
   const { t, language } = useLanguage();
+  const { showNotification } = useNotification();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -202,7 +204,6 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
   const [pagination, setPagination] = useState({ page: 1, limit: 15, total: 0, pages: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [toast, setToast] = useState(null);
 
   // Stats / Dashboard KPI state
   const [stats, setStats] = useState({
@@ -236,10 +237,9 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
 
-  // Show Toast helper
+  // Show Toast helper (routed to global notification system)
   const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
+    showNotification(message, type);
   };
 
   // Sync tab with URL

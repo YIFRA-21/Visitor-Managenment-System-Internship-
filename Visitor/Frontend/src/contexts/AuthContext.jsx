@@ -318,8 +318,8 @@ export function AuthProvider({ children }) {
         if (reqRole === 'employee' || reqRole === 'staff') {
             return userRole === 'employee' || userRole === 'staff' || userRole === 'admin';
         }
-        if (reqRole === 'manager') {
-            return userRole === 'manager' || userRole === 'admin';
+        if (reqRole === 'manager' || reqRole === 'department_manager') {
+            return userRole === 'manager' || userRole === 'department_manager' || userRole?.includes('manager') || userRole === 'admin';
         }
         if (reqRole === 'receptionist' || reqRole === 'reception') {
             return userRole === 'receptionist' || userRole === 'admin';

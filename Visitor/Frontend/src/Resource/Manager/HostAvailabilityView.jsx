@@ -1,9 +1,10 @@
-// Frontend/src/Resource/Manager/HostAvailabilityView.tsx
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Clock, AlertTriangle, CheckCircle2, Building, RefreshCw, Mail, Search, List, LayoutGrid, Filter } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { UserCheck, Clock, AlertTriangle, CheckCircle2, Building, RefreshCw, Mail, Search, List, LayoutGrid, Filter, ShieldCheck, UserX, Users } from 'lucide-react';
 import BackButton from '../../components/common/BackButton';
 import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { useLanguage } from '../../contexts/LanguageContext';
+import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
 
 export default function HostAvailabilityView() {
     const { t, tStatus } = useLanguage();
@@ -100,38 +101,46 @@ export default function HostAvailabilityView() {
         </div>
       </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 flex items-center justify-between shadow-lg">
-          <div>
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Authorized Hosts</p>
-            <p className="text-2xl font-bold text-white mt-1">{hosts.length}</p>
-          </div>
-          <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl">
-            <UserCheck className="w-5 h-5"/>
-          </div>
-        </div>
+      {/* Overview Cards - Manager Dashboard Card Style with Real Data Animation */}
+      <motion.div
+        variants={dashboardContainerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+      >
+        <MetricCard
+          title="Authorized Hosts"
+          value={hosts.length}
+          subtitle="Department staff pool"
+          badge="Total Pool"
+          theme="indigo"
+          isActive={statusFilter === 'ALL'}
+          onClick={() => setStatusFilter('ALL')}
+          icon={<Users className="w-4 h-4 text-indigo-400" />}
+        />
 
-        <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 flex items-center justify-between shadow-lg">
-          <div>
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Available Right Now</p>
-            <p className="text-2xl font-bold text-emerald-400 mt-1">{availableCount}</p>
-          </div>
-          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
-            <CheckCircle2 className="w-5 h-5"/>
-          </div>
-        </div>
+        <MetricCard
+          title="Available Right Now"
+          value={availableCount}
+          subtitle="Ready to receive visitors"
+          badge="Active"
+          theme="emerald"
+          isActive={statusFilter === 'AVAILABLE'}
+          onClick={() => setStatusFilter('AVAILABLE')}
+          icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+        />
 
-        <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 flex items-center justify-between shadow-lg">
-          <div>
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Unavailable / On Leave</p>
-            <p className="text-2xl font-bold text-rose-400 mt-1">{unavailableCount}</p>
-          </div>
-          <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl">
-            <AlertTriangle className="w-5 h-5"/>
-          </div>
-        </div>
-      </div>
+        <MetricCard
+          title="Unavailable / On Leave"
+          value={unavailableCount}
+          subtitle="Off-duty or occupied"
+          badge="Away"
+          theme="rose"
+          isActive={statusFilter === 'UNAVAILABLE' || statusFilter === 'ON_LEAVE' || statusFilter === 'BUSY'}
+          onClick={() => setStatusFilter('UNAVAILABLE')}
+          icon={<AlertTriangle className="w-4 h-4 text-rose-400" />}
+        />
+      </motion.div>
 
       {/* Search and Filters Bar */}
       <div className="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 shadow-xl flex flex-col md:flex-row gap-3 items-center justify-between">

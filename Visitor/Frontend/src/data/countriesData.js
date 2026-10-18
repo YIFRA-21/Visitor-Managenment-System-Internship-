@@ -326,9 +326,52 @@ export function validateDateOfBirth(birthDateInput, minAge = 18) {
 }
 
 /**
+ * Parse a full phone string or partial phone into dialCode and localNumber
+ * Automatically detects if a user typed/pasted a number starting with '+' or dial code.
+ */
+export function parseInternationalPhone(input, preferredDial = '+251', preferredCountryCode = 'ET') {
+  if (!input) {
+    const defaultCountry = COUNTRIES_DATA.find(c => c.code === preferredCountryCode || c.dialCode === preferredDial) || COUNTRIES_DATA[0];
+    return {
+      dialCode: defaultCountry.dialCode,
+      localNumber: '',
+      country: defaultCountry
+    };
+  }
+
+  const trimmed = String(input).trim();
+
+  // If input starts with '+' or '00'
+  if (trimmed.startsWith('+') || trimmed.startsWith('00')) {
+    const cleanWithPlus = trimmed.startsWith('00') ? `+${trimmed.slice(2)}` : trimmed;
+    // Sort by dialCode length desc so longer dial codes match first (+251 before +25)
+    const sorted = [...COUNTRIES_DATA].sort((a, b) => b.dialCode.length - a.dialCode.length);
+    for (const c of sorted) {
+      if (cleanWithPlus.startsWith(c.dialCode)) {
+        const local = cleanWithPlus.slice(c.dialCode.length).trim();
+        return {
+          dialCode: c.dialCode,
+          localNumber: local,
+          country: c
+        };
+      }
+    }
+  }
+
+  // Fallback to preferred dial code
+  const defaultCountry = COUNTRIES_DATA.find(c => c.code === preferredCountryCode || c.dialCode === preferredDial) || COUNTRIES_DATA[0];
+  return {
+    dialCode: defaultCountry.dialCode,
+    localNumber: trimmed,
+    country: defaultCountry
+  };
+}
+
+/**
  * Validates international phone number based on selected country dial code.
  * Handles local leading zeros, length checks, and number format validity.
- * Returns { valid: boolean, error: string|null, cleanPhone: string, fullInternational: string }
+ * Normalizes to E.164 and international readable string.
+ * Returns { valid: boolean, error: string|null, cleanPhone: string, fullInternational: string, e164: string }
  */
 export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode = 'ET') {
   if (!phoneInput || !String(phoneInput).trim()) {
@@ -336,7 +379,8 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
       valid: false,
       error: 'Phone number is required.',
       cleanPhone: '',
-      fullInternational: ''
+      fullInternational: '',
+      e164: ''
     };
   }
 
@@ -348,11 +392,18 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
       valid: false,
       error: 'Please enter a valid phone number with numbers only.',
       cleanPhone: '',
-      fullInternational: ''
+      fullInternational: '',
+      e164: ''
     };
   }
 
   const normalizedDial = dialCode.startsWith('+') ? dialCode : `+${dialCode}`;
+  const dialDigits = normalizedDial.replace('+', '');
+
+  // Strip dial code if user typed/pasted it with dial code included
+  if (digits.startsWith(dialDigits) && digits.length > dialDigits.length + 5) {
+    digits = digits.slice(dialDigits.length);
+  }
 
   // Ethiopia (+251) Specific Rules
   if (normalizedDial === '+251' || countryCode === 'ET') {
@@ -370,7 +421,8 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
         valid: false,
         error: `Phone number is too short (${digits.length}/9 digits). Example: 911 234 567`,
         cleanPhone: digits,
-        fullInternational: `${normalizedDial} ${digits}`
+        fullInternational: `${normalizedDial} ${digits}`,
+        e164: `${normalizedDial}${digits}`
       };
     }
 
@@ -379,7 +431,8 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
         valid: false,
         error: `Phone number is too long (${digits.length}/9 digits). Ethiopian mobile numbers have 9 digits.`,
         cleanPhone: digits,
-        fullInternational: `${normalizedDial} ${digits}`
+        fullInternational: `${normalizedDial} ${digits}`,
+        e164: `${normalizedDial}${digits}`
       };
     }
 
@@ -389,7 +442,8 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
         valid: false,
         error: 'Ethiopian mobile numbers must start with 9 or 7 (e.g. 911 234 567).',
         cleanPhone: digits,
-        fullInternational: `${normalizedDial} ${digits}`
+        fullInternational: `${normalizedDial} ${digits}`,
+        e164: `${normalizedDial}${digits}`
       };
     }
 
@@ -397,7 +451,8 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
       valid: true,
       error: null,
       cleanPhone: digits,
-      fullInternational: `${normalizedDial} ${digits}`
+      fullInternational: `${normalizedDial} ${digits}`,
+      e164: `${normalizedDial}${digits}`
     };
   }
 
@@ -412,7 +467,8 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
         valid: false,
         error: `Phone number must be exactly 10 digits for North America (currently ${digits.length}).`,
         cleanPhone: digits,
-        fullInternational: `${normalizedDial} ${digits}`
+        fullInternational: `${normalizedDial} ${digits}`,
+        e164: `${normalizedDial}${digits}`
       };
     }
 
@@ -420,7 +476,8 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
       valid: true,
       error: null,
       cleanPhone: digits,
-      fullInternational: `${normalizedDial} ${digits}`
+      fullInternational: `${normalizedDial} ${digits}`,
+      e164: `${normalizedDial}${digits}`
     };
   }
 
@@ -434,7 +491,8 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
       valid: false,
       error: 'Phone number is too short (minimum 6 digits).',
       cleanPhone: digits,
-      fullInternational: `${normalizedDial} ${digits}`
+      fullInternational: `${normalizedDial} ${digits}`,
+      e164: `${normalizedDial}${digits}`
     };
   }
 
@@ -443,7 +501,8 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
       valid: false,
       error: 'Phone number cannot exceed 15 digits according to international standards.',
       cleanPhone: digits,
-      fullInternational: `${normalizedDial} ${digits}`
+      fullInternational: `${normalizedDial} ${digits}`,
+      e164: `${normalizedDial}${digits}`
     };
   }
 
@@ -451,6 +510,7 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
     valid: true,
     error: null,
     cleanPhone: digits,
-    fullInternational: `${normalizedDial} ${digits}`
+    fullInternational: `${normalizedDial} ${digits}`,
+    e164: `${normalizedDial}${digits}`
   };
 }

@@ -866,10 +866,19 @@ export default function CheckIn() {
                 <button
                   disabled={loading}
                   onClick={() => executeCheckIn()}
-                  className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                  className="w-full h-11 min-h-[44px] bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
                 >
-                  {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-                  <span>Authorize Turnstile Ingress & Issue Badge</span>
+                  {loading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin shrink-0" />
+                      <span>Checking in...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="h-4 w-4 shrink-0" />
+                      <span>Authorize Turnstile Ingress & Issue Badge</span>
+                    </>
+                  )}
                 </button>
               </div>
             ) : hasSearched && !searching ? (

@@ -202,6 +202,20 @@ export default function DashboardPage() {
         // 1. Explicit query parameter ?view=...
         const paramView = searchParams.get('view');
         if (paramView) {
+            const role = user?.role?.toLowerCase() || 'visitor';
+            // Role-specific override for Manager views
+            if (role === 'manager' || role === 'department_manager') {
+                if (paramView === 'visitors' || paramView === 'department_visitors' || paramView === 'manager_visitors' || paramView === 'visitor-directory') {
+                    return 'manager_visitors';
+                }
+                if (paramView === 'requests' || paramView === 'visitor_requests' || paramView === 'department_requests' || paramView === 'manager_requests' || paramView === 'approvals') {
+                    return 'manager_requests';
+                }
+                if (paramView === 'dashboard' || paramView === 'overview' || paramView === 'manager_dashboard') {
+                    return 'manager_dashboard';
+                }
+            }
+
             if (paramView === 'visitor_portal_dashboard' || paramView === 'visitor-portal-dashboard') {
                 return 'visitor_portal_dashboard';
             }
@@ -292,32 +306,33 @@ export default function DashboardPage() {
         if (pathname.includes('/employee/settings'))
             return 'employee_settings';
         // Manager role routes
-        if (pathname.includes('/manager/employees') || pathname.includes('/manager_employees'))
-            return 'manager_employees';
-        if (pathname.includes('/manager/availability') || pathname.includes('/manager_availability'))
-            return 'manager_availability';
-        if (pathname.includes('/manager/requests') || pathname.includes('/manager_requests'))
-            return 'manager_requests';
-        if (pathname.includes('/manager/appointments') || pathname.includes('/manager_appointments'))
-            return 'manager_appointments';
-        if (pathname.includes('/manager/visitors') || pathname.includes('/manager_visitors'))
-            return 'manager_visitors';
-        if (pathname.includes('/manager/rooms') || pathname.includes('/manager_rooms'))
-            return 'manager_rooms';
-        if (pathname.includes('/manager/policies') || pathname.includes('/manager_policies'))
-            return 'manager_policies';
-        if (pathname.includes('/manager/evacuation') || pathname.includes('/manager_evacuation'))
-            return 'manager_evacuation';
-        if (pathname.includes('/manager/security') || pathname.includes('/manager_security'))
-            return 'manager_security';
-        if (pathname.includes('/manager/reports') || pathname.includes('/manager_reports'))
-            return 'manager_reports';
-        if (pathname.includes('/manager/audit') || pathname.includes('/manager_audit'))
-            return 'manager_audit';
-        if (pathname.includes('/manager/profile') || pathname.includes('/manager_profile'))
-            return 'manager_profile';
-        if (pathname.includes('/manager/dashboard') || pathname.includes('/manager_dashboard'))
+        if (pathname.startsWith('/manager') || pathname === '/manager') {
+            if (pathname.includes('/manager/employees') || pathname.includes('/manager_employees'))
+                return 'manager_employees';
+            if (pathname.includes('/manager/availability') || pathname.includes('/manager_availability'))
+                return 'manager_availability';
+            if (pathname.includes('/manager/requests') || pathname.includes('/manager_requests') || pathname.includes('/manager/approvals'))
+                return 'manager_requests';
+            if (pathname.includes('/manager/appointments') || pathname.includes('/manager_appointments'))
+                return 'manager_appointments';
+            if (pathname.includes('/manager/visitors') || pathname.includes('/manager_visitors'))
+                return 'manager_visitors';
+            if (pathname.includes('/manager/rooms') || pathname.includes('/manager_rooms'))
+                return 'manager_rooms';
+            if (pathname.includes('/manager/policies') || pathname.includes('/manager_policies'))
+                return 'manager_policies';
+            if (pathname.includes('/manager/evacuation') || pathname.includes('/manager_evacuation'))
+                return 'manager_evacuation';
+            if (pathname.includes('/manager/security') || pathname.includes('/manager_security'))
+                return 'manager_security';
+            if (pathname.includes('/manager/reports') || pathname.includes('/manager_reports'))
+                return 'manager_reports';
+            if (pathname.includes('/manager/audit') || pathname.includes('/manager_audit'))
+                return 'manager_audit';
+            if (pathname.includes('/manager/profile') || pathname.includes('/manager_profile'))
+                return 'manager_profile';
             return 'manager_dashboard';
+        }
         if (pathname.includes('/visitor/profile')) {
             return 'visitor_profile';
         }
@@ -438,14 +453,18 @@ export default function DashboardPage() {
             }
         }
         // Department Manager role views: always route to isolated Department Manager views
-        if (role === 'manager' || role === 'department_manager') {
+        if (role === 'manager' || role === 'department_manager' || role.includes('manager')) {
             switch (currentView) {
                 case 'dashboard':
                 case 'manager_dashboard':
                 case 'department_manager_dashboard':
                     return <ManagerDashboard onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
                 case 'manager_requests':
+                case 'manager-requests':
+                case 'department_requests':
+                case 'department-requests':
                 case 'visitor_requests':
+                case 'visitor-requests':
                 case 'approval_workflow_management':
                 case 'approvals':
                     return <DepartmentVisitorRequestsView />;
@@ -499,6 +518,8 @@ export default function DashboardPage() {
                 case 'messages':
                 case 'announcements':
                     return <UnifiedNotificationCenter initialTab={currentView === 'notifications' ? 'dashboard' : currentView} onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
+                default:
+                    return <ManagerDashboard onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
             }
         }
         const RegistryComponent = componentRegistry[currentView];
@@ -1069,8 +1090,12 @@ export default function DashboardPage() {
             case 'host_availability':
                 return <HostAvailabilityView />;
             case 'manager_requests':
+            case 'manager-requests':
             case 'department_requests':
+            case 'department-requests':
             case 'visitor_requests':
+            case 'visitor-requests':
+            case 'approvals':
                 return role === 'visitor' ? <VisitorDashboard /> : <DepartmentVisitorRequestsView />;
             case 'manager_appointments':
             case 'department_appointments':
@@ -1120,8 +1145,8 @@ export default function DashboardPage() {
                     return <VisitorDashboard />;
                 if (role === 'staff' || role === 'employee')
                     return <EmployeeDashboard />;
-                if (role === 'manager' || role === 'department_manager')
-                    return <ManagerDashboard onNavigate={(v) => navigate(`/dashboard?view=${v}`)}/>;
+                if (role === 'manager' || role === 'department_manager' || role.includes('manager'))
+                    return <ManagerDashboard onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
                 if (role === 'receptionist')
                     return <ReceptionDashboard />;
                 if (role === 'security_officer' || role === 'security')

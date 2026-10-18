@@ -1,28 +1,34 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { FlagImage } from './CountryNationalitySelect';
-import { COUNTRIES_DATA, getFlagUrl, validatePhoneNumber } from '../../data/countriesData';
+import { COUNTRIES_DATA, getFlagUrl, validatePhoneNumber, parseInternationalPhone } from '../../data/countriesData';
 
 /**
  * CountryPhoneInput - Professional Phone Input with International Country Flag Dropdown
- * Matches the user-provided UI design:
+ * Features:
  * - Left Box: Flag logo + caret arrow button in a sleek rounded border
- * - Right Box: "Phone number" input field
+ * - Right Box: Phone number input field
  * - Dropdown Menu:
- *   - Dark theme popover with scrollbar
+ *   - Dark theme popover matching user screenshot
  *   - Selected item with full-width blue highlight
  *   - Each item shows: [Flag Logo] Country Name (+DialCode)
- *   - All countries in the world included
- *   - Live search by country name, code, or dial code
- *   - Real-time and on-submit phone validation with friendly guidance
+ *   - All countries and territories in the world included
+ *   - Live search by country name, nationality, or dial code
+ *   - Quick-select priority countries (Ethiopia, US, UK, Canada, Kenya, UAE, etc.)
+ *   - Real-time phone validation and format helper
+ *   - Supports both two-part forms (separate dialCode and phone) and single-string forms
+ *   - Auto-detects pasted/typed international prefixes (+251, +1, etc.)
+ *   - Handles countries sharing calling codes (e.g. US and Canada +1)
  */
 export default function CountryPhoneInput({
   id = 'phone-input',
   name = 'phone',
   value = '',
   dialCode = '+251',
+  countryCode = '',
   onChange,
   onDialCodeChange,
+  onBlur,
   error = '',
   placeholder = 'Phone number',
   label = '',
@@ -32,9 +38,13 @@ export default function CountryPhoneInput({
   showValidationHelper = true,
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [openUpward, setOpenUpward] = useState(true);
+  const [openUpward, setOpenUpward] = useState(false);
   const [search, setSearch] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Internal country state for when onDialCodeChange is not provided
+  const [internalCountryCode, setInternalCountryCode] = useState(countryCode || '');
+  const [internalDialCode, setInternalDialCode] = useState(dialCode || '+251');
 
   const containerRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -42,11 +52,44 @@ export default function CountryPhoneInput({
   const phoneInputRef = useRef(null);
   const listRef = useRef(null);
 
-  // Active country determined by dialCode (defaults to Ethiopia +251)
-  const currentCountry = useMemo(() => {
-    const cleanDial = dialCode.startsWith('+') ? dialCode : `+${dialCode}`;
+  // Determine effective dial code and country
+  const effectiveCountry = useMemo(() => {
+    // If external onDialCodeChange is used, dialCode prop is the primary source of truth
+    if (onDialCodeChange) {
+      if (countryCode) {
+        const byCode = COUNTRIES_DATA.find(c => c.code.toUpperCase() === countryCode.toUpperCase());
+        if (byCode) return byCode;
+      }
+      const cleanDial = dialCode.startsWith('+') ? dialCode : `+${dialCode}`;
+      return COUNTRIES_DATA.find(c => c.dialCode === cleanDial) || COUNTRIES_DATA[0];
+    }
+
+    // Single-field mode: check if value starts with '+'
+    if (value && (String(value).trim().startsWith('+') || String(value).trim().startsWith('00'))) {
+      const parsed = parseInternationalPhone(value, internalDialCode, internalCountryCode);
+      if (parsed.country) return parsed.country;
+    }
+
+    if (internalCountryCode) {
+      const byCode = COUNTRIES_DATA.find(c => c.code.toUpperCase() === internalCountryCode.toUpperCase());
+      if (byCode) return byCode;
+    }
+
+    const cleanDial = internalDialCode.startsWith('+') ? internalDialCode : `+${internalDialCode}`;
     return COUNTRIES_DATA.find(c => c.dialCode === cleanDial) || COUNTRIES_DATA[0];
-  }, [dialCode]);
+  }, [onDialCodeChange, dialCode, countryCode, value, internalDialCode, internalCountryCode]);
+
+  // Determine what to display inside the text input
+  const displayLocalValue = useMemo(() => {
+    if (!value) return '';
+    const str = String(value).trim();
+    // If in single-field mode and value contains the dial code, extract local number for display
+    if (!onDialCodeChange && (str.startsWith('+') || str.startsWith('00'))) {
+      const parsed = parseInternationalPhone(str, effectiveCountry.dialCode, effectiveCountry.code);
+      return parsed.localNumber;
+    }
+    return value;
+  }, [value, onDialCodeChange, effectiveCountry]);
 
   // List of countries ordered: Selected country at top, followed by all countries alphabetically
   const displayCountries = useMemo(() => {
@@ -62,9 +105,9 @@ export default function CountryPhoneInput({
     }
 
     // Default view: Selected country on top, followed by full alphabetical list
-    const otherCountries = COUNTRIES_DATA.filter(c => c.code !== currentCountry.code);
-    return [currentCountry, ...otherCountries];
-  }, [search, currentCountry]);
+    const otherCountries = COUNTRIES_DATA.filter(c => c.code !== effectiveCountry.code);
+    return [effectiveCountry, ...otherCountries];
+  }, [search, effectiveCountry]);
 
   // Dynamically calculate whether dropdown opens upward or downward based on viewport
   useEffect(() => {
@@ -72,11 +115,11 @@ export default function CountryPhoneInput({
       const rect = containerRef.current.getBoundingClientRect();
       const spaceAbove = rect.top;
       const spaceBelow = window.innerHeight - rect.bottom;
-      // Default to opening upward (matching user's screenshot), unless cramped on top
-      if (spaceAbove < 260 && spaceBelow > spaceAbove) {
-        setOpenUpward(false);
-      } else {
+      // Default to opening downward unless cramped on bottom and more room on top
+      if (spaceBelow < 280 && spaceAbove > spaceBelow) {
         setOpenUpward(true);
+      } else {
+        setOpenUpward(false);
       }
     }
   }, [isOpen]);
@@ -119,9 +162,26 @@ export default function CountryPhoneInput({
 
   // Select country handler
   const handleSelectCountry = (country) => {
+    setInternalDialCode(country.dialCode);
+    setInternalCountryCode(country.code);
+
     if (onDialCodeChange) {
       onDialCodeChange(country.dialCode, country);
+    } else if (onChange) {
+      // Single-field mode: update the full string with new dial code
+      const currentDigits = String(displayLocalValue).replace(/\D/g, '');
+      const newCombined = currentDigits ? `${country.dialCode} ${currentDigits}`.trim() : country.dialCode;
+      onChange({
+        target: {
+          name,
+          value: newCombined,
+          rawDigits: currentDigits,
+          dialCode: country.dialCode,
+          fullPhone: newCombined,
+        },
+      });
     }
+
     setIsOpen(false);
     setTimeout(() => {
       phoneInputRef.current?.focus();
@@ -155,19 +215,51 @@ export default function CountryPhoneInput({
     }
   };
 
-  // Handle phone input change (filters numeric / standard chars)
+  // Handle phone input change
   const handlePhoneChange = (e) => {
     const rawVal = e.target.value;
-    // Disallow letters, allow digits, spaces, and hyphens
+
+    // Detect if user pasted or typed full international number like +1... or +251...
+    if (rawVal.trim().startsWith('+') || rawVal.trim().startsWith('00')) {
+      const parsed = parseInternationalPhone(rawVal, effectiveCountry.dialCode, effectiveCountry.code);
+      if (parsed.country && parsed.country.code !== effectiveCountry.code) {
+        setInternalDialCode(parsed.country.dialCode);
+        setInternalCountryCode(parsed.country.code);
+        if (onDialCodeChange) {
+          onDialCodeChange(parsed.country.dialCode, parsed.country);
+        }
+      }
+      const filteredLocal = parsed.localNumber.replace(/[^\d\s-]/g, '');
+      if (onChange) {
+        const outValue = onDialCodeChange
+          ? filteredLocal
+          : `${parsed.dialCode} ${filteredLocal}`.trim();
+        onChange({
+          target: {
+            name,
+            value: outValue,
+            rawDigits: filteredLocal.replace(/\D/g, ''),
+            dialCode: parsed.dialCode,
+            fullPhone: `${parsed.dialCode} ${filteredLocal}`.trim(),
+          },
+        });
+      }
+      return;
+    }
+
+    // Standard local digits entered
     const filteredVal = rawVal.replace(/[^\d\s-]/g, '');
     if (onChange) {
+      const outValue = onDialCodeChange
+        ? filteredVal
+        : `${effectiveCountry.dialCode} ${filteredVal}`.trim();
       onChange({
         target: {
           name,
-          value: filteredVal,
+          value: outValue,
           rawDigits: filteredVal.replace(/\D/g, ''),
-          dialCode: currentCountry.dialCode,
-          fullPhone: `${currentCountry.dialCode} ${filteredVal.trim()}`.trim(),
+          dialCode: effectiveCountry.dialCode,
+          fullPhone: `${effectiveCountry.dialCode} ${filteredVal}`.trim(),
         },
       });
     }
@@ -175,9 +267,10 @@ export default function CountryPhoneInput({
 
   // Real-time validation status
   const validationState = useMemo(() => {
-    if (!value) return null;
-    return validatePhoneNumber(value, currentCountry.dialCode, currentCountry.code);
-  }, [value, currentCountry]);
+    const testVal = displayLocalValue || value;
+    if (!testVal) return null;
+    return validatePhoneNumber(testVal, effectiveCountry.dialCode, effectiveCountry.code);
+  }, [displayLocalValue, value, effectiveCountry]);
 
   return (
     <div className={`relative w-full ${className}`} ref={containerRef}>
@@ -202,7 +295,7 @@ export default function CountryPhoneInput({
           onKeyDown={handleKeyDown}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
-          title={`${currentCountry.name} (${currentCountry.dialCode})`}
+          title={`${effectiveCountry.name} (${effectiveCountry.dialCode})`}
           className={`h-11 px-3 flex items-center justify-center gap-2 rounded-lg bg-[#0b1220] transition-all cursor-pointer select-none outline-none shrink-0 ${
             isOpen
               ? 'border-2 border-blue-500 ring-2 ring-blue-500/30'
@@ -213,10 +306,10 @@ export default function CountryPhoneInput({
           style={{ minWidth: '76px' }}
         >
           <FlagImage
-            code={currentCountry.code}
-            flagEmoji={currentCountry.flag}
+            code={effectiveCountry.code}
+            flagEmoji={effectiveCountry.flag}
             className="w-6 h-4 shrink-0 rounded-[2px]"
-            alt={currentCountry.name}
+            alt={effectiveCountry.name}
           />
           {/* Caret triangle arrow matching screenshot */}
           <span className="text-[10px] text-slate-300 select-none">
@@ -234,9 +327,12 @@ export default function CountryPhoneInput({
             inputMode="tel"
             autoComplete="tel-national"
             disabled={disabled}
-            value={value}
+            value={displayLocalValue}
             onChange={handlePhoneChange}
+            onBlur={onBlur}
             placeholder={placeholder}
+            aria-invalid={error ? 'true' : undefined}
+            data-invalid={error ? 'true' : undefined}
             className={`w-full h-11 px-3.5 bg-[#0b1220] rounded-lg text-xs font-bold text-white placeholder-slate-500 outline-none transition-all ${
               error
                 ? 'border-2 border-rose-500 bg-rose-950/20 focus:ring-2 focus:ring-rose-500/20'
@@ -250,7 +346,7 @@ export default function CountryPhoneInput({
       {isOpen && (
         <div
           ref={dropdownRef}
-          className={`absolute z-50 left-0 ${
+          className={`absolute z-[100] left-0 ${
             openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
           } w-full sm:w-[380px] bg-[#1a202c] border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150`}
           style={{
@@ -306,7 +402,7 @@ export default function CountryPhoneInput({
               </div>
             ) : (
               displayCountries.map((country, index) => {
-                const isSelected = country.code === currentCountry.code && index === 0;
+                const isSelected = country.code === effectiveCountry.code && index === 0;
                 const isActive = index === activeIndex;
                 const isFirstItemWithoutSearch = !search && index === 0;
 
@@ -359,21 +455,14 @@ export default function CountryPhoneInput({
           <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
           <span>{error}</span>
         </p>
-      ) : showValidationHelper && validationState && (
+      ) : showValidationHelper && validationState && validationState.valid ? (
         <div className="mt-1">
-          {validationState.valid ? (
-            <p className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
-              <span>Valid: {validationState.fullInternational}</span>
-            </p>
-          ) : (
-            <p className="text-[11px] font-semibold text-amber-400 flex items-center gap-1.5">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-              <span>{validationState.error}</span>
-            </p>
-          )}
+          <p className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+            <span>Valid: {validationState.fullInternational}</span>
+          </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -694,9 +694,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                 { key: 'manager-meetings', label: 'Meeting Management', iconClass: 'bi-briefcase', view: 'manager_appointments' },
                 { key: 'team-visitors', label: t('sidebar.departmentVisitors'), iconClass: 'bi-people', view: 'manager_visitors' },
                 { key: 'manager-rooms', label: t('sidebar.meetingRoomsSpaces'), iconClass: 'bi-door-open', view: 'manager_rooms' },
-                { key: 'manager-policies', label: t('sidebar.hostingPoliciesRules'), iconClass: 'bi-sliders2-vertical', view: 'manager_policies' },
-                { key: 'manager-evacuation', label: t('sidebar.evacuationRollCall'), iconClass: 'bi-shield-exclamation', view: 'manager_evacuation' },
-                { key: 'manager-security', label: t('sidebar.securityAccessZones'), iconClass: 'bi-lock', view: 'manager_security' },
                 { key: 'reports-manager', label: t('sidebar.departmentReports'), iconClass: 'bi-graph-up', view: 'manager_reports' },
                 { key: 'manager-audit', label: t('sidebar.auditHistory'), iconClass: 'bi-shield-check', view: 'manager_audit' },
                 {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   Search,
   RefreshCw,
@@ -40,6 +41,7 @@ import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { HostReassignmentModal } from './components/HostReassignmentModal';
 import { RequestDetailsModal } from './components/RequestDetailsModal';
 import { useLanguage } from '../../contexts/LanguageContext';
+import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
 
 // Robust default mock data when database has empty records or offline
 const DEFAULT_FALLBACK_MEETINGS = [
@@ -721,63 +723,69 @@ export default function DepartmentAppointmentsView() {
         </div>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-        <div className="p-4 bg-slate-900/70 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Meetings</p>
-            <h3 className="text-2xl font-black text-white mt-1">{kpiStats.total}</h3>
-            <p className="text-[10px] text-slate-500 mt-0.5">Department scope</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-            <Calendar className="w-5 h-5" />
-          </div>
-        </div>
+      {/* KPI Summary Cards - Manager Dashboard Card Style with Real Data Animation */}
+      <motion.div
+        variants={dashboardContainerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5"
+      >
+        <MetricCard
+          title="Total Meetings"
+          value={kpiStats.total}
+          subtitle="Department scope"
+          badge="Total"
+          theme="indigo"
+          isActive={timeFilter === 'ALL'}
+          onClick={() => setTimeFilter('ALL')}
+          icon={<Calendar className="w-4 h-4 text-indigo-400" />}
+        />
 
-        <div className="p-4 bg-slate-900/70 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Today's Schedule</p>
-            <h3 className="text-2xl font-black text-emerald-400 mt-1">{kpiStats.todayCount}</h3>
-            <p className="text-[10px] text-emerald-500/80 mt-0.5">Visits on calendar today</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
+        <MetricCard
+          title="Today's Schedule"
+          value={kpiStats.todayCount}
+          subtitle="Visits on calendar today"
+          badge="Today"
+          theme="emerald"
+          isActive={timeFilter === 'TODAY'}
+          onClick={() => setTimeFilter('TODAY')}
+          icon={<Clock className="w-4 h-4 text-emerald-400" />}
+        />
 
-        <div className="p-4 bg-slate-900/70 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">In-Progress</p>
-            <h3 className="text-2xl font-black text-amber-400 mt-1">{kpiStats.inProgressCount}</h3>
-            <p className="text-[10px] text-amber-500/80 mt-0.5">Active inside department</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-            <Users className="w-5 h-5" />
-          </div>
-        </div>
+        <MetricCard
+          title="In-Progress"
+          value={kpiStats.inProgressCount}
+          subtitle="Active in department"
+          badge="Active"
+          theme="amber"
+          isActive={timeFilter === 'IN_PROGRESS'}
+          onClick={() => setTimeFilter('IN_PROGRESS')}
+          icon={<Users className="w-4 h-4 text-amber-400" />}
+        />
 
-        <div className="p-4 bg-slate-900/70 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pending Approvals</p>
-            <h3 className="text-2xl font-black text-sky-400 mt-1">{kpiStats.pendingApprovalCount}</h3>
-            <p className="text-[10px] text-sky-500/80 mt-0.5">Host action needed</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400">
-            <Clock3 className="w-5 h-5" />
-          </div>
-        </div>
+        <MetricCard
+          title="Pending Approvals"
+          value={kpiStats.pendingApprovalCount}
+          subtitle="Host action needed"
+          badge="Action Req."
+          theme="sky"
+          isActive={timeFilter === 'UPCOMING'}
+          onClick={() => setTimeFilter('UPCOMING')}
+          icon={<Clock3 className="w-4 h-4 text-sky-400" />}
+        />
 
-        <div className="p-4 bg-slate-900/70 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between sm:col-span-2 lg:col-span-1">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Room Utilization</p>
-            <h3 className="text-2xl font-black text-purple-400 mt-1">{kpiStats.roomUtilization}%</h3>
-            <p className="text-[10px] text-purple-500/80 mt-0.5">{rooms.length} rooms tracked</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-            <Building className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
+        <MetricCard
+          title="Room Utilization"
+          value={kpiStats.roomUtilization}
+          suffix="%"
+          subtitle={`${rooms.length} spaces tracked`}
+          badge="Live Capacity"
+          theme="purple"
+          isActive={viewMode === 'rooms'}
+          onClick={() => setViewMode(viewMode === 'rooms' ? 'list' : 'rooms')}
+          icon={<Building className="w-4 h-4 text-purple-400" />}
+        />
+      </motion.div>
 
       {/* Filter and View Controls Bar */}
       <div className="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 shadow-xl space-y-3">

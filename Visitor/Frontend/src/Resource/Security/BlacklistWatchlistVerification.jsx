@@ -35,9 +35,13 @@ import {
 import BackButton from '../../components/common/BackButton';
 import { blacklistWatchlistApi, getErrorMessage } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useNotification } from '../../contexts/NotificationContext';
+import FieldError from '../../components/common/FieldError';
+import { validateText, validateName } from '../../utils/formValidation';
 
 export default function BlacklistWatchlistVerification() {
   const { t } = useLanguage();
+  const { showNotification } = useNotification();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,15 +51,9 @@ export default function BlacklistWatchlistVerification() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [showArchived, setShowArchived] = useState(false);
 
-  // Dynamic feedback toast
-  const [toast, setToast] = useState(null);
-
   const showToast = useCallback((message, type = 'success') => {
-    setToast({ message, type, id: Date.now() });
-    setTimeout(() => {
-      setToast(prev => (prev?.id ? null : prev));
-    }, 4000);
-  }, []);
+    showNotification(message, type);
+  }, [showNotification]);
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -66,6 +64,7 @@ export default function BlacklistWatchlistVerification() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [submittingModal, setSubmittingModal] = useState(false);
 
   // Form states
   const [addForm, setAddForm] = useState({
@@ -82,6 +81,16 @@ export default function BlacklistWatchlistVerification() {
     expiryDate: '',
     internalNotes: ''
   });
+  const [addErrors, setAddErrors] = useState({});
+  const clearAddError = (f) => {
+    if (addErrors[f]) {
+      setAddErrors(prev => {
+        const next = { ...prev };
+        delete next[f];
+        return next;
+      });
+    }
+  };
 
   const [editForm, setEditForm] = useState({
     listType: 'WATCHLIST',
@@ -230,10 +239,24 @@ export default function BlacklistWatchlistVerification() {
   // Form Submissions
   const handleAddSubmit = async (e) => {
     e.preventDefault();
-    if (!addForm.reason.trim()) return;
+    const newErrs = {};
+    const nameErr = validateName(addForm.visitorName, 'Visitor Full Name', true);
+    if (nameErr) newErrs.visitorName = nameErr;
+    const idErr = validateText(addForm.idNumber, 'Identity Credential', 3, 50, true);
+    if (idErr) newErrs.idNumber = idErr;
+    const reasonErr = validateText(addForm.reason, 'Flag Reason', 3, 200, true);
+    if (reasonErr) newErrs.reason = reasonErr;
+
+    if (Object.keys(newErrs).length > 0) {
+      setAddErrors(newErrs);
+      return;
+    }
+
+    setSubmittingModal(true);
     try {
       await blacklistWatchlistApi.createRecord(addForm);
       setShowAddModal(false);
+      setAddErrors({});
       setAddForm({
         visitorName: '',
         email: '',
@@ -252,12 +275,15 @@ export default function BlacklistWatchlistVerification() {
       loadDirectory();
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
+    } finally {
+      setSubmittingModal(false);
     }
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!selectedRecord) return;
+    setSubmittingModal(true);
     try {
       await blacklistWatchlistApi.updateRecord(selectedRecord.id, editForm);
       setShowEditModal(false);
@@ -265,12 +291,15 @@ export default function BlacklistWatchlistVerification() {
       loadDirectory(true);
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
+    } finally {
+      setSubmittingModal(false);
     }
   };
 
   const handleClearanceSubmit = async (e) => {
     e.preventDefault();
     if (!selectedRecord) return;
+    setSubmittingModal(true);
     try {
       await blacklistWatchlistApi.reviewClearance(
         selectedRecord.id,
@@ -288,6 +317,8 @@ export default function BlacklistWatchlistVerification() {
       loadDirectory(true);
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
+    } finally {
+      setSubmittingModal(false);
     }
   };
 
@@ -1162,15 +1193,17 @@ export default function BlacklistWatchlistVerification() {
                   <button
                     type="button"
                     onClick={() => setShowClearanceModal(false)}
-                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 font-bold rounded-xl"
+                    className="flex-1 h-10 min-h-[40px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition"
+                    disabled={submittingModal}
+                    className="flex-1 h-10 min-h-[40px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
                   >
-                    Commit Clearance Decision
+                    {submittingModal && <RefreshCw className="h-4 w-4 animate-spin shrink-0" />}
+                    <span>{submittingModal ? 'Committing...' : 'Commit Clearance Decision'}</span>
                   </button>
                 </div>
               </form>
@@ -1262,15 +1295,17 @@ export default function BlacklistWatchlistVerification() {
                   <button
                     type="button"
                     onClick={() => setShowEditModal(false)}
-                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 font-bold rounded-xl"
+                    className="flex-1 h-10 min-h-[40px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg transition"
+                    disabled={submittingModal}
+                    className="flex-1 h-10 min-h-[40px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition disabled:opacity-50"
                   >
-                    Save Changes
+                    {submittingModal && <RefreshCw className="h-4 w-4 animate-spin shrink-0" />}
+                    <span>{submittingModal ? 'Saving...' : 'Save Changes'}</span>
                   </button>
                 </div>
               </form>
@@ -1302,16 +1337,22 @@ export default function BlacklistWatchlistVerification() {
                 <button
                   type="button"
                   onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition"
+                  className="flex-1 h-10 min-h-[40px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
+                  disabled={actionLoadingId === selectedRecord.id}
                   onClick={handleConfirmDelete}
-                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-rose-600/30 transition"
+                  className="flex-1 h-10 min-h-[40px] bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-rose-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
                 >
-                  Confirm Delete
+                  {actionLoadingId === selectedRecord.id ? (
+                    <RefreshCw className="h-4 w-4 animate-spin shrink-0" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 shrink-0" />
+                  )}
+                  <span>{actionLoadingId === selectedRecord.id ? 'Deleting...' : 'Confirm Delete'}</span>
                 </button>
               </div>
             </motion.div>
@@ -1373,27 +1414,43 @@ export default function BlacklistWatchlistVerification() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
-                      {t('form.visitorName', 'Visitor Full Name')}
+                      {t('form.visitorName', 'Visitor Full Name')} *
                     </label>
                     <input
                       type="text"
                       value={addForm.visitorName}
-                      onChange={e => setAddForm(f => ({ ...f, visitorName: e.target.value }))}
+                      data-invalid={Boolean(addErrors.visitorName)}
+                      aria-invalid={Boolean(addErrors.visitorName)}
+                      onChange={e => {
+                        setAddForm(f => ({ ...f, visitorName: e.target.value }));
+                        clearAddError('visitorName');
+                      }}
                       placeholder={t('placeholder.fullName', 'e.g. John Doe')}
-                      className="w-full px-3 py-2 border border-slate-700 bg-slate-900 text-white rounded-xl"
+                      className={`w-full px-3 py-2 bg-slate-900 text-white rounded-xl focus:outline-none transition-all ${
+                        addErrors.visitorName ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-700'
+                      }`}
                     />
+                    <FieldError error={addErrors.visitorName} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
-                      {t('form.idNumber', 'Identity Credential')}
+                      {t('form.idNumber', 'Identity Credential')} *
                     </label>
                     <input
                       type="text"
                       value={addForm.idNumber}
-                      onChange={e => setAddForm(f => ({ ...f, idNumber: e.target.value }))}
+                      data-invalid={Boolean(addErrors.idNumber)}
+                      aria-invalid={Boolean(addErrors.idNumber)}
+                      onChange={e => {
+                        setAddForm(f => ({ ...f, idNumber: e.target.value }));
+                        clearAddError('idNumber');
+                      }}
                       placeholder={t('placeholder.idNumber', 'Passport or NID...')}
-                      className="w-full px-3 py-2 border border-slate-700 bg-slate-900 text-white rounded-xl"
+                      className={`w-full px-3 py-2 bg-slate-900 text-white rounded-xl focus:outline-none transition-all ${
+                        addErrors.idNumber ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-700'
+                      }`}
                     />
+                    <FieldError error={addErrors.idNumber} />
                   </div>
                 </div>
 
@@ -1404,26 +1461,36 @@ export default function BlacklistWatchlistVerification() {
                   <input
                     type="text"
                     value={addForm.reason}
-                    onChange={e => setAddForm(f => ({ ...f, reason: e.target.value }))}
+                    data-invalid={Boolean(addErrors.reason)}
+                    aria-invalid={Boolean(addErrors.reason)}
+                    onChange={e => {
+                      setAddForm(f => ({ ...f, reason: e.target.value }));
+                      clearAddError('reason');
+                    }}
                     required
                     placeholder={t('placeholder.reason', 'Trespass, security incident, observation...')}
-                    className="w-full px-3 py-2 border border-slate-700 bg-slate-900 text-white rounded-xl"
+                    className={`w-full px-3 py-2 bg-slate-900 text-white rounded-xl focus:outline-none transition-all ${
+                      addErrors.reason ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-700'
+                    }`}
                   />
+                  <FieldError error={addErrors.reason} />
                 </div>
 
                 <div className="flex gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="flex-1 py-2.5 bg-slate-800 text-slate-400 font-bold rounded-xl"
+                    className="flex-1 h-10 min-h-[40px] bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold rounded-xl transition"
                   >
                     {t('btn.cancel', 'Cancel')}
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-lg shadow-rose-600/30 transition"
+                    disabled={submittingModal}
+                    className="flex-1 h-10 min-h-[40px] bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-lg shadow-rose-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
                   >
-                    {t('btn.create', 'Add Record')}
+                    {submittingModal && <RefreshCw className="h-4 w-4 animate-spin shrink-0" />}
+                    <span>{submittingModal ? 'Adding Record...' : t('btn.create', 'Add Record')}</span>
                   </button>
                 </div>
               </form>

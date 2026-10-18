@@ -5,6 +5,15 @@ import { ArrowLeft, ArrowRight, CheckCircle, Copy, AlertTriangle, RefreshCw, Cam
 import { departmentsApi, employeesApi, roomsApi, appointmentsApi, getErrorMessage } from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
 import DashboardLayout from '../../../components/DashboardLayout';
+import CountryPhoneInput from '../../../components/common/CountryPhoneInput';
+import FieldError from '../../../components/common/FieldError';
+import {
+    validateName,
+    validateEmail,
+    validatePhone,
+    validateText,
+    validateDateTimeRange
+} from '../../../utils/formValidation';
 const steps = ['Visitor Info', 'Identity Verification', 'Host & Purpose', 'Schedule', 'Review'];
 const visitTypes = [
     { value: 'customer', label: 'Customer / Client' },
@@ -31,6 +40,7 @@ export default function BookAppointmentPage() {
     const [suggestedSlots, setSuggestedSlots] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [errors, setErrors] = useState({});
     const [success, setSuccess] = useState(null);
     // Form main states — auto-populated from logged-in visitor
     const [form, setForm] = useState({
@@ -82,7 +92,64 @@ export default function BookAppointmentPage() {
     const [isModelLoading, setIsModelLoading] = useState(false);
     const [faceDetected, setFaceDetected] = useState(false);
     const animationFrameIdRef = useRef(null);
-    const update = (field, value) => setForm((f) => ({ ...f, [field]: value }));
+
+    const clearError = (field) => {
+        setErrors((prev) => {
+            if (!prev[field]) return prev;
+            const copy = { ...prev };
+            delete copy[field];
+            return copy;
+        });
+    };
+
+    const update = (field, value) => {
+        setForm((f) => ({ ...f, [field]: value }));
+        clearError(field);
+    };
+
+    const validateStep = (stepIndex) => {
+        const newErrors = {};
+        if (stepIndex === 0) {
+            const nameErr = validateName(form.visitorName, 'Full name', true);
+            if (nameErr) newErrors.visitorName = nameErr;
+
+            const emailErr = validateEmail(form.visitorEmail, true);
+            if (emailErr) newErrors.visitorEmail = emailErr;
+
+            const phoneErr = validatePhone(form.visitorPhone, true);
+            if (phoneErr) newErrors.visitorPhone = phoneErr;
+        } else if (stepIndex === 1) {
+            if (!identityVerified) {
+                newErrors.identity = 'You must complete Identity Verification to proceed.';
+            }
+        } else if (stepIndex === 2) {
+            if (!form.departmentId) {
+                newErrors.departmentId = 'Target department is required';
+            }
+            if (!form.hostId) {
+                newErrors.hostId = 'Host representative is required';
+            }
+            const purposeErr = validateText(form.purpose, 'Purpose of visit', 3, 500, true);
+            if (purposeErr) newErrors.purpose = purposeErr;
+        } else if (stepIndex === 3) {
+            if (!form.date) {
+                newErrors.date = 'Date is required';
+            }
+            if (!form.startTime) {
+                newErrors.startTime = 'Start time is required';
+            }
+            if (!form.endTime) {
+                newErrors.endTime = 'End time is required';
+            }
+            if (form.date && form.startTime && form.endTime) {
+                const timeRangeErr = validateDateTimeRange(form.date, form.startTime, form.date, form.endTime);
+                if (timeRangeErr) {
+                    newErrors.endTime = timeRangeErr;
+                }
+            }
+        }
+        return newErrors;
+    };
     const loadDepartments = async () => {
         if (departments.length)
             return;
@@ -501,40 +568,36 @@ export default function BookAppointmentPage() {
     };
     const nextStep = async () => {
         setError('');
-        // Step 0: Visitor Info
-        if (step === 0) {
-            if (!form.visitorName || !form.visitorEmail || !form.visitorPhone) {
-                setError('Please fill in Name, Email and Phone number');
-                return;
+        const stepErrors = validateStep(step);
+        if (Object.keys(stepErrors).length > 0) {
+            setErrors((prev) => ({ ...prev, ...stepErrors }));
+            if (stepErrors.identity) {
+                setError(stepErrors.identity);
             }
+            return;
         }
-        // Step 1: Identity Verification check
+
         if (step === 1) {
-            if (!identityVerified) {
-                setError('You must complete Identity Verification to proceed.');
-                return;
-            }
             await loadDepartments();
-        }
-        // Step 2: Host & Purpose
-        if (step === 2) {
+        } else if (step === 2) {
             await loadRooms();
-            if (!form.departmentId || !form.hostId || !form.purpose) {
-                setError('Please fill in Department, Host Representative and Purpose of visit');
-                return;
-            }
-        }
-        // Step 3: Date & Schedule
-        if (step === 3) {
-            if (!form.date || !form.startTime) {
-                setError('Please select date and start time');
-                return;
-            }
+        } else if (step === 3) {
             await loadAvailability();
         }
         setStep((s) => s + 1);
     };
     const submit = async () => {
+        for (let s = 0; s <= 3; s++) {
+            const stepErrors = validateStep(s);
+            if (Object.keys(stepErrors).length > 0) {
+                setErrors((prev) => ({ ...prev, ...stepErrors }));
+                setStep(s);
+                if (stepErrors.identity) {
+                    setError(stepErrors.identity);
+                }
+                return;
+            }
+        }
         setLoading(true);
         setError('');
         try {
@@ -680,15 +743,37 @@ export default function BookAppointmentPage() {
               {step === 0 && (<div className="grid gap-4 sm:grid-cols-2 pt-2">
                   <div className="sm:col-span-2">
                     <label className="label">Full Name *</label>
-                    <input className="input" placeholder="Enter full name" value={form.visitorName} onChange={(e) => update('visitorName', e.target.value)}/>
+                    <input
+                      className={`input ${errors.visitorName ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      placeholder="Enter full name"
+                      value={form.visitorName}
+                      onChange={(e) => update('visitorName', e.target.value)}
+                      aria-invalid={Boolean(errors.visitorName)}
+                    />
+                    <FieldError error={errors.visitorName} />
                   </div>
                   <div>
                     <label className="label">Email Address *</label>
-                    <input type="email" className="input" placeholder="email@company.com" value={form.visitorEmail} onChange={(e) => update('visitorEmail', e.target.value)}/>
+                    <input
+                      type="email"
+                      className={`input ${errors.visitorEmail ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      placeholder="email@company.com"
+                      value={form.visitorEmail}
+                      onChange={(e) => update('visitorEmail', e.target.value)}
+                      aria-invalid={Boolean(errors.visitorEmail)}
+                    />
+                    <FieldError error={errors.visitorEmail} />
                   </div>
                   <div>
-                    <label className="label">Phone Number *</label>
-                    <input className="input" placeholder="+2519/09" value={form.visitorPhone} onChange={(e) => update('visitorPhone', e.target.value)}/>
+                    <CountryPhoneInput
+                      id="book-visitor-phone"
+                      label="Phone Number"
+                      required
+                      value={form.visitorPhone}
+                      onChange={(e) => update('visitorPhone', e.target.value)}
+                      placeholder="+251 9..."
+                      error={errors.visitorPhone}
+                    />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="label">Company / Organization</label>
@@ -1006,21 +1091,33 @@ export default function BookAppointmentPage() {
               {step === 2 && (<div className="grid gap-4 pt-2">
                   <div>
                     <label className="label">Target Department *</label>
-                    <select className="input" value={form.departmentId} onChange={(e) => {
-                update('departmentId', e.target.value);
-                update('hostId', '');
-                loadEmployees(e.target.value);
-            }}>
+                    <select
+                      className={`input ${errors.departmentId ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      value={form.departmentId}
+                      onChange={(e) => {
+                        update('departmentId', e.target.value);
+                        update('hostId', '');
+                        loadEmployees(e.target.value);
+                      }}
+                      aria-invalid={Boolean(errors.departmentId)}
+                    >
                       <option value="">Select department</option>
                       {departments.map((d) => (<option key={d.id} value={d.id}>{d.name}</option>))}
                     </select>
+                    <FieldError error={errors.departmentId} />
                   </div>
                   <div>
                     <label className="label">Host Representative / Sponsor *</label>
-                    <select className="input" value={form.hostId} onChange={(e) => update('hostId', e.target.value)}>
+                    <select
+                      className={`input ${errors.hostId ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      value={form.hostId}
+                      onChange={(e) => update('hostId', e.target.value)}
+                      aria-invalid={Boolean(errors.hostId)}
+                    >
                       <option value="">Select host</option>
                       {(Array.isArray(employees) ? employees : []).map((e) => (<option key={e.id} value={e.id}>{e.full_name} — {e.job_title}</option>))}
                     </select>
+                    <FieldError error={errors.hostId} />
                   </div>
                   <div>
                     <label className="label">Visit Classification Type</label>
@@ -1030,7 +1127,14 @@ export default function BookAppointmentPage() {
                   </div>
                   <div>
                     <label className="label">Purpose of Visit *</label>
-                    <textarea className="input min-h-[100px]" placeholder="Briefly describe the purpose of your appointment..." value={form.purpose} onChange={(e) => update('purpose', e.target.value)}/>
+                    <textarea
+                      className={`input min-h-[100px] ${errors.purpose ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      placeholder="Briefly describe the purpose of your appointment..."
+                      value={form.purpose}
+                      onChange={(e) => update('purpose', e.target.value)}
+                      aria-invalid={Boolean(errors.purpose)}
+                    />
+                    <FieldError error={errors.purpose} />
                   </div>
                 </div>)}
 
@@ -1045,15 +1149,37 @@ export default function BookAppointmentPage() {
                   </div>
                   <div>
                     <label className="label">Date *</label>
-                    <input type="date" className="input" value={form.date} onChange={(e) => update('date', e.target.value)} min={new Date().toISOString().split('T')[0]}/>
+                    <input
+                      type="date"
+                      className={`input ${errors.date ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      value={form.date}
+                      onChange={(e) => update('date', e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      aria-invalid={Boolean(errors.date)}
+                    />
+                    <FieldError error={errors.date} />
                   </div>
                   <div>
                     <label className="label">Start Time *</label>
-                    <input type="time" className="input" value={form.startTime} onChange={(e) => update('startTime', e.target.value)}/>
+                    <input
+                      type="time"
+                      className={`input ${errors.startTime ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      value={form.startTime}
+                      onChange={(e) => update('startTime', e.target.value)}
+                      aria-invalid={Boolean(errors.startTime)}
+                    />
+                    <FieldError error={errors.startTime} />
                   </div>
                   <div>
                     <label className="label">End Time *</label>
-                    <input type="time" className="input" value={form.endTime} onChange={(e) => update('endTime', e.target.value)}/>
+                    <input
+                      type="time"
+                      className={`input ${errors.endTime ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      value={form.endTime}
+                      onChange={(e) => update('endTime', e.target.value)}
+                      aria-invalid={Boolean(errors.endTime)}
+                    />
+                    <FieldError error={errors.endTime} />
                   </div>
                   {suggestedSlots.length > 0 && (<div className="sm:col-span-2 mt-2">
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Suggested available slots:</p>
@@ -1091,21 +1217,46 @@ export default function BookAppointmentPage() {
           </AnimatePresence>
 
           <div className="mt-8 flex justify-between border-t border-slate-900 pt-6">
-            {step > 0 ? (<button onClick={() => {
-                if (step === 1) {
+            {step > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (step === 1) {
                     resetVerification();
-                }
-                setStep((s) => s - 1);
-            }} className="btn-secondary">
-                <ArrowLeft className="h-4 w-4"/> Back
-              </button>) : (<div />)}
+                  }
+                  setStep((s) => s - 1);
+                }}
+                className="btn-secondary h-10 min-h-[40px] flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+                <span>Back</span>
+              </button>
+            ) : (
+              <div />
+            )}
             {step < 4 ? (
-        // Hide Next on the Identity Verification step unless verification succeeded
-        (step === 1 && !identityVerified) ? null : (<button onClick={nextStep} className="btn-primary">
-                  Next <ArrowRight className="h-4 w-4"/>
-                </button>)) : (<button onClick={submit} disabled={loading} className="btn-primary">
-                {loading ? 'Submitting...' : 'Submit Request'}
-              </button>)}
+              // Hide Next on the Identity Verification step unless verification succeeded
+              (step === 1 && !identityVerified) ? null : (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  className="btn-primary h-10 min-h-[40px] flex items-center gap-2"
+                >
+                  <span>Next</span>
+                  <ArrowRight className="h-4 w-4 shrink-0" />
+                </button>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={submit}
+                disabled={loading}
+                className="btn-primary h-10 min-h-[40px] flex items-center gap-2 disabled:opacity-50"
+              >
+                {loading && <RefreshCw className="h-4 w-4 animate-spin shrink-0" />}
+                <span>{loading ? 'Submitting Request...' : 'Submit Request'}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

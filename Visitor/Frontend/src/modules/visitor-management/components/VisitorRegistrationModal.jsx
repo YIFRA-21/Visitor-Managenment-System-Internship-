@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { X, UserPlus } from 'lucide-react';
+import CountryPhoneInput from '../../../components/common/CountryPhoneInput';
+import FieldError from '../../../components/common/FieldError';
+import { validateName, validateEmail, validatePhone } from '../../../utils/formValidation';
 
 export default function VisitorRegistrationModal({ isOpen, onClose, onRegister }) {
   const [formData, setFormData] = useState({
@@ -9,11 +12,46 @@ export default function VisitorRegistrationModal({ isOpen, onClose, onRegister }
     company: '',
     category: 'client'
   });
+  const [errors, setErrors] = useState({});
 
   if (!isOpen) return null;
 
+  const clearError = (field) => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const copy = { ...prev };
+      delete copy[field];
+      return copy;
+    });
+  };
+
+  const updateField = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    clearError(field);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const newErrors = {};
+
+    const nameErr = validateName(formData.name, 'Full name', true);
+    if (nameErr) newErrors.name = nameErr;
+
+    if (formData.email) {
+      const emailErr = validateEmail(formData.email, false);
+      if (emailErr) newErrors.email = emailErr;
+    }
+
+    if (formData.phone) {
+      const phoneErr = validatePhone(formData.phone, false);
+      if (phoneErr) newErrors.phone = phoneErr;
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     onRegister?.(formData);
     onClose();
   };
@@ -31,35 +69,49 @@ export default function VisitorRegistrationModal({ isOpen, onClose, onRegister }
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} noValidate className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Full Name <span className="text-rose-500">*</span>
+            </label>
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              className="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              onChange={(e) => updateField('name', e.target.value)}
+              className={`w-full text-sm border rounded-lg p-2.5 focus:ring-2 focus:outline-none transition-all ${
+                errors.name
+                  ? 'border-rose-500 bg-rose-50/50 focus:ring-rose-500/20'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
+              aria-invalid={Boolean(errors.name)}
             />
+            <FieldError error={errors.name} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                onChange={(e) => updateField('email', e.target.value)}
+                className={`w-full text-sm border rounded-lg p-2.5 focus:ring-2 focus:outline-none transition-all ${
+                  errors.email
+                    ? 'border-rose-500 bg-rose-50/50 focus:ring-rose-500/20'
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
+                aria-invalid={Boolean(errors.email)}
               />
+              <FieldError error={errors.email} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
-              <input
-                type="text"
+              <CountryPhoneInput
+                id="visitor-modal-phone"
+                label="Phone"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                onChange={(e) => updateField('phone', e.target.value)}
+                showValidationHelper={false}
+                error={errors.phone}
               />
             </div>
           </div>
@@ -70,7 +122,7 @@ export default function VisitorRegistrationModal({ isOpen, onClose, onRegister }
               <input
                 type="text"
                 value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                onChange={(e) => updateField('company', e.target.value)}
                 className="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
@@ -78,7 +130,7 @@ export default function VisitorRegistrationModal({ isOpen, onClose, onRegister }
               <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) => updateField('category', e.target.value)}
                 className="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value="client">Client</option>

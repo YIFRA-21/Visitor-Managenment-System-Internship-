@@ -8,8 +8,17 @@ import { useOrganization } from '../../../../contexts/OrganizationContext';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import LanguageDropdown from '../../../../components/common/LanguageDropdown';
 import CountryNationalitySelect from '../../../../components/common/CountryNationalitySelect';
-import CountryPhoneInput from '../../../../components/common/CountryPhoneInput';
 import { validateDateOfBirth, validatePhoneNumber } from '../../../../data/countriesData';
+import {
+    validateName,
+    validateMiddleName,
+    validateEmail,
+    validatePhone,
+    validateText,
+    validatePassword as validatePasswordPolicy,
+    validatePasswordConfirmation
+} from '../../../../utils/formValidation';
+
 export default function SignupPage() {
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -180,37 +189,42 @@ export default function SignupPage() {
     const handleStep1Next = async () => {
         setError('');
         const newErrors = {};
-        if (!firstName.trim())
-            newErrors.firstName = 'First name is required';
-        if (!lastName.trim())
-            newErrors.lastName = 'Last name is required';
-        if (!email.trim())
-            newErrors.email = 'Email address is required';
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-            newErrors.email = 'Enter a valid email address';
-        if (!phone.trim()) {
-            newErrors.phone = 'Phone number is required';
-        } else {
-            const phoneRes = validatePhoneNumber(phone, phonePrefix);
-            if (!phoneRes.valid) {
-                newErrors.phone = phoneRes.error;
-            }
-        }
+        const isAm = language === 'am';
+
+        const fnErr = validateName(firstName, isAm ? 'የመጀመሪያ ስም' : 'First name', true, isAm);
+        if (fnErr) newErrors.firstName = fnErr;
+
+        const mnErr = validateMiddleName(middleName, false, isAm);
+        if (mnErr) newErrors.middleName = mnErr;
+
+        const lnErr = validateName(lastName, isAm ? 'የአያት ስም' : 'Last name', true, isAm);
+        if (lnErr) newErrors.lastName = lnErr;
+
+        const emailErr = validateEmail(email, true, isAm);
+        if (emailErr) newErrors.email = emailErr;
+
+        const phoneErr = validatePhone(phone, phonePrefix, true, isAm);
+        if (phoneErr) newErrors.phone = phoneErr;
+
         if (!birthMonth || !birthDay.trim() || !birthYear.trim()) {
-            newErrors.dateOfBirth = 'Please select month and enter valid day and year';
-        }
-        else {
+            newErrors.dateOfBirth = isAm ? 'እባክዎ ወር ይምረጡና ትክክለኛ ቀንና ዓመት ያስገቡ.' : 'Please select month and enter valid day and year.';
+        } else {
             const dobRes = validateDateOfBirth(dateOfBirth, 18);
             if (!dobRes.valid) {
                 newErrors.dateOfBirth = dobRes.error;
             }
         }
         if (!gender) {
-            newErrors.gender = 'Please select gender';
+            newErrors.gender = isAm ? 'እባክዎ ጾታ ይምረጡ.' : 'Please select gender.';
         }
         if (!nationality || !nationality.trim()) {
-            newErrors.nationality = 'Please select nationality';
+            newErrors.nationality = isAm ? 'እባክዎ ዜግነት ይምረጡ.' : 'Please select nationality.';
         }
+        if (address && address.trim()) {
+            const addrErr = validateText(address, isAm ? 'አድራሻ' : 'Address', 3, 255, false, isAm);
+            if (addrErr) newErrors.address = addrErr;
+        }
+
         // Verify email availability with backend
         if (!newErrors.email) {
             try {
@@ -219,16 +233,15 @@ export default function SignupPage() {
                 if (checkRes.data && checkRes.data.success === false) {
                     newErrors.email = '❌ This email address is already registered. Please use another email or sign in.';
                 }
-            }
-            catch (err) {
+            } catch (err) {
                 if (err.response?.status === 409 || err.response?.data?.field === 'email' || err.response?.data?.message?.includes('already registered')) {
                     newErrors.email = '❌ This email address is already registered. Please use another email or sign in.';
                 }
-            }
-            finally {
+            } finally {
                 setLoading(false);
             }
         }
+
         if (Object.keys(newErrors).length > 0) {
             setFieldErrors(newErrors);
             const firstKey = Object.keys(newErrors)[0];
@@ -242,20 +255,31 @@ export default function SignupPage() {
         setFieldErrors({});
         setCurrentStep(1); // Advance to Step 2: Account Credentials
     };
+
     // Step 2 Submission (Account Registration + OTP Dispatch -> Step 3)
     const handleStep2Submit = async () => {
         setError('');
         const newErrors = {};
-        if (!username.trim())
-            newErrors.username = 'User ID / Username is required';
-        if (!password)
-            newErrors.password = 'Password is required';
-        else if (!isPasswordStrong)
-            newErrors.password = 'Password must meet all security requirements below';
-        if (!confirmPassword)
-            newErrors.confirmPassword = 'Please confirm your password';
-        else if (password !== confirmPassword)
-            newErrors.confirmPassword = 'Passwords do not match';
+        const isAm = language === 'am';
+
+        if (!username.trim()) {
+            newErrors.username = isAm ? 'የተጠቃሚ መለያ ያስፈልጋል.' : 'User ID / Username is required.';
+        } else if (username.trim().length < 3) {
+            newErrors.username = isAm ? 'የተጠቃሚ መለያ ቢያንስ 3 ፊደላት መሆን አለበት.' : 'Username must be at least 3 characters.';
+        }
+
+        const passErr = validatePasswordPolicy(password, isAm);
+        if (passErr) {
+            newErrors.password = passErr;
+        } else if (!isPasswordStrong) {
+            newErrors.password = isAm ? 'የይለፍ ቃል ከዚህ በታች ያሉትን ሁሉንም የደህንነት መስፈርቶች ማሟላት አለበት.' : 'Password must meet all security requirements below.';
+        }
+
+        const confErr = validatePasswordConfirmation(password, confirmPassword, isAm);
+        if (confErr) {
+            newErrors.confirmPassword = confErr;
+        }
+
         if (Object.keys(newErrors).length > 0) {
             setFieldErrors(newErrors);
             return;
@@ -688,14 +712,32 @@ export default function SignupPage() {
                     <div>
                       <label className={`block text-[10px] font-extrabold uppercase tracking-wider mb-1.5 ${fieldErrors.firstName ? 'text-rose-500' : 'text-slate-700 dark:text-slate-300'}`}>{t('signup.firstName')} *</label>
                       <input id="field-firstName" type="text" placeholder={t('signup.firstName')} className={`signup-field-input w-full px-3.5 py-2.5 rounded-lg text-xs font-bold outline-none ${fieldErrors.firstName ? 'border-2 border-rose-500 bg-rose-50/50' : ''}`} value={firstName} onChange={e => { setFirstName(e.target.value); clearFieldError('firstName'); }}/>
+                      {fieldErrors.firstName && (
+                        <p className="mt-1 text-[11px] font-bold text-rose-600 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500"/>
+                          <span>{fieldErrors.firstName}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
-                      <label className="block text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">{t('signup.middleName')}</label>
-                      <input type="text" placeholder={t('signup.middleName')} className="signup-field-input w-full px-3.5 py-2.5 rounded-lg text-xs font-bold outline-none" value={middleName} onChange={e => setMiddleName(e.target.value)}/>
+                      <label className={`block text-[10px] font-extrabold uppercase tracking-wider mb-1.5 ${fieldErrors.middleName ? 'text-rose-500' : 'text-slate-700 dark:text-slate-300'}`}>{t('signup.middleName')}</label>
+                      <input type="text" placeholder={t('signup.middleName')} className={`signup-field-input w-full px-3.5 py-2.5 rounded-lg text-xs font-bold outline-none ${fieldErrors.middleName ? 'border-2 border-rose-500 bg-rose-50/50' : ''}`} value={middleName} onChange={e => { setMiddleName(e.target.value); clearFieldError('middleName'); }}/>
+                      {fieldErrors.middleName && (
+                        <p className="mt-1 text-[11px] font-bold text-rose-600 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500"/>
+                          <span>{fieldErrors.middleName}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className={`block text-[10px] font-extrabold uppercase tracking-wider mb-1.5 ${fieldErrors.lastName ? 'text-rose-500' : 'text-slate-700 dark:text-slate-300'}`}>{t('signup.lastName')} *</label>
                       <input id="field-lastName" type="text" placeholder={t('signup.lastName')} className={`signup-field-input w-full px-3.5 py-2.5 rounded-lg text-xs font-bold outline-none ${fieldErrors.lastName ? 'border-2 border-rose-500 bg-rose-50/50' : ''}`} value={lastName} onChange={e => { setLastName(e.target.value); clearFieldError('lastName'); }}/>
+                      {fieldErrors.lastName && (
+                        <p className="mt-1 text-[11px] font-bold text-rose-600 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500"/>
+                          <span>{fieldErrors.lastName}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -872,8 +914,14 @@ export default function SignupPage() {
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">{t('signup.address')} ({t('signup.optional')})</label>
-                      <input type="text" placeholder="City, Subcity, Street" className="signup-field-input w-full px-3.5 py-2.5 rounded-lg text-xs font-bold outline-none" value={address} onChange={e => setAddress(e.target.value)}/>
+                      <label className={`block text-[10px] font-extrabold uppercase tracking-wider mb-1.5 ${fieldErrors.address ? 'text-rose-500' : 'text-slate-700 dark:text-slate-300'}`}>{t('signup.address')} ({t('signup.optional')})</label>
+                      <input type="text" placeholder="City, Subcity, Street" className={`signup-field-input w-full px-3.5 py-2.5 rounded-lg text-xs font-bold outline-none ${fieldErrors.address ? 'border-2 border-rose-500 bg-rose-50/50' : ''}`} value={address} onChange={e => { setAddress(e.target.value); clearFieldError('address'); }}/>
+                      {fieldErrors.address && (
+                        <p className="mt-1 text-[11px] font-bold text-rose-600 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500"/>
+                          <span>{fieldErrors.address}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -932,6 +980,12 @@ export default function SignupPage() {
                         {copiedUserId ? 'Copied!' : 'Copy'}
                       </button>
                     </div>
+                    {fieldErrors.username && (
+                      <p className="mt-1 text-[11px] font-bold text-rose-600 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500"/>
+                        <span>{fieldErrors.username}</span>
+                      </p>
+                    )}
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1">{t('signup.accountCredentialsDesc')}</p>
                   </div>
 
@@ -945,6 +999,12 @@ export default function SignupPage() {
                         {showPassword ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
                       </button>
                     </div>
+                    {fieldErrors.password && (
+                      <p className="mt-1 text-[11px] font-bold text-rose-600 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500"/>
+                        <span>{fieldErrors.password}</span>
+                      </p>
+                    )}
                   </div>
 
                   {/* 4. PASSWORD STRENGTH BAR & 5. REQUIREMENTS CHECKLIST */}
@@ -1000,6 +1060,12 @@ export default function SignupPage() {
                         {showConfirmPassword ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
                       </button>
                     </div>
+                    {fieldErrors.confirmPassword && (
+                      <p className="mt-1 text-[11px] font-bold text-rose-600 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500"/>
+                        <span>{fieldErrors.confirmPassword}</span>
+                      </p>
+                    )}
                     {/* PASSWORDS MATCH INDICATOR */}
                     {passwordsMatch && (<p className="mt-1.5 text-xs font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                         <span>✓ {t('signup.passwordsMatch')}</span>

@@ -28,6 +28,8 @@ import {
 import BackButton from '../../components/common/BackButton';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import FieldError from '../../components/common/FieldError';
+import { validateText } from '../../utils/formValidation';
 
 export default function IncidentManagement() {
   const { t, language } = useLanguage();
@@ -46,10 +48,21 @@ export default function IncidentManagement() {
   const [location, setLocation] = useState('Main Entrance Turnstile');
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+  const clearFormError = (field) => {
+    if (formErrors[field]) {
+      setFormErrors(prev => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
 
   // Resolution Modal State
   const [resolvingIncident, setResolvingIncident] = useState(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
+  const [resolutionError, setResolutionError] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
 
   // Dossier / Inspect Modal State
@@ -84,10 +97,21 @@ export default function IncidentManagement() {
 
   const handleCreateIncident = async (e) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setFeedback({ type: 'error', message: 'Incident title is required.' });
+    const newErrs = {};
+    const titleErr = validateText(title, t('form.incidentTitle', 'Incident title'), 3, 120, true);
+    if (titleErr) newErrs.title = titleErr;
+    if (location && location.trim().length > 100) {
+      newErrs.location = 'Location description cannot exceed 100 characters.';
+    }
+    if (details && details.trim().length > 1000) {
+      newErrs.details = 'Details cannot exceed 1000 characters.';
+    }
+
+    if (Object.keys(newErrs).length > 0) {
+      setFormErrors(newErrs);
       return;
     }
+
     setSubmitting(true);
     setFeedback(null);
     try {
@@ -100,7 +124,9 @@ export default function IncidentManagement() {
       setFeedback({ type: 'success', message: 'Security incident logged successfully and dispatched to SOC.' });
       setTitle('');
       setDetails('');
+      setLocation('Main Entrance Turnstile');
       setSeverity('MODERATE');
+      setFormErrors({});
       setShowForm(false);
       await fetchIncidents(true);
     } catch (err) {
@@ -474,7 +500,7 @@ export default function IncidentManagement() {
                 </button>
               </div>
 
-              <form onSubmit={handleCreateIncident} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <form onSubmit={handleCreateIncident} noValidate className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="md:col-span-2">
                   <label className="block text-xs font-black uppercase tracking-wider text-slate-300 mb-2">
                     {t('form.incidentTitle', 'Incident Title')} <span className="text-rose-400">*</span>
@@ -483,10 +509,18 @@ export default function IncidentManagement() {
                     type="text"
                     required
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    data-invalid={Boolean(formErrors.title)}
+                    aria-invalid={Boolean(formErrors.title)}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      clearFormError('title');
+                    }}
                     placeholder={t('placeholder.reason', 'e.g. Tailgating attempt at East Turnstile A, Unattended Baggage, False Badge Presentation')}
-                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all shadow-inner"
+                    className={`w-full bg-slate-950/80 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none transition-all shadow-inner ${
+                      formErrors.title ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-700/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                    }`}
                   />
+                  <FieldError error={formErrors.title} />
                 </div>
 
                 <div>
@@ -527,10 +561,18 @@ export default function IncidentManagement() {
                   <input
                     type="text"
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    data-invalid={Boolean(formErrors.location)}
+                    aria-invalid={Boolean(formErrors.location)}
+                    onChange={(e) => {
+                      setLocation(e.target.value);
+                      clearFormError('location');
+                    }}
                     placeholder={t('placeholder.address', 'e.g. Turnstile Gate East, Floor 2 Reception, Basement Server Room')}
-                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all shadow-inner"
+                    className={`w-full bg-slate-950/80 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none transition-all shadow-inner ${
+                      formErrors.location ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-700/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                    }`}
                   />
+                  <FieldError error={formErrors.location} />
                 </div>
 
                 <div className="md:col-span-2">
@@ -540,24 +582,32 @@ export default function IncidentManagement() {
                   <textarea
                     rows={3}
                     value={details}
-                    onChange={(e) => setDetails(e.target.value)}
+                    data-invalid={Boolean(formErrors.details)}
+                    aria-invalid={Boolean(formErrors.details)}
+                    onChange={(e) => {
+                      setDetails(e.target.value);
+                      clearFormError('details');
+                    }}
                     placeholder={t('placeholder.notes', 'Describe sequence of events, identities involved, physical badge codes, or witness statements...')}
-                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all resize-none shadow-inner"
+                    className={`w-full bg-slate-950/80 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none transition-all resize-none shadow-inner ${
+                      formErrors.details ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-700/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                    }`}
                   />
+                  <FieldError error={formErrors.details} />
                 </div>
 
                 <div className="md:col-span-2 flex justify-end gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
+                    className="h-10 min-h-[40px] px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
                   >
                     {t('btn.cancel', 'Cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-7 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-extrabold tracking-wider uppercase shadow-lg shadow-rose-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
+                    className="h-10 min-h-[40px] px-7 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-extrabold tracking-wider uppercase shadow-lg shadow-rose-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
                   >
                     {submitting ? (
                       <>
@@ -1105,7 +1155,7 @@ export default function IncidentManagement() {
                 <button
                   type="button"
                   onClick={() => setResolvingIncident(null)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
+                  className="h-10 min-h-[40px] px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
                 >
                   {t('btn.cancel', 'Cancel')}
                 </button>
@@ -1119,10 +1169,14 @@ export default function IncidentManagement() {
                       resolutionNotes || 'Incident resolved and cleared by security officer.'
                     )
                   }
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold tracking-wide uppercase shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+                  className="h-10 min-h-[40px] px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold tracking-wide uppercase shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                 >
-                  <Check className="w-4 h-4" />
-                  {t('btn.confirm', 'Confirm Resolution')}
+                  {updatingId === resolvingIncident.id ? (
+                    <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                  ) : (
+                    <Check className="w-4 h-4 shrink-0" />
+                  )}
+                  <span>{updatingId === resolvingIncident.id ? 'Resolving...' : t('btn.confirm', 'Confirm Resolution')}</span>
                 </button>
               </div>
             </motion.div>
@@ -1161,7 +1215,7 @@ export default function IncidentManagement() {
                 <button
                   type="button"
                   onClick={() => setDeletingIncident(null)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
+                  className="h-10 min-h-[40px] px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
                 >
                   Cancel
                 </button>
@@ -1169,10 +1223,14 @@ export default function IncidentManagement() {
                   type="button"
                   disabled={updatingId !== null}
                   onClick={() => handleDeleteIncident(deletingIncident.id)}
-                  className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold tracking-wide uppercase shadow-lg shadow-red-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+                  className="h-10 min-h-[40px] px-6 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold tracking-wide uppercase shadow-lg shadow-red-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  Confirm Delete
+                  {updatingId === deletingIncident.id ? (
+                    <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 shrink-0" />
+                  )}
+                  <span>{updatingId === deletingIncident.id ? 'Deleting...' : 'Confirm Delete'}</span>
                 </button>
               </div>
             </motion.div>

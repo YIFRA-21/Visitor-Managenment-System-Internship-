@@ -138,16 +138,21 @@ iframe {
 // ── 6. BREAKPOINT PROGRESSION MATRIX ─────────────────────────────────────
 
 // =========================================================================
-// EXTRA SMALL SCREENS (< 576px) — MOBILE PHONES (360px, 375px, 390px, 412px)
+// EXTRA SMALL SCREENS (< 576px) — MOBILE PHONES (320px, 375px, 430px)
 // =========================================================================
 @media (max-width: 575.98px) {
-  // Page padding
+  // Page padding & container constraints
   .vms-main-content {
-    padding: 0.75rem 0.625rem !important;
+    padding: 0.75rem 0.5rem !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
   }
 
   .vms-page-header {
-    padding: 0.5rem 0.75rem !important;
+    padding: 0.5rem 0.5rem !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
   }
 
   // Dashboard hero banners
@@ -176,16 +181,22 @@ iframe {
     font-size: 16px !important; // Prevents iOS Safari auto-zoom
   }
 
-  // Buttons on mobile wrap cleanly
+  // Buttons on mobile wrap cleanly, keeping icon buttons compact
   .vms-action-toolbar,
-  .vms-btn-group {
+  .vms-btn-group,
+  .modal-footer,
+  .vms-modal__footer {
     width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
 
-    > .btn,
-    > .vms-btn,
-    > button {
+    > .btn:not(.btn-icon):not(.vms-btn--icon),
+    > .vms-btn:not(.btn-icon):not(.vms-btn--icon),
+    > button:not(.btn-icon):not(.vms-btn--icon):not([class*="p-1"]):not([class*="w-"]) {
       flex: 1 1 100% !important;
       justify-content: center !important;
+      min-height: 44px !important;
     }
   }
 
@@ -199,15 +210,28 @@ iframe {
 
   // OTP inputs on mobile
   [id^="otp-input-"] {
-    width: 2.5rem !important;
-    height: 3rem !important;
-    font-size: 1.25rem !important;
+    width: 2.25rem !important;
+    height: 2.75rem !important;
+    font-size: 1.125rem !important;
   }
 
   // Authentication & wizard forms fit screen
   .vms-auth-card,
   .vms-card--auth {
-    padding: 1.25rem 1rem !important;
+    padding: 1.25rem 0.875rem !important;
+  }
+}
+
+// Ultra-small screens (320px - 375px)
+@media (max-width: 375.98px) {
+  .vms-main-content {
+    padding: 0.5rem 0.25rem !important;
+  }
+  .card, .vms-card {
+    padding: 0.75rem 0.5rem !important;
+  }
+  .vms-page-header h1, .vms-page-header h2 {
+    font-size: 1.125rem !important;
   }
 }
 

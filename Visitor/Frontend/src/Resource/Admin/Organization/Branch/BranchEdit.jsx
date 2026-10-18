@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, GitBranch, Save, RotateCcw, AlertCircle, CheckCircle } from 'lucide-react';
 import api from '../../../../services/api';
 import OperatingHoursForm from './components/OperatingHoursForm';
+import CountryNationalitySelect from '../../../../components/common/CountryNationalitySelect';
+import CountryPhoneInput from '../../../../components/common/CountryPhoneInput';
 export default function BranchEdit() {
     const urlParams = new URLSearchParams(window.location.search);
     const branchId = urlParams.get('branchId') || '';
@@ -119,7 +121,16 @@ export default function BranchEdit() {
         <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-900 dark:text-white border-bottom pb-2 dark:border-slate-800 mb-4">Contact Information</h4>
         <div className="row g-3">
           <div className="col-12 col-md-4"><label className="form-label font-bold text-xxs uppercase text-slate-400">Email</label><input type="email" name="email" className="form-control text-xs font-semibold" value={formData.email} onChange={handleChange}/></div>
-          <div className="col-12 col-md-4"><label className="form-label font-bold text-xxs uppercase text-slate-400">Phone</label><input type="text" name="phone" className="form-control text-xs font-semibold" value={formData.phone} onChange={handleChange}/></div>
+          <div className="col-12 col-md-4">
+            <label className="form-label font-bold text-xxs uppercase text-slate-400">Phone</label>
+            <CountryPhoneInput
+              id="branch-edit-phone"
+              name="phone"
+              value={formData.phone}
+              onChange={(val) => setFormData(prev => ({ ...prev, phone: val }))}
+              showValidationHelper={false}
+            />
+          </div>
           <div className="col-12 col-md-4"><label className="form-label font-bold text-xxs uppercase text-slate-400">Website</label><input type="text" name="website" className="form-control text-xs font-semibold" value={formData.website} onChange={handleChange}/></div>
         </div>
       </div>
@@ -128,7 +139,17 @@ export default function BranchEdit() {
       <div className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
         <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-900 dark:text-white border-bottom pb-2 dark:border-slate-800 mb-4">Address</h4>
         <div className="row g-3">
-          <div className="col-12 col-md-4"><label className="form-label font-bold text-xxs uppercase text-slate-400">Country</label><input type="text" name="country" className="form-control text-xs font-semibold" value={formData.country} onChange={handleChange}/></div>
+          <div className="col-12 col-md-4">
+            <label className="form-label font-bold text-xxs uppercase text-slate-400">Country</label>
+            <CountryNationalitySelect
+              id="branch-edit-country"
+              name="country"
+              value={formData.country}
+              returnMode="country"
+              onChange={(val) => setFormData(prev => ({ ...prev, country: val }))}
+              placeholder="Select Country..."
+            />
+          </div>
           <div className="col-12 col-md-4"><label className="form-label font-bold text-xxs uppercase text-slate-400">Region</label><input type="text" name="region" className="form-control text-xs font-semibold" value={formData.region} onChange={handleChange}/></div>
           <div className="col-12 col-md-4"><label className="form-label font-bold text-xxs uppercase text-slate-400">City</label><input type="text" name="city" className="form-control text-xs font-semibold" value={formData.city} onChange={handleChange}/></div>
           <div className="col-12 col-md-4"><label className="form-label font-bold text-xxs uppercase text-slate-400">Sub-City</label><input type="text" name="subCity" className="form-control text-xs font-semibold" value={formData.subCity} onChange={handleChange}/></div>

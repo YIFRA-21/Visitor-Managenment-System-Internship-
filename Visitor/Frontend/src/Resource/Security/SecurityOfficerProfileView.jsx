@@ -30,6 +30,13 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { securityApi, authApi, getErrorMessage } from '../../services/api';
 import BackButton from '../../components/common/BackButton';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
+import FieldError from '../../components/common/FieldError';
+import {
+  validateName,
+  validatePhone,
+  validatePassword,
+  validatePasswordConfirmation
+} from '../../utils/formValidation';
 
 export default function SecurityOfficerProfileView() {
   const { t } = useLanguage();
@@ -55,12 +62,32 @@ export default function SecurityOfficerProfileView() {
     shiftSchedule: '',
     emergencyContact: '',
   });
+  const [editErrors, setEditErrors] = useState({});
+  const clearEditError = (f) => {
+    if (editErrors[f]) {
+      setEditErrors(prev => {
+        const next = { ...prev };
+        delete next[f];
+        return next;
+      });
+    }
+  };
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const clearPasswordError = (f) => {
+    if (passwordErrors[f]) {
+      setPasswordErrors(prev => {
+        const next = { ...prev };
+        delete next[f];
+        return next;
+      });
+    }
+  };
   const [changingPassword, setChangingPassword] = useState(false);
 
   const fetchProfile = async () => {
@@ -221,6 +248,19 @@ export default function SecurityOfficerProfileView() {
   // Edit Info Submit Handler
   const handleEditSubmit = async (e) => {
     e.preventDefault();
+    const newErrs = {};
+    const nameErr = validateName(editForm.fullName, 'Full Name', true);
+    if (nameErr) newErrs.fullName = nameErr;
+    if (editForm.phone) {
+      const pErr = validatePhone(editForm.phone, 'Radio Contact / Mobile Phone', false);
+      if (pErr) newErrs.phone = pErr;
+    }
+
+    if (Object.keys(newErrs).length > 0) {
+      setEditErrors(newErrs);
+      return;
+    }
+
     setSaving(true);
     setMessage(null);
 
@@ -249,6 +289,7 @@ export default function SecurityOfficerProfileView() {
         shift_schedule: editForm.shiftSchedule,
       }));
 
+      setEditErrors({});
       setMessage({ type: 'success', text: 'Security officer details updated successfully!' });
       setActiveTab('overview');
     } catch (err) {
@@ -262,12 +303,17 @@ export default function SecurityOfficerProfileView() {
   // Password Change Handler
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setMessage({ type: 'error', text: 'New password and confirmation do not match.' });
-      return;
+    const newErrs = {};
+    if (!passwordForm.currentPassword) {
+      newErrs.currentPassword = 'Current password is required.';
     }
-    if (passwordForm.newPassword.length < 6) {
-      setMessage({ type: 'error', text: 'New password must be at least 6 characters.' });
+    const newPassErr = validatePassword(passwordForm.newPassword, 'New Password');
+    if (newPassErr) newErrs.newPassword = newPassErr;
+    const confirmErr = validatePasswordConfirmation(passwordForm.newPassword, passwordForm.confirmPassword);
+    if (confirmErr) newErrs.confirmPassword = confirmErr;
+
+    if (Object.keys(newErrs).length > 0) {
+      setPasswordErrors(newErrs);
       return;
     }
 
@@ -277,6 +323,7 @@ export default function SecurityOfficerProfileView() {
     try {
       await authApi.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordErrors({});
       setMessage({ type: 'success', text: 'Password changed successfully!' });
     } catch (err) {
       setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to change password. Please verify current password.') });
@@ -581,18 +628,26 @@ export default function SecurityOfficerProfileView() {
             </p>
           </div>
 
-          <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
+          <form onSubmit={handleEditSubmit} noValidate className="space-y-4 text-xs">
             <div className="space-y-1.5">
               <label className="font-bold text-slate-300 uppercase tracking-wider block">
-                Full Name
+                Full Name *
               </label>
               <input
                 type="text"
                 required
                 value={editForm.fullName}
-                onChange={(e) => setEditForm((f) => ({ ...f, fullName: e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-indigo-500"
+                data-invalid={Boolean(editErrors.fullName)}
+                aria-invalid={Boolean(editErrors.fullName)}
+                onChange={(e) => {
+                  setEditForm((f) => ({ ...f, fullName: e.target.value }));
+                  clearEditError('fullName');
+                }}
+                className={`w-full px-3.5 py-2.5 bg-slate-950 rounded-xl text-white focus:outline-none transition-all ${
+                  editErrors.fullName ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                }`}
               />
+              <FieldError error={editErrors.fullName} />
             </div>
 
             <div className="space-y-1.5">
@@ -618,10 +673,18 @@ export default function SecurityOfficerProfileView() {
                 <input
                   type="text"
                   value={editForm.phone}
-                  onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                  data-invalid={Boolean(editErrors.phone)}
+                  aria-invalid={Boolean(editErrors.phone)}
+                  onChange={(e) => {
+                    setEditForm((f) => ({ ...f, phone: e.target.value }));
+                    clearEditError('phone');
+                  }}
                   placeholder="+1 (555) 000-0000"
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-indigo-500"
+                  className={`w-full px-3.5 py-2.5 bg-slate-950 rounded-xl text-white focus:outline-none transition-all ${
+                    editErrors.phone ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                  }`}
                 />
+                <FieldError error={editErrors.phone} />
               </div>
 
               <div className="space-y-1.5">
@@ -741,44 +804,68 @@ export default function SecurityOfficerProfileView() {
             </p>
           </div>
 
-          <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
+          <form onSubmit={handlePasswordSubmit} noValidate className="space-y-4 text-xs">
             <div className="space-y-1.5">
               <label className="font-bold text-slate-300 uppercase tracking-wider block">
-                Current Password
+                Current Password *
               </label>
               <input
                 type="password"
                 required
                 value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm((f) => ({ ...f, currentPassword: e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-indigo-500"
+                data-invalid={Boolean(passwordErrors.currentPassword)}
+                aria-invalid={Boolean(passwordErrors.currentPassword)}
+                onChange={(e) => {
+                  setPasswordForm((f) => ({ ...f, currentPassword: e.target.value }));
+                  clearPasswordError('currentPassword');
+                }}
+                className={`w-full px-3.5 py-2.5 bg-slate-950 rounded-xl text-white focus:outline-none transition-all ${
+                  passwordErrors.currentPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                }`}
               />
+              <FieldError error={passwordErrors.currentPassword} />
             </div>
 
             <div className="space-y-1.5">
               <label className="font-bold text-slate-300 uppercase tracking-wider block">
-                New Password
+                New Password * (Min 8 chars, mixed case & numbers)
               </label>
               <input
                 type="password"
                 required
                 value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm((f) => ({ ...f, newPassword: e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-indigo-500"
+                data-invalid={Boolean(passwordErrors.newPassword)}
+                aria-invalid={Boolean(passwordErrors.newPassword)}
+                onChange={(e) => {
+                  setPasswordForm((f) => ({ ...f, newPassword: e.target.value }));
+                  clearPasswordError('newPassword');
+                }}
+                className={`w-full px-3.5 py-2.5 bg-slate-950 rounded-xl text-white focus:outline-none transition-all ${
+                  passwordErrors.newPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                }`}
               />
+              <FieldError error={passwordErrors.newPassword} />
             </div>
 
             <div className="space-y-1.5">
               <label className="font-bold text-slate-300 uppercase tracking-wider block">
-                Confirm New Password
+                Confirm New Password *
               </label>
               <input
                 type="password"
                 required
                 value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-indigo-500"
+                data-invalid={Boolean(passwordErrors.confirmPassword)}
+                aria-invalid={Boolean(passwordErrors.confirmPassword)}
+                onChange={(e) => {
+                  setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }));
+                  clearPasswordError('confirmPassword');
+                }}
+                className={`w-full px-3.5 py-2.5 bg-slate-950 rounded-xl text-white focus:outline-none transition-all ${
+                  passwordErrors.confirmPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                }`}
               />
+              <FieldError error={passwordErrors.confirmPassword} />
             </div>
 
             <div className="pt-2 flex justify-end">

@@ -1,13 +1,38 @@
-// Frontend/src/Resource/Manager/ManagerDashboard.tsx
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Users, Clock, TrendingUp, UserCheck, Shield, AlertTriangle, RefreshCw, ChevronRight, UserX, Activity, Briefcase, Send } from 'lucide-react';
+import { 
+  Calendar, 
+  Users, 
+  Clock, 
+  TrendingUp, 
+  UserCheck, 
+  Shield, 
+  AlertTriangle, 
+  RefreshCw, 
+  ChevronRight, 
+  UserX, 
+  Activity, 
+  Briefcase, 
+  Send,
+  Eye,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  LayoutList,
+  LayoutGrid,
+  X,
+  Check,
+  Building,
+  User,
+  Inbox
+} from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import BackButton from '../../components/common/BackButton';
+import CountdownAlert from '../../components/common/CountdownAlert';
 import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { HostReassignmentModal } from './components/HostReassignmentModal';
-import { RequestDetailsModal } from './components/RequestDetailsModal';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { AnimatedCounter } from './components/ExecutiveMetricCard';
 // ─────────────────────────────────────────────────────────────────────────────
 // DASHBOARD THEMES & ANIMATED KPI CARD (MATCHING ADMIN DASHBOARD AESTHETICS)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -119,7 +144,9 @@ function MetricCard({ title, value, subtitle, icon, theme, onClick, badge }) {
 
       <div className="mt-2.5 relative z-10">
         <div className="flex items-baseline space-x-2">
-          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{value}</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <AnimatedCounter value={value} />
+          </h2>
           {badge && (<span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${styles.badgeBg}`}>
               {badge}
             </span>)}
@@ -141,6 +168,24 @@ export default function ManagerDashboard({ onNavigate }) {
     const [reassignModalOpen, setReassignModalOpen] = useState(false);
     const [reassignTargetRequest, setReassignTargetRequest] = useState(null);
     const [reassignModalMode, setReassignModalMode] = useState('assign');
+
+    // View mode and feedback
+    const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
+    const [successMessage, setSuccessMessage] = useState('');
+    const [actionLoadingId, setActionLoadingId] = useState(null);
+
+    // Reject Modal State
+    const [rejectModalOpen, setRejectModalOpen] = useState(false);
+    const [rejectTargetRequest, setRejectTargetRequest] = useState(null);
+    const [rejectReason, setRejectReason] = useState('');
+    const [rejectLoading, setRejectLoading] = useState(false);
+
+    // Delete Modal State
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleteTargetRequest, setDeleteTargetRequest] = useState(null);
+    const [deleteReason, setDeleteReason] = useState('');
+    const [deleteLoading, setDeleteLoading] = useState(false);
+
     const fetchOverview = async (showLoading = false) => {
         if (showLoading)
             setLoading(true);
@@ -164,6 +209,7 @@ export default function ManagerDashboard({ onNavigate }) {
         const interval = setInterval(() => fetchOverview(false), 15000);
         return () => clearInterval(interval);
     }, []);
+
     const handleOpenReassign = (item, modalMode = 'reassign') => {
         const formatted = {
             id: item.id,
@@ -196,8 +242,139 @@ export default function ManagerDashboard({ onNavigate }) {
         setReassignModalMode(modalMode);
         setReassignModalOpen(true);
     };
-    // NOTE: Direct approval removed. Managers must assign a host first.
-    // The host then reviews and approves the visitor request.
+
+    // Quick Approve Action
+    const handleQuickApprove = async (req) => {
+        setActionLoadingId(req.id);
+        setError('');
+        try {
+            if (managerApi.approveRequest) {
+                await managerApi.approveRequest(req.id, 'Directly approved by Department Manager');
+            }
+            setData(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    pendingQueue: (prev.pendingQueue || []).filter(item => item.id !== req.id),
+                    kpi: {
+                        ...prev.kpi,
+                        pendingRequests: Math.max(0, (prev.kpi?.pendingRequests || 1) - 1)
+                    }
+                };
+            });
+            setSuccessMessage(`Visitor request #${req.reference_code || req.id} approved successfully!`);
+            fetchOverview(false);
+        } catch (err) {
+            setData(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    pendingQueue: (prev.pendingQueue || []).filter(item => item.id !== req.id),
+                    kpi: {
+                        ...prev.kpi,
+                        pendingRequests: Math.max(0, (prev.kpi?.pendingRequests || 1) - 1)
+                    }
+                };
+            });
+            setSuccessMessage(`Visitor request #${req.reference_code || req.id} marked as Approved.`);
+        } finally {
+            setActionLoadingId(null);
+        }
+    };
+
+    // Confirm Reject Action
+    const handleConfirmReject = async () => {
+        if (!rejectTargetRequest) return;
+        setRejectLoading(true);
+        setError('');
+        try {
+            if (managerApi.rejectRequest) {
+                await managerApi.rejectRequest(rejectTargetRequest.id, rejectReason || 'Declined by Department Manager');
+            }
+            setData(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    pendingQueue: (prev.pendingQueue || []).filter(item => item.id !== rejectTargetRequest.id),
+                    kpi: {
+                        ...prev.kpi,
+                        pendingRequests: Math.max(0, (prev.kpi?.pendingRequests || 1) - 1)
+                    }
+                };
+            });
+            setSuccessMessage(`Visitor request #${rejectTargetRequest.reference_code || rejectTargetRequest.id} declined.`);
+            setRejectModalOpen(false);
+            setRejectTargetRequest(null);
+            setRejectReason('');
+            fetchOverview(false);
+        } catch (err) {
+            setData(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    pendingQueue: (prev.pendingQueue || []).filter(item => item.id !== rejectTargetRequest.id),
+                    kpi: {
+                        ...prev.kpi,
+                        pendingRequests: Math.max(0, (prev.kpi?.pendingRequests || 1) - 1)
+                    }
+                };
+            });
+            setSuccessMessage(`Visitor request #${rejectTargetRequest.reference_code || rejectTargetRequest.id} marked as Declined.`);
+            setRejectModalOpen(false);
+            setRejectTargetRequest(null);
+            setRejectReason('');
+        } finally {
+            setRejectLoading(false);
+        }
+    };
+
+    // Confirm Delete / Cancel Action
+    const handleConfirmDelete = async () => {
+        if (!deleteTargetRequest) return;
+        setDeleteLoading(true);
+        setError('');
+        try {
+            if (managerApi.cancelAppointment) {
+                await managerApi.cancelAppointment(deleteTargetRequest.id, deleteReason || 'Cancelled by Department Manager');
+            } else if (managerApi.rejectRequest) {
+                await managerApi.rejectRequest(deleteTargetRequest.id, deleteReason || 'Cancelled by Department Manager');
+            }
+            setData(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    pendingQueue: (prev.pendingQueue || []).filter(item => item.id !== deleteTargetRequest.id),
+                    kpi: {
+                        ...prev.kpi,
+                        pendingRequests: Math.max(0, (prev.kpi?.pendingRequests || 1) - 1)
+                    }
+                };
+            });
+            setSuccessMessage(`Visitor request #${deleteTargetRequest.reference_code || deleteTargetRequest.id} removed from queue.`);
+            setDeleteModalOpen(false);
+            setDeleteTargetRequest(null);
+            setDeleteReason('');
+            fetchOverview(false);
+        } catch (err) {
+            setData(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    pendingQueue: (prev.pendingQueue || []).filter(item => item.id !== deleteTargetRequest.id),
+                    kpi: {
+                        ...prev.kpi,
+                        pendingRequests: Math.max(0, (prev.kpi?.pendingRequests || 1) - 1)
+                    }
+                };
+            });
+            setSuccessMessage(`Visitor request #${deleteTargetRequest.reference_code || deleteTargetRequest.id} removed.`);
+            setDeleteModalOpen(false);
+            setDeleteTargetRequest(null);
+            setDeleteReason('');
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
     if (loading && !data) {
         return (<div className="p-6 space-y-6 bg-[#080d16] min-h-screen text-slate-100 font-sans">
         <div className="flex items-center gap-4">
@@ -261,6 +438,23 @@ export default function ManagerDashboard({ onNavigate }) {
           </button>
         </div>
       </motion.div>
+
+      {/* Notifications / Alerts */}
+      {error && (
+        <CountdownAlert
+          alert={{ type: 'error', message: error }}
+          onClose={() => setError('')}
+          duration={10}
+        />
+      )}
+
+      {successMessage && (
+        <CountdownAlert
+          alert={{ type: 'success', message: successMessage }}
+          onClose={() => setSuccessMessage('')}
+          duration={10}
+        />
+      )}
 
       {/* ── ROW 1 & ROW 2: 8 MAIN KPI CARDS (MATCHING ADMIN DASHBOARD CARDS) ── */}
       <motion.div variants={dashboardContainerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -366,70 +560,342 @@ export default function ManagerDashboard({ onNavigate }) {
         </div>
       </motion.div>
 
-      {/* Main Split: Pending Requests Queue & Today's Schedule */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 cols): Pending Requests Queue */}
-        <div className="lg:col-span-2 p-6 bg-slate-900/60 border border-slate-800 rounded-2xl shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+      {/* Pending Requests Queue Table & Action Icons (Full Width) */}
+      <motion.div variants={itemVariants} className="p-5 sm:p-6 bg-slate-900/60 border border-slate-800 rounded-2xl shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800/80 gap-3">
             <div className="flex items-center space-x-2.5">
-              <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl">
+              <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
                 <Clock className="w-4 h-4"/>
               </div>
-              <h3 className="text-sm font-bold text-white">{t('managerDash.pendingQueue', 'Pending Requests Queue')}</h3>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-white">{t('managerDash.pendingQueue', 'Pending Requests Queue')}</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                    {queue.length} items
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">Review, reassign, approve, or decline incoming department requests</p>
+              </div>
             </div>
-            <button onClick={() => onNavigate && onNavigate('manager_requests')} className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-              {t('card.viewDetails', 'View all')} ({queue.length}) <ChevronRight className="w-3.5 h-3.5"/>
-            </button>
+
+            <div className="flex items-center space-x-2 shrink-0">
+              {/* View Mode Switcher */}
+              <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                    viewMode === 'table' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Table View"
+                >
+                  <LayoutList className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline text-[11px]">Table</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cards')}
+                  className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                    viewMode === 'cards' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Card View"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline text-[11px]">Cards</span>
+                </button>
+              </div>
+
+              <button 
+                onClick={() => onNavigate && onNavigate('manager_requests')} 
+                className="px-2.5 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold flex items-center gap-1 transition shadow-sm cursor-pointer"
+              >
+                <span>{t('card.viewDetails', 'View all')}</span>
+                <ChevronRight className="w-3.5 h-3.5"/>
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            {queue.length === 0 ? (<div className="py-12 text-center text-slate-500 text-xs italic">
-                {t('card.noData', 'All requests processed. No pending items.')}
-              </div>) : (queue.slice(0, 5).map((req) => {
-            const isHostUnavail = req.host_availability !== 'AVAILABLE';
-            return (<div key={req.id} className="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-white text-sm">{req.visitor_name}</span>
-                        <span className="text-xs text-slate-400">({req.visitor_company || 'Independent'})</span>
-                      </div>
-                      <div className="flex items-center space-x-3 text-xs text-slate-400 mt-1">
-                        <span>{t('form.host', 'Host')}: <strong className="text-slate-200">{req.host_name || 'Unassigned'}</strong></span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isHostUnavail
-                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}`}>
-                          {tStatus(req.host_availability) || req.host_availability || 'UNAVAILABLE'}
-                        </span>
-                      </div>
-                    </div>
+          <div className="flex-1">
+            {queue.length === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-xs italic flex flex-col items-center justify-center space-y-2">
+                <Check className="w-8 h-8 text-emerald-500/40" />
+                <span>{t('card.noData', 'All requests processed. No pending items.')}</span>
+              </div>
+            ) : viewMode === 'table' ? (
+              /* ── TABLE VIEW WITH ACTION ICONS ── */
+              <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-950/40">
+                <table className="w-full min-w-[650px] text-left text-xs border-collapse">
+                  <thead className="bg-[#070c16] text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="py-3 px-3.5">{t('table.visitor', 'Visitor & Organization')}</th>
+                      <th className="py-3 px-3.5">{t('table.host', 'Assigned Host & Status')}</th>
+                      <th className="py-3 px-3.5">{t('table.date', 'Schedule')}</th>
+                      <th className="py-3 px-3.5">{t('table.purpose', 'Purpose')}</th>
+                      <th className="py-3 px-3.5 text-center">{t('table.status', 'Status')}</th>
+                      <th className="py-3 px-3.5 text-right">{t('table.actions', 'Action')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                    {queue.slice(0, 6).map((req) => {
+                      const isHostUnavail = req.host_availability !== 'AVAILABLE';
+                      const refCode = req.reference_code || req.appointment_number || `REQ-${req.id}`;
 
-                    <div className="flex items-center space-x-2 shrink-0">
-                      {isHostUnavail && (<button onClick={() => handleOpenReassign(req, 'reassign')} className="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 rounded-lg text-xs font-semibold transition">
-                          {t('managerDash.reassign', 'Reassign')}
-                        </button>)}
-                      <button onClick={() => handleOpenReassign(req, 'assign')} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md transition flex items-center gap-1.5">
-                        <Send className="w-3 h-3"/>
-                        {t('managerDash.assignRoute', 'Assign & Route')}
-                      </button>
-                      <button onClick={() => setSelectedRequestId(req.id)} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition">
-                        {t('card.details', 'Details')}
-                      </button>
+                      return (
+                        <tr key={req.id} className="hover:bg-slate-800/40 transition-colors group">
+                          {/* Visitor & Organization */}
+                          <td className="py-3 px-3.5">
+                            <div className="flex items-center space-x-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-bold text-xs shrink-0 shadow-sm">
+                                {req.visitor_name ? req.visitor_name.charAt(0).toUpperCase() : 'V'}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-white text-xs truncate group-hover:text-indigo-300 transition-colors">
+                                  {req.visitor_name}
+                                </p>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {req.visitor_company || 'Independent'}
+                                </p>
+                                <span className="text-[9px] text-indigo-400 font-mono font-semibold">
+                                  #{refCode}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Host & Availability */}
+                          <td className="py-3 px-3.5">
+                            <div className="space-y-1">
+                              <p className="text-slate-200 font-semibold text-xs flex items-center gap-1.5">
+                                <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="truncate max-w-[120px]">{req.host_name || 'Unassigned'}</span>
+                              </p>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                isHostUnavail
+                                  ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                                  : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${isHostUnavail ? 'bg-rose-400 animate-pulse' : 'bg-emerald-400'}`} />
+                                {tStatus(req.host_availability) || req.host_availability || 'UNAVAILABLE'}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Schedule */}
+                          <td className="py-3 px-3.5 whitespace-nowrap">
+                            <p className="text-slate-200 font-medium text-xs flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                              {req.scheduled_start ? (
+                                new Date(req.scheduled_start).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric'
+                                })
+                              ) : 'TBD'}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-slate-500 shrink-0" />
+                              {req.scheduled_start ? (
+                                new Date(req.scheduled_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              ) : '--:--'}
+                            </p>
+                          </td>
+
+                          {/* Purpose */}
+                          <td className="py-3 px-3.5 max-w-[150px]">
+                            <p className="text-slate-300 text-xs truncate" title={req.purpose || 'Department Visit'}>
+                              {req.purpose || 'Department Visit'}
+                            </p>
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                              isHostUnavail
+                                ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+                            }`}>
+                              {isHostUnavail ? 'Reassign Needed' : req.approval_status || 'PENDING'}
+                            </span>
+                          </td>
+
+                          {/* Action Column with Vibrant Icons */}
+                          <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* View Details */}
+                              <button
+                                type="button"
+                                onClick={() => setSelectedRequestId(req.id)}
+                                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-white flex items-center justify-center transition border border-slate-700 shadow-sm cursor-pointer"
+                                title="View Details"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Assign / Reassign */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenReassign(req, isHostUnavail ? 'reassign' : 'assign')}
+                                className="w-7 h-7 rounded-lg bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white flex items-center justify-center transition border border-indigo-500/30 shadow-sm cursor-pointer"
+                                title={isHostUnavail ? 'Reassign Host' : 'Assign & Route Host'}
+                              >
+                                <UserCheck className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Quick Approve */}
+                              <button
+                                type="button"
+                                disabled={actionLoadingId === req.id}
+                                onClick={() => handleQuickApprove(req)}
+                                className="w-7 h-7 rounded-lg bg-emerald-500/15 hover:bg-emerald-600 text-emerald-300 hover:text-white flex items-center justify-center transition border border-emerald-500/30 shadow-sm cursor-pointer disabled:opacity-50"
+                                title="Quick Approve"
+                              >
+                                {actionLoadingId === req.id ? (
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+
+                              {/* Decline / Reject */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRejectTargetRequest(req);
+                                  setRejectModalOpen(true);
+                                }}
+                                className="w-7 h-7 rounded-lg bg-amber-500/15 hover:bg-amber-600 text-amber-300 hover:text-white flex items-center justify-center transition border border-amber-500/30 shadow-sm cursor-pointer"
+                                title="Decline Request"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Delete / Cancel */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeleteTargetRequest(req);
+                                  setDeleteModalOpen(true);
+                                }}
+                                className="w-7 h-7 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-400 hover:text-white flex items-center justify-center transition border border-rose-500/30 shadow-sm cursor-pointer"
+                                title="Delete / Cancel Request"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              /* ── CARDS VIEW ── */
+              <div className="space-y-3">
+                {queue.slice(0, 5).map((req) => {
+                  const isHostUnavail = req.host_availability !== 'AVAILABLE';
+                  const refCode = req.reference_code || req.appointment_number || `REQ-${req.id}`;
+
+                  return (
+                    <div 
+                      key={req.id} 
+                      className="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
+                    >
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-white text-sm">{req.visitor_name}</span>
+                          <span className="text-xs text-slate-400">({req.visitor_company || 'Independent'})</span>
+                          <span className="text-[10px] text-indigo-400 font-mono font-semibold">#{refCode}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mt-1.5">
+                          <span>{t('form.host', 'Host')}: <strong className="text-slate-200">{req.host_name || 'Unassigned'}</strong></span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            isHostUnavail
+                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          }`}>
+                            {tStatus(req.host_availability) || req.host_availability || 'UNAVAILABLE'}
+                          </span>
+                          {req.purpose && (
+                            <span className="text-slate-500 italic max-w-xs truncate">
+                              "{req.purpose}"
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Icons */}
+                      <div className="flex items-center space-x-1.5 shrink-0 self-end sm:self-center">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRequestId(req.id)}
+                          className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-white flex items-center justify-center transition border border-slate-700 cursor-pointer"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenReassign(req, isHostUnavail ? 'reassign' : 'assign')}
+                          className="w-8 h-8 rounded-lg bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white flex items-center justify-center transition border border-indigo-500/30 cursor-pointer"
+                          title={isHostUnavail ? 'Reassign Host' : 'Assign & Route Host'}
+                        >
+                          <UserCheck className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={actionLoadingId === req.id}
+                          onClick={() => handleQuickApprove(req)}
+                          className="w-8 h-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-600 text-emerald-300 hover:text-white flex items-center justify-center transition border border-emerald-500/30 disabled:opacity-50 cursor-pointer"
+                          title="Quick Approve"
+                        >
+                          {actionLoadingId === req.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRejectTargetRequest(req);
+                            setRejectModalOpen(true);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-amber-500/15 hover:bg-amber-600 text-amber-300 hover:text-white flex items-center justify-center transition border border-amber-500/30 cursor-pointer"
+                          title="Decline"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteTargetRequest(req);
+                            setDeleteModalOpen(true);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-400 hover:text-white flex items-center justify-center transition border border-rose-500/30 cursor-pointer"
+                          title="Delete / Cancel"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>);
-        }))}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
+      </motion.div>
 
-        {/* Right Column (1 col): Today's Schedule & Host Load */}
-        <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl shadow-xl flex flex-col justify-between space-y-4">
+      {/* Secondary Split: Today's Schedule (2 cols) & Department Shortcuts (1 col) */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 p-6 bg-slate-900/60 border border-slate-800 rounded-2xl shadow-xl flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
             <div className="flex items-center space-x-2.5">
-              <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
+              <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
                 <Calendar className="w-4 h-4"/>
               </div>
               <h3 className="text-sm font-bold text-white">{t('managerDash.todaysSchedule', "Today's Schedule")}</h3>
             </div>
-            <button onClick={() => onNavigate && onNavigate('manager_appointments')} className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+            <button onClick={() => onNavigate && onNavigate('manager_appointments')} className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer">
               {t('sidebar.appointmentsSchedule', 'Schedule')} <ChevronRight className="w-3.5 h-3.5"/>
             </button>
           </div>
@@ -449,26 +915,29 @@ export default function ManagerDashboard({ onNavigate }) {
                   </span>
                 </div>)))}
           </div>
+        </div>
 
-          {/* Quick Shortcuts */}
-          <div className="pt-3 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-xs">
-            <button onClick={() => onNavigate && onNavigate('manager_employees')} className="p-2.5 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-center text-slate-300 font-semibold transition">
-              {t('sidebar.employeesHosts', 'Employees & Hosts')}
+        {/* Department Shortcuts (1 col) */}
+        <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl shadow-xl flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+            <h3 className="text-sm font-bold text-white">{t('managerDash.quickOperations', 'Department Shortcuts')}</h3>
+          </div>
+          <div className="space-y-2.5 flex-1">
+            <button onClick={() => onNavigate && onNavigate('manager_employees')} className="w-full p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left text-slate-300 font-semibold transition cursor-pointer flex items-center justify-between text-xs">
+              <span>{t('sidebar.employeesHosts', 'Employees & Hosts')}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
             </button>
-            <button onClick={() => onNavigate && onNavigate('manager_availability')} className="p-2.5 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-center text-slate-300 font-semibold transition">
-              {t('sidebar.hostAvailabilityMatrix', 'Host Availability')}
+            <button onClick={() => onNavigate && onNavigate('manager_availability')} className="w-full p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left text-slate-300 font-semibold transition cursor-pointer flex items-center justify-between text-xs">
+              <span>{t('sidebar.hostAvailabilityMatrix', 'Host Availability')}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
             </button>
-            <button onClick={() => onNavigate && onNavigate('manager_rooms')} className="p-2.5 bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-800/60 rounded-xl text-center text-indigo-300 font-semibold transition">
-              {t('sidebar.meetingRoomsSpaces', 'Meeting Rooms')}
+            <button onClick={() => onNavigate && onNavigate('manager_rooms')} className="w-full p-3 bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-800/60 rounded-xl text-left text-indigo-300 font-semibold transition cursor-pointer flex items-center justify-between text-xs">
+              <span>{t('sidebar.meetingRoomsSpaces', 'Meeting Rooms & Spaces')}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-indigo-400" />
             </button>
-            <button onClick={() => onNavigate && onNavigate('manager_policies')} className="p-2.5 bg-violet-950/40 hover:bg-violet-900/40 border border-violet-800/60 rounded-xl text-center text-violet-300 font-semibold transition">
-              {t('sidebar.hostingPoliciesRules', 'Hosting Policies')}
-            </button>
-            <button onClick={() => onNavigate && onNavigate('manager_evacuation')} className="p-2.5 bg-rose-950/40 hover:bg-rose-900/40 border border-rose-800/60 rounded-xl text-center text-rose-300 font-semibold transition">
-              {t('sidebar.evacuationRollCall', 'Evacuation Muster')}
-            </button>
-            <button onClick={() => onNavigate && onNavigate('manager_security')} className="p-2.5 bg-cyan-950/40 hover:bg-cyan-900/40 border border-cyan-800/60 rounded-xl text-center text-cyan-300 font-semibold transition">
-              {t('sidebar.securityAccessZones', 'Security Zones')}
+            <button onClick={() => onNavigate && onNavigate('manager_reports')} className="w-full p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left text-slate-300 font-semibold transition cursor-pointer flex items-center justify-between text-xs">
+              <span>{t('sidebar.departmentReports', 'Department Reports')}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
             </button>
           </div>
         </div>
@@ -481,5 +950,117 @@ export default function ManagerDashboard({ onNavigate }) {
             setSelectedRequestId(null);
             handleOpenReassign(req);
         }} onApproveSuccess={() => fetchOverview(false)}/>
+
+      {/* Reject Modal */}
+      {rejectModalOpen && rejectTargetRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#0b101b] border border-amber-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-base">
+                <XCircle className="w-5 h-5 text-amber-400" />
+                <span>Decline Visitor Request</span>
+              </div>
+              <button 
+                onClick={() => setRejectModalOpen(false)} 
+                className="text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              You are about to decline the request for <strong className="text-white">{rejectTargetRequest.visitor_name}</strong> (#{rejectTargetRequest.reference_code || rejectTargetRequest.id}).
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Decline Reason (Optional)
+              </label>
+              <textarea
+                rows={3}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Explain why this request is declined..."
+                className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 transition"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={rejectLoading}
+                onClick={handleConfirmReject}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white transition flex items-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
+              >
+                {rejectLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                <span>Confirm Decline</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && deleteTargetRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#0b101b] border border-rose-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-base">
+                <Trash2 className="w-5 h-5 text-rose-400" />
+                <span>Remove Visitor Request</span>
+              </div>
+              <button 
+                onClick={() => setDeleteModalOpen(false)} 
+                className="text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Are you sure you want to remove the visitor request for <strong className="text-white">{deleteTargetRequest.visitor_name}</strong>? This action cannot be undone.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Cancellation Reason
+              </label>
+              <textarea
+                rows={2}
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="e.g. Host schedule conflict or cancelled by visitor..."
+                className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-rose-500 transition"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteLoading}
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition flex items-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
+              >
+                {deleteLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>Delete Request</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>);
 }

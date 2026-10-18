@@ -70,7 +70,7 @@ export default function ProtectedRoute({ children, requiredPermission, requiredR
             setChecking(false);
             return;
         }
-        if (path.startsWith('/manager') && userRole !== 'manager' && !isAdminRole(userRole)) {
+        if (path.startsWith('/manager') && userRole !== 'manager' && userRole !== 'department_manager' && !userRole.includes('manager') && !isAdminRole(userRole)) {
             setAllowed(false);
             setChecking(false);
             return;

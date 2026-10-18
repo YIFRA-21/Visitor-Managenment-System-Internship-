@@ -10,7 +10,10 @@ import LanguageDropdown from '../../../../components/common/LanguageDropdown';
 import { useEnterpriseForm } from '../../../../hooks/useEnterpriseForm';
 import { ValidationRules } from '../../../../services/validationService';
 import FieldError from '../../../../components/common/FieldError';
+import { useNotification } from '../../../../contexts/NotificationContext';
+
 export default function LoginPage() {
+    const { notify } = useNotification();
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const location = useLocation();
@@ -60,7 +63,9 @@ export default function LoginPage() {
             const now = Date.now();
             const recentAttempts = attemptTimestampsRef.current.filter((t) => now - t < 60000);
             if (recentAttempts.length >= 7) {
-                setError(t('login.tooManyRequests'));
+                const limitMsg = t('login.tooManyRequests');
+                setError(limitMsg);
+                notify.warning(limitMsg);
                 return;
             }
             attemptTimestampsRef.current = [...recentAttempts, now];
@@ -77,20 +82,26 @@ export default function LoginPage() {
                         sessionStorage.removeItem('user');
                         sessionStorage.removeItem('token');
                     } catch {}
-                    setError('This user is blocked. Please call the administrator.');
+                    const blockedMsg = 'This user is blocked. Please call the administrator.';
+                    setError(blockedMsg);
+                    notify.error(blockedMsg);
                     return;
                 }
                 const mustChange = Boolean(loginRes?.passwordChangeRequired ||
                     parsed?.passwordChangeRequired ||
                     parsed?.firstLoginRequired);
                 if (mustChange) {
-                    setSuccess(t('login.tempCredentials'));
+                    const tempMsg = t('login.tempCredentials');
+                    setSuccess(tempMsg);
+                    notify.info(tempMsg);
                     setTimeout(() => {
                         navigate(ROUTES.PUBLIC.CHANGE_PASSWORD, { replace: true });
                     }, 400);
                     return;
                 }
-                setSuccess(t('login.accessGranted'));
+                const accessMsg = t('login.accessGranted');
+                setSuccess(accessMsg);
+                notify.success(accessMsg);
                 if (parsed) {
                     setTimeout(() => {
                         navigate(getRoleLanding(parsed.role, parsed));
@@ -135,7 +146,9 @@ export default function LoginPage() {
                     errorMsg = t('login.invalidCredentials');
                 }
 
-                setError(typeof errorMsg === 'string' ? errorMsg : 'This user is blocked. Please call the administrator.');
+                const finalError = typeof errorMsg === 'string' ? errorMsg : 'This user is blocked. Please call the administrator.';
+                setError(finalError);
+                notify.error(finalError);
                 setBackendErrors(err);
             }
             finally {
@@ -365,11 +378,24 @@ export default function LoginPage() {
               </div>
 
               {/* Sign In Button */}
-              <button type="submit" disabled={loading || isSubmitting} id="login-submit-btn" style={{ backgroundColor: 'var(--accent-purple)' }} className="w-full text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_0_20px_rgba(127,119,221,0.2)] hover:shadow-[0_0_30px_rgba(127,119,221,0.35)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">
-                {loading || isSubmitting ? (<span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"/>) : (<>
-                    <LogIn className="h-4 w-4"/>
+              <button
+                type="submit"
+                disabled={loading || isSubmitting}
+                id="login-submit-btn"
+                style={{ backgroundColor: 'var(--accent-purple)' }}
+                className="w-full h-12 min-h-[48px] text-white text-sm font-bold px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-[0_0_20px_rgba(127,119,221,0.2)] hover:shadow-[0_0_30px_rgba(127,119,221,0.35)] hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {loading || isSubmitting ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent shrink-0" aria-hidden="true" />
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4 shrink-0" />
                     <span>{t('login.signInBtn')}</span>
-                  </>)}
+                  </>
+                )}
               </button>
 
               {/* Don't have an account? Sign Up */}

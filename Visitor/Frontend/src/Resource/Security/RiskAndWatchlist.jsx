@@ -19,9 +19,11 @@ import {
 } from 'lucide-react';
 import { securityApi, blacklistWatchlistApi, getErrorMessage } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 export default function RiskAndWatchlist() {
   const { t } = useLanguage();
+  const { showNotification } = useNotification();
   const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,13 +31,11 @@ export default function RiskAndWatchlist() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [toast, setToast] = useState(null);
 
   const [form, setForm] = useState({ email: '', phone: '', reason: '', riskLevel: 'MEDIUM', visitorName: '' });
 
   const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
+    showNotification(message, type);
   };
 
   const load = useCallback(async () => {

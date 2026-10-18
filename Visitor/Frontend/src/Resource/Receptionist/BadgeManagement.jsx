@@ -12,6 +12,7 @@ import api from '../../services/api';
 import BackButton from '../../components/common/BackButton';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { resolvePhotoUrl, getPhotoFallbackInitials } from '../../utils/photoUtils';
 
 // ── SECURITY CLEARANCE LEVELS (ACCESS CONTROL MATRIX) ──
@@ -288,6 +289,7 @@ const SAMPLE_VISITORS = [
 ];
 
 export default function BadgeManagement() {
+    const { notify } = useNotification();
     const { t, language } = useLanguage();
     const isAm = language === 'am';
 
@@ -468,7 +470,9 @@ export default function BadgeManagement() {
             };
 
             setIssuedBadges(prev => [newRecord, ...prev.filter(b => b.badgeId !== newRecord.badgeId)]);
-            setSuccessBanner(`Access Clearance "${activeClearanceLevel.shortName}" granted and official badge generated for ${selectedVisitor.name}!`);
+            const msg = `Access Clearance "${activeClearanceLevel.shortName}" granted and official badge generated for ${selectedVisitor.name}!`;
+            setSuccessBanner(msg);
+            notify.success(msg);
             setTimeout(() => setSuccessBanner(null), 6000);
         } finally {
             setIsIssuing(false);
@@ -495,7 +499,9 @@ export default function BadgeManagement() {
                     ? { ...b, status: 'REVOKED' }
                     : b
             ));
-            setSuccessBanner(`Security clearance and building access REVOKED for ${selectedVisitor.name}.`);
+            const msg = `Security clearance and building access REVOKED for ${selectedVisitor.name}.`;
+            setSuccessBanner(msg);
+            notify.warning(msg);
             setTimeout(() => setSuccessBanner(null), 6000);
         } finally {
             setIsIssuing(false);
@@ -562,7 +568,9 @@ export default function BadgeManagement() {
         if (e) e.preventDefault();
         const term = searchUserId.trim().toLowerCase();
         if (!term) {
-            setSearchFeedback({ type: 'error', message: 'Please enter a User ID, Gov ID, or Reference Code.' });
+            const msg = 'Please enter a User ID, Gov ID, or Reference Code.';
+            setSearchFeedback({ type: 'error', message: msg });
+            notify.warning(msg);
             return;
         }
 
@@ -575,10 +583,14 @@ export default function BadgeManagement() {
 
         if (found) {
             setSelectedVisitor(found);
-            setSearchFeedback({ type: 'success', message: `Visitor profile loaded: ${found.name}` });
+            const msg = `Visitor profile loaded: ${found.name}`;
+            setSearchFeedback({ type: 'success', message: msg });
+            notify.success(msg);
             setTimeout(() => setSearchFeedback(null), 3000);
         } else {
-            setSearchFeedback({ type: 'error', message: `No visitor found with ID "${searchUserId.trim()}". Check ID number.` });
+            const msg = `No visitor found with ID "${searchUserId.trim()}". Check ID number.`;
+            setSearchFeedback({ type: 'error', message: msg });
+            notify.error(msg);
         }
     };
 
@@ -671,7 +683,9 @@ export default function BadgeManagement() {
             };
 
             setIssuedBadges(prev => [newBadge, ...prev.filter(b => b.badgeId !== newBadge.badgeId)]);
-            setSuccessBanner(`Restricted Badge ${currentBadgeNumber} successfully provisioned and authorized for ${selectedZone.code}.`);
+            const msg = `Restricted Badge ${currentBadgeNumber} successfully provisioned and authorized for ${selectedZone.code}.`;
+            setSuccessBanner(msg);
+            notify.success(msg);
             setTimeout(() => setSuccessBanner(null), 6000);
         }, 800);
     };
@@ -685,6 +699,7 @@ export default function BadgeManagement() {
     const handleCopyPassToken = () => {
         navigator.clipboard.writeText(dynamicQrToken);
         setCopySuccess(true);
+        notify.info('Pass verification token copied to clipboard.');
         setTimeout(() => setCopySuccess(false), 2500);
     };
 

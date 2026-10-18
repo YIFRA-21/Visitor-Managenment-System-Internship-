@@ -1,14 +1,27 @@
 // ═══════════════════════════════════════════════════════════════════════════
 ///* ── Base Enterprise Button Specification ───────────────────────────────── */
 .vms-btn,
-.btn {
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info,
+.vms-btn--primary,
+.vms-btn--secondary,
+.vms-btn--success,
+.vms-btn--danger,
+.vms-btn--warning,
+.vms-btn--outline,
+.vms-btn--ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 0 1.125rem;
-  height: 42px;       // Middle size 42px (VMS Standard Across All Roles)
-  min-height: 42px;
+  padding: 0 1rem;
+  height: 40px;       // Medium standard: 40px (VMS Standard Across All Roles)
+  min-height: 40px;
   font-family: var(--vms-font-family, inherit);
   font-size: 0.875rem;
   font-weight: 600;
@@ -21,7 +34,7 @@
   user-select: none;
   position: relative;
   overflow: hidden;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
 
   /* SVG / Icon Alignment inside buttons */
@@ -75,6 +88,7 @@
       display: inline-block;
       width: 1rem;
       height: 1rem;
+      flex-shrink: 0;
       border: 2px solid currentColor;
       border-right-color: transparent;
       border-radius: 50%;
@@ -83,34 +97,37 @@
   }
 
   /* ── Size System ─────────────────────────────────────────────────────── */
-  /* Small: 36px height */
+  /* Small: 32px height */
   &--sm,
   &.btn-sm {
-    height: 36px;
-    min-height: 36px;
-    padding: 0 0.875rem;
-    font-size: 0.8125rem;
+    height: 32px;
+    min-height: 32px;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
     border-radius: 0.375rem;
+    gap: 6px;
   }
 
-  /* Middle / Medium: 42px height (Default VMS Standard across all parts) */
+  /* Middle / Medium: 40px height (Default VMS Standard across all parts) */
   &--md,
   &.btn-md {
-    height: 42px;
-    min-height: 42px;
-    padding: 0 1.125rem;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 1rem;
     font-size: 0.875rem;
     border-radius: 0.5rem;
+    gap: 8px;
   }
 
-  /* Large: 46px height */
+  /* Large: 48px height */
   &--lg,
   &.btn-lg {
-    height: 46px;
-    min-height: 46px;
-    padding: 0 1.5rem;
-    font-size: 0.9375rem;
+    height: 48px;
+    min-height: 48px;
+    padding: 0 1.25rem;
+    font-size: 1rem;
     border-radius: 0.5rem;
+    gap: 10px;
   }
 
   /* Block Width */
@@ -122,35 +139,53 @@
   /* Icon-Only Buttons (Square aspect-ratio) */
   &--icon,
   &.btn-icon {
-    padding: 0;
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    padding: 0 !important;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
     aspect-ratio: 1 / 1;
     justify-content: center;
     align-items: center;
 
     &.vms-btn--sm, &.btn-sm {
-      width: 36px;
-      height: 36px;
-      min-width: 36px;
-      min-height: 36px;
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      min-height: 32px;
     }
 
     &.vms-btn--lg, &.btn-lg {
-      width: 46px;
-      height: 46px;
-      min-width: 46px;
-      min-height: 46px;
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+      min-height: 48px;
+    }
+  }
+
+  /* Touch-friendly standard (At least 44px target on touch devices) */
+  @media (pointer: coarse) {
+    min-height: 44px;
+
+    &.vms-btn--icon,
+    &.btn-icon {
+      min-width: 44px;
+      min-height: 44px;
     }
   }
 
   /* Responsive Mobile Stretch */
   &--responsive {
-    @media (max-width: 575px) {
+    @media (max-width: 575.98px) {
       width: 100%;
     }
+  }
+
+  /* Reduced Motion Accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none !important;
+    transform: none !important;
+    animation-duration: 0.01ms !important;
   }
 }
 

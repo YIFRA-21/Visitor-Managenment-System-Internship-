@@ -9,6 +9,15 @@ import IdentityVerificationWizard from './IdentityVerificationWizard';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { resolvePhotoUrl } from '../../../../utils/photoUtils';
 import BackButton from '../../../../components/common/BackButton';
+import CountryNationalitySelect from '../../../../components/common/CountryNationalitySelect';
+import CountryPhoneInput from '../../../../components/common/CountryPhoneInput';
+import FieldError from '../../../../components/common/FieldError';
+import {
+    validateName,
+    validateEmail,
+    validatePhone,
+    validateDateOfBirth
+} from '../../../../utils/formValidation';
 const tabs = [
     { key: 'personal', label: 'Personal Information', icon: <User size={14}/> },
     { key: 'category', label: 'Visitor Category', icon: <Briefcase size={14}/> },
@@ -96,6 +105,16 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
     const [activeTab, setActiveTab] = useState('personal');
     const [editMode, setEditMode] = useState(false);
     const [editForm, setEditForm] = useState({});
+    const [editErrors, setEditErrors] = useState({});
+    const clearEditError = (field) => {
+        if (editErrors[field]) {
+            setEditErrors(prev => {
+                const next = { ...prev };
+                delete next[field];
+                return next;
+            });
+        }
+    };
     const [saving, setSaving] = useState(false);
     const [actionLoading, setActionLoading] = useState('');
     const getVisitorQRPayload = (p) => {
@@ -421,6 +440,27 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
         setTimeout(() => setToast(null), 4000);
     };
     const handleSaveProfile = async () => {
+        const newErrs = {};
+        const fnErr = validateName(editForm.firstName, 'First Name', true);
+        const lnErr = validateName(editForm.lastName, 'Last Name', true);
+        const emailErr = editForm.email ? validateEmail(editForm.email, 'Email Address', false) : null;
+        const phoneErr = editForm.phone ? validatePhone(editForm.phone, 'Mobile Phone', false) : null;
+        const altPhoneErr = editForm.altPhone ? validatePhone(editForm.altPhone, 'Secondary Phone', false) : null;
+        const dobErr = editForm.dateOfBirth ? validateDateOfBirth(editForm.dateOfBirth, 0) : null;
+
+        if (fnErr) newErrs.firstName = fnErr;
+        if (lnErr) newErrs.lastName = lnErr;
+        if (emailErr) newErrs.email = emailErr;
+        if (phoneErr) newErrs.phone = phoneErr;
+        if (altPhoneErr) newErrs.altPhone = altPhoneErr;
+        if (dobErr) newErrs.dateOfBirth = dobErr;
+
+        if (Object.keys(newErrs).length > 0) {
+            setEditErrors(newErrs);
+            showToast('Please fix all field validation errors before saving.', 'error');
+            return;
+        }
+
         setSaving(true);
         try {
             if (isVisitorRole) {
@@ -429,6 +469,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                 await visitorProfileApi.updateProfile(visitorId, editForm);
             }
             setEditMode(false);
+            setEditErrors({});
             await loadProfile();
             showToast('Visitor profile information updated successfully!', 'success');
         }
@@ -995,16 +1036,42 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
 
             {editMode ? (<div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400">First Name</label>
-                  <input type="text" value={editForm.firstName || ''} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                  <label className="text-[10px] font-bold uppercase text-slate-400">First Name *</label>
+                  <input
+                    type="text"
+                    value={editForm.firstName || ''}
+                    data-invalid={Boolean(editErrors.firstName)}
+                    aria-invalid={Boolean(editErrors.firstName)}
+                    onChange={(e) => {
+                      setEditForm({ ...editForm, firstName: e.target.value });
+                      clearEditError('firstName');
+                    }}
+                    className={`w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 rounded-xl text-white focus:outline-none transition-all ${
+                      editErrors.firstName ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                    }`}
+                  />
+                  <FieldError error={editErrors.firstName} />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Middle Name</label>
                   <input type="text" value={editForm.middleName || ''} onChange={(e) => setEditForm({ ...editForm, middleName: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Last Name</label>
-                  <input type="text" value={editForm.lastName || ''} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Last Name *</label>
+                  <input
+                    type="text"
+                    value={editForm.lastName || ''}
+                    data-invalid={Boolean(editErrors.lastName)}
+                    aria-invalid={Boolean(editErrors.lastName)}
+                    onChange={(e) => {
+                      setEditForm({ ...editForm, lastName: e.target.value });
+                      clearEditError('lastName');
+                    }}
+                    className={`w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 rounded-xl text-white focus:outline-none transition-all ${
+                      editErrors.lastName ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                    }`}
+                  />
+                  <FieldError error={editErrors.lastName} />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Gender</label>
@@ -1016,11 +1083,29 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Date of Birth</label>
-                  <input type="date" value={editForm.dateOfBirth || ''} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                  <input
+                    type="date"
+                    value={editForm.dateOfBirth || ''}
+                    data-invalid={Boolean(editErrors.dateOfBirth)}
+                    aria-invalid={Boolean(editErrors.dateOfBirth)}
+                    onChange={(e) => {
+                      setEditForm({ ...editForm, dateOfBirth: e.target.value });
+                      clearEditError('dateOfBirth');
+                    }}
+                    className={`w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 rounded-xl text-white focus:outline-none transition-all ${
+                      editErrors.dateOfBirth ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                    }`}
+                  />
+                  <FieldError error={editErrors.dateOfBirth} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Nationality</label>
-                  <input type="text" value={editForm.nationality || 'Ethiopian'} onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                  <CountryNationalitySelect
+                    id="edit-profile-nationality"
+                    label="Nationality"
+                    value={editForm.nationality || 'Ethiopian'}
+                    onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })}
+                    placeholder="Select Nationality..."
+                  />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Occupation</label>
@@ -1247,16 +1332,49 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
 
             {editMode ? (<div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Mobile Phone</label>
-                  <input type="text" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-emerald-500 focus:outline-none"/>
+                  <CountryPhoneInput
+                    id="edit-profile-mobile-phone"
+                    label="Mobile Phone"
+                    value={editForm.phone || ''}
+                    onChange={(e) => {
+                      setEditForm({ ...editForm, phone: e.target.value });
+                      clearEditError('phone');
+                    }}
+                    error={editErrors.phone}
+                    placeholder="Mobile phone"
+                  />
+                  <FieldError error={editErrors.phone} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Secondary Phone</label>
-                  <input type="text" value={editForm.altPhone || ''} onChange={(e) => setEditForm({ ...editForm, altPhone: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-emerald-500 focus:outline-none"/>
+                  <CountryPhoneInput
+                    id="edit-profile-alt-phone"
+                    label="Secondary Phone"
+                    value={editForm.altPhone || ''}
+                    onChange={(e) => {
+                      setEditForm({ ...editForm, altPhone: e.target.value });
+                      clearEditError('altPhone');
+                    }}
+                    error={editErrors.altPhone}
+                    placeholder="Secondary phone"
+                  />
+                  <FieldError error={editErrors.altPhone} />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Email Address</label>
-                  <input type="email" value={editForm.email || ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-emerald-500 focus:outline-none"/>
+                  <input
+                    type="email"
+                    value={editForm.email || ''}
+                    data-invalid={Boolean(editErrors.email)}
+                    aria-invalid={Boolean(editErrors.email)}
+                    onChange={(e) => {
+                      setEditForm({ ...editForm, email: e.target.value });
+                      clearEditError('email');
+                    }}
+                    className={`w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 rounded-xl text-white focus:outline-none transition-all ${
+                      editErrors.email ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-emerald-500'
+                    }`}
+                  />
+                  <FieldError error={editErrors.email} />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Preferred Contact Method</label>

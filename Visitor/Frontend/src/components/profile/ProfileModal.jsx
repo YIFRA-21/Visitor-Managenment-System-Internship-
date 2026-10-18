@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Phone, Building, Shield, Camera, Upload, Check, AlertCircle, X, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { profileApi, getErrorMessage } from '../../services/api';
+import CountryPhoneInput from '../common/CountryPhoneInput';
 
 export default function ProfileModal({ isOpen, onClose }) {
   const { user, updateUser } = useAuth();
@@ -300,20 +301,14 @@ export default function ProfileModal({ isOpen, onClose }) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="+1 234 567 8900"
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
-                />
-              </div>
+              <CountryPhoneInput
+                id="profile-phone-input"
+                name="phone"
+                label="Phone Number"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="Phone number"
+              />
             </div>
 
             {/* Visitor Specific Fields */}

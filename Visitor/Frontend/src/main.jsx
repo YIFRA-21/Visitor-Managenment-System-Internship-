@@ -7,7 +7,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
-import { ToastProvider } from './contexts/ToastContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { store } from './store/store';
 import './tailwind.css';
 import './styles/main.scss';
@@ -20,9 +20,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <OrganizationProvider>
             <ThemeProvider>
               <LanguageProvider>
-                <ToastProvider>
+                <NotificationProvider>
                   <App />
-                </ToastProvider>
+                </NotificationProvider>
               </LanguageProvider>
             </ThemeProvider>
           </OrganizationProvider>

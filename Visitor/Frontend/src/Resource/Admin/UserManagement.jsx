@@ -202,6 +202,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     // Table State
     const [usersList, setUsersList] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [isCreatingUser, setIsCreatingUser] = useState(false);
     // Selected user for dedicated sub-views (User Details, Edit User, Security, Sessions, History, Activity)
     const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
     // Auto-select first user for detail sub-views once usersList loads (EXCEPT for account security view)
@@ -1023,7 +1024,15 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             const lErr = required('Last name')(createForm.lastName);
             newErrs.firstName = fErr;
             newErrs.lastName = lErr;
-            if (fErr || lErr)
+            if (createForm.dateOfBirth) {
+                const dobCheck = validateDateOfBirth(createForm.dateOfBirth, 18);
+                if (!dobCheck.valid) {
+                    newErrs.dateOfBirth = dobCheck.error;
+                } else {
+                    newErrs.dateOfBirth = null;
+                }
+            }
+            if (fErr || lErr || newErrs.dateOfBirth)
                 hasStepError = true;
         }
         else if (createStep === 2) {
@@ -1032,6 +1041,18 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             newErrs.email = eErr;
             newErrs.phone = pErr;
             if (eErr || pErr)
+                hasStepError = true;
+        }
+        else if (createStep === 3) {
+            const oErr = required('Organization')(createForm.organization);
+            const bErr = required('Branch')(createForm.branch);
+            const dErr = required('Department')(createForm.departmentId);
+            const rErr = required('System role')(createForm.role || createForm.userType);
+            newErrs.organization = oErr;
+            newErrs.branch = bErr;
+            newErrs.departmentId = dErr;
+            newErrs.role = rErr;
+            if (oErr || bErr || dErr || rErr)
                 hasStepError = true;
         }
         setCreateErrors(newErrs);
@@ -1047,33 +1068,53 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         setAlert(null);
         const fErr = required('First name')(createForm.firstName);
         const lErr = required('Last name')(createForm.lastName);
+        const dobErr = createForm.dateOfBirth && !validateDateOfBirth(createForm.dateOfBirth, 18).valid
+            ? validateDateOfBirth(createForm.dateOfBirth, 18).error
+            : null;
         const eErr = required('Email address')(createForm.email) || email('Email address')(createForm.email);
         const pErr = required('Phone number')(createForm.phone) || phone('Phone number')(createForm.phone);
+        const oErr = required('Organization')(createForm.organization);
+        const bErr = required('Branch')(createForm.branch);
+        const dErr = required('Department')(createForm.departmentId);
+        const rErr = required('System role')(createForm.role || createForm.userType);
         const passErr = createForm.credentialMode === 'manual'
             ? required('Manual initial password')(createForm.password) || passwordStrength('Initial password')(createForm.password)
             : null;
         const allErrs = {
             firstName: fErr,
             lastName: lErr,
+            dateOfBirth: dobErr,
             email: eErr,
             phone: pErr,
+            organization: oErr,
+            branch: bErr,
+            departmentId: dErr,
+            role: rErr,
             password: passErr,
         };
         setCreateErrors(allErrs);
-        if (fErr || lErr) {
+        if (fErr || lErr || dobErr) {
             setCreateStep(1);
             focusInvalidFieldInDom();
             return;
         }
         if (eErr || pErr) {
             setCreateStep(2);
+            focusInvalidFieldInDom();
+            return;
+        }
+        if (oErr || bErr || dErr || rErr) {
+            setCreateStep(3);
+            focusInvalidFieldInDom();
             return;
         }
         if (createForm.credentialMode === 'manual' && (!createForm.password || createForm.password.length < 8)) {
             setAlert({ type: 'error', message: 'Validation Failed: Manual Initial Password must be at least 8 characters long (Step 4).' });
             setCreateStep(4);
+            focusInvalidFieldInDom();
             return;
         }
+        setIsCreatingUser(true);
         try {
             const sanitizedPayload = sanitizeFormValues(createForm);
             const res = await api.post('/users', sanitizedPayload);
@@ -1163,6 +1204,9 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             setAlert({ type: 'error', message: extractErrorMessage(err, 'Failed to create user account.') });
             // Focus and scroll to the invalid field on that step
             focusInvalidFieldInDom();
+        }
+        finally {
+            setIsCreatingUser(false);
         }
     };
     // â”€â”€ Save Search Preset Handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2530,8 +2574,14 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                   <FieldError error={createErrors.phone}/>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Alternative Phone</label>
-                  <input type="text" placeholder="+251 922 000 000" value={createForm.altPhone} onChange={(e) => setCreateForm({ ...createForm, altPhone: e.target.value })} className="w-full bg-[#070c16] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"/>
+                  <CountryPhoneInput
+                    id="create-user-alt-phone"
+                    label="Alternative Phone"
+                    value={createForm.altPhone || ''}
+                    dialCode={createForm.phonePrefix || '+251'}
+                    onChange={(e) => setCreateForm({ ...createForm, altPhone: e.target.value })}
+                    placeholder="Alternative phone"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">Address / Location</label>
@@ -2544,28 +2594,66 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">Organization *</label>
-                    <select value={createForm.organization} onChange={(e) => setCreateForm({ ...createForm, organization: e.target.value })} className="w-full bg-[#070c16] text-white border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-medium">
+                    <select
+                      value={createForm.organization}
+                      data-invalid={Boolean(createErrors.organization)}
+                      aria-invalid={Boolean(createErrors.organization)}
+                      onChange={(e) => {
+                        setCreateForm({ ...createForm, organization: e.target.value });
+                        if (createErrors.organization) setCreateErrors({ ...createErrors, organization: null });
+                      }}
+                      className={`w-full bg-[#070c16] text-white rounded-xl px-3 py-2 text-xs focus:outline-none font-medium transition-all ${
+                        createErrors.organization ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-700 focus:border-indigo-500'
+                      }`}
+                    >
+                      <option value="" className="bg-[#0b1220] text-slate-400">Select Organization...</option>
                       {orgOptions.map((o) => (<option key={o.id || o.name} value={o.name} className="bg-[#0b1220] text-white">
                           {o.name} {o.code ? `(${o.code})` : ''}
                         </option>))}
                     </select>
+                    <FieldError error={createErrors.organization}/>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">Branch *</label>
-                    <select value={createForm.branch} onChange={(e) => setCreateForm({ ...createForm, branch: e.target.value })} className="w-full bg-[#070c16] text-white border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-medium">
+                    <select
+                      value={createForm.branch}
+                      data-invalid={Boolean(createErrors.branch)}
+                      aria-invalid={Boolean(createErrors.branch)}
+                      onChange={(e) => {
+                        setCreateForm({ ...createForm, branch: e.target.value });
+                        if (createErrors.branch) setCreateErrors({ ...createErrors, branch: null });
+                      }}
+                      className={`w-full bg-[#070c16] text-white rounded-xl px-3 py-2 text-xs focus:outline-none font-medium transition-all ${
+                        createErrors.branch ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-700 focus:border-indigo-500'
+                      }`}
+                    >
+                      <option value="" className="bg-[#0b1220] text-slate-400">Select Branch...</option>
                       {branchOptions.map((b) => (<option key={b.id || b.branchName || b.name} value={b.branchName || b.name} className="bg-[#0b1220] text-white">
                           {b.branchName || b.name}
                         </option>))}
                     </select>
+                    <FieldError error={createErrors.branch}/>
                   </div>
                   <div className="sm:col-span-2 md:col-span-1">
                     <label className="block text-xs font-bold text-slate-300 mb-1">Department *</label>
-                    <select value={createForm.departmentId} onChange={(e) => setCreateForm({ ...createForm, departmentId: e.target.value })} className="w-full bg-[#070c16] text-white border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-medium">
+                    <select
+                      value={createForm.departmentId}
+                      data-invalid={Boolean(createErrors.departmentId)}
+                      aria-invalid={Boolean(createErrors.departmentId)}
+                      onChange={(e) => {
+                        setCreateForm({ ...createForm, departmentId: e.target.value });
+                        if (createErrors.departmentId) setCreateErrors({ ...createErrors, departmentId: null });
+                      }}
+                      className={`w-full bg-[#070c16] text-white rounded-xl px-3 py-2 text-xs focus:outline-none font-medium transition-all ${
+                        createErrors.departmentId ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-700 focus:border-indigo-500'
+                      }`}
+                    >
                       <option value="" className="bg-[#0b1220] text-slate-400">Select Department...</option>
                       {deptOptions.map((d) => (<option key={d.id} value={d.id} className="bg-[#0b1220] text-white">
                           {d.departmentName || d.department_name || d.name || d.label || `Department #${d.id}`}
                         </option>))}
                     </select>
+                    <FieldError error={createErrors.departmentId}/>
                   </div>
                 </div>
 
@@ -2587,11 +2675,23 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">User Type / System Role *</label>
-                    <select value={createForm.role || createForm.userType} onChange={(e) => handleRoleChange(e.target.value)} className="w-full bg-[#070c16] text-white border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-medium">
+                    <select
+                      value={createForm.role || createForm.userType}
+                      data-invalid={Boolean(createErrors.role)}
+                      aria-invalid={Boolean(createErrors.role)}
+                      onChange={(e) => {
+                        handleRoleChange(e.target.value);
+                        if (createErrors.role) setCreateErrors({ ...createErrors, role: null });
+                      }}
+                      className={`w-full bg-[#070c16] text-white rounded-xl px-3 py-2 text-xs focus:outline-none font-medium transition-all ${
+                        createErrors.role ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-700 focus:border-indigo-500'
+                      }`}
+                    >
                       {roleOptions.map((r) => (<option key={r.id} value={r.id} className="bg-[#0b1220] text-white">
                           {r.role_name} ({r.code_prefix})
                         </option>))}
                     </select>
+                    <FieldError error={createErrors.role}/>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">Managed By</label>
@@ -2925,17 +3025,48 @@ export default function UserManagement({ departments = [], initialTab = 'users',
               </motion.div>)}
 
             {/* Navigation Controls */}
-            {createStep <= 4 && (<div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-slate-800 pt-4 w-full">
-                <motion.button type="button" disabled={createStep === 1} whileHover={{ scale: createStep === 1 ? 1 : 1.02 }} whileTap={{ scale: createStep === 1 ? 1 : 0.95 }} onClick={() => setCreateStep(prev => prev - 1)} className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 disabled:opacity-40 text-slate-300 rounded-xl text-xs font-bold uppercase cursor-pointer">
+            {createStep <= 4 && (
+              <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-slate-800 pt-4 w-full">
+                <motion.button
+                  type="button"
+                  disabled={createStep === 1 || isCreatingUser}
+                  whileHover={{ scale: createStep === 1 || isCreatingUser ? 1 : 1.02 }}
+                  whileTap={{ scale: createStep === 1 || isCreatingUser ? 1 : 0.95 }}
+                  onClick={() => setCreateStep(prev => prev - 1)}
+                  className="w-full sm:w-auto h-10 min-h-[40px] px-5 bg-slate-800 disabled:opacity-40 text-slate-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
+                >
                   Previous
                 </motion.button>
 
-                {createStep < 4 ? (<motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} onClick={handleNextStep} className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold uppercase transition-all shadow-md shadow-indigo-600/20 cursor-pointer">
-                    Next Step →
-                  </motion.button>) : (<motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center justify-center gap-2">
-                    <CheckCircle2 className="w-4 h-4"/> Confirm & Create User Account
-                  </motion.button>)}
-              </div>)}
+                {createStep < 4 ? (
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleNextStep}
+                    className="w-full sm:w-auto h-10 min-h-[40px] px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold uppercase transition-all shadow-md shadow-indigo-600/20 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>Next Step</span>
+                    <span>→</span>
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    type="submit"
+                    disabled={isCreatingUser}
+                    whileHover={{ scale: isCreatingUser ? 1 : 1.02 }}
+                    whileTap={{ scale: isCreatingUser ? 1 : 0.95 }}
+                    className="w-full sm:w-auto h-10 min-h-[40px] px-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isCreatingUser ? (
+                      <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    )}
+                    <span>{isCreatingUser ? 'Creating User Account...' : 'Confirm & Create User Account'}</span>
+                  </motion.button>
+                )}
+              </div>
+            )}
           </form>
         </motion.div>)}
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -3631,8 +3762,14 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">Alternative Phone</label>
-                    <input type="text" value={selectedUserForDetails.alt_phone || selectedUserForDetails.altPhone || ''} onChange={(e) => setSelectedUserForDetails({ ...selectedUserForDetails, alt_phone: e.target.value, altPhone: e.target.value })} className="w-full bg-[#0b1220] border border-slate-700 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-indigo-500 font-mono"/>
+                    <CountryPhoneInput
+                      id="edit-user-alt-phone"
+                      label="Alternative Phone"
+                      value={selectedUserForDetails.alt_phone || selectedUserForDetails.altPhone || ''}
+                      dialCode={selectedUserForDetails.phonePrefix || '+251'}
+                      onChange={(e) => setSelectedUserForDetails({ ...selectedUserForDetails, alt_phone: e.target.value, altPhone: e.target.value })}
+                      placeholder="Alternative phone"
+                    />
                   </div>
                   <div>
                     <label className="block text-slate-300 font-bold mb-1">Physical Address / Office Location</label>

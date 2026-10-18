@@ -4,6 +4,7 @@ import { visitorNotificationApi } from '../../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import BackButton from '../../components/common/BackButton';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useNotification } from '../../contexts/NotificationContext';
 // Initial Stored Chat Messages History for Visitor Channels
 const INITIAL_VISITOR_HISTORIES = {
     301: [
@@ -87,13 +88,12 @@ const INITIAL_VISITOR_HISTORIES = {
 };
 export default function VisitorNotifications({ initialTab }) {
     const { t } = useLanguage();
+    const { showNotification } = useNotification();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    // Toast alert system
-    const [toastMsg, setToastMsg] = useState(null);
+    // Toast alert system routed to global notification
     const showToast = (text, type = 'success') => {
-        setToastMsg({ text, type });
-        setTimeout(() => setToastMsg(null), 3500);
+        showNotification(text, type);
     };
     // Primary Tab state: 'messages' | 'chat' | 'announcements'
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || initialTab || 'messages');

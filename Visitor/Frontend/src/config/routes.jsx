@@ -133,7 +133,19 @@ export function getRoleLanding(role, userObject) {
     if (isAdminRole(roleName) || userCode.startsWith('DEV')) {
         return ROUTES.ADMIN.DASHBOARD;
     }
-    // 2. Explicit check for Employee IDs (EMP000007, etc.) or Employee/Staff/Host roles
+    // 2. Manager roles MUST land on Manager Dashboard
+    if (roleName === 'manager' || roleName === 'department_manager' || roleName.includes('manager')) {
+        return ROUTES.MANAGER.DASHBOARD;
+    }
+    // 3. Receptionist roles
+    if (roleName === 'receptionist' || roleName.includes('reception')) {
+        return ROUTES.RECEPTION.DASHBOARD;
+    }
+    // 4. Security roles
+    if (roleName === 'security_officer' || roleName === 'security' || roleName.includes('security')) {
+        return ROUTES.SECURITY.DASHBOARD;
+    }
+    // 5. Explicit check for Employee IDs (EMP000007, etc.) or Employee/Staff/Host roles
     if (userCode.startsWith('EMP') ||
         roleName === 'staff' ||
         roleName === 'employee' ||
@@ -144,12 +156,6 @@ export function getRoleLanding(role, userObject) {
         roleName.includes('host')) {
         return ROUTES.EMPLOYEE.DASHBOARD;
     }
-    if (roleName === 'manager' || roleName === 'department_manager' || roleName.includes('manager'))
-        return ROUTES.MANAGER.DASHBOARD;
-    if (roleName === 'receptionist' || roleName.includes('reception'))
-        return ROUTES.RECEPTION.DASHBOARD;
-    if (roleName === 'security_officer' || roleName === 'security' || roleName.includes('security'))
-        return ROUTES.SECURITY.DASHBOARD;
     if (roleName === 'visitor' || roleName.includes('visitor'))
         return ROUTES.VISITOR.DASHBOARD;
     return ROUTES.VISITOR.DASHBOARD;

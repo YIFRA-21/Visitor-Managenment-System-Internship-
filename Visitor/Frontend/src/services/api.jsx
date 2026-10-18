@@ -14,8 +14,12 @@ api.interceptors.request.use((config) => {
 });
 api.interceptors.response.use((res) => res, (err) => {
     const isBlocked = err.response?.data?.code === 'ACCOUNT_BLOCKED' || err.response?.data?.isBlocked;
+    const status = err.response?.status;
+    const publicPaths = ['/login', '/signup', '/register', '/forgot-password', '/reset-password', '/book'];
+    const isPublicPath = typeof window !== 'undefined' && publicPaths.some((p) => window.location.pathname.includes(p));
+
     // Auto-logout on 401 or 403 (when account is blocked/suspended)
-    if (err.response?.status === 401 || (err.response?.status === 403 && isBlocked)) {
+    if (status === 401 || (status === 403 && isBlocked)) {
         if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true' && !isBlocked) {
             return Promise.reject(err);
         }
@@ -25,12 +29,24 @@ api.interceptors.response.use((res) => res, (err) => {
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('user');
         sessionStorage.removeItem('refreshToken');
-        const publicPaths = ['/login', '/signup', '/register', '/forgot-password', '/reset-password', '/book'];
-        const isPublicPath = publicPaths.some((p) => window.location.pathname.includes(p));
+
         if (!isPublicPath) {
             window.location.href = isBlocked ? '/login?blocked=true' : '/login';
         }
     }
+
+    // Trigger global notification for API errors unless silenced by caller
+    if (!err.config?.skipGlobalErrorNotification && !err.config?.silent) {
+        // Suppress 401 redirect errors on private paths as user is navigating to login
+        if (!(status === 401 && !isPublicPath)) {
+            const errorMessage = getErrorMessage(err);
+            if (typeof window !== 'undefined' && window.showNotification) {
+                const notifType = status === 403 ? 'warning' : status >= 500 ? 'error' : 'error';
+                window.showNotification(errorMessage, notifType);
+            }
+        }
+    }
+
     return Promise.reject(err);
 });
 // Retry wrapper with exponential backoff for transient errors (429, 5xx)
@@ -79,22 +95,26 @@ export const getErrorMessage = (err) => {
         if (typeof firstDetail === 'string')
             return firstDetail;
     }
-    // Third try: error field — could be a string or a dev-mode error object with message or sqlMessage property
+    // Third try: error field — sanitize to avoid exposing sensitive internal SQL errors
     const rawError = data?.error;
     if (rawError) {
-        if (typeof rawError === 'string')
+        if (typeof rawError === 'string') {
+            // Mask raw SQL syntax dumps
+            if (/select|insert|update|delete|table|column|sql|foreign key/i.test(rawError)) {
+                return 'A database constraint prevented this operation. Please verify your data.';
+            }
             return rawError;
+        }
         if (typeof rawError === 'object') {
             if (typeof rawError.sqlMessage === 'string' && rawError.sqlMessage)
-                return rawError.sqlMessage;
-            if (typeof rawError.message === 'string' && rawError.message)
+                return 'A database constraint prevented this operation. Please verify your data.';
+            if (typeof rawError.message === 'string' && rawError.message) {
+                if (/select|insert|update|delete|table|column|sql|foreign key/i.test(rawError.message)) {
+                    return 'A database operation could not be completed.';
+                }
                 return rawError.message;
-            try {
-                return JSON.stringify(rawError);
             }
-            catch {
-                return 'An error occurred';
-            }
+            return 'An unexpected server error occurred.';
         }
     }
     if (status === 400)

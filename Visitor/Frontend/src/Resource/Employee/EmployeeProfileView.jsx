@@ -5,6 +5,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import api from '../../services/api';
 import BackButton from '../../components/common/BackButton';
+import CountryPhoneInput from '../../components/common/CountryPhoneInput';
+import FieldError from '../../components/common/FieldError';
+import {
+    validatePhone,
+    validatePassword,
+    validatePasswordConfirmation
+} from '../../utils/formValidation';
+
 export default function EmployeeProfileView() {
     const { t } = useLanguage();
     const { user, updateUser } = useAuth();
@@ -26,11 +34,31 @@ export default function EmployeeProfileView() {
         office_location: '',
         emergency_contact: '',
     });
+    const [editErrors, setEditErrors] = useState({});
+    const clearEditError = (f) => {
+        if (editErrors[f]) {
+            setEditErrors(prev => {
+                const next = { ...prev };
+                delete next[f];
+                return next;
+            });
+        }
+    };
     const [passwordForm, setPasswordForm] = useState({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
     });
+    const [passwordErrors, setPasswordErrors] = useState({});
+    const clearPasswordError = (f) => {
+        if (passwordErrors[f]) {
+            setPasswordErrors(prev => {
+                const next = { ...prev };
+                delete next[f];
+                return next;
+            });
+        }
+    };
     const userAny = user;
     const fetchProfile = async () => {
         setLoading(true);
@@ -174,16 +202,32 @@ export default function EmployeeProfileView() {
     };
     const handleEditSubmit = async (e) => {
         e.preventDefault();
+        const newErrs = {};
+        if (editForm.phone) {
+            const err = validatePhone(editForm.phone, t('form.workPhone', 'Work Phone Number'), false);
+            if (err) newErrs.phone = err;
+        }
+        if (editForm.emergency_contact) {
+            const err = validatePhone(editForm.emergency_contact, t('form.emergencyContact', 'Emergency Contact Number'), false);
+            if (err) newErrs.emergency_contact = err;
+        }
+        if (Object.keys(newErrs).length > 0) {
+            setEditErrors(newErrs);
+            return;
+        }
+
         setSaving(true);
         try {
             await api.put('/employees/me', editForm);
             setProfile((prev) => ({ ...prev, ...editForm }));
             setShowEditModal(false);
+            setEditErrors({});
             setMessage({ type: 'success', text: 'Profile contact info updated successfully!' });
         }
         catch (err) {
             setProfile((prev) => ({ ...prev, ...editForm }));
             setShowEditModal(false);
+            setEditErrors({});
             setMessage({ type: 'success', text: 'Contact info updated locally.' });
         }
         finally {
@@ -192,10 +236,20 @@ export default function EmployeeProfileView() {
     };
     const handlePasswordSubmit = async (e) => {
         e.preventDefault();
-        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            setMessage({ type: 'error', text: 'New passwords do not match.' });
+        const newErrs = {};
+        if (!passwordForm.currentPassword) {
+            newErrs.currentPassword = 'Current password is required.';
+        }
+        const newPassErr = validatePassword(passwordForm.newPassword, 'New Password');
+        if (newPassErr) newErrs.newPassword = newPassErr;
+        const confirmErr = validatePasswordConfirmation(passwordForm.newPassword, passwordForm.confirmPassword);
+        if (confirmErr) newErrs.confirmPassword = confirmErr;
+
+        if (Object.keys(newErrs).length > 0) {
+            setPasswordErrors(newErrs);
             return;
         }
+
         setSaving(true);
         try {
             await api.put('/auth/change-password', {
@@ -204,11 +258,13 @@ export default function EmployeeProfileView() {
             });
             setShowPasswordModal(false);
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            setPasswordErrors({});
             setMessage({ type: 'success', text: 'Password updated successfully!' });
         }
         catch (err) {
             setShowPasswordModal(false);
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            setPasswordErrors({});
             setMessage({ type: 'success', text: 'Password security updated successfully!' });
         }
         finally {
@@ -640,18 +696,43 @@ export default function EmployeeProfileView() {
               </button>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="space-y-4 text-xs font-semibold">
+            <form onSubmit={handleEditSubmit} noValidate className="space-y-4 text-xs font-semibold">
               <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">{t('form.workPhone', 'Work Phone Number')}</label>
-                <input type="text" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"/>
+                <CountryPhoneInput
+                  id="emp-profile-work-phone"
+                  label={t('form.workPhone', 'Work Phone Number')}
+                  value={editForm.phone}
+                  onChange={(e) => {
+                    setEditForm({ ...editForm, phone: e.target.value });
+                    clearEditError('phone');
+                  }}
+                  error={editErrors.phone}
+                  placeholder="Phone number"
+                />
+                <FieldError error={editErrors.phone} />
               </div>
               <div>
                 <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">{t('form.officeLocation', 'Office Location')}</label>
-                <input type="text" value={editForm.office_location} onChange={(e) => setEditForm({ ...editForm, office_location: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"/>
+                <input
+                  type="text"
+                  value={editForm.office_location}
+                  onChange={(e) => setEditForm({ ...editForm, office_location: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                />
               </div>
               <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">{t('form.emergencyContact', 'Emergency Contact Number')}</label>
-                <input type="text" value={editForm.emergency_contact} onChange={(e) => setEditForm({ ...editForm, emergency_contact: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"/>
+                <CountryPhoneInput
+                  id="emp-profile-emergency-phone"
+                  label={t('form.emergencyContact', 'Emergency Contact Number')}
+                  value={editForm.emergency_contact}
+                  onChange={(e) => {
+                    setEditForm({ ...editForm, emergency_contact: e.target.value });
+                    clearEditError('emergency_contact');
+                  }}
+                  error={editErrors.emergency_contact}
+                  placeholder="Emergency phone number"
+                />
+                <FieldError error={editErrors.emergency_contact} />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-bold">
@@ -678,18 +759,60 @@ export default function EmployeeProfileView() {
               </button>
             </div>
 
-            <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs font-semibold">
+            <form onSubmit={handlePasswordSubmit} noValidate className="space-y-4 text-xs font-semibold">
               <div>
                 <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">{t('form.currentPassword', 'Current Password')}</label>
-                <input type="password" required value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"/>
+                <input
+                  type="password"
+                  required
+                  value={passwordForm.currentPassword}
+                  data-invalid={Boolean(passwordErrors.currentPassword)}
+                  aria-invalid={Boolean(passwordErrors.currentPassword)}
+                  onChange={(e) => {
+                    setPasswordForm({ ...passwordForm, currentPassword: e.target.value });
+                    clearPasswordError('currentPassword');
+                  }}
+                  className={`w-full bg-slate-950 rounded-xl px-3 py-2.5 text-white focus:outline-none transition-all ${
+                    passwordErrors.currentPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                  }`}
+                />
+                <FieldError error={passwordErrors.currentPassword} />
               </div>
               <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">{t('form.newPassword', 'New Password')}</label>
-                <input type="password" required value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"/>
+                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">{t('form.newPassword', 'New Password (Min 8 chars, mixed case & numbers)')}</label>
+                <input
+                  type="password"
+                  required
+                  value={passwordForm.newPassword}
+                  data-invalid={Boolean(passwordErrors.newPassword)}
+                  aria-invalid={Boolean(passwordErrors.newPassword)}
+                  onChange={(e) => {
+                    setPasswordForm({ ...passwordForm, newPassword: e.target.value });
+                    clearPasswordError('newPassword');
+                  }}
+                  className={`w-full bg-slate-950 rounded-xl px-3 py-2.5 text-white focus:outline-none transition-all ${
+                    passwordErrors.newPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                  }`}
+                />
+                <FieldError error={passwordErrors.newPassword} />
               </div>
               <div>
                 <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">{t('form.confirmPassword', 'Confirm New Password')}</label>
-                <input type="password" required value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"/>
+                <input
+                  type="password"
+                  required
+                  value={passwordForm.confirmPassword}
+                  data-invalid={Boolean(passwordErrors.confirmPassword)}
+                  aria-invalid={Boolean(passwordErrors.confirmPassword)}
+                  onChange={(e) => {
+                    setPasswordForm({ ...passwordForm, confirmPassword: e.target.value });
+                    clearPasswordError('confirmPassword');
+                  }}
+                  className={`w-full bg-slate-950 rounded-xl px-3 py-2.5 text-white focus:outline-none transition-all ${
+                    passwordErrors.confirmPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                  }`}
+                />
+                <FieldError error={passwordErrors.confirmPassword} />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowPasswordModal(false)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-bold">

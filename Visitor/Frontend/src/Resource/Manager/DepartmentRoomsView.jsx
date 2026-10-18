@@ -1,8 +1,10 @@
 // Frontend/src/Resource/Manager/DepartmentRoomsView.tsx
 import React, { useState, useEffect } from 'react';
-import { DoorOpen, Users, MapPin, Calendar, Clock, Search, Plus, Monitor, Wifi, Video, RefreshCw, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { DoorOpen, Users, MapPin, Calendar, Clock, Search, Plus, Monitor, Wifi, Video, RefreshCw, X, CheckCircle2 } from 'lucide-react';
 import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { useLanguage } from '../../contexts/LanguageContext';
+import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
 
 export default function DepartmentRoomsView() {
     const { t, tStatus } = useLanguage();
@@ -99,29 +101,56 @@ export default function DepartmentRoomsView() {
           </button>
         </div>)}
 
-      {/* KPI Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#0b101b] border border-slate-800 rounded-xl p-4">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Total Meeting Rooms</span>
-          <span className="text-2xl font-black text-white mt-1 block">{rooms.length || 6}</span>
-        </div>
-        <div className="bg-[#0b101b] border border-slate-800 rounded-xl p-4">
-          <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block">Available Now</span>
-          <span className="text-2xl font-black text-emerald-400 mt-1 block">
-            {rooms.filter(r => (r.today_bookings_count || 0) === 0).length || 4}
-          </span>
-        </div>
-        <div className="bg-[#0b101b] border border-slate-800 rounded-xl p-4">
-          <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider block">Booked / In Use</span>
-          <span className="text-2xl font-black text-amber-400 mt-1 block">
-            {rooms.filter(r => (r.today_bookings_count || 0) > 0).length || 2}
-          </span>
-        </div>
-        <div className="bg-[#0b101b] border border-slate-800 rounded-xl p-4">
-          <span className="text-[11px] font-semibold text-indigo-400 uppercase tracking-wider block">Today's Reservations</span>
-          <span className="text-2xl font-black text-indigo-400 mt-1 block">{bookings.length || 3}</span>
-        </div>
-      </div>
+      {/* KPI Stats Bar - Manager Dashboard Card Style with Real Data Animation */}
+      <motion.div
+        variants={dashboardContainerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        <MetricCard
+          title="Total Meeting Rooms"
+          value={rooms.length || 6}
+          subtitle="Department managed spaces"
+          badge="Assets"
+          theme="blue"
+          isActive={filter === 'ALL'}
+          onClick={() => setFilter('ALL')}
+          icon={<DoorOpen className="w-4 h-4 text-blue-400" />}
+        />
+
+        <MetricCard
+          title="Available Now"
+          value={rooms.filter(r => (r.today_bookings_count || 0) === 0).length || 4}
+          subtitle="Free for reservations"
+          badge="Ready"
+          theme="emerald"
+          isActive={filter === 'AVAILABLE'}
+          onClick={() => setFilter('AVAILABLE')}
+          icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+        />
+
+        <MetricCard
+          title="Booked / In Use"
+          value={rooms.filter(r => (r.today_bookings_count || 0) > 0).length || 2}
+          subtitle="Active meeting sessions"
+          badge="Occupied"
+          theme="amber"
+          isActive={filter === 'OCCUPIED'}
+          onClick={() => setFilter('OCCUPIED')}
+          icon={<Users className="w-4 h-4 text-amber-400" />}
+        />
+
+        <MetricCard
+          title="Today's Reservations"
+          value={bookings.length || 3}
+          subtitle="Scheduled visitor bookings"
+          badge="Schedule"
+          theme="indigo"
+          isActive={false}
+          icon={<Calendar className="w-4 h-4 text-indigo-400" />}
+        />
+      </motion.div>
 
       {/* Controls Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

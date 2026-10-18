@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import mammoth from 'mammoth';
 import UniversalDocViewer from './UniversalDocViewer';
 import { detectDocType } from '../../utils/docUtils';
+import CountryPhoneInput from '../../components/common/CountryPhoneInput';
+import FieldError from '../../components/common/FieldError';
+import { validateName, validateEmail, validatePhone, validateText, validateDateTimeRange } from '../../utils/formValidation';
+import { parseBackendFormErrors } from '../../utils/formErrorUtils';
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -81,6 +85,7 @@ export default function EmployeeAppointments() {
     const [inspectDocViewMode, setInspectDocViewMode] = useState('CARD'); // 'CARD' | 'RAW'
     const [empDocxHtml, setEmpDocxHtml] = useState('');
     const [empDocxLoading, setEmpDocxLoading] = useState(false);
+    const [approvingDoc, setApprovingDoc] = useState(false);
     const [isDocFullscreen, setIsDocFullscreen] = useState(false);
     const docCanvasRef = useRef(null);
 
@@ -148,6 +153,10 @@ export default function EmployeeAppointments() {
     const [submitting, setSubmitting] = useState(false);
     const [rescheduling, setRescheduling] = useState(false);
     const [message, setMessage] = useState(null);
+    const [createErrors, setCreateErrors] = useState({});
+    const [rescheduleErrors, setRescheduleErrors] = useState({});
+    const [cancelErrors, setCancelErrors] = useState({});
+
     const [newForm, setNewForm] = useState({
         visitor_name: '',
         visitor_email: '',
@@ -161,6 +170,14 @@ export default function EmployeeAppointments() {
         scheduled_end: '',
         comments: '',
     });
+
+    const handleNewFormChange = (field, value) => {
+        setNewForm(prev => ({ ...prev, [field]: value }));
+        if (createErrors[field]) {
+            setCreateErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+        }
+    };
+
     const fetchAppointments = async () => {
         setLoading(true);
         try {
@@ -190,11 +207,38 @@ export default function EmployeeAppointments() {
     }, []);
     const handleCreateSubmit = async (e) => {
         e.preventDefault();
+        const errs = {};
+        const nameErr = validateName(newForm.visitor_name, 'Visitor name', true);
+        if (nameErr) errs.visitor_name = nameErr;
+        const emailErr = validateEmail(newForm.visitor_email, true);
+        if (emailErr) errs.visitor_email = emailErr;
+        if (newForm.visitor_phone && newForm.visitor_phone.trim()) {
+            const phoneErr = validatePhone(newForm.visitor_phone, '+251', false);
+            if (phoneErr) errs.visitor_phone = phoneErr;
+        }
+        if (!newForm.scheduled_start) {
+            errs.scheduled_start = 'Scheduled start date and time is required.';
+        }
+        if (!newForm.scheduled_end) {
+            errs.scheduled_end = 'Scheduled end date and time is required.';
+        } else if (newForm.scheduled_start) {
+            const rangeErr = validateDateTimeRange(newForm.scheduled_start, newForm.scheduled_end);
+            if (rangeErr) errs.scheduled_end = rangeErr;
+        }
+        const purposeErr = validateText(newForm.purpose, 'Purpose / Agenda', 3, 500, true);
+        if (purposeErr) errs.purpose = purposeErr;
+
+        if (Object.keys(errs).length > 0) {
+            setCreateErrors(errs);
+            return;
+        }
+
         setSubmitting(true);
         try {
             await appointmentsApi.create(newForm);
             setMessage({ type: 'success', text: 'Appointment created successfully!' });
             setShowNewModal(false);
+            setCreateErrors({});
             setNewForm({
                 visitor_name: '',
                 visitor_email: '',
@@ -211,7 +255,11 @@ export default function EmployeeAppointments() {
             fetchAppointments();
         }
         catch (err) {
-            setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to create appointment.' });
+            const backend = parseBackendFormErrors(err);
+            if (backend && backend.fieldErrors && Object.keys(backend.fieldErrors).length > 0) {
+                setCreateErrors(backend.fieldErrors);
+            }
+            setMessage({ type: 'error', text: err.response?.data?.error || err.response?.data?.message || 'Failed to create appointment.' });
         }
         finally {
             setSubmitting(false);
@@ -221,6 +269,17 @@ export default function EmployeeAppointments() {
         e.preventDefault();
         if (!rescheduleApt)
             return;
+        const errs = {};
+        if (!rescheduleStart) errs.rescheduleStart = 'New start time is required.';
+        if (!rescheduleEnd) errs.rescheduleEnd = 'New end time is required.';
+        else if (rescheduleStart) {
+            const rangeErr = validateDateTimeRange(rescheduleStart, rescheduleEnd);
+            if (rangeErr) errs.rescheduleEnd = rangeErr;
+        }
+        if (Object.keys(errs).length > 0) {
+            setRescheduleErrors(errs);
+            return;
+        }
         setRescheduling(true);
         try {
             await employeePortalApi.requestAction(rescheduleApt.id, 'RESCHEDULE', {
@@ -230,6 +289,7 @@ export default function EmployeeAppointments() {
             setMessage({ type: 'success', text: `Appointment #${rescheduleApt.reference_code || rescheduleApt.id} rescheduled.` });
             setShowRescheduleModal(false);
             setRescheduleApt(null);
+            setRescheduleErrors({});
             fetchAppointments();
         }
         catch (err) {
@@ -243,6 +303,10 @@ export default function EmployeeAppointments() {
         e.preventDefault();
         if (!cancelApt)
             return;
+        if (!cancelReason || cancelReason.trim().length < 3) {
+            setCancelErrors({ cancelReason: 'Cancellation reason is required (min 3 characters).' });
+            return;
+        }
         setSubmitting(true);
         try {
             await employeePortalApi.requestAction(cancelApt.id, 'CANCEL', { comment: cancelReason || 'Cancelled by host' });
@@ -250,6 +314,7 @@ export default function EmployeeAppointments() {
             setShowCancelModal(false);
             setCancelApt(null);
             setCancelReason('');
+            setCancelErrors({});
             fetchAppointments();
         }
         catch (err) {
@@ -354,6 +419,8 @@ export default function EmployeeAppointments() {
     };
 
     const handleApproveFromDoc = async (apt) => {
+        if (!apt || approvingDoc) return;
+        setApprovingDoc(true);
         try {
             await employeePortalApi.requestAction(apt.id, 'APPROVE', { comment: 'Approved by host after document inspection.' });
             setMessage({ type: 'success', text: `Appointment #${apt.reference_code || apt.id} approved successfully!` });
@@ -361,6 +428,8 @@ export default function EmployeeAppointments() {
             fetchAppointments();
         } catch (err) {
             setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to approve appointment.' });
+        } finally {
+            setApprovingDoc(false);
         }
     };
 
@@ -845,43 +914,86 @@ export default function EmployeeAppointments() {
               <button onClick={() => setShowNewModal(false)} className="text-slate-500 hover:text-white">✕</button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs" noValidate>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.visitor_full_name', 'Visitor Full Name')}</label>
-                  <input type="text" value={newForm.visitor_name} onChange={(e) => setNewForm({ ...newForm, visitor_name: e.target.value })} placeholder={t('form.placeholder_john_doe', 'e.g. John Doe')} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500" required/>
+                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.visitor_full_name', 'Visitor Full Name')} *</label>
+                  <input
+                    type="text"
+                    value={newForm.visitor_name}
+                    onChange={(e) => handleNewFormChange('visitor_name', e.target.value)}
+                    placeholder={t('form.placeholder_john_doe', 'e.g. John Doe')}
+                    className={`w-full bg-[#0e1628] border rounded-xl px-3 py-2 text-white focus:outline-none ${createErrors.visitor_name ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-indigo-500'}`}
+                    data-invalid={!!createErrors.visitor_name}
+                  />
+                  <FieldError error={createErrors.visitor_name} id="host-visitor-name-error" />
                 </div>
                 <div>
                   <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.visitor_company', 'Visitor Company')}</label>
-                  <input type="text" value={newForm.visitor_company} onChange={(e) => setNewForm({ ...newForm, visitor_company: e.target.value })} placeholder={t('form.placeholder_acme_corp', 'e.g. Acme Corp')} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
+                  <input
+                    type="text"
+                    value={newForm.visitor_company}
+                    onChange={(e) => handleNewFormChange('visitor_company', e.target.value)}
+                    placeholder={t('form.placeholder_acme_corp', 'e.g. Acme Corp')}
+                    className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.visitor_email', 'Visitor Email')}</label>
-                  <input type="email" value={newForm.visitor_email} onChange={(e) => setNewForm({ ...newForm, visitor_email: e.target.value })} placeholder={t('form.placeholder_email', 'john@example.com')} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500" required/>
+                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.visitor_email', 'Visitor Email')} *</label>
+                  <input
+                    type="email"
+                    value={newForm.visitor_email}
+                    onChange={(e) => handleNewFormChange('visitor_email', e.target.value)}
+                    placeholder={t('form.placeholder_email', 'john@example.com')}
+                    className={`w-full bg-[#0e1628] border rounded-xl px-3 py-2 text-white focus:outline-none ${createErrors.visitor_email ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-indigo-500'}`}
+                    data-invalid={!!createErrors.visitor_email}
+                  />
+                  <FieldError error={createErrors.visitor_email} id="host-visitor-email-error" />
                 </div>
                 <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.visitor_phone', 'Visitor Phone')}</label>
-                  <input type="tel" value={newForm.visitor_phone} onChange={(e) => setNewForm({ ...newForm, visitor_phone: e.target.value })} placeholder={t('form.placeholder_phone', '+1 555 0192')} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
+                  <CountryPhoneInput
+                    id="host-visitor-phone"
+                    label={t('host.visitor_phone', 'Visitor Phone')}
+                    value={newForm.visitor_phone}
+                    onChange={(val) => handleNewFormChange('visitor_phone', val)}
+                    placeholder={t('form.placeholder_phone', '+1 555 0192')}
+                    error={createErrors.visitor_phone}
+                  />
+                  <FieldError error={createErrors.visitor_phone} id="host-visitor-phone-error" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.scheduled_start', 'Scheduled Start')}</label>
-                  <input type="datetime-local" value={newForm.scheduled_start} onChange={(e) => setNewForm({ ...newForm, scheduled_start: e.target.value })} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500" required/>
+                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.scheduled_start', 'Scheduled Start')} *</label>
+                  <input
+                    type="datetime-local"
+                    value={newForm.scheduled_start}
+                    onChange={(e) => handleNewFormChange('scheduled_start', e.target.value)}
+                    className={`w-full bg-[#0e1628] border rounded-xl px-3 py-2 text-white focus:outline-none ${createErrors.scheduled_start ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-indigo-500'}`}
+                    data-invalid={!!createErrors.scheduled_start}
+                  />
+                  <FieldError error={createErrors.scheduled_start} id="host-scheduled-start-error" />
                 </div>
                 <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.scheduled_end', 'Scheduled End')}</label>
-                  <input type="datetime-local" value={newForm.scheduled_end} onChange={(e) => setNewForm({ ...newForm, scheduled_end: e.target.value })} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500" required/>
+                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.scheduled_end', 'Scheduled End')} *</label>
+                  <input
+                    type="datetime-local"
+                    value={newForm.scheduled_end}
+                    onChange={(e) => handleNewFormChange('scheduled_end', e.target.value)}
+                    className={`w-full bg-[#0e1628] border rounded-xl px-3 py-2 text-white focus:outline-none ${createErrors.scheduled_end ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-indigo-500'}`}
+                    data-invalid={!!createErrors.scheduled_end}
+                  />
+                  <FieldError error={createErrors.scheduled_end} id="host-scheduled-end-error" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.meeting_room_location', 'Meeting Room / Location')}</label>
-                <select value={newForm.room_id} onChange={(e) => setNewForm({ ...newForm, room_id: e.target.value })} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                <select value={newForm.room_id} onChange={(e) => handleNewFormChange('room_id', e.target.value)} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
                   <option value="">{t('host.main_office_lobby', '-- Main Office / Lobby --')}</option>
                   {rooms.map((r) => (<option key={r.id} value={r.id}>
                       {r.room_name} ({t('host.capacity', 'Capacity')}: {r.capacity || 8})
@@ -890,8 +1002,16 @@ export default function EmployeeAppointments() {
               </div>
 
               <div>
-                <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.purpose_agenda', 'Purpose / Agenda')}</label>
-                <textarea rows={2} value={newForm.purpose} onChange={(e) => setNewForm({ ...newForm, purpose: e.target.value })} placeholder={t('form.placeholder_meeting_agenda', 'Describe the meeting objectives...')} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500" required/>
+                <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.purpose_agenda', 'Purpose / Agenda')} *</label>
+                <textarea
+                  rows={2}
+                  value={newForm.purpose}
+                  onChange={(e) => handleNewFormChange('purpose', e.target.value)}
+                  placeholder={t('form.placeholder_meeting_agenda', 'Describe the meeting objectives...')}
+                  className={`w-full bg-[#0e1628] border rounded-xl p-3 text-white focus:outline-none ${createErrors.purpose ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-indigo-500'}`}
+                  data-invalid={!!createErrors.purpose}
+                />
+                <FieldError error={createErrors.purpose} id="host-purpose-error" />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -922,24 +1042,49 @@ export default function EmployeeAppointments() {
               <p className="text-slate-400 font-mono">Ref: {rescheduleApt.reference_code || `APT-${rescheduleApt.id}`}</p>
             </div>
 
-            <form onSubmit={handleRescheduleSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleRescheduleSubmit} className="space-y-4 text-xs" noValidate>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.new_start_time', 'New Start Time')}</label>
-                  <input type="datetime-local" value={rescheduleStart} onChange={(e) => setRescheduleStart(e.target.value)} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500" required/>
+                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.new_start_time', 'New Start Time')} *</label>
+                  <input
+                    type="datetime-local"
+                    value={rescheduleStart}
+                    onChange={(e) => {
+                      setRescheduleStart(e.target.value);
+                      if (rescheduleErrors.rescheduleStart) {
+                        setRescheduleErrors(prev => { const n = { ...prev }; delete n.rescheduleStart; return n; });
+                      }
+                    }}
+                    className={`w-full bg-[#0e1628] border rounded-xl px-3 py-2 text-white focus:outline-none ${rescheduleErrors.rescheduleStart ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-blue-500'}`}
+                    data-invalid={!!rescheduleErrors.rescheduleStart}
+                  />
+                  <FieldError error={rescheduleErrors.rescheduleStart} id="host-reschedule-start-error" />
                 </div>
                 <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.new_end_time', 'New End Time')}</label>
-                  <input type="datetime-local" value={rescheduleEnd} onChange={(e) => setRescheduleEnd(e.target.value)} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500" required/>
+                  <label className="block text-slate-400 font-bold uppercase mb-1">{t('host.new_end_time', 'New End Time')} *</label>
+                  <input
+                    type="datetime-local"
+                    value={rescheduleEnd}
+                    onChange={(e) => {
+                      setRescheduleEnd(e.target.value);
+                      if (rescheduleErrors.rescheduleEnd) {
+                        setRescheduleErrors(prev => { const n = { ...prev }; delete n.rescheduleEnd; return n; });
+                      }
+                    }}
+                    className={`w-full bg-[#0e1628] border rounded-xl px-3 py-2 text-white focus:outline-none ${rescheduleErrors.rescheduleEnd ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-blue-500'}`}
+                    data-invalid={!!rescheduleErrors.rescheduleEnd}
+                  />
+                  <FieldError error={rescheduleErrors.rescheduleEnd} id="host-reschedule-end-error" />
                 </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                <button type="button" onClick={() => setShowRescheduleModal(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold uppercase">
+                <button type="button" onClick={() => setShowRescheduleModal(false)} className="h-10 min-h-[40px] px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold uppercase transition">
                   {t('common.cancel', 'Cancel')}
                 </button>
-                <button type="submit" disabled={rescheduling} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold uppercase">
-                  {rescheduling ? t('common.rescheduling', 'Rescheduling...') : t('host.confirm_reschedule', 'Confirm Reschedule')}
+                <button type="submit" disabled={rescheduling} className="h-10 min-h-[40px] px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold uppercase flex items-center gap-2 transition disabled:opacity-50">
+                  {rescheduling && <RefreshCw className="h-3.5 w-3.5 animate-spin shrink-0" />}
+                  <span>{rescheduling ? t('common.rescheduling', 'Rescheduling...') : t('host.confirm_reschedule', 'Confirm Reschedule')}</span>
                 </button>
               </div>
             </form>
@@ -962,18 +1107,18 @@ export default function EmployeeAppointments() {
               <p className="text-slate-400 font-mono">Ref: <span className="text-blue-300 font-bold">{cancelApt.reference_code || `APT-${cancelApt.id}`}</span></p>
             </div>
 
-            <form onSubmit={handleCancelSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleCancelSubmit} className="space-y-4 text-xs" noValidate>
               {/* Quick Cancellation Presets */}
               <div>
                 <label className="block text-slate-400 font-bold uppercase mb-1.5">{t('host.quick_cancellation_presets', 'Quick Cancellation Presets')}</label>
                 <div className="flex flex-wrap gap-1.5">
-                  <button type="button" onClick={() => setCancelReason('Host employee unavailable - Meeting postponed')} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg text-[10px] font-bold">
+                  <button type="button" onClick={() => { setCancelReason('Host employee unavailable - Meeting postponed'); setCancelErrors({}); }} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg text-[10px] font-bold">
                     {t('preset.host_unavailable', '✕ Host Unavailable')}
                   </button>
-                  <button type="button" onClick={() => setCancelReason('Meeting rescheduled to another date')} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg text-[10px] font-bold">
+                  <button type="button" onClick={() => { setCancelReason('Meeting rescheduled to another date'); setCancelErrors({}); }} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg text-[10px] font-bold">
                     {t('preset.rescheduled', '✕ Rescheduled')}
                   </button>
-                  <button type="button" onClick={() => setCancelReason('Cancelled per visitor request')} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg text-[10px] font-bold">
+                  <button type="button" onClick={() => { setCancelReason('Cancelled per visitor request'); setCancelErrors({}); }} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg text-[10px] font-bold">
                     {t('preset.visitor_requested', '✕ Visitor Requested')}
                   </button>
                 </div>
@@ -981,17 +1126,29 @@ export default function EmployeeAppointments() {
 
               <div>
                 <label className="block text-slate-400 font-bold uppercase mb-1">
-                  {t('host.cancel_reason_response_msg', 'Cancellation Reason & Response Message')}
+                  {t('host.cancel_reason_response_msg', 'Cancellation Reason & Response Message')} *
                 </label>
-                <textarea rows={3} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder={t('form.placeholder_cancel_reason', 'Enter response or cancellation reason...')} className="w-full bg-[#0e1628] border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-red-500 font-sans" required/>
+                <textarea
+                  rows={3}
+                  value={cancelReason}
+                  onChange={(e) => {
+                    setCancelReason(e.target.value);
+                    if (cancelErrors.cancelReason) setCancelErrors({});
+                  }}
+                  placeholder={t('form.placeholder_cancel_reason', 'Enter response or cancellation reason...')}
+                  className={`w-full bg-[#0e1628] border rounded-xl p-3 text-white focus:outline-none font-sans ${cancelErrors.cancelReason ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-red-500'}`}
+                  data-invalid={!!cancelErrors.cancelReason}
+                />
+                <FieldError error={cancelErrors.cancelReason} id="host-cancel-reason-error" />
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800 text-xs">
-                <button type="button" onClick={() => setShowCancelModal(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold uppercase">
+                <button type="button" onClick={() => setShowCancelModal(false)} className="h-10 min-h-[40px] px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold uppercase transition">
                   {t('common.no_keep', 'No, Keep')}
                 </button>
-                <button type="submit" disabled={submitting} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold uppercase shadow-md transition-all cursor-pointer">
-                  {submitting ? t('common.cancelling', 'Cancelling...') : t('host.yes_cancel_appointment', 'Yes, Cancel Appointment')}
+                <button type="submit" disabled={submitting} className="h-10 min-h-[40px] px-5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold uppercase shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50">
+                  {submitting && <RefreshCw className="h-3.5 w-3.5 animate-spin shrink-0" />}
+                  <span>{submitting ? t('common.cancelling', 'Cancelling...') : t('host.yes_cancel_appointment', 'Yes, Cancel Appointment')}</span>
                 </button>
               </div>
             </form>
@@ -1022,17 +1179,21 @@ export default function EmployeeAppointments() {
 
             <form onSubmit={handleDeleteSubmit} className="space-y-4 text-xs">
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                <button type="button" onClick={() => setShowDeleteModal(false)} disabled={deleting} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold uppercase cursor-pointer">
+                <button type="button" onClick={() => setShowDeleteModal(false)} disabled={deleting} className="h-10 min-h-[40px] px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold uppercase transition cursor-pointer">
                   Cancel
                 </button>
-                <button type="submit" disabled={deleting} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold uppercase shadow-md transition-all flex items-center gap-2 cursor-pointer">
-                  {deleting ? (<>
-                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"/>
+                <button type="submit" disabled={deleting} className="h-10 min-h-[40px] px-5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold uppercase shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50">
+                  {deleting ? (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin shrink-0" />
                       <span>Deleting...</span>
-                    </>) : (<>
-                      <Trash2 className="h-3.5 w-3.5"/>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-3.5 w-3.5 shrink-0" />
                       <span>Yes, Delete Appointment</span>
-                    </>)}
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -1092,11 +1253,13 @@ export default function EmployeeAppointments() {
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                 <button
                   type="button"
+                  disabled={approvingDoc}
                   onClick={() => handleApproveFromDoc(docVisitor)}
-                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="h-9 min-h-[36px] px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                   title="Approve Visitor Appointment"
                 >
-                  <ShieldCheck className="h-3.5 w-3.5" /> Approve Appointment
+                  {approvingDoc ? <RefreshCw className="h-3.5 w-3.5 animate-spin shrink-0" /> : <ShieldCheck className="h-3.5 w-3.5 shrink-0" />}
+                  <span>{approvingDoc ? 'Approving...' : 'Approve Appointment'}</span>
                 </button>
 
                 <button
@@ -1471,10 +1634,12 @@ export default function EmployeeAppointments() {
                     <div className="pt-2.5 border-t border-slate-800 space-y-2 shrink-0">
                       <button
                         type="button"
+                        disabled={approvingDoc}
                         onClick={() => handleApproveFromDoc(docVisitor)}
-                        className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+                        className="w-full h-10 min-h-[40px] bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        <ShieldCheck className="h-4 w-4" /> Approve Appointment
+                        {approvingDoc ? <RefreshCw className="h-4 w-4 animate-spin shrink-0" /> : <ShieldCheck className="h-4 w-4 shrink-0" />}
+                        <span>{approvingDoc ? 'Approving...' : 'Approve Appointment'}</span>
                       </button>
 
                       <button
