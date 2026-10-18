@@ -308,18 +308,49 @@ class CheckinRepository {
 
   async getDashboardStats(orgId, date) {
     const targetDate = date || new Date().toISOString().split('T')[0];
-    const rows = await db.query(
+
+    const [cStats] = await db.query(
       `SELECT
+        COUNT(*) AS totalCheckins,
         COUNT(CASE WHEN DATE(c.checked_in_at) = DATE(?) THEN 1 END) AS totalToday,
-        COUNT(CASE WHEN DATE(c.checked_in_at) = DATE(?) AND c.checked_out_at IS NULL THEN 1 END) AS currentlyInside,
-        COUNT(CASE WHEN DATE(c.checked_in_at) = DATE(?) AND c.checked_out_at IS NOT NULL THEN 1 END) AS checkedOutToday,
-        COUNT(CASE WHEN DATE(c.checked_in_at) = DATE(?) AND c.is_walk_in = TRUE THEN 1 END) AS walkInsToday,
+        COUNT(CASE WHEN c.checked_out_at IS NULL THEN 1 END) AS currentlyInside,
+        COUNT(CASE WHEN c.checked_out_at IS NOT NULL THEN 1 END) AS totalCheckouts,
+        COUNT(CASE WHEN c.checked_out_at IS NOT NULL AND DATE(c.checked_out_at) = DATE(?) THEN 1 END) AS checkedOutToday,
+        COUNT(CASE WHEN c.is_walk_in = TRUE AND DATE(c.checked_in_at) = DATE(?) THEN 1 END) AS walkInsToday,
+        AVG(CASE WHEN c.checked_out_at IS NOT NULL
+              THEN TIMESTAMPDIFF(MINUTE, c.checked_in_at, c.checked_out_at) END) AS avgDurationAllTime,
         AVG(CASE WHEN c.checked_out_at IS NOT NULL AND DATE(c.checked_in_at) = DATE(?)
-              THEN TIMESTAMPDIFF(MINUTE, c.checked_in_at, c.checked_out_at) END) AS avgVisitDuration
+              THEN TIMESTAMPDIFF(MINUTE, c.checked_in_at, c.checked_out_at) END) AS avgDurationToday
        FROM checkins c
-       WHERE c.deleted_at IS NULL`,
-      [targetDate, targetDate, targetDate, targetDate, targetDate]
-    );
+       JOIN visitors v ON c.visitor_id = v.id
+       WHERE c.deleted_at IS NULL AND v.full_name IS NOT NULL AND TRIM(v.full_name) != ''`,
+      [targetDate, targetDate, targetDate]
+    ).catch(() => [{}]);
+
+    const [vcStats] = await db.query(
+      `SELECT
+        COUNT(*) AS totalVc,
+        COUNT(CASE WHEN vc.status = 'ACTIVE' THEN 1 END) AS activeInside
+       FROM visitor_checkins vc
+       JOIN visitors v ON vc.visitor_id = v.id
+       WHERE vc.deleted_at IS NULL AND vc.is_active = 1 AND v.full_name IS NOT NULL AND TRIM(v.full_name) != ''`
+    ).catch(() => [{}]);
+
+    const [vcoStats] = await db.query(
+      `SELECT
+        COUNT(*) AS totalCheckouts,
+        COUNT(CASE WHEN DATE(vco.checkout_time) = DATE(?) THEN 1 END) AS checkedOutToday,
+        AVG(vco.total_visit_duration) AS avgDuration
+       FROM visitor_checkouts vco
+       JOIN visitors v ON vco.visitor_id = v.id
+       WHERE vco.is_active = TRUE AND vco.deleted_at IS NULL AND v.full_name IS NOT NULL AND TRIM(v.full_name) != ''`,
+      [targetDate]
+    ).catch(() => [{}]);
+
+    const totalCheckins = Math.max(Number(cStats?.totalCheckins || 0), Number(vcStats?.totalVc || 0));
+    const totalCheckouts = Math.max(Number(cStats?.totalCheckouts || 0), Number(vcoStats?.totalCheckouts || 0));
+    const currentlyInside = Math.max(Number(cStats?.currentlyInside || 0), Number(vcStats?.activeInside || 0));
+    const avgVisitDuration = Math.round(Number(vcoStats?.avgDuration || cStats?.avgDurationToday || cStats?.avgDurationAllTime || 0));
 
     const pendingRows = await db.query(
       `SELECT COUNT(*) as pendingCount
@@ -329,7 +360,7 @@ class CheckinRepository {
          AND NOT EXISTS (SELECT 1 FROM checkins c WHERE c.appointment_id = a.id AND c.deleted_at IS NULL)
          AND a.deleted_at IS NULL`,
       [targetDate]
-    );
+    ).catch(() => []);
 
     const hourlyRows = await db.query(
       `SELECT HOUR(c.checked_in_at) AS hour, COUNT(*) AS count
@@ -338,7 +369,7 @@ class CheckinRepository {
        GROUP BY HOUR(c.checked_in_at)
        ORDER BY hour ASC`,
       [targetDate]
-    );
+    ).catch(() => []);
 
     const typeRows = await db.query(
       `SELECT
@@ -348,10 +379,16 @@ class CheckinRepository {
        WHERE DATE(c.checked_in_at) = DATE(?) AND c.deleted_at IS NULL
        GROUP BY c.is_walk_in`,
       [targetDate]
-    );
+    ).catch(() => []);
 
     return {
-      ...rows[0],
+      totalCheckins,
+      totalToday: Number(cStats?.totalToday || 0),
+      totalCheckouts,
+      checkedOutToday: Number(vcoStats?.checkedOutToday || cStats?.checkedOutToday || 0),
+      currentlyInside,
+      walkInsToday: Number(cStats?.walkInsToday || 0),
+      avgVisitDuration,
       pendingCount: pendingRows[0]?.pendingCount || 0,
       hourlyDistribution: hourlyRows,
       byType: typeRows,
@@ -388,7 +425,7 @@ class CheckinRepository {
     const limit = Math.min(100, parseInt(pagination.limit) || 20);
     const offset = (page - 1) * limit;
 
-    const conditions = ['c.deleted_at IS NULL'];
+    const conditions = ['c.deleted_at IS NULL', 'v.id IS NOT NULL', 'v.full_name IS NOT NULL', "TRIM(v.full_name) != ''"];
     const params = [];
 
     if (dateFrom) { conditions.push('DATE(c.checked_in_at) >= DATE(?)'); params.push(dateFrom); }
@@ -407,8 +444,8 @@ class CheckinRepository {
     const countRows = await db.query(
       `SELECT COUNT(*) AS total
        FROM checkins c
+       JOIN visitors v ON c.visitor_id = v.id
        LEFT JOIN appointments a ON c.appointment_id = a.id
-       LEFT JOIN visitors v ON c.visitor_id = v.id
        WHERE ${whereClause}`,
       params
     );
@@ -424,8 +461,8 @@ class CheckinRepository {
               u.full_name AS hostName, d.department_name AS department,
               r.full_name AS receptionistName
        FROM checkins c
+       JOIN visitors v ON c.visitor_id = v.id
        LEFT JOIN appointments a ON c.appointment_id = a.id
-       LEFT JOIN visitors v ON c.visitor_id = v.id
        LEFT JOIN users u ON a.host_id = u.id
        LEFT JOIN departments d ON a.department_id = d.id
        LEFT JOIN users r ON c.receptionist_id = r.id

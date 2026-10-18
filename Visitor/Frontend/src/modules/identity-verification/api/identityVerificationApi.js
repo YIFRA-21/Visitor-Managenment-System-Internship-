@@ -41,6 +41,11 @@ export const identityVerificationApi = {
     return res.data?.data;
   },
 
+  deleteCase: async (caseId) => {
+    const res = await api.delete(`/v1/identity-verification/reviewer/cases/${caseId}`);
+    return res.data;
+  },
+
   // Policy Settings
   getPolicy: async (organizationId) => {
     const res = await api.get('/v1/identity-verification/policies', {

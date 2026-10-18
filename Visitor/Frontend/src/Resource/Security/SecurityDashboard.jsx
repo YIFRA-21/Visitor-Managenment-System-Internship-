@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Shield, AlertTriangle, Scan, ShieldAlert, UserX, Sparkles, Radio } from 'lucide-react';
+import { 
+    Users, Shield, AlertTriangle, Scan, ShieldAlert, UserX, Sparkles, 
+    Radio, CreditCard, Lock, CheckCircle2, ArrowRight, Wifi, Printer, 
+    UserCheck, Layers, Award, Key, Flame, Compass
+} from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../../services/api';
 import BackButton from '../../components/common/BackButton';
@@ -204,23 +208,134 @@ export default function SecurityDashboard() {
               <span className="uppercase tracking-widest">{language === 'am' ? 'የስጋት ደረጃ: ዝቅተኛ' : 'Threat Level: Low'}</span>
             </div>
 
-            <a href="?view=security_scanner" className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-rose-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
-              <Scan className="w-4 h-4"/>
+            <a href="?view=badge_management" className="px-5 py-3.5 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-xs tracking-wide shadow-lg shadow-red-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
+              <ShieldAlert className="w-4 h-4 text-amber-300"/>
+              {language === 'am' ? 'የተከለከሉ ቦታዎች ባጆች' : 'Restricted Area Badges'}
+            </a>
+
+            <a href="?view=security_scanner" className="px-5 py-3.5 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 border border-slate-700 text-white font-bold text-xs tracking-wide shadow-md flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
+              <Scan className="w-4 h-4 text-rose-400"/>
               {language === 'am' ? 'የበር ስካነር SOC' : 'Gate Scanner SOC'}
             </a>
           </div>
         </div>
       </div>
 
-      {/* ── KPI METRIC CARDS (EMPLOYEE DASHBOARD SIGNATURE STYLE) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* ── KPI METRIC CARDS (5-METRIC HIGH-SECURITY GRID) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard title={t('securityDash.activeOnsite')} value={occupantsCount} subtitle={language === 'am' ? 'በአሁኑ ሰዓት በቦታው ያሉ ጎብኚዎች' : 'Visitors currently on-site'} badge={<span className="text-xs text-blue-400 font-extrabold">{language === 'am' ? 'ንቁ' : 'Active'}</span>} icon={<Users className="w-5 h-5"/>} theme="blue" onClick={() => window.location.search = '?view=occupants_list'}/>
+
+        <KpiCard title={language === 'am' ? 'የተከለከሉ ባጆች' : 'Restricted Badges'} value="24" subtitle={language === 'am' ? 'ንቁ የተከለከሉ ዞኖች ፈቃድ' : 'Active high-security credentials'} badge={<span className="text-xs text-red-400 font-extrabold">Zone A-E</span>} icon={<ShieldAlert className="w-5 h-5 text-red-400"/>} theme="rose" onClick={() => window.location.search = '?view=badge_management'}/>
 
         <KpiCard title={t('securityDash.watchlistHits')} value={blacklistedCount} subtitle={language === 'am' ? 'የተከለከሉ እና የታገዱ መግቢያዎች' : 'Flagged & denied entries'} badge={<span className="text-xs text-rose-400 font-extrabold">{language === 'am' ? 'የታገዱ' : 'Denied'}</span>} icon={<UserX className="w-5 h-5"/>} theme="rose" onClick={() => window.location.search = '?view=blacklist_monitor'}/>
 
         <KpiCard title={language === 'am' ? 'ንቁ ማስጠንቀቂያዎች' : 'Active Alerts'} value={alertsCount} subtitle={language === 'am' ? 'የደህንነት ማስጠንቀቂያዎች' : 'Open security alerts'} badge={<span className="text-xs text-amber-400 font-extrabold">{language === 'am' ? 'ከፍተኛ ቅድሚያ' : 'High Priority'}</span>} icon={<AlertTriangle className="w-5 h-5"/>} theme="amber" onClick={() => window.location.search = '?view=security_notifications'}/>
 
         <KpiCard title={language === 'am' ? 'የተመዘገቡ ክስተቶች' : 'Incidents Logged'} value={incidentsCount} subtitle={language === 'am' ? 'የዛሬ የደህንነት ክስተቶች' : 'Security incidents today'} badge={<span className="text-xs text-purple-400 font-extrabold">{language === 'am' ? 'የተመዘገቡ' : 'Logged'}</span>} icon={<ShieldAlert className="w-5 h-5"/>} theme="purple" onClick={() => window.location.search = '?view=incidents_log'}/>
+      </div>
+
+      {/* ── RESTRICTED AREA ACCESS BADGES & ZONE AUTHORIZATION CONSOLE ── */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 md:p-7 shadow-2xl relative overflow-hidden">
+        {/* Glow accent */}
+        <div style={{ backgroundColor: '#dc2626', boxShadow: '0 0 16px rgba(220, 38, 38, 0.4)' }} className="absolute left-0 top-0 bottom-0 w-[6px] rounded-l-3xl" />
+
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-red-600/15 border border-red-500/30 flex items-center justify-center text-red-400 shadow-md shrink-0">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base md:text-lg font-black uppercase tracking-tight text-white">
+                  {language === 'am' ? 'የተከለከሉ ቦታዎች የጎብኝ ባጅ ቁጥጥር ማዕከል' : 'Restricted Area Visitor Access & Security Credentials'}
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                  LEVEL 4 & 5 ZONES
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                CR-80 ISO ID-1 physical badge provisioning, mandatory escort pairing, scannable QR tokens, and contactless MIFARE RFID access cards.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <a
+              href="?view=badge_management"
+              className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-wide flex items-center gap-2 shadow-lg shadow-red-900/30 transition-all hover:scale-[1.02]"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>{language === 'am' ? 'ባጅ ስቱዲዮ ክፈት' : 'Open Restricted Badge Studio'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+
+        {/* 5 RESTRICTED PERIMETER ZONES STATUS BARS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mt-5">
+          {[
+            {
+              code: 'ZONE 01',
+              name: 'Tier-4 Datacenter',
+              level: 'LEVEL 4',
+              activeVisitors: '8 Active',
+              badgeColor: 'border-red-500/70 text-red-400 bg-red-950/40',
+              escort: 'Escort Mandatory'
+            },
+            {
+              code: 'ZONE 02',
+              name: 'Cash & Asset Vault',
+              level: 'LEVEL 5',
+              activeVisitors: '2 Active',
+              badgeColor: 'border-amber-500/70 text-amber-400 bg-amber-950/40',
+              escort: 'Dual-Key Escort'
+            },
+            {
+              code: 'ZONE 03',
+              name: 'R&D Micro-Biolabs',
+              level: 'LEVEL 4',
+              activeVisitors: '6 Active',
+              badgeColor: 'border-cyan-500/70 text-cyan-400 bg-cyan-950/40',
+              escort: 'PPE & Cleanroom'
+            },
+            {
+              code: 'ZONE 04',
+              name: 'Executive Boardroom',
+              level: 'LEVEL 3',
+              activeVisitors: '5 Active',
+              badgeColor: 'border-blue-500/70 text-blue-400 bg-blue-950/40',
+              escort: 'Executive Escort'
+            },
+            {
+              code: 'ZONE 05',
+              name: 'SCADA Power Substation',
+              level: 'LEVEL 4',
+              activeVisitors: '3 Active',
+              badgeColor: 'border-orange-500/70 text-orange-400 bg-orange-950/40',
+              escort: 'Safety Gear Req.'
+            }
+          ].map((zone, i) => (
+            <div
+              key={i}
+              onClick={() => window.location.search = '?view=badge_management'}
+              className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer group hover:bg-slate-950"
+            >
+              <div className="flex items-center justify-between text-[10px] font-mono font-bold">
+                <span className="text-slate-400">{zone.code}</span>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border ${zone.badgeColor}`}>
+                  {zone.level}
+                </span>
+              </div>
+              <h5 className="text-xs font-black text-white mt-1.5 group-hover:text-amber-300 transition-colors truncate">
+                {zone.name}
+              </h5>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-800/80">
+                <span className="font-semibold text-emerald-400 font-mono">{zone.activeVisitors}</span>
+                <span className="text-slate-400 text-[9px] truncate">{zone.escort}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* CHARTS ROW */}

@@ -282,9 +282,12 @@ export const securityApi = {
     incidents: (status) => api.get('/security/incidents', { params: { status } }),
     reportIncident: (data) => api.post('/security/incidents', data),
     updateIncident: (id, data) => api.put(`/security/incidents/${id}`, data),
+    deleteIncident: (id) => api.delete(`/security/incidents/${id}`),
     accessRules: () => api.get('/security/access-rules'),
     escorts: () => api.get('/security/escorts'),
     assignEscort: (data) => api.post('/security/escorts', data),
+    updateEscort: (id, data) => api.put(`/security/escorts/${id}`, data),
+    deleteEscort: (id) => api.delete(`/security/escorts/${id}`),
     analytics: (dateFrom, dateTo) => api.get('/security/analytics', { params: { dateFrom, dateTo } }),
     blacklist: () => api.get('/security/blacklist'),
     addToBlacklist: (data) => api.post('/security/blacklist', data),
@@ -295,6 +298,21 @@ export const securityApi = {
     verify: (referenceCode) => api.get(`/security/verify/${referenceCode}`),
     getProfile: () => api.get('/security/profile'),
     updateProfile: (data) => api.put('/security/profile', data),
+    getAccessControlVisitors: () => api.get('/security/access-control/visitors'),
+    searchVisitors: (params) => api.get('/security/search-visitors', { params }),
+    grantAccessLevel: (data) => api.post('/security/access-control/grant', data),
+    revokeAccessLevel: (data) => api.post('/security/access-control/revoke', data),
+    simulateGateTap: (data) => api.post('/security/access-control/simulate-tap', data),
+    getAccessLogs: (params) => api.get('/security/access-logs', { params }),
+    simulateAccessEvent: (data) => api.post('/security/access-logs/simulate', data),
+    createAccessRule: (data) => api.post('/security/access-rules', data),
+    toggleAccessRule: (id) => api.put(`/security/access-rules/${id}/toggle`),
+    deleteAccessRule: (id) => api.delete(`/security/access-rules/${id}`),
+    getEscortOptions: () => api.get('/security/escorts/options'),
+    completeEscort: (id) => api.post(`/security/escorts/${id}/complete`),
+    getScreeningQueue: () => api.get('/security/screening/queue'),
+    completeScreening: (data) => api.post('/security/screening/complete', data),
+    getLiveOccupants: () => api.get('/security/occupants/live'),
 };
 export const receptionApi = {
     getDashboard: () => api.get('/reception/dashboard'),
@@ -305,9 +323,15 @@ export const receptionApi = {
 };
 export const reportsApi = {
     dashboard: () => api.get('/reports/dashboard'),
-    visitors: (from, to) => api.get('/reports/visitors', { params: { from, to } }),
-    auditLogs: () => api.get('/reports/audit-logs'),
+    visitors: (fromOrParams, to) => {
+        const params = typeof fromOrParams === 'object' && fromOrParams !== null ? fromOrParams : { from: fromOrParams, to };
+        return api.get('/reports/visitors', { params });
+    },
+    checkins: (params) => api.get('/reports/checkins', { params }),
+    security: (params) => api.get('/reports/security', { params }),
+    auditLogs: (params) => api.get('/reports/audit-logs', { params }),
     kpis: () => api.get('/reports/kpis'),
+    stats: () => api.get('/reports/kpis'),
     departments: () => api.get('/reports/departments'),
     occupancy: (dateFrom, dateTo) => api.get('/reports/occupancy', { params: { dateFrom, dateTo } }),
     saved: () => api.get('/reports/saved'),
@@ -346,6 +370,7 @@ export const blacklistWatchlistApi = {
     reviewClearance: (id, decision, notes) => api.post(`/security/blacklist-watchlist/${id}/clearance`, { decision, notes }),
     archiveRecord: (id) => api.patch(`/security/blacklist-watchlist/${id}/archive`),
     restoreRecord: (id) => api.patch(`/security/blacklist-watchlist/${id}/restore`),
+    deleteRecord: (id) => api.delete(`/security/blacklist-watchlist/${id}`),
 };
 // ── Admin: User Management ──────────────────────────────────────────────────
 export const userManagementApi = {

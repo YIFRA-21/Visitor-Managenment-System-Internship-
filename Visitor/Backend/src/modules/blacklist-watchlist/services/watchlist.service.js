@@ -101,6 +101,20 @@ class BlacklistWatchlistService {
     return res;
   }
 
+  async deleteRecord(id, userId) {
+    const res = await repository.deleteRecord(id, userId);
+
+    await auditRepository.log({
+      userId,
+      action: 'SECURITY_WATCHLIST_DELETE',
+      module: 'SECURITY',
+      entity: 'visitor_watchlist',
+      recordId: id,
+    }).catch(() => null);
+
+    return res;
+  }
+
   async restoreRecord(id, userId) {
     const res = await repository.restoreRecord(id, userId);
 

@@ -71,6 +71,7 @@ router.post(
   validators.reviewDecisionValidator,
   (req, res, next) => controller.recordDecision(req, res, next)
 );
+router.delete('/reviewer/cases/:caseId', (req, res, next) => controller.deleteCase(req, res, next));
 
 // Administrator Policy Configuration Endpoints
 router.get('/policies', (req, res, next) => controller.getPolicy(req, res, next));

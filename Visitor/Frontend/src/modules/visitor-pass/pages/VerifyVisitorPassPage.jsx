@@ -8,47 +8,60 @@ import { resolvePhotoUrl } from '../../../utils/photoUtils';
 import { getBackendBaseUrl } from '../../../utils/apiUrl';
 export default function VerifyVisitorPassPage() {
     const [params] = useSearchParams();
-    const visitorCode = params.get('code') || params.get('ref') || 'VIS-2026-00009';
+    const visitorCode = params.get('code') || params.get('token') || params.get('ref') || params.get('id') || 'VIS-2026-00009';
+    const qrToken = params.get('token') || visitorCode;
     const [loading, setLoading] = useState(true);
     const [visitor, setVisitor] = useState(null);
+
     useEffect(() => {
         setLoading(true);
-        // Fetch profile data from API or load formatted verification payload
         const backendBase = getBackendBaseUrl();
-        fetch(`${backendBase}/api/appointments/track?code=${encodeURIComponent(visitorCode)}`)
-            .then((res) => {
-            if (!res.ok)
+
+        // 1. First try reception pass verification endpoint
+        fetch(`${backendBase}/api/reception/passes/verify?token=${encodeURIComponent(qrToken)}&code=${encodeURIComponent(visitorCode)}`)
+            .then(async (res) => {
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json?.success && json?.data) {
+                        return json.data;
+                    }
+                }
+                // Fallback to appointments track
+                const trackRes = await fetch(`${backendBase}/api/appointments/track?code=${encodeURIComponent(visitorCode)}`);
+                if (trackRes.ok) {
+                    const trackJson = await trackRes.json();
+                    return trackJson?.appointment || trackJson;
+                }
                 throw new Error('Not found');
-            return res.json();
-        })
-            .then((data) => {
-            const appt = data?.appointment || data;
-            if (appt && (appt.visitor_name || appt.reference_code || appt.id)) {
-                setVisitor({
-                    fullName: appt.visitor_name || appt.fullName || 'Visitor',
-                    code: appt.visitor_code || visitorCode,
-                    refNo: appt.reference_code || appt.reference_number || 'REF-N/A',
-                    company: appt.company || appt.organization || 'General',
-                    department: appt.department_name || 'General',
-                    phone: appt.visitor_phone || appt.phone || '—',
-                    email: appt.visitor_email || appt.email || '—',
-                    hostName: appt.host_name || appt.hostEmployee || 'Staff Host',
-                    category: appt.category || 'Standard',
-                    accessLevel: appt.access_level || 'STANDARD',
-                    status: appt.status || 'ACTIVE',
-                    photoUrl: appt.photo_url || null,
-                    registrationDate: appt.created_at || new Date().toISOString()
-                });
-            }
-            else {
-                setVisitor(null);
-            }
-        })
+            })
+            .then((record) => {
+                if (record && (record.visitor_name || record.fullName || record.full_name || record.id)) {
+                    setVisitor({
+                        fullName: record.visitor_name || record.full_name || record.fullName || 'Verified Visitor',
+                        code: record.pass_code || record.visitor_code || record.appointment_number || visitorCode,
+                        refNo: record.reference_code || record.appointment_number || record.pass_code || 'REF-N/A',
+                        company: record.visitor_company || record.company || record.organization || 'General Visitor',
+                        department: record.department_name || record.department || 'Main Reception',
+                        phone: record.visitor_phone || record.phone || '—',
+                        email: record.visitor_email || record.email || '—',
+                        hostName: record.host_name || record.hostEmployee || 'Front Desk Staff',
+                        category: record.pass_type_name || record.category || 'Official Visitor',
+                        accessLevel: record.access_level || record.accessLevel || 'General Access',
+                        status: record.pass_status || record.status || 'ACTIVE',
+                        photoUrl: record.visitor_photo || record.photo_url || record.photoUrl || null,
+                        arrivalTime: record.arrival_time ? new Date(record.arrival_time).toLocaleString() : null,
+                        purpose: record.purpose || 'Official Business Visit',
+                        registrationDate: record.created_at || record.scheduled_start || new Date().toISOString()
+                    });
+                } else {
+                    setVisitor(null);
+                }
+            })
             .catch(() => {
-            setVisitor(null);
-        })
+                setVisitor(null);
+            })
             .finally(() => setLoading(false));
-    }, [visitorCode]);
+    }, [visitorCode, qrToken]);
     return (<div className="min-h-screen flex flex-col bg-[#070b13] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white relative overflow-hidden">
       {/* Background ambient lighting */}
       <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none"/>
@@ -170,6 +183,24 @@ export default function VerifyVisitorPassPage() {
                   </span>
                   <span className="font-bold text-emerald-400 text-sm block">{visitor.accessLevel}</span>
                 </div>
+
+                {visitor.arrivalTime && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                      <BadgeCheck size={13} className="text-blue-400"/> Arrival Time
+                    </span>
+                    <span className="font-bold text-white text-sm block font-mono">{visitor.arrivalTime}</span>
+                  </div>
+                )}
+
+                {visitor.purpose && (
+                  <div className="space-y-1 sm:col-span-2">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                      <Building2 size={13} className="text-amber-400"/> Purpose of Visit
+                    </span>
+                    <span className="font-medium text-slate-200 text-xs block">{visitor.purpose}</span>
+                  </div>
+                )}
               </div>
 
               {/* Bottom Security Footer */}

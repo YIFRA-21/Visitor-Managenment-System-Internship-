@@ -73,6 +73,11 @@ import SecurityOfficerProfileView from '../../../Resource/Security/SecurityOffic
 import RoleManagement from '../../../Resource/Admin/RoleManagement';
 import PermissionManagement from '../../../Resource/Admin/PermissionManagement';
 import AuditLogs from '../../../Resource/Admin/AuditLogs';
+import OperationalReports from '../../../Resource/Reports/OperationalReports';
+import ReportingDashboard from '../../../Resource/Reports/ReportingDashboard';
+import AuditorDashboard from '../../../Resource/Dashboard/AuditorDashboard';
+import SecurityReportsView from '../../../Resource/Security/SecurityReportsView';
+import SecurityAuditLogsView from '../../../Resource/Security/SecurityAuditLogsView';
 import VisitorDocumentManagement from '../../../Resource/Admin/VisitorManagement/Documents/VisitorDocumentManagement';
 import VisitorCategoryManagement from '../../../Resource/Admin/VisitorManagement/Categories/VisitorCategoryManagement';
 import CategoryDetails from '../../../Resource/Admin/VisitorManagement/Categories/CategoryDetails';
@@ -687,7 +692,15 @@ export default function DashboardPage() {
                 return <ReceptionDashboard />;
             case 'visitor_arrivals':
             case 'reception_arrivals':
-                return <VisitorArrivalManagement />;
+                return (
+                    <VisitorArrivalManagement
+                        onNavigate={(v, extra) => {
+                            const target = (v === 'passes' || v === 'visitor_pass_issuance') ? 'visitor_pass_issuance' : v;
+                            const query = extra?.appointment_number || extra?.visitor_code || extra?.visitor_name || extra?.id || '';
+                            navigate(`/dashboard?view=${target}${query ? `&search=${encodeURIComponent(query)}` : ''}`);
+                        }}
+                    />
+                );
             case 'appointment_verification':
                 return <AppointmentVerification />;
             case 'walkin_management':
@@ -752,6 +765,10 @@ export default function DashboardPage() {
                 return <VehicleCheckIn />;
             // Module 11 Check-Out Operations
             case 'checkout':
+            case 'gate_checkout':
+            case 'turnstile_checkout':
+            case 'gate-checkout':
+            case 'turnstile-checkout':
                 return role === 'visitor' ? <VisitorDashboard /> : <CheckOut />;
             case 'checkout_dashboard':
             case 'checkout-dashboard':
@@ -780,6 +797,10 @@ export default function DashboardPage() {
                 return <CheckInOutHistory initialTab="checkout" />;
             case 'badge_management':
             case 'badge-management':
+            case 'restricted_badges':
+            case 'restricted-badges':
+            case 'security_badges':
+            case 'security-badges':
                 return <BadgeManagement />;
             case 'visitor_verification':
             case 'visitor-verification':
@@ -827,10 +848,14 @@ export default function DashboardPage() {
                 return role === 'visitor' ? <VisitorDashboard /> : <LiveVisitorTracking />;
             case 'security_escorts':
             case 'escorts':
+            case 'escort_management':
+            case 'escort-management':
                 return role === 'visitor' ? <VisitorDashboard /> : <EscortManagement />;
             case 'security_reports':
+            case 'security-reports':
+            case 'security_incident_reports':
             case 'security_analytics':
-                return role === 'visitor' ? <VisitorDashboard /> : <SecurityReportsAnalytics />;
+                return role === 'visitor' ? <VisitorDashboard /> : <SecurityReportsView />;
             case 'security_profile':
             case 'security-profile':
             case 'security_officer_profile':
@@ -934,13 +959,28 @@ export default function DashboardPage() {
             case 'security_notification_center':
             case 'emp-notifications':
                 return <UnifiedNotificationCenter initialTab="notification_center" onNavigate={(v) => navigate(`/dashboard?view=${v}`)}/>;
-            // Reports & Analytics
+            // Reports & Analytics & Security Telemetry
+            case 'security_audit_logs':
+            case 'security-audit-logs':
+            case 'security_audit':
+            case 'audit_trail':
+                return <SecurityAuditLogsView />;
+            case 'reports':
+            case 'reporting':
+            case 'reports_dashboard':
+            case 'reporting_dashboard':
+                return <ReportingDashboard onNavigate={(v) => navigate(`/dashboard?view=${v}`)} />;
+            case 'operational_reports':
+            case 'operational-reports':
+            case 'reports_catalog':
+                return <OperationalReports />;
             case 'visitor_reports':
                 return role === 'visitor' ? <VisitorDashboard /> : <VisitorReportsView />;
             case 'appointment_reports':
                 return role === 'visitor' ? <VisitorDashboard /> : <AppointmentReportsView />;
             case 'audit_logs':
-                return role === 'admin' ? <AuditLogs /> : <AdminDashboard />;
+            case 'auditor_dashboard':
+                return role === 'visitor' ? <VisitorDashboard /> : (role === 'security_officer' ? <SecurityAuditLogsView /> : <AuditorDashboard onNavigate={(v) => navigate(`/dashboard?view=${v}`)} />);
             // System Settings
             case 'settings':
             case 'system_settings':

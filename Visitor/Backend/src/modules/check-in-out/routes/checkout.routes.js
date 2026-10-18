@@ -33,7 +33,11 @@ router.delete('/:id', authenticate, authorize('receptionist', 'security_officer'
   try {
     const { id } = req.params;
     const db = require('../../../config/db');
-    await db.query('UPDATE checkins SET checked_out_at = NULL, deleted_at = NOW() WHERE id = ?', [id]);
+    // 1. Soft-delete in visitor_checkouts
+    await db.query('UPDATE visitor_checkouts SET is_active = FALSE, deleted_at = NOW() WHERE id = ? OR checkout_id = ?', [id, id]);
+    // 2. Soft-delete linked checkins or visitor_checkins
+    await db.query('UPDATE checkins SET deleted_at = NOW() WHERE id = ?', [id]).catch(() => {});
+    await db.query('UPDATE visitor_checkins SET is_active = 0, deleted_at = NOW() WHERE id = ?', [id]).catch(() => {});
     res.json({ status: 'success', message: 'Check-out record deleted successfully' });
   } catch (err) { next(err); }
 });

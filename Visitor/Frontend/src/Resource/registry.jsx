@@ -203,6 +203,8 @@ import LiveVisitorTracking from './Security/LiveVisitorTracking';
 import EscortManagement from './Security/EscortManagement';
 import SecurityReportsAnalytics from './Security/SecurityReportsAnalytics';
 import SecurityOfficerProfileView from './Security/SecurityOfficerProfileView';
+import SecurityReportsView from './Security/SecurityReportsView';
+import SecurityAuditLogsView from './Security/SecurityAuditLogsView';
 // Module 14: Enterprise Reporting & Analytics Management
 import ReportingDashboard from './Reports/ReportingDashboard';
 import OperationalReports from './Reports/OperationalReports';
@@ -850,6 +852,12 @@ export const componentRegistry = {
     'bi-dashboard': ReportingDashboard,
     operational_reports: OperationalReports,
     'operational-reports': OperationalReports,
+    SecurityReportsView,
+    security_reports: SecurityReportsView,
+    'security-reports': SecurityReportsView,
+    SecurityAuditLogsView,
+    security_audit_logs: SecurityAuditLogsView,
+    'security-audit-logs': SecurityAuditLogsView,
     visitor_analytics_view: VisitorAnalyticsView,
     'visitor-analytics-view': VisitorAnalyticsView,
     occupancy_analytics: VisitorAnalyticsView,

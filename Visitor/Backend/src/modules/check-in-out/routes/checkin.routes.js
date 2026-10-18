@@ -493,7 +493,12 @@ router.post('/group', authenticate, authorize('receptionist', 'admin'), async (r
 router.delete('/:id', authenticate, authorize('receptionist', 'security_officer', 'admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
+    // 1. Soft delete in checkins
     await db.query('UPDATE checkins SET deleted_at = NOW() WHERE id = ?', [id]);
+    // 2. Soft delete in visitor_checkins if matching id
+    await db.query('UPDATE visitor_checkins SET is_active = 0, deleted_at = NOW() WHERE id = ?', [id]).catch(() => {});
+    // 3. Soft delete in visitor_checkouts
+    await db.query('UPDATE visitor_checkouts SET is_active = FALSE, deleted_at = NOW() WHERE checkin_id = ? OR id = ?', [id, id]).catch(() => {});
     res.json({ status: 'success', message: 'Check-in record deleted successfully' });
   } catch (err) { next(err); }
 });

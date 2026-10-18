@@ -4,16 +4,47 @@ class CheckoutRepository {
   async getDashboardStats(orgId, date) {
     const targetDate = date || new Date().toISOString().split('T')[0];
 
-    const rows = await db.query(
+    const [cStats] = await db.query(
       `SELECT
-        COUNT(CASE WHEN DATE(c.checked_out_at) = DATE(?) THEN 1 END) AS checkedOutToday,
+        COUNT(*) AS totalCheckins,
+        COUNT(CASE WHEN DATE(c.checked_in_at) = DATE(?) THEN 1 END) AS totalToday,
         COUNT(CASE WHEN c.checked_out_at IS NULL THEN 1 END) AS currentlyInside,
-        AVG(CASE WHEN c.checked_out_at IS NOT NULL AND DATE(c.checked_out_at) = DATE(?)
-              THEN TIMESTAMPDIFF(MINUTE, c.checked_in_at, c.checked_out_at) END) AS avgVisitDuration
+        COUNT(CASE WHEN c.checked_out_at IS NOT NULL THEN 1 END) AS totalCheckouts,
+        COUNT(CASE WHEN c.checked_out_at IS NOT NULL AND DATE(c.checked_out_at) = DATE(?) THEN 1 END) AS checkedOutToday,
+        AVG(CASE WHEN c.checked_out_at IS NOT NULL
+              THEN TIMESTAMPDIFF(MINUTE, c.checked_in_at, c.checked_out_at) END) AS avgDurationAllTime,
+        AVG(CASE WHEN c.checked_out_at IS NOT NULL AND DATE(c.checked_in_at) = DATE(?)
+              THEN TIMESTAMPDIFF(MINUTE, c.checked_in_at, c.checked_out_at) END) AS avgDurationToday
        FROM checkins c
-       WHERE c.deleted_at IS NULL`,
-      [targetDate, targetDate]
-    );
+       JOIN visitors v ON c.visitor_id = v.id
+       WHERE c.deleted_at IS NULL AND v.full_name IS NOT NULL AND TRIM(v.full_name) != ''`,
+      [targetDate, targetDate, targetDate]
+    ).catch(() => [{}]);
+
+    const [vcStats] = await db.query(
+      `SELECT
+        COUNT(*) AS totalVc,
+        COUNT(CASE WHEN vc.status = 'ACTIVE' THEN 1 END) AS activeInside
+       FROM visitor_checkins vc
+       JOIN visitors v ON vc.visitor_id = v.id
+       WHERE vc.deleted_at IS NULL AND vc.is_active = 1 AND v.full_name IS NOT NULL AND TRIM(v.full_name) != ''`
+    ).catch(() => [{}]);
+
+    const [vcoStats] = await db.query(
+      `SELECT
+        COUNT(*) AS totalExits,
+        COUNT(CASE WHEN DATE(vco.checkout_time) = DATE(?) THEN 1 END) AS totalExitsToday,
+        AVG(vco.total_visit_duration) AS avgDuration
+       FROM visitor_checkouts vco
+       JOIN visitors v ON vco.visitor_id = v.id
+       WHERE vco.is_active = TRUE AND vco.deleted_at IS NULL AND v.full_name IS NOT NULL AND TRIM(v.full_name) != ''`,
+      [targetDate]
+    ).catch(() => [{}]);
+
+    const totalCheckins = Math.max(Number(cStats?.totalCheckins || 0), Number(vcStats?.totalVc || 0));
+    const totalExits = Math.max(Number(cStats?.totalCheckouts || 0), Number(vcoStats?.totalExits || 0));
+    const totalInside = Math.max(Number(cStats?.currentlyInside || 0), Number(vcStats?.activeInside || 0));
+    const avgDuration = Math.round(Number(vcoStats?.avgDuration || cStats?.avgDurationToday || cStats?.avgDurationAllTime || 0));
 
     const overstayRows = await db.query(
       `SELECT COUNT(*) AS overstayCount
@@ -22,7 +53,7 @@ class CheckoutRepository {
        WHERE c.checked_out_at IS NULL
          AND c.deleted_at IS NULL
          AND NOW() > DATE_ADD(a.scheduled_end, INTERVAL 30 MINUTE)`
-    );
+    ).catch(() => [{ overstayCount: 0 }]);
 
     const hourlyRows = await db.query(
       `SELECT HOUR(c.checked_out_at) AS hour, COUNT(*) AS count
@@ -31,7 +62,7 @@ class CheckoutRepository {
        GROUP BY HOUR(c.checked_out_at)
        ORDER BY hour ASC`,
       [targetDate]
-    );
+    ).catch(() => []);
 
     const methodRows = await db.query(
       `SELECT IFNULL(vc.checkout_method, 'MANUAL') AS method, COUNT(*) AS count
@@ -39,10 +70,18 @@ class CheckoutRepository {
        WHERE DATE(vc.checkout_time) = DATE(?) AND vc.is_active = TRUE
        GROUP BY vc.checkout_method`,
       [targetDate]
-    );
+    ).catch(() => []);
 
     return {
-      ...rows[0],
+      totalCheckins,
+      totalToday: Number(cStats?.totalToday || 0),
+      totalExits,
+      totalExitsToday: Number(vcoStats?.totalExitsToday || cStats?.checkedOutToday || 0),
+      totalInside,
+      avgDuration,
+      checkedOutToday: Number(vcoStats?.totalExitsToday || cStats?.checkedOutToday || 0),
+      currentlyInside: totalInside,
+      avgVisitDuration: avgDuration,
       overstayCount: overstayRows[0]?.overstayCount || 0,
       hourlyDistribution: hourlyRows,
       byMethod: methodRows,
@@ -153,7 +192,7 @@ class CheckoutRepository {
     const limit = Math.min(100, parseInt(pagination.limit) || 20);
     const offset = (page - 1) * limit;
 
-    const conditions = ['vc.is_active = TRUE'];
+    const conditions = ['vc.is_active = TRUE', 'vc.deleted_at IS NULL', 'v.id IS NOT NULL', 'v.full_name IS NOT NULL', "TRIM(v.full_name) != ''"];
     const params = [];
 
     if (dateFrom) { conditions.push('DATE(vc.checkout_time) >= DATE(?)'); params.push(dateFrom); }
@@ -169,8 +208,8 @@ class CheckoutRepository {
     const countRows = await db.query(
       `SELECT COUNT(*) AS total
        FROM visitor_checkouts vc
+       JOIN visitors v ON vc.visitor_id = v.id
        LEFT JOIN checkins c ON vc.checkin_id = c.id
-       LEFT JOIN visitors v ON vc.visitor_id = v.id
        LEFT JOIN appointments a ON vc.appointment_id = a.id
        WHERE ${whereClause}`,
       params
@@ -179,15 +218,17 @@ class CheckoutRepository {
     const rows = await db.query(
       `SELECT vc.id, vc.checkout_time AS checkoutTime, vc.checkout_method AS checkoutMethod,
               vc.total_visit_duration AS totalVisitDuration, vc.remarks,
-              c.checked_in_at AS checkedInAt, c.badge_number AS badgeNumber, c.is_walk_in AS isWalkIn,
+              COALESCE(c.checked_in_at, vc.checkout_time) AS checkedInAt, 
+              COALESCE(c.badge_number, CONCAT('BDG-', vc.id)) AS badgeNumber, 
+              COALESCE(c.is_walk_in, CASE WHEN vc.appointment_id IS NULL THEN 1 ELSE 0 END) AS isWalkIn,
               v.id AS visitorId, v.full_name AS visitorName, v.email AS visitorEmail,
               v.phone AS visitorPhone, v.company AS visitorCompany, v.photo_url AS photoUrl,
               a.id AS appointmentId, a.reference_code AS referenceCode, a.purpose,
               u.full_name AS hostName, d.department_name AS department,
               r.full_name AS receptionistName
        FROM visitor_checkouts vc
+       JOIN visitors v ON vc.visitor_id = v.id
        LEFT JOIN checkins c ON vc.checkin_id = c.id
-       LEFT JOIN visitors v ON vc.visitor_id = v.id
        LEFT JOIN appointments a ON vc.appointment_id = a.id
        LEFT JOIN users u ON vc.host_id = u.id
        LEFT JOIN departments d ON a.department_id = d.id

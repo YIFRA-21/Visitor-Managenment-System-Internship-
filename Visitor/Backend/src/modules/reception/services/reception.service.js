@@ -1,19 +1,67 @@
 const db = require('../../../config/db');
 const NotificationService = require('../../notifications/services/notification.service');
+const EmailService = require('../../notifications/services/email.service');
 const EventBus = require('../../../events/EventBus');
+const bcrypt = require('bcryptjs');
 
 class ReceptionService {
   // 1. DASHBOARD METRICS
   async getDashboardStats() {
     try {
-      const todayVisitors = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE DATE(scheduled_start) = CURDATE()`);
+      const todayVisitors = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE DATE(scheduled_start) = CURDATE() AND deleted_at IS NULL`);
       const waiting = await db.query(`SELECT COUNT(*) as cnt FROM visitor_queues WHERE status IN ('WAITING', 'CALLED', 'READY')`);
       const walkIns = await db.query(`SELECT COUNT(*) as cnt FROM checkins WHERE is_walk_in = TRUE AND DATE(checked_in_at) = CURDATE()`);
-      const pendingArrivals = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE DATE(scheduled_start) = CURDATE() AND status IN ('APPROVED', 'PENDING', 'pending_approval') AND (arrival_time IS NULL)`);
-      const checkedInToday = await db.query(`SELECT COUNT(*) as cnt FROM checkins WHERE DATE(checked_in_at) = CURDATE()`);
-      const checkedOutToday = await db.query(`SELECT COUNT(*) as cnt FROM checkins WHERE checked_out_at IS NOT NULL AND DATE(checked_out_at) = CURDATE()`);
-      const lateArrivals = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE DATE(scheduled_start) = CURDATE() AND scheduled_start < NOW() AND arrival_time IS NULL AND status != 'CANCELLED'`);
+      const pendingArrivals = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE DATE(scheduled_start) = CURDATE() AND status IN ('APPROVED', 'PENDING', 'pending_approval') AND (arrival_time IS NULL) AND deleted_at IS NULL`);
+      
+      // Total Check-in (strictly real active records from checkins table)
+      const totalCheckinsQuery = await db.query(`SELECT COUNT(*) as cnt FROM checkins WHERE deleted_at IS NULL`);
+      const totalCheckins = Number(totalCheckinsQuery[0]?.cnt || 0);
+
+      // Total Check-out (strictly real checked-out records from checkins table)
+      const totalCheckoutsQuery = await db.query(`SELECT COUNT(*) as cnt FROM checkins WHERE checked_out_at IS NOT NULL AND deleted_at IS NULL`);
+      const totalCheckouts = Number(totalCheckoutsQuery[0]?.cnt || 0);
+
+      // Total Arrivals (strictly real arrived appointments from database table)
+      const totalArrivalsAppt = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE (appointment_status = 'ARRIVED' OR status = 'ARRIVED') AND deleted_at IS NULL`);
+      const totalArrivals = Number(totalArrivalsAppt[0]?.cnt || 0);
+
+      // Today's metrics (strictly real table records)
+      const todayCheckinsQuery = await db.query(`SELECT COUNT(*) as cnt FROM checkins WHERE DATE(checked_in_at) = CURDATE() AND deleted_at IS NULL`);
+      const checkedInToday = Number(todayCheckinsQuery[0]?.cnt || 0);
+
+      const todayCheckoutsQuery = await db.query(`SELECT COUNT(*) as cnt FROM checkins WHERE checked_out_at IS NOT NULL AND DATE(checked_out_at) = CURDATE() AND deleted_at IS NULL`);
+      const checkedOutToday = Number(todayCheckoutsQuery[0]?.cnt || 0);
+
+      const todayArrivalsQuery = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE ((DATE(arrival_time) = CURDATE() AND arrival_time IS NOT NULL) OR (DATE(scheduled_start) = CURDATE() AND (appointment_status = 'ARRIVED' OR status = 'ARRIVED'))) AND deleted_at IS NULL`);
+      const todayArrivals = Number(todayArrivalsQuery[0]?.cnt || 0);
+
+      const activeInsideQuery = await db.query(`SELECT COUNT(*) as cnt FROM checkins WHERE checked_out_at IS NULL AND deleted_at IS NULL`);
+      const currentlyInside = Number(activeInsideQuery[0]?.cnt || 0);
+
+      const lateArrivals = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE DATE(scheduled_start) = CURDATE() AND scheduled_start < NOW() AND arrival_time IS NULL AND status NOT IN ('CANCELLED', 'REJECTED') AND deleted_at IS NULL`);
       const unreadNotifications = await db.query(`SELECT COUNT(*) as cnt FROM notifications WHERE is_read = FALSE`);
+
+      // Appointments status breakdown
+      const [upcomingRows] = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE status IN ('PENDING', 'pending_approval', 'APPROVED') AND scheduled_start >= CURDATE() AND deleted_at IS NULL`);
+      const [completedRows] = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE status IN ('COMPLETED', 'completed') AND deleted_at IS NULL`);
+      const [cancelledRows] = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE status IN ('CANCELLED', 'cancelled', 'REJECTED', 'rejected') AND deleted_at IS NULL`);
+      const [pendingRows] = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE status IN ('PENDING', 'pending_approval') AND deleted_at IS NULL`);
+      const [totalApptRows] = await db.query(`SELECT COUNT(*) as cnt FROM appointments WHERE deleted_at IS NULL`);
+
+      // 7-day visitor traffic trend
+      const trendRows = await db.query(`
+        SELECT DATE_FORMAT(scheduled_start, '%a') as date, COUNT(*) as count 
+        FROM appointments 
+        WHERE scheduled_start >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND deleted_at IS NULL
+        GROUP BY DATE(scheduled_start), DATE_FORMAT(scheduled_start, '%a')
+        ORDER BY DATE(scheduled_start) ASC
+      `).catch(() => []);
+
+      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const visitorTrendData = dayNames.map(day => {
+        const found = trendRows.find(r => r.date === day);
+        return { date: day, count: found ? found.count : 0 };
+      });
 
       const recentQueue = await db.query(`
         SELECT q.*, v.phone as visitor_phone, u.email as host_email
@@ -29,14 +77,37 @@ class ReceptionService {
 
       return {
         stats: {
+          totalCheckins,
+          totalCheckouts,
+          totalArrivals,
           todaysVisitors: todayVisitors[0]?.cnt || 0,
+          todayArrivals,
+          checkedInToday,
+          checkedOutToday,
+          currentlyInside,
           visitorsWaiting: waiting[0]?.cnt || 0,
           walkInVisitors: walkIns[0]?.cnt || 0,
           pendingArrivals: pendingArrivals[0]?.cnt || 0,
-          checkedInToday: checkedInToday[0]?.cnt || 0,
-          checkedOutToday: checkedOutToday[0]?.cnt || 0,
           lateArrivals: lateArrivals[0]?.cnt || 0,
           unreadNotifications: unreadNotifications[0]?.cnt || 0,
+        },
+        appointmentsOverview: {
+          upcoming: upcomingRows?.cnt || 0,
+          completed: completedRows?.cnt || 0,
+          cancelled: cancelledRows?.cnt || 0,
+          pending: pendingRows?.cnt || 0,
+          total: totalApptRows?.cnt || 0,
+        },
+        visitorTrend: {
+          data: visitorTrendData.length > 0 ? visitorTrendData : [
+            { date: 'Mon', count: 0 },
+            { date: 'Tue', count: 0 },
+            { date: 'Wed', count: 0 },
+            { date: 'Thu', count: 0 },
+            { date: 'Fri', count: 0 },
+            { date: 'Sat', count: 0 },
+            { date: 'Sun', count: 0 },
+          ]
         },
         recentQueue,
         recentActivities,
@@ -51,38 +122,39 @@ class ReceptionService {
   async getArrivals(search = '', filter = 'ALL') {
     let sql = `
       SELECT a.*, v.full_name as visitor_name, v.email as visitor_email, v.phone as visitor_phone, 
-             v.company as visitor_company, v.photo_url as visitor_photo,
-             u.full_name as host_name, u.email as host_email, d.name as department_name
+             v.company as visitor_company, v.photo_url as visitor_photo, v.visitor_code, v.id_number,
+             u.full_name as host_name, u.email as host_email, d.name as department_name,
+             vp.id as pass_id, vp.pass_code, vp.qr_token, vp.status as pass_status
       FROM appointments a
-      INNER JOIN (
-        SELECT MAX(id) as max_id FROM appointments 
-        WHERE deleted_at IS NULL 
-          AND appointment_status IN ('APPROVED', 'ARRIVED')
-        GROUP BY visitor_id, host_id
-      ) latest ON a.id = latest.max_id
       LEFT JOIN visitors v ON a.visitor_id = v.id
       LEFT JOIN users u ON a.host_id = u.id
       LEFT JOIN departments d ON a.department_id = d.id
+      LEFT JOIN visitor_passes vp ON vp.appointment_id = a.id AND vp.deleted_at IS NULL
       WHERE a.deleted_at IS NULL
-        AND a.appointment_status IN ('APPROVED', 'ARRIVED')
+        AND (a.is_cancelled IS NULL OR a.is_cancelled = 0)
+        AND a.status NOT IN ('CANCELLED', 'cancelled', 'REJECTED', 'rejected')
+        AND (a.appointment_status IS NULL OR a.appointment_status NOT IN ('CANCELLED', 'cancelled', 'REJECTED', 'rejected'))
+        AND (a.arrival_time IS NOT NULL OR a.appointment_status IN ('ARRIVED', 'APPROVED', 'CHECKED_IN', 'CHECKED_OUT') OR a.status IN ('arrived', 'approved', 'checked_in', 'checked_out'))
     `;
     const params = [];
 
     if (search) {
-      sql += ` AND (v.full_name LIKE ? OR a.appointment_number LIKE ? OR v.company LIKE ? OR u.full_name LIKE ?)`;
       const term = `%${search}%`;
-      params.push(term, term, term, term);
+      const numId = parseInt(search, 10);
+      const validNum = !isNaN(numId) ? numId : -1;
+      sql += ` AND (v.full_name LIKE ? OR a.appointment_number LIKE ? OR a.reference_code LIKE ? OR v.visitor_code LIKE ? OR v.phone LIKE ? OR v.email LIKE ? OR v.company LIKE ? OR u.full_name LIKE ? OR a.id = ? OR v.id = ?)`;
+      params.push(term, term, term, term, term, term, term, term, validNum, validNum);
     }
 
     if (filter === 'TODAY') {
-      sql += ` AND DATE(a.scheduled_start) = CURDATE()`;
+      sql += ` AND (DATE(a.arrival_time) = CURDATE() OR DATE(a.scheduled_start) = CURDATE())`;
     } else if (filter === 'ARRIVED') {
       sql += ` AND a.arrival_time IS NOT NULL`;
     } else if (filter === 'EXPECTED') {
       sql += ` AND a.arrival_time IS NULL`;
     }
 
-    sql += ` ORDER BY a.scheduled_start DESC LIMIT 50`;
+    sql += ` ORDER BY COALESCE(a.arrival_time, a.scheduled_start) DESC LIMIT 50`;
     return await db.query(sql, params);
   }
 
@@ -139,7 +211,7 @@ class ReceptionService {
   }
 
   async cancelArrival(appointmentId, reason = 'Cancelled at Reception', receptionistInfo = {}) {
-    await db.query(`UPDATE appointments SET status = 'CANCELLED', cancellation_reason = ? WHERE id = ?`, [reason, appointmentId]);
+    await db.query(`UPDATE appointments SET status = 'CANCELLED', appointment_status = 'CANCELLED', is_cancelled = 1, arrival_time = NULL, deleted_at = NOW(), cancellation_reason = ? WHERE id = ?`, [reason, appointmentId]);
     await db.query(`UPDATE visitor_queues SET status = 'CANCELLED' WHERE appointment_id = ?`, [appointmentId]);
 
     await this.logActivity({
@@ -151,7 +223,13 @@ class ReceptionService {
       appointment_id: appointmentId,
     });
 
-    return { message: 'Arrival process cancelled.' };
+    return { message: 'Arrival process cancelled and removed from active list.' };
+  }
+
+  async deleteArrival(appointmentId, receptionistInfo = {}) {
+    await db.query(`UPDATE appointments SET deleted_at = NOW(), is_cancelled = 1, status = 'CANCELLED', appointment_status = 'CANCELLED' WHERE id = ?`, [appointmentId]);
+    await db.query(`UPDATE visitor_queues SET status = 'CANCELLED' WHERE appointment_id = ?`, [appointmentId]);
+    return { message: 'Visitor arrival record deleted successfully.' };
   }
 
   // 3. APPOINTMENT VERIFICATION (Unified Search All Ways)
@@ -462,29 +540,86 @@ class ReceptionService {
     const visitPurpose = walkInData.visit_purpose || walkInData.purpose || walkInData.purpose_of_visit || walkInData.reason || 'Walk-in Consultation';
     const photoUrl = walkInData.photo_url || walkInData.photoUrl || walkInData.visitor_photo || null;
 
+    const firstName = walkInData.first_name || '';
+    const middleName = walkInData.middle_name || '';
+    const lastName = walkInData.last_name || '';
+    const gender = walkInData.gender || 'Male';
+    const dateOfBirth = walkInData.date_of_birth || null;
+    const nationality = walkInData.nationality || 'Ethiopian';
+    const maritalStatus = walkInData.marital_status || 'Single';
+    const occupation = walkInData.job_title || walkInData.occupation || 'Visitor';
+    const city = walkInData.city || 'Addis Ababa';
+    const subcity = walkInData.subcity || '';
+    const woreda = walkInData.woreda || '';
+    const houseNumber = walkInData.house_number || '';
+    const emergencyName = walkInData.emergency_name || walkInData.emergency_contact_name || '';
+    const emergencyPhone = walkInData.emergency_phone || walkInData.emergency_contact_phone || '';
+    const vehiclePlate = walkInData.plate_number || walkInData.vehicle_plate || walkInData.vehicle_plate_number || '';
+    const vehicleType = walkInData.vehicle_type || '';
+    const parkingRequired = walkInData.parking_requested ? 1 : (walkInData.parking_required ? 1 : 0);
+    const category = walkInData.visitor_category || walkInData.category || 'Standard Visitor';
+    const visitDuration = walkInData.expected_duration || '1 Hour';
+
     // 1. Create or Find Visitor Record
     let visitorId = 1;
+    let visitorCode = null;
     try {
       const existing = await db.query(
-        `SELECT id FROM visitors WHERE (email = ? AND email != '') OR (phone = ? AND phone != '') LIMIT 1`,
+        `SELECT id, visitor_code, user_id FROM visitors WHERE (email = ? AND email != '') OR (phone = ? AND phone != '') LIMIT 1`,
         [email, phone]
       );
       if (existing && existing.length > 0) {
         visitorId = existing[0].id;
+        visitorCode = existing[0].visitor_code;
+        // Update visitor with any newly provided details
+        await db.query(`
+          UPDATE visitors SET
+            full_name = ?, first_name = ?, middle_name = ?, last_name = ?,
+            company = ?, id_type = ?, id_number = ?, photo_url = COALESCE(?, photo_url),
+            gender = ?, date_of_birth = COALESCE(?, date_of_birth), nationality = ?,
+            marital_status = ?, occupation = ?, address = ?, street = ?, woreda = ?,
+            house_number = ?, emergency_contact_name = ?, emergency_contact_phone = ?,
+            vehicle_plate_number = ?, vehicle_type = ?, parking_required = ?, category = ?,
+            updated_at = NOW()
+          WHERE id = ?
+        `, [
+          fullName, firstName, middleName, lastName, company, idType, idNumber, photoUrl,
+          gender, dateOfBirth, nationality, maritalStatus, occupation, city, subcity, woreda,
+          houseNumber, emergencyName, emergencyPhone, vehiclePlate, vehicleType, parkingRequired, category,
+          visitorId
+        ]);
       } else {
         const resVis = await db.query(`
-          INSERT INTO visitors (full_name, email, phone, company, id_type, id_number, photo_url, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
-        `, [fullName, email, phone, company, idType, idNumber, photoUrl]);
+          INSERT INTO visitors (
+            full_name, first_name, middle_name, last_name, email, phone, company,
+            id_type, id_number, photo_url, status, gender, date_of_birth, nationality,
+            marital_status, occupation, address, street, woreda, house_number,
+            emergency_contact_name, emergency_contact_phone, vehicle_plate_number,
+            vehicle_type, parking_required, category, purpose_of_visit
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          fullName, firstName, middleName, lastName, email, phone, company,
+          idType, idNumber, photoUrl, gender, dateOfBirth, nationality,
+          maritalStatus, occupation, city, subcity, woreda, houseNumber,
+          emergencyName, emergencyPhone, vehiclePlate, vehicleType, parkingRequired, category, visitPurpose
+        ]);
         visitorId = resVis.insertId;
+      }
+
+      if (!visitorCode) {
+        visitorCode = `VIS-${new Date().getFullYear()}-${String(visitorId).padStart(5, '0')}`;
+        await db.query(`UPDATE visitors SET visitor_code = ? WHERE id = ?`, [visitorCode, visitorId]);
       }
     } catch (visErr) {
       console.warn('Visitor lookup/insert notice in registerWalkIn:', visErr.message);
       try {
-        const anyVis = await db.query(`SELECT id FROM visitors ORDER BY id DESC LIMIT 1`);
+        const anyVis = await db.query(`SELECT id, visitor_code FROM visitors ORDER BY id DESC LIMIT 1`);
         visitorId = (anyVis && anyVis[0]?.id) || 1;
+        visitorCode = (anyVis && anyVis[0]?.visitor_code) || `VIS-${visitorId}`;
       } catch (_) {
         visitorId = 1;
+        visitorCode = 'VIS-1';
       }
     }
 
@@ -494,8 +629,8 @@ class ReceptionService {
     try {
       const resAppt = await db.query(`
         INSERT INTO appointments 
-        (appointment_number, visitor_id, host_id, department_id, scheduled_start, scheduled_end, purpose, status, arrival_time)
-        VALUES (?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 HOUR), ?, 'PENDING_APPROVAL', NOW())
+        (appointment_number, visitor_id, host_id, department_id, scheduled_start, scheduled_end, purpose, category, status, arrival_time, is_walk_in)
+        VALUES (?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 HOUR), ?, 'meeting', 'PENDING_APPROVAL', NOW(), 1)
       `, [apptNum, visitorId, hostId, departmentId || 1, visitPurpose]);
       appointmentId = resAppt.insertId;
     } catch (apptErr) {
@@ -560,9 +695,496 @@ class ReceptionService {
       queue_number: qNumber,
       appointment_id: appointmentId,
       visitor_id: visitorId,
+      visitor_code: visitorCode,
       full_name: fullName,
       host_id: hostId,
       status: 'PENDING_APPROVAL'
+    };
+  }
+
+  // 4b. WALK-IN VISITOR HISTORY & ACTIONS
+  async getWalkIns(params = {}) {
+    const { search = '', status = '', limit = 100, offset = 0 } = params;
+    let whereClause = `WHERE a.appointment_number LIKE 'APT-WALKIN-%' AND a.deleted_at IS NULL AND v.deleted_at IS NULL`;
+    const queryParams = [];
+
+    if (search && search.trim()) {
+      const term = `%${search.trim()}%`;
+      whereClause += ` AND (
+        v.full_name LIKE ? OR 
+        v.email LIKE ? OR 
+        v.phone LIKE ? OR 
+        v.visitor_code LIKE ? OR 
+        a.appointment_number LIKE ? OR 
+        v.company LIKE ? OR 
+        u.full_name LIKE ?
+      )`;
+      queryParams.push(term, term, term, term, term, term, term);
+    }
+
+    if (status && status !== 'ALL') {
+      whereClause += ` AND a.status = ?`;
+      queryParams.push(status);
+    }
+
+    const sql = `
+      SELECT 
+        a.id as appointment_id,
+        a.appointment_number,
+        a.status as appointment_status,
+        a.scheduled_start,
+        a.scheduled_end,
+        a.purpose,
+        a.arrival_time,
+        a.created_at,
+        v.id as visitor_id,
+        v.visitor_code,
+        v.full_name,
+        v.first_name,
+        v.middle_name,
+        v.last_name,
+        v.email,
+        v.phone,
+        v.gender,
+        v.date_of_birth,
+        v.nationality,
+        v.marital_status,
+        v.company,
+        v.category as visitor_category,
+        v.occupation as job_title,
+        v.address as city,
+        v.street as subcity,
+        v.woreda,
+        v.house_number,
+        v.emergency_contact_name,
+        v.emergency_contact_phone,
+        v.vehicle_plate_number,
+        v.vehicle_type,
+        v.parking_required,
+        v.photo_url,
+        v.id_type,
+        v.id_number,
+        v.user_id,
+        u.id as host_id,
+        u.full_name as host_name,
+        u.email as host_email,
+        u.phone as host_phone,
+        d.id as department_id,
+        d.name as department_name,
+        q.queue_number,
+        q.status as queue_status
+      FROM appointments a
+      JOIN visitors v ON a.visitor_id = v.id
+      LEFT JOIN users u ON a.host_id = u.id
+      LEFT JOIN departments d ON a.department_id = d.id
+      LEFT JOIN visitor_queues q ON q.appointment_id = a.id
+      ${whereClause}
+      ORDER BY a.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+    queryParams.push(parseInt(limit, 10) || 100, parseInt(offset, 10) || 0);
+
+    const rows = await db.query(sql, queryParams);
+    return rows || [];
+  }
+
+  async getWalkInById(appointmentId) {
+    const rows = await db.query(`
+      SELECT 
+        a.id as appointment_id,
+        a.appointment_number,
+        a.status as appointment_status,
+        a.scheduled_start,
+        a.scheduled_end,
+        a.purpose,
+        a.arrival_time,
+        a.created_at,
+        v.id as visitor_id,
+        v.visitor_code,
+        v.full_name,
+        v.first_name,
+        v.middle_name,
+        v.last_name,
+        v.email,
+        v.phone,
+        v.gender,
+        v.date_of_birth,
+        v.nationality,
+        v.marital_status,
+        v.company,
+        v.category as visitor_category,
+        v.occupation as job_title,
+        v.address as city,
+        v.street as subcity,
+        v.woreda,
+        v.house_number,
+        v.emergency_contact_name,
+        v.emergency_contact_phone,
+        v.vehicle_plate_number,
+        v.vehicle_type,
+        v.parking_required,
+        v.photo_url,
+        v.id_type,
+        v.id_number,
+        v.user_id,
+        u.id as host_id,
+        u.full_name as host_name,
+        u.email as host_email,
+        u.phone as host_phone,
+        d.id as department_id,
+        d.name as department_name,
+        q.queue_number,
+        q.status as queue_status
+      FROM appointments a
+      JOIN visitors v ON a.visitor_id = v.id
+      LEFT JOIN users u ON a.host_id = u.id
+      LEFT JOIN departments d ON a.department_id = d.id
+      LEFT JOIN visitor_queues q ON q.appointment_id = a.id
+      WHERE a.id = ? AND a.deleted_at IS NULL
+      LIMIT 1
+    `, [appointmentId]);
+
+    return rows && rows.length > 0 ? rows[0] : null;
+  }
+
+  async updateWalkIn(appointmentId, data = {}, receptionistInfo = {}) {
+    const appt = await this.getWalkInById(appointmentId);
+    if (!appt) {
+      throw new Error('Walk-in record not found or already deleted');
+    }
+
+    const fullName = data.full_name || `${data.first_name || ''} ${data.middle_name ? data.middle_name + ' ' : ''}${data.last_name || ''}`.trim() || appt.full_name;
+
+    // Update visitor
+    await db.query(`
+      UPDATE visitors SET
+        full_name = ?,
+        first_name = COALESCE(?, first_name),
+        middle_name = COALESCE(?, middle_name),
+        last_name = COALESCE(?, last_name),
+        email = COALESCE(?, email),
+        phone = COALESCE(?, phone),
+        company = COALESCE(?, company),
+        id_type = COALESCE(?, id_type),
+        id_number = COALESCE(?, id_number),
+        photo_url = COALESCE(?, photo_url),
+        gender = COALESCE(?, gender),
+        date_of_birth = COALESCE(?, date_of_birth),
+        nationality = COALESCE(?, nationality),
+        marital_status = COALESCE(?, marital_status),
+        occupation = COALESCE(?, occupation),
+        address = COALESCE(?, address),
+        street = COALESCE(?, street),
+        woreda = COALESCE(?, woreda),
+        house_number = COALESCE(?, house_number),
+        emergency_contact_name = COALESCE(?, emergency_contact_name),
+        emergency_contact_phone = COALESCE(?, emergency_contact_phone),
+        vehicle_plate_number = COALESCE(?, vehicle_plate_number),
+        vehicle_type = COALESCE(?, vehicle_type),
+        parking_required = COALESCE(?, parking_required),
+        updated_at = NOW()
+      WHERE id = ?
+    `, [
+      fullName,
+      data.first_name,
+      data.middle_name,
+      data.last_name,
+      data.email,
+      data.phone,
+      data.company,
+      data.id_type,
+      data.id_number,
+      data.photo_url,
+      data.gender,
+      data.date_of_birth,
+      data.nationality,
+      data.marital_status,
+      data.job_title || data.occupation,
+      data.city || data.address,
+      data.subcity || data.street,
+      data.woreda,
+      data.house_number,
+      data.emergency_name || data.emergency_contact_name,
+      data.emergency_phone || data.emergency_contact_phone,
+      data.plate_number || data.vehicle_plate || data.vehicle_plate_number,
+      data.vehicle_type,
+      data.has_vehicle ? 1 : (data.parking_requested ? 1 : (data.parking_required ? 1 : 0)),
+      appt.visitor_id
+    ]);
+
+    // Update appointment
+    if (data.host_id || data.department_id || data.visit_purpose || data.purpose || data.status) {
+      await db.query(`
+        UPDATE appointments SET
+          host_id = COALESCE(?, host_id),
+          department_id = COALESCE(?, department_id),
+          purpose = COALESCE(?, purpose),
+          status = COALESCE(?, status),
+          updated_at = NOW()
+        WHERE id = ?
+      `, [
+        data.host_id,
+        data.department_id,
+        data.visit_purpose || data.purpose,
+        data.status,
+        appointmentId
+      ]);
+    }
+
+    // Update queue record if present
+    await db.query(`
+      UPDATE visitor_queues SET
+        visitor_name = ?,
+        visitor_company = COALESCE(?, visitor_company),
+        host_id = COALESCE(?, host_id)
+      WHERE appointment_id = ?
+    `, [fullName, data.company, data.host_id, appointmentId]);
+
+    // Log Activity
+    try {
+      await this.logActivity({
+        activity_type: 'WALK_IN_UPDATED',
+        title: `Walk-in Record Updated: ${fullName}`,
+        details: `Walk-in registration details updated for Appointment #${appt.appointment_number}.`,
+        receptionist_id: receptionistInfo.id || 1,
+        receptionist_name: receptionistInfo.full_name || 'Front Desk',
+        visitor_id: appt.visitor_id,
+        visitor_name: fullName,
+        appointment_id: appointmentId,
+      });
+    } catch (_) {}
+
+    return {
+      success: true,
+      message: 'Walk-in registration record updated successfully.'
+    };
+  }
+
+  async deleteWalkIn(appointmentId, receptionistInfo = {}) {
+    const appt = await this.getWalkInById(appointmentId);
+    if (!appt) {
+      throw new Error('Walk-in record not found or already deleted');
+    }
+
+    await db.query(`UPDATE appointments SET deleted_at = NOW(), is_cancelled = 1 WHERE id = ?`, [appointmentId]);
+    await db.query(`UPDATE visitor_queues SET status = 'CANCELLED' WHERE appointment_id = ?`, [appointmentId]);
+
+    // Log Activity
+    try {
+      await this.logActivity({
+        activity_type: 'WALK_IN_DELETED',
+        title: `Walk-in Record Deleted: ${appt.full_name}`,
+        details: `Walk-in registration #${appt.appointment_number} removed from reception registry.`,
+        receptionist_id: receptionistInfo.id || 1,
+        receptionist_name: receptionistInfo.full_name || 'Front Desk',
+        visitor_id: appt.visitor_id,
+        visitor_name: appt.full_name,
+        appointment_id: appointmentId,
+      });
+    } catch (_) {}
+
+    return {
+      success: true,
+      message: 'Walk-in visitor record deleted successfully.'
+    };
+  }
+
+  async sendTempPassword(appointmentId, receptionistInfo = {}) {
+    const appt = await this.getWalkInById(appointmentId);
+    if (!appt) {
+      throw new Error('Walk-in record not found');
+    }
+
+    const email = appt.email;
+    if (!email || email.includes('@visitor.local')) {
+      throw new Error(`Cannot send password: Visitor does not have a valid external email address registered (${email || 'No email'}). Please edit the record first.`);
+    }
+
+    // Generate secure temporary password
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let randCode = '';
+    for (let i = 0; i < 4; i++) {
+      randCode += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const tempPassword = `WalkIn#${randCode}!`;
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    const userCode = appt.visitor_code || `VIS-${new Date().getFullYear()}-${String(appt.visitor_id).padStart(5, '0')}`;
+
+    // Find or create linked user account
+    let userId = appt.user_id;
+    if (userId) {
+      await db.query(`
+        UPDATE users SET
+          password_hash = ?,
+          first_login_required = 1,
+          temporary_password_created_at = NOW(),
+          temporary_password_expires_at = DATE_ADD(NOW(), INTERVAL 24 HOUR),
+          account_status = 'ACTIVE',
+          status = 'ACTIVE'
+        WHERE id = ?
+      `, [passwordHash, userId]);
+    } else {
+      const existingUser = await db.query(`SELECT id FROM users WHERE email = ? LIMIT 1`, [email]);
+      if (existingUser && existingUser.length > 0) {
+        userId = existingUser[0].id;
+        await db.query(`
+          UPDATE users SET
+            password_hash = ?,
+            first_login_required = 1,
+            temporary_password_created_at = NOW(),
+            temporary_password_expires_at = DATE_ADD(NOW(), INTERVAL 24 HOUR),
+            account_status = 'ACTIVE',
+            status = 'ACTIVE'
+          WHERE id = ?
+        `, [passwordHash, userId]);
+      } else {
+        const username = email.split('@')[0] + '_' + Math.floor(100 + Math.random() * 900);
+        const resUser = await db.query(`
+          INSERT INTO users (
+            username, email, password_hash, first_name, last_name, full_name,
+            phone, role, status, account_status, user_code, first_login_required,
+            temporary_password_created_at, temporary_password_expires_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'visitor', 'ACTIVE', 'ACTIVE', ?, 1, NOW(), DATE_ADD(NOW(), INTERVAL 24 HOUR))
+        `, [
+          username, email, passwordHash, appt.first_name || 'Walk-in', appt.last_name || 'Visitor',
+          appt.full_name, appt.phone, userCode
+        ]);
+        userId = resUser.insertId;
+      }
+
+      await db.query(`UPDATE visitors SET user_id = ?, visitor_code = ? WHERE id = ?`, [userId, userCode, appt.visitor_id]);
+    }
+
+    // Dispatch branded email
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const emailResult = await EmailService.sendRegistrationCredentials({
+      to: email,
+      fullName: appt.full_name,
+      userCode: userCode,
+      temporaryPassword: tempPassword,
+      loginUrl: `${clientUrl}/login`,
+      accountType: 'Walk-In Visitor'
+    });
+
+    // Log Activity
+    try {
+      await this.logActivity({
+        activity_type: 'CREDENTIALS_DISPATCHED',
+        title: `Temporary Password Sent: ${appt.full_name}`,
+        details: `Temporary password issued and dispatched to email ${email} for User ID ${userCode}.`,
+        receptionist_id: receptionistInfo.id || 1,
+        receptionist_name: receptionistInfo.full_name || 'Front Desk',
+        visitor_id: appt.visitor_id,
+        visitor_name: appt.full_name,
+        appointment_id: appointmentId,
+      });
+    } catch (_) {}
+
+    return {
+      success: true,
+      message: `Temporary password sent to ${email} successfully.`,
+      userCode,
+      recipientEmail: email,
+      emailStatus: emailResult.status
+    };
+  }
+
+  async sendUserId(appointmentId, receptionistInfo = {}) {
+    const appt = await this.getWalkInById(appointmentId);
+    if (!appt) {
+      throw new Error('Walk-in record not found');
+    }
+
+    const email = appt.email;
+    if (!email || email.includes('@visitor.local')) {
+      throw new Error(`Cannot send User ID: Visitor does not have a valid external email address registered (${email || 'No email'}). Please edit the record first.`);
+    }
+
+    const userCode = appt.visitor_code || `VIS-${new Date().getFullYear()}-${String(appt.visitor_id).padStart(5, '0')}`;
+    if (!appt.visitor_code) {
+      await db.query(`UPDATE visitors SET visitor_code = ? WHERE id = ?`, [userCode, appt.visitor_id]);
+    }
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 28px; background-color: #0b0f17; color: #ffffff; border-radius: 16px; border: 1px solid #1e293b;">
+        <div style="text-align: center; padding-bottom: 20px; border-bottom: 1px solid #1e293b;">
+          <h2 style="color: #6366f1; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">Acme Master Reception Desk</h2>
+          <p style="color: #94a3b8; font-size: 12px; margin-top: 4px; font-weight: 600;">Official Walk-In Visitor ID & Pass Dispatch</p>
+        </div>
+
+        <div style="padding: 24px 8px;">
+          <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">Dear <strong style="color: #f8fafc;">${appt.full_name}</strong>,</p>
+          <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+            Your walk-in registration has been processed at the reception gate. Below are your official visitor credentials and check-in pass details:
+          </p>
+
+          <div style="background-color: #161e2e; border: 1px solid #334155; padding: 20px; border-radius: 12px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <tr>
+                <td style="color: #94a3b8; padding: 8px 0; width: 45%;">Permanent User / Visitor ID:</td>
+                <td style="color: #818cf8; font-family: monospace; font-weight: 700; font-size: 15px;">${userCode}</td>
+              </tr>
+              <tr>
+                <td style="color: #94a3b8; padding: 8px 0;">Appointment Pass Reference:</td>
+                <td style="color: #38bdf8; font-family: monospace; font-weight: 700;">${appt.appointment_number}</td>
+              </tr>
+              <tr>
+                <td style="color: #94a3b8; padding: 8px 0;">Assigned Queue Ticket:</td>
+                <td style="color: #34d399; font-family: monospace; font-weight: 700; font-size: 15px;">${appt.queue_number || 'General Queue'}</td>
+              </tr>
+              <tr>
+                <td style="color: #94a3b8; padding: 8px 0;">Target Host & Department:</td>
+                <td style="color: #f8fafc; font-weight: 600;">${appt.host_name || 'Designated Staff'} (${appt.department_name || 'General Desk'})</td>
+              </tr>
+              <tr>
+                <td style="color: #94a3b8; padding: 8px 0;">Current Pass Status:</td>
+                <td style="color: #fbbf24; font-weight: 700;">${appt.appointment_status || 'PENDING_APPROVAL'}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background-color: #1e1b4b; border-left: 4px solid #6366f1; padding: 14px 18px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="color: #c7d2fe; font-size: 12px; font-weight: 600; margin: 0;">
+              💡 <strong>Reception Gate Tip:</strong> Present your User ID (<strong>${userCode}</strong>) or Appointment Reference at the front desk kiosk or scanner for express pass printing and entry verification.
+            </p>
+          </div>
+        </div>
+
+        <div style="padding-top: 20px; border-top: 1px solid #1e293b; text-align: center; color: #64748b; font-size: 11px;">
+          <p style="margin: 0;">&copy; ${new Date().getFullYear()} Visitor Management System. All rights reserved.</p>
+        </div>
+      </div>
+    `;
+
+    const emailResult = await EmailService.sendMail({
+      to: email,
+      subject: `[VMS] Your Walk-In Visitor ID: ${userCode}`,
+      text: `Dear ${appt.full_name},\n\nYour walk-in registration has been processed.\n\nVisitor ID: ${userCode}\nAppointment: ${appt.appointment_number}\nQueue Ticket: ${appt.queue_number || 'General'}\nHost: ${appt.host_name || 'Staff'}\n\nPlease present this User ID at reception.\n\nRegards,\nReception Desk`,
+      html: htmlContent
+    });
+
+    // Log Activity
+    try {
+      await this.logActivity({
+        activity_type: 'USER_ID_DISPATCHED',
+        title: `User ID Emailed: ${appt.full_name}`,
+        details: `Permanent User ID ${userCode} dispatched to ${email}.`,
+        receptionist_id: receptionistInfo.id || 1,
+        receptionist_name: receptionistInfo.full_name || 'Front Desk',
+        visitor_id: appt.visitor_id,
+        visitor_name: appt.full_name,
+        appointment_id: appointmentId,
+      });
+    } catch (_) {}
+
+    return {
+      success: true,
+      message: `User ID (${userCode}) sent to ${email} successfully.`,
+      userCode,
+      recipientEmail: email,
+      emailStatus: emailResult.status
     };
   }
 
@@ -639,14 +1261,158 @@ class ReceptionService {
     return { success: true, message: 'Queue item deleted successfully.' };
   }
 
-  // 6. VISITOR PASS ISSUANCE
+  // 6. VISITOR PASS ISSUANCE & USER ID LOOKUP
+  async getQuickVisitors() {
+    try {
+      const visitors = await db.query(`
+        SELECT v.id as visitor_id, v.id as id, v.full_name, v.photo_url, v.email, v.phone,
+               v.company, v.id_number, v.visitor_code, v.created_at
+        FROM visitors v
+        WHERE v.deleted_at IS NULL
+        ORDER BY v.id DESC LIMIT 12
+      `);
+      return visitors;
+    } catch (err) {
+      console.warn('Error fetching quick visitors:', err);
+      return [];
+    }
+  }
+
+  async getVisitorByUserId(query) {
+    if (!query) return null;
+    const clean = String(query).trim();
+    const numId = parseInt(clean, 10);
+    const validNum = !isNaN(numId) ? numId : -1;
+    const term = `%${clean}%`;
+
+    // 1. Look up visitor in visitors table
+    let visitor = null;
+    try {
+      const visitors = await db.query(`
+        SELECT v.*, v.id as visitor_id, v.full_name as visitor_name, v.photo_url as visitor_photo,
+               v.company as visitor_company, v.email as visitor_email, v.phone as visitor_phone,
+               v.visitor_code, v.id_number
+        FROM visitors v
+        WHERE v.deleted_at IS NULL
+          AND (v.id = ? OR v.visitor_code = ? OR v.id_number = ? OR v.email = ? OR v.phone = ? 
+               OR v.visitor_code LIKE ? OR v.id_number LIKE ? OR v.full_name LIKE ?)
+        ORDER BY (v.id = ?) DESC, (v.visitor_code = ?) DESC
+        LIMIT 1
+      `, [validNum, clean, clean, clean, clean, term, term, term, validNum, clean]);
+
+      if (visitors && visitors.length > 0) {
+        visitor = visitors[0];
+      }
+    } catch (err) {
+      console.warn('Error querying visitors:', err);
+    }
+
+    // 2. If not found in visitors table, check users table
+    if (!visitor) {
+      try {
+        const users = await db.query(`
+          SELECT u.id as user_id, u.full_name, u.email, u.phone, u.role, u.employee_id,
+                 COALESCE(u.avatar_url, u.profile_photo) as photo_url, d.name as department_name
+          FROM users u
+          LEFT JOIN departments d ON u.department_id = d.id
+          WHERE (u.deleted_at IS NULL OR u.deleted_at = '')
+            AND (u.id = ? OR u.employee_id = ? OR u.user_code = ? OR u.email = ? OR u.phone = ? OR u.full_name LIKE ?)
+          LIMIT 1
+        `, [validNum, clean, clean, clean, clean, term]);
+
+        if (users && users.length > 0) {
+          const u = users[0];
+          visitor = {
+            id: u.user_id,
+            visitor_id: u.user_id,
+            full_name: u.full_name,
+            visitor_name: u.full_name,
+            photo_url: u.photo_url,
+            visitor_photo: u.photo_url,
+            company: 'Enterprise Staff / VIP Host',
+            visitor_company: 'Enterprise Staff / VIP Host',
+            email: u.email,
+            visitor_email: u.email,
+            phone: u.phone,
+            visitor_phone: u.phone,
+            visitor_code: u.employee_id || `USR-${u.user_id}`,
+            id_number: u.employee_id || `EMP-${u.user_id}`,
+            role: u.role,
+            department_name: u.department_name
+          };
+        }
+      } catch (err) {
+        console.warn('Error querying users:', err);
+      }
+    }
+
+    if (!visitor) return null;
+
+    const vId = visitor.visitor_id || visitor.id;
+
+    // 3. Find latest appointment or active check-in
+    let latestAppt = null;
+    try {
+      const appts = await db.query(`
+        SELECT a.*, u.full_name as host_name, u.email as host_email, d.name as department_name
+        FROM appointments a
+        LEFT JOIN users u ON a.host_id = u.id
+        LEFT JOIN departments d ON a.department_id = d.id
+        WHERE (a.visitor_id = ? OR a.id = ?) AND a.deleted_at IS NULL
+        ORDER BY a.scheduled_start DESC
+        LIMIT 1
+      `, [vId, validNum]);
+
+      if (appts && appts.length > 0) {
+        latestAppt = appts[0];
+      }
+    } catch (_) {}
+
+    // 4. Check for existing active pass
+    let existingPass = null;
+    try {
+      const passes = await db.query(`
+        SELECT vp.*, pt.type_name as pass_type_name
+        FROM visitor_passes vp
+        LEFT JOIN pass_types pt ON vp.pass_type_id = pt.id
+        WHERE (vp.visitor_id = ? OR vp.appointment_id = ?) AND vp.deleted_at IS NULL
+        ORDER BY vp.id DESC LIMIT 1
+      `, [vId, latestAppt?.id || -1]);
+
+      if (passes && passes.length > 0) {
+        existingPass = passes[0];
+      }
+    } catch (_) {}
+
+    return {
+      visitor,
+      appointment: latestAppt,
+      pass: existingPass
+    };
+  }
+
   async generateVisitorPass(passData = {}, receptionistInfo = {}) {
     let apptId = passData.appointment_id || passData.appointmentId || passData.appointmentNumber || passData.id || passData.visit_id || passData.visitId;
     let visitorId = passData.visitor_id || passData.visitorId || passData.visitorCode || passData.userId;
     const accessLevel = passData.access_level || passData.accessLevel || passData.zone || 'General Lobby Access';
     const passTypeId = passData.pass_type_id || passData.passTypeId || 1;
 
-    // Resolve Appointment & Visitor
+    // 1. Resolve Visitor if ID is provided
+    let resolvedVisitor = null;
+    if (visitorId) {
+      try {
+        const vFound = await db.query(
+          `SELECT * FROM visitors WHERE id = ? OR visitor_code = ? OR id_number = ? LIMIT 1`,
+          [visitorId, String(visitorId), String(visitorId)]
+        );
+        if (vFound && vFound.length > 0) {
+          resolvedVisitor = vFound[0];
+          visitorId = resolvedVisitor.id;
+        }
+      } catch (_) {}
+    }
+
+    // 2. Resolve Appointment
     let resolvedAppt = null;
     if (apptId) {
       try {
@@ -662,33 +1428,85 @@ class ReceptionService {
       } catch (_) {}
     }
 
-    if (!apptId || !resolvedAppt) {
+    // If visitor has an existing appointment, link to it
+    if (visitorId && (!apptId || !resolvedAppt)) {
       try {
-        const latest = await db.query(`SELECT id, visitor_id, appointment_number FROM appointments WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 1`);
-        if (latest && latest.length > 0) {
-          resolvedAppt = latest[0];
+        const found = await db.query(
+          `SELECT id, visitor_id, appointment_number FROM appointments WHERE visitor_id = ? AND deleted_at IS NULL ORDER BY scheduled_start DESC LIMIT 1`,
+          [visitorId]
+        );
+        if (found && found.length > 0) {
+          resolvedAppt = found[0];
           apptId = resolvedAppt.id;
-          if (!visitorId) visitorId = resolvedAppt.visitor_id;
         }
       } catch (_) {}
     }
 
-    if (!apptId) apptId = 1;
-
-    if (!visitorId) {
+    // If still no appointment, find latest or create a valid appointment record
+    if (!apptId || !resolvedAppt) {
       try {
-        const anyVis = await db.query(`SELECT id FROM visitors ORDER BY id DESC LIMIT 1`);
-        visitorId = (anyVis && anyVis[0]?.id) || 1;
-      } catch (_) {
-        visitorId = 1;
+        if (!visitorId) {
+          const anyVis = await db.query(`SELECT id FROM visitors ORDER BY id DESC LIMIT 1`);
+          visitorId = (anyVis && anyVis[0]?.id) || 1;
+        }
+        const apptNum = `APT-PASS-${Date.now().toString().slice(-6)}`;
+        const refCode = `VP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        const newAppt = await db.query(`
+          INSERT INTO appointments 
+          (organization_id, visitor_id, host_id, department_id, appointment_number, reference_code, purpose, scheduled_start, scheduled_end, appointment_status, status, arrival_time)
+          VALUES (1, ?, 1, 1, ?, ?, 'Reception Badge Pass Issuance', NOW(), DATE_ADD(NOW(), INTERVAL 12 HOUR), 'ARRIVED', 'arrived', NOW())
+        `, [visitorId, apptNum, refCode]);
+        apptId = newAppt.insertId;
+        resolvedAppt = { id: apptId, visitor_id: visitorId, appointment_number: apptNum };
+      } catch (err) {
+        const anyAppt = await db.query('SELECT id, visitor_id FROM appointments ORDER BY id DESC LIMIT 1');
+        apptId = anyAppt[0]?.id || 1;
+        if (!visitorId) visitorId = anyAppt[0]?.visitor_id || 1;
       }
     }
+
+    if (!visitorId) visitorId = 1;
+
+    // 3. Fetch Full Visitor & Appointment Profile
+    let visitorName = passData.visitor_name || 'Visitor Guest';
+    let visitorPhoto = passData.visitor_photo || null;
+    let visitorCompany = passData.visitor_company || 'Independent Visitor';
+    let visitorEmail = passData.visitor_email || '';
+    let visitorPhone = passData.visitor_phone || '';
+    let visitorCode = passData.visitor_code || `VIS-${visitorId}`;
+    let idNumber = passData.id_number || `ID-${visitorId}`;
+    let hostName = 'Reception Main Desk';
+    let departmentName = 'Front Lobby';
+
+    try {
+      const vRows = await db.query(`
+        SELECT v.*, a.purpose, u.full_name as host_name, d.name as department_name
+        FROM visitors v
+        LEFT JOIN appointments a ON a.id = ?
+        LEFT JOIN users u ON a.host_id = u.id
+        LEFT JOIN departments d ON a.department_id = d.id
+        WHERE v.id = ? LIMIT 1
+      `, [apptId, visitorId]);
+
+      if (vRows && vRows.length > 0) {
+        const v = vRows[0];
+        visitorName = v.full_name || visitorName;
+        visitorPhoto = v.photo_url || visitorPhoto;
+        visitorCompany = v.company || visitorCompany;
+        visitorEmail = v.email || visitorEmail;
+        visitorPhone = v.phone || visitorPhone;
+        visitorCode = v.visitor_code || visitorCode;
+        idNumber = v.id_number || idNumber;
+        if (v.host_name) hostName = v.host_name;
+        if (v.department_name) departmentName = v.department_name;
+      }
+    } catch (_) {}
 
     const passCode = `VP-${Date.now().toString().slice(-8)}`;
     const qrToken = `QR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     let passId = null;
 
-    // Resolve valid pass_type_id (pass_type_id is nullable; must exist in pass_types if provided)
+    // Resolve valid pass_type_id
     let validPassTypeId = null;
     try {
       const pts = await db.query('SELECT id FROM pass_types WHERE id = ? OR is_active = 1 LIMIT 1', [passTypeId || 1]);
@@ -698,7 +1516,6 @@ class ReceptionService {
     } catch (_) {}
 
     try {
-      // Check if a pass already exists for this appointment (visitor_passes table has UNIQUE KEY appointment_id)
       const existingPass = await db.query(
         `SELECT id, pass_code, qr_token FROM visitor_passes WHERE appointment_id = ? AND deleted_at IS NULL LIMIT 1`,
         [apptId]
@@ -711,12 +1528,11 @@ class ReceptionService {
           [qrToken, passId]
         );
       } else {
-        // NOTE: visitor_passes table does NOT have an access_level column. We only insert valid schema columns.
         const result = await db.query(`
           INSERT INTO visitor_passes 
-          (organization_id, visitor_id, appointment_id, pass_type_id, pass_code, qr_token, status, is_printed, issued_by, expires_at)
-          VALUES (1, ?, ?, ?, ?, ?, 'ACTIVE', TRUE, ?, DATE_ADD(NOW(), INTERVAL 12 HOUR))
-        `, [visitorId, apptId, validPassTypeId, passCode, qrToken, receptionistInfo.id || 1]);
+          (organization_id, visitor_id, appointment_id, pass_type_id, pass_code, qr_token, barcode_data, status, is_printed, issued_by, expires_at)
+          VALUES (1, ?, ?, ?, ?, ?, ?, 'ACTIVE', TRUE, ?, DATE_ADD(NOW(), INTERVAL 12 HOUR))
+        `, [visitorId, apptId, validPassTypeId, passCode, qrToken, passCode, receptionistInfo.id || 1]);
         passId = result.insertId;
       }
     } catch (passErr) {
@@ -728,7 +1544,7 @@ class ReceptionService {
       await this.logActivity({
         activity_type: 'PASS_GENERATED',
         title: `Visitor Pass Issued: ${passCode}`,
-        details: `Visitor Pass ${passCode} issued for appointment #${apptId} with access level "${accessLevel}".`,
+        details: `Visitor Pass ${passCode} issued for ${visitorName} (ID: ${visitorId}) with clearance "${accessLevel}".`,
         receptionist_id: receptionistInfo.id || 1,
         receptionist_name: receptionistInfo.full_name || 'Front Desk',
         visitor_id: visitorId,
@@ -742,8 +1558,18 @@ class ReceptionService {
       pass_id: passId,
       pass_code: passCode,
       qr_token: qrToken,
+      barcode_data: passCode,
       appointment_id: apptId,
       visitor_id: visitorId,
+      visitor_name: visitorName,
+      visitor_photo: visitorPhoto,
+      visitor_company: visitorCompany,
+      visitor_code: visitorCode,
+      visitor_email: visitorEmail,
+      visitor_phone: visitorPhone,
+      id_number: idNumber,
+      host_name: hostName,
+      department_name: departmentName,
       access_level: accessLevel,
       status: 'ACTIVE',
       issued_at: new Date().toISOString(),
@@ -1086,6 +1912,55 @@ class ReceptionService {
     }
 
     return this.getProfileAndSettings(userId);
+  }
+
+  async verifyPass(tokenOrCode) {
+    if (!tokenOrCode) return null;
+    const clean = String(tokenOrCode).trim();
+    const rows = await db.query(`
+      SELECT vp.*, 
+             v.full_name as visitor_name, v.email as visitor_email, v.phone as visitor_phone,
+             v.company as visitor_company, v.photo_url as visitor_photo, v.visitor_code, v.id_number,
+             a.appointment_number, a.reference_code, a.scheduled_start, a.scheduled_end, a.purpose, a.arrival_time,
+             u.full_name as host_name, u.email as host_email,
+             d.name as department_name,
+             pt.type_name as pass_type_name
+      FROM visitor_passes vp
+      JOIN visitors v ON vp.visitor_id = v.id
+      LEFT JOIN appointments a ON vp.appointment_id = a.id
+      LEFT JOIN users u ON a.host_id = u.id
+      LEFT JOIN departments d ON a.department_id = d.id
+      LEFT JOIN pass_types pt ON vp.pass_type_id = pt.id
+      WHERE (vp.qr_token = ? OR vp.pass_code = ? OR v.visitor_code = ? OR a.appointment_number = ? OR a.reference_code = ? OR vp.id = ?)
+        AND vp.deleted_at IS NULL
+      LIMIT 1
+    `, [clean, clean, clean, clean, clean, parseInt(clean, 10) || -1]);
+
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+
+    // Fallback: look up direct appointment and visitor arrival details
+    const apptRows = await db.query(`
+      SELECT a.id as appointment_id, a.appointment_number, a.reference_code, a.scheduled_start, a.scheduled_end, a.purpose, a.arrival_time, a.status,
+             v.id as visitor_id, v.full_name as visitor_name, v.email as visitor_email, v.phone as visitor_phone,
+             v.company as visitor_company, v.photo_url as visitor_photo, v.visitor_code, v.id_number,
+             u.full_name as host_name, u.email as host_email,
+             d.name as department_name,
+             CONCAT('VP-', LPAD(a.id, 8, '0')) as pass_code,
+             CONCAT('QR-VP-', LPAD(a.id, 8, '0')) as qr_token,
+             'ACTIVE' as pass_status,
+             'General Lobby Access' as access_level
+      FROM appointments a
+      JOIN visitors v ON a.visitor_id = v.id
+      LEFT JOIN users u ON a.host_id = u.id
+      LEFT JOIN departments d ON a.department_id = d.id
+      WHERE (a.appointment_number = ? OR a.reference_code = ? OR v.visitor_code = ? OR v.id_number = ? OR a.id = ? OR v.id = ?)
+        AND a.deleted_at IS NULL
+      LIMIT 1
+    `, [clean, clean, clean, clean, parseInt(clean, 10) || -1, parseInt(clean, 10) || -1]);
+
+    return apptRows[0] || null;
   }
 }
 

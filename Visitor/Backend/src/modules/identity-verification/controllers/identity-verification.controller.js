@@ -120,6 +120,17 @@ class IdentityVerificationController {
     }
   }
 
+  // DELETE /api/v1/identity-verification/reviewer/cases/:caseId
+  async deleteCase(req, res, next) {
+    try {
+      const caseId = parseInt(req.params.caseId, 10);
+      await identityService.deleteCase(caseId);
+      res.status(200).json({ success: true, message: 'Case deleted successfully' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   // GET /api/v1/identity-verification/policies
   async getPolicy(req, res, next) {
     try {

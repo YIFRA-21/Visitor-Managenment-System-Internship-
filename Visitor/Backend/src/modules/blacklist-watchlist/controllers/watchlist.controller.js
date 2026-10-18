@@ -76,6 +76,15 @@ class BlacklistWatchlistController {
     }
   }
 
+  async deleteRecord(req, res, next) {
+    try {
+      const data = await service.deleteRecord(req.params.id, req.user.id);
+      res.status(200).json({ status: 'success', message: 'Record permanently deleted', data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async restoreRecord(req, res, next) {
     try {
       const data = await service.restoreRecord(req.params.id, req.user.id);

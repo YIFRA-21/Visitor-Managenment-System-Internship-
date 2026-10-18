@@ -99,8 +99,97 @@ const formatDuration = (mins) => {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 };
 
+const THEME_STYLES = {
+  blue: {
+    barColor: '#3b82f6',
+    hoverBarColor: '#60a5fa',
+    darkHoverBg: 'linear-gradient(135deg, rgba(59, 130, 246, 0.35) 0%, rgba(30, 58, 138, 0.25) 55%, #0a0f1d 100%)',
+  },
+  emerald: {
+    barColor: '#10b981',
+    hoverBarColor: '#34d399',
+    darkHoverBg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.35) 0%, rgba(6, 78, 59, 0.25) 55%, #0a0f1d 100%)',
+  },
+  amber: {
+    barColor: '#f59e0b',
+    hoverBarColor: '#fbbf24',
+    darkHoverBg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.35) 0%, rgba(120, 53, 15, 0.25) 55%, #0a0f1d 100%)',
+  },
+  cyan: {
+    barColor: '#06b6d4',
+    hoverBarColor: '#22d3ee',
+    darkHoverBg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.35) 0%, rgba(22, 78, 99, 0.25) 55%, #0a0f1d 100%)',
+  },
+  purple: {
+    barColor: '#a855f7',
+    hoverBarColor: '#c084fc',
+    darkHoverBg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.35) 0%, rgba(88, 28, 135, 0.25) 55%, #0a0f1d 100%)',
+  },
+  indigo: {
+    barColor: '#6366f1',
+    hoverBarColor: '#818cf8',
+    darkHoverBg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(49, 46, 129, 0.25) 55%, #0a0f1d 100%)',
+  }
+};
+
+function HistoryKpiCard({ title, value, subtitle, badge, icon, theme, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const styles = THEME_STYLES[theme] || THEME_STYLES.blue;
+  return (
+    <motion.div
+      whileHover={{ y: -4, scale: 1.015 }}
+      whileTap={{ scale: 0.985 }}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`border rounded-2xl p-4.5 sm:p-5 pl-5 sm:pl-6 min-h-[155px] flex flex-col justify-between transition-all duration-300 relative overflow-hidden group cursor-pointer bg-[#0a0f1d] border-slate-800 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] text-white ${
+        hovered ? 'shadow-xl border-slate-700' : ''
+      }`}
+    >
+      {/* Dark Hover Fill Overlay */}
+      <div
+        style={{
+          background: styles.darkHoverBg,
+          opacity: hovered ? 1 : 0,
+        }}
+        className="absolute inset-0 transition-opacity duration-300 pointer-events-none"
+      />
+
+      {/* SOLID VERTICAL LEFT BAR WITH GLOW & FILL EXPANSION ON HOVER */}
+      <div
+        style={{
+          backgroundColor: hovered ? styles.hoverBarColor : styles.barColor,
+          boxShadow: hovered ? `0 0 20px ${styles.barColor}` : `0 0 8px ${styles.barColor}`,
+        }}
+        className="absolute left-0 top-0 bottom-0 w-[5px] rounded-l-2xl transition-all duration-300 group-hover:w-[9px] z-10"
+      />
+
+      <div className="flex items-start justify-between relative z-10 gap-2">
+        <span className="text-[11px] font-black uppercase tracking-wider text-slate-300 group-hover:text-white transition-colors leading-snug break-words pr-1">
+          {title}
+        </span>
+
+        {/* Sleek Vertical Oval Pill Icon Capsule Container */}
+        <div className="w-8 h-9 sm:w-9 sm:h-10 rounded-full border border-slate-700/80 bg-slate-800/90 flex items-center justify-center text-slate-200 group-hover:scale-110 transition-all shadow-sm shrink-0">
+          {icon}
+        </div>
+      </div>
+
+      <div className="mt-3 relative z-10">
+        <div className="flex items-baseline space-x-2 flex-wrap gap-y-1">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none">{value}</h2>
+          {badge}
+        </div>
+        <p className="text-[11px] text-slate-400 group-hover:text-slate-200 font-semibold mt-1 transition-colors leading-tight line-clamp-1">
+          {subtitle}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function CheckInOutHistory({ initialTab = 'all' }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -117,9 +206,11 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
 
   // Stats / Dashboard KPI state
   const [stats, setStats] = useState({
+    totalCheckins: 0,
     totalToday: 0,
-    currentlyInside: 0,
+    totalCheckouts: 0,
     checkedOutToday: 0,
+    currentlyInside: 0,
     walkInsToday: 0,
     avgVisitDuration: 0,
     totalRecords: 0
@@ -219,17 +310,70 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
       }
 
       setStats({
+        totalCheckins: Number(cData.totalCheckins || coData.totalCheckins || 0),
         totalToday: Number(cData.totalToday || 0),
-        currentlyInside: Number(cData.currentlyInside || coData.totalInside || 0),
+        totalCheckouts: Number(cData.totalCheckouts || coData.totalExits || 0),
         checkedOutToday: Number(cData.checkedOutToday || coData.totalExitsToday || 0),
+        currentlyInside: Number(cData.currentlyInside || coData.totalInside || 0),
         walkInsToday: Number(cData.walkInsToday || 0),
         avgVisitDuration: Math.round(Number(cData.avgVisitDuration || coData.avgDuration || 0)),
-        totalRecords: 0
+        totalRecords: Number(cData.totalCheckins || 0)
       });
     } catch (err) {
       console.warn('Failed to load check-in/out dashboard stats:', err);
     }
   }, []);
+
+  // Helper to ensure only real, non-empty visitor records are counted
+  const isRealVisitor = (r) => {
+    if (!r) return false;
+    const name = r.visitorName || r.visitor_name;
+    return !!(name && String(name).trim() !== '' && String(name).trim().toLowerCase() !== 'visitor');
+  };
+
+  // Strictly real visitor records
+  const validRecords = useMemo(() => {
+    return records.filter(isRealVisitor);
+  }, [records]);
+
+  // Real dynamic counts computed strictly from real records
+  const totalCheckinsCount = useMemo(() => {
+    if (typeof stats.totalCheckins === 'number' && stats.totalCheckins > 0) {
+      return stats.totalCheckins;
+    }
+    return validRecords.length;
+  }, [stats.totalCheckins, validRecords.length]);
+
+  const totalCheckoutsCount = useMemo(() => {
+    if (typeof stats.totalCheckouts === 'number' && stats.totalCheckouts > 0) {
+      return stats.totalCheckouts;
+    }
+    const completedInList = validRecords.filter(
+      (r) => r.checkedOutAt || r.formattedStatus === 'Completed' || r.eventType === 'CHECK_OUT'
+    ).length;
+    return completedInList;
+  }, [stats.totalCheckouts, validRecords]);
+
+  const activeInsideCount = useMemo(() => {
+    if (typeof stats.currentlyInside === 'number') {
+      return stats.currentlyInside;
+    }
+    const insideInList = validRecords.filter(
+      (r) => !r.checkedOutAt && (r.formattedStatus === 'Inside' || r.eventType === 'ACTIVE_INSIDE')
+    ).length;
+    return insideInList;
+  }, [stats.currentlyInside, validRecords]);
+
+  const avgDurationMinutes = useMemo(() => {
+    if (typeof stats.avgVisitDuration === 'number' && stats.avgVisitDuration > 0) {
+      return stats.avgVisitDuration;
+    }
+    const durations = validRecords
+      .map((r) => Number(r.durationMinutes || r.totalVisitDuration))
+      .filter((d) => !isNaN(d) && d > 0);
+    if (durations.length === 0) return 0;
+    return Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
+  }, [stats.avgVisitDuration, validRecords]);
 
   // Primary Data Fetcher
   const loadRecords = useCallback(async () => {
@@ -349,11 +493,12 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
         fetchedList = filtered.slice(0, pagination.limit);
       }
 
-      setRecords(fetchedList);
+      const validFetched = fetchedList.filter(isRealVisitor);
+      setRecords(validFetched);
       setPagination((prev) => ({
         ...prev,
-        total: totalCount,
-        pages: totalPages
+        total: validFetched.length,
+        pages: Math.max(1, Math.ceil(validFetched.length / pagination.limit))
       }));
     } catch (err) {
       console.error('Error loading check-in / check-out history:', err);
@@ -433,27 +578,63 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
     }
   };
 
-  // Delete record handler
+  // Delete record handler - automatic instant deletion without prompt
   const handleDeleteRecord = async (record) => {
-    const targetName = record.visitorName || record.visitor_name || 'this visitor';
-    if (!window.confirm(`Are you sure you want to delete the visit record for "${targetName}"? This action cannot be undone.`)) {
-      return;
-    }
+    const targetName = record.visitorName || record.visitor_name || 'Visitor';
+    const targetKey = record.checkoutId || record.id;
+    const checkinKey = record.checkinId || record.id;
+
+    // 1. Instantly remove from records list (Optimistic UI update)
+    setRecords((prev) =>
+      prev.filter(
+        (r) =>
+          (r.checkoutId || r.id) !== targetKey &&
+          (r.checkinId || r.id) !== checkinKey &&
+          r.id !== record.id
+      )
+    );
+    setPagination((prev) => ({
+      ...prev,
+      total: Math.max(0, prev.total - 1),
+      pages: Math.max(1, Math.ceil(Math.max(0, prev.total - 1) / (prev.limit || 15)))
+    }));
+
+    // 2. Decrement local stats counts immediately
+    setStats((prev) => ({
+      ...prev,
+      totalCheckins: Math.max(0, (prev.totalCheckins || 0) - 1),
+      totalCheckouts:
+        record.checkedOutAt || record.formattedStatus === 'Completed' || record.eventType === 'CHECK_OUT'
+          ? Math.max(0, (prev.totalCheckouts || 0) - 1)
+          : prev.totalCheckouts,
+      currentlyInside:
+        !record.checkedOutAt && (record.formattedStatus === 'Inside' || record.eventType === 'ACTIVE_INSIDE')
+          ? Math.max(0, (prev.currentlyInside || 0) - 1)
+          : prev.currentlyInside,
+      checkedOutToday: record.checkedOutAt ? Math.max(0, (prev.checkedOutToday || 0) - 1) : prev.checkedOutToday,
+      totalToday: Math.max(0, (prev.totalToday || 0) - 1)
+    }));
+
+    showToast(
+      language === 'am'
+        ? `የ"${targetName}" መዝገብ ወዲያውኑ ተሰርዟል`
+        : `Visit record for "${targetName}" was deleted automatically.`,
+      'success'
+    );
+
+    // 3. Execute delete API asynchronously in background
     try {
-      if (record.eventType === 'CHECK_OUT' && (record.id || record.checkoutId)) {
+      if (record.eventType === 'CHECK_OUT' || record.checkoutId || record.checkoutTime) {
         await checkoutApi.delete(record.checkoutId || record.id);
       } else {
-        const idToDelete = record.checkinId || record.id;
-        if (idToDelete) {
-          await checkinApi.delete(idToDelete);
-        }
+        await checkinApi.delete(record.checkinId || record.id);
       }
-      showToast(`Visit entry for "${targetName}" was deleted successfully.`, 'success');
-      loadRecords();
       fetchStats();
     } catch (err) {
       console.error('Delete record error:', err);
-      showToast(getErrorMessage(err, 'Failed to delete visit record'), 'error');
+      loadRecords();
+      fetchStats();
+      showToast(getErrorMessage(err, 'Failed to delete visit record on server'), 'error');
     }
   };
 
@@ -628,117 +809,68 @@ export default function CheckInOutHistory({ initialTab = 'all' }) {
         </div>
       </div>
 
-      {/* KPI Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 no-print">
-        {/* Total Check-Ins Today */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="relative overflow-hidden bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-slate-950/80 border border-indigo-500/20 rounded-2xl p-4 shadow-xl group hover:border-indigo-500/40 transition"
-        >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition"></div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Total Check-Ins
+      {/* ── KPI METRIC CARDS (RECEPTION DASHBOARD STYLE & REAL COUNTS) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 no-print">
+        {/* Total Check-Ins */}
+        <HistoryKpiCard
+          title={language === 'am' ? 'አጠቃላይ መግቢያዎች' : 'Total Check-Ins'}
+          value={totalCheckinsCount.toLocaleString()}
+          subtitle={language === 'am' ? 'በአጠቃላይ የተመዘገቡ መግቢያዎች' : 'All-time verified entries'}
+          badge={
+            <span className="text-[10px] text-emerald-400 font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+              {stats.totalToday > 0 ? `+${stats.totalToday} Today` : (language === 'am' ? 'ትክክለኛ ቁጥር' : 'Real Count')}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <LogIn className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            {stats.totalToday.toLocaleString()}
-          </div>
-          <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 font-semibold text-[10px]">
-              Walk-Ins: {stats.walkInsToday}
-            </span>
-            <span>Recorded today</span>
-          </div>
-        </motion.div>
+          }
+          icon={<LogIn className="w-5 h-5 text-emerald-400" />}
+          theme="emerald"
+          onClick={() => handleTabChange('checkin')}
+        />
 
-        {/* Completed Exits */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.05 }}
-          className="relative overflow-hidden bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-slate-950/80 border border-rose-500/20 rounded-2xl p-4 shadow-xl group hover:border-rose-500/40 transition"
-        >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition"></div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Completed Check-Outs
+        {/* Completed Check-Outs */}
+        <HistoryKpiCard
+          title={language === 'am' ? 'የተጠናቀቁ መውጫዎች' : 'Completed Check-Outs'}
+          value={totalCheckoutsCount.toLocaleString()}
+          subtitle={language === 'am' ? 'የተረጋገጡ የጎብኚዎች መውጫዎች' : 'Official departures logged'}
+          badge={
+            <span className="text-[10px] text-amber-400 font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+              {stats.checkedOutToday > 0 ? `+${stats.checkedOutToday} Today` : (language === 'am' ? 'የወጡ' : 'Exit Logged')}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
-              <LogOut className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            {stats.checkedOutToday.toLocaleString()}
-          </div>
-          <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-300 font-semibold text-[10px]">
-              Exit Logged
-            </span>
-            <span>Official departures</span>
-          </div>
-        </motion.div>
+          }
+          icon={<LogOut className="w-5 h-5 text-amber-400" />}
+          theme="amber"
+          onClick={() => handleTabChange('checkout')}
+        />
 
         {/* Currently Inside */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
+        <HistoryKpiCard
+          title={language === 'am' ? 'አሁን በተቋሙ ያሉ' : 'Currently Inside'}
+          value={activeInsideCount.toLocaleString()}
+          subtitle={language === 'am' ? 'በተቋሙ ውስጥ ያሉ ንቁ ጎብኚዎች' : 'Active visitors on site'}
+          badge={
+            <span className="inline-flex items-center gap-1.5 text-[10px] text-cyan-400 font-extrabold uppercase px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              {language === 'am' ? 'አሁን ያሉ' : 'Active Now'}
+            </span>
+          }
+          icon={<Users className="w-5 h-5 text-cyan-400" />}
+          theme="cyan"
           onClick={() => handleTabChange('active')}
-          className="relative overflow-hidden bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-slate-950/80 border border-emerald-500/20 rounded-2xl p-4 shadow-xl group hover:border-emerald-500/50 cursor-pointer transition"
-        >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/25 transition"></div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Currently Inside
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <Users className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight flex items-center gap-2">
-            {stats.currentlyInside.toLocaleString()}
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-          </div>
-          <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
-            <span className="text-emerald-400 font-semibold flex items-center gap-1">
-              Active Visitors on site
-              <ArrowRight className="h-3 w-3 inline" />
-            </span>
-          </div>
-        </motion.div>
+        />
 
         {/* Average Visit Duration */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.15 }}
-          className="relative overflow-hidden bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-slate-950/80 border border-amber-500/20 rounded-2xl p-4 shadow-xl group hover:border-amber-500/40 transition"
-        >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition"></div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Avg Stay Duration
+        <HistoryKpiCard
+          title={language === 'am' ? 'አማካኝ የቆይታ ጊዜ' : 'Avg Stay Duration'}
+          value={formatDuration(avgDurationMinutes)}
+          subtitle={language === 'am' ? 'የአጠቃላይ ጉብኝት አማካኝ ቆይታ' : 'Check-in to check-out average'}
+          badge={
+            <span className="text-[10px] text-blue-400 font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
+              {language === 'am' ? 'አማካኝ ቆይታ' : 'Average Stay'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <Timer className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight">
-            {formatDuration(stats.avgVisitDuration)}
-          </div>
-          <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-300 font-semibold text-[10px]">
-              Average Stay
-            </span>
-            <span>Check-in to check-out</span>
-          </div>
-        </motion.div>
+          }
+          icon={<Timer className="w-5 h-5 text-blue-400" />}
+          theme="blue"
+          onClick={() => handleTabChange('all')}
+        />
       </div>
 
       {/* Tabs Navigation */}

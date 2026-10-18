@@ -35,4 +35,7 @@ router.patch('/:id/archive', authorize('security_officer', 'admin'), controller.
 // PATCH /:id/restore — Restore archived record
 router.patch('/:id/restore', authorize('security_officer', 'admin'), controller.restoreRecord);
 
+// DELETE /:id — Delete record
+router.delete('/:id', authorize('security_officer', 'admin'), controller.deleteRecord);
+
 module.exports = router;

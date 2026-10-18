@@ -175,10 +175,11 @@ class BlacklistWatchlistRepository {
   }
 
   async updateRecord(id, data, userId) {
-    const { reason, description, riskLevel, status, expiryDate, internalNotes } = data;
+    const { listType, reason, description, riskLevel, status, expiryDate, internalNotes } = data;
     await db.query(
       `UPDATE visitor_watchlist 
-       SET reason = COALESCE(?, reason),
+       SET list_type = COALESCE(?, list_type),
+           reason = COALESCE(?, reason),
            description = COALESCE(?, description),
            risk_level = COALESCE(?, risk_level),
            status = COALESCE(?, status),
@@ -186,10 +187,27 @@ class BlacklistWatchlistRepository {
            internal_notes = COALESCE(?, internal_notes),
            updated_at = NOW()
        WHERE id = ?`,
-      [reason, description, riskLevel, status, expiryDate, internalNotes, id]
+      [listType, reason, description, riskLevel, status, expiryDate, internalNotes, id]
     ).catch(() => null);
 
+    if (listType === 'BLACKLIST') {
+      const rec = await this.getRecordDetails(id);
+      if (rec && rec.visitorId) {
+        await db.query(`UPDATE visitors SET is_blacklisted = TRUE, status = 'BLOCKED' WHERE id = ?`, [rec.visitorId]).catch(() => null);
+      }
+    } else if (listType === 'WATCHLIST') {
+      const rec = await this.getRecordDetails(id);
+      if (rec && rec.visitorId) {
+        await db.query(`UPDATE visitors SET is_blacklisted = FALSE WHERE id = ?`, [rec.visitorId]).catch(() => null);
+      }
+    }
+
     return this.getRecordDetails(id);
+  }
+
+  async deleteRecord(id, userId) {
+    await db.query(`DELETE FROM visitor_watchlist WHERE id = ?`, [id]).catch(() => null);
+    return { id, deleted: true };
   }
 
   async verifyVisitor(queryData) {

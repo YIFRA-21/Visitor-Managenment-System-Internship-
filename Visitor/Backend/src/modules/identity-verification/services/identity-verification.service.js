@@ -289,6 +289,10 @@ class IdentityVerificationService {
     return repository.getReviewerQueue(filters);
   }
 
+  async deleteCase(caseId) {
+    return repository.deleteCase(caseId);
+  }
+
   async getCaseDetailForReview(caseId) {
     const caseRecord = await repository.getCaseById(caseId);
     if (!caseRecord) {

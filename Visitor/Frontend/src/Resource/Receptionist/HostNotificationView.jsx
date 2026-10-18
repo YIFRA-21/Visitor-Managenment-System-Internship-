@@ -9,6 +9,7 @@ export default function HostNotificationView() {
     const [channels, setChannels] = useState(['SYSTEM', 'EMAIL']);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
+    const [hostIdError, setHostIdError] = useState('');
     const toggleChannel = (ch) => {
         if (channels.includes(ch)) {
             setChannels(channels.filter((c) => c !== ch));
@@ -20,9 +21,10 @@ export default function HostNotificationView() {
     const handleSend = async (e) => {
         e.preventDefault();
         if (!hostId) {
-            setMessage({ type: 'error', text: 'Host User ID is required.' });
+            setHostIdError('Host User ID is required.');
             return;
         }
+        setHostIdError('');
         setLoading(true);
         setMessage(null);
         try {
@@ -79,7 +81,22 @@ export default function HostNotificationView() {
         <form onSubmit={handleSend} className="space-y-4 text-xs">
           <div>
             <label className="block text-slate-400 font-bold uppercase mb-1">Host Employee User ID *</label>
-            <input type="number" required placeholder="e.g. 2 (Sarah Johnson), 4 (Emily Davis)..." value={hostId} onChange={(e) => setHostId(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-amber-500"/>
+            <input 
+              type="number" 
+              placeholder="e.g. 2 (Sarah Johnson), 4 (Emily Davis)..." 
+              value={hostId} 
+              onChange={(e) => { 
+                setHostId(e.target.value); 
+                if (hostIdError) setHostIdError(''); 
+              }} 
+              className={`w-full bg-slate-900 border rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none transition-colors ${hostIdError ? 'border-rose-500/80 ring-1 ring-rose-500/40 bg-rose-500/5' : 'border-slate-700 focus:border-amber-500'}`}
+            />
+            {hostIdError && (
+              <div className="flex items-center gap-1.5 mt-1.5 text-rose-400 text-xs font-semibold animate-fadeIn">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{hostIdError}</span>
+              </div>
+            )}
           </div>
 
           <div>

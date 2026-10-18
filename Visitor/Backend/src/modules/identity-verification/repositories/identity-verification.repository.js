@@ -210,7 +210,7 @@ class IdentityVerificationRepository {
     if (filters.status && filters.status !== 'ALL') {
       sql += ` AND c.status = ?`;
       params.push(filters.status);
-    } else {
+    } else if (filters.onlyPending === 'true') {
       sql += ` AND c.status IN ('IN_REVIEW', 'PROVIDER_PROCESSING', 'PENDING')`;
     }
 
@@ -220,8 +220,15 @@ class IdentityVerificationRepository {
       params.push(q, q, q);
     }
 
-    sql += ` ORDER BY c.id DESC LIMIT 50`;
+    sql += ` ORDER BY c.id DESC LIMIT 100`;
     return db.query(sql, params);
+  }
+
+  async deleteCase(caseId) {
+    await db.query(`DELETE FROM identity_verification_reviews WHERE case_id = ?`, [caseId]).catch(() => null);
+    await db.query(`DELETE FROM identity_verification_attempts WHERE case_id = ?`, [caseId]).catch(() => null);
+    await db.query(`DELETE FROM identity_documents WHERE case_id = ?`, [caseId]).catch(() => null);
+    return db.query(`DELETE FROM identity_verification_cases WHERE id = ?`, [caseId]);
   }
 
   // ── Policy ──

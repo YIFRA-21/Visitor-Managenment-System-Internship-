@@ -44,8 +44,35 @@ class ReportController {
 
   async getSecurity(req, res, next) {
     try {
-      const data = await reportService.getSecurityReport();
-      res.status(200).json(data);
+      const result = await reportService.getSecurityReport(req.query);
+      res.status(200).json({ status: 'success', data: result.events, meta: result.meta });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getAuditLogs(req, res, next) {
+    try {
+      const result = await reportService.getAuditLogsReport(req.query);
+      res.status(200).json({ status: 'success', data: result.logs, meta: result.meta });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getVisitors(req, res, next) {
+    try {
+      const result = await reportService.getVisitorsReport(req.query);
+      res.status(200).json({ status: 'success', data: result.visitors, meta: result.meta });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getCheckinLogs(req, res, next) {
+    try {
+      const result = await reportService.getCheckinLogsReport(req.query);
+      res.status(200).json({ status: 'success', data: result.checkins, meta: result.meta });
     } catch (err) {
       next(err);
     }
@@ -107,4 +134,3 @@ class ReportController {
 }
 
 module.exports = new ReportController();
-

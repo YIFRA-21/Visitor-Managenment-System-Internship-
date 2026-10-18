@@ -49,6 +49,18 @@ class ReceptionController {
     }
   }
 
+  async deleteArrival(req, res) {
+    try {
+      const { id } = req.params;
+      const receptionistInfo = req.user || {};
+      const result = await ReceptionService.deleteArrival(id, receptionistInfo);
+      res.json(result);
+    } catch (err) {
+      console.error(err);
+      res.status(400).json({ error: err.message || 'Failed to delete arrival record' });
+    }
+  }
+
   // 3. Appointment Verification
   async verifyAppointment(req, res) {
     try {
@@ -89,14 +101,70 @@ class ReceptionController {
       res.status(201).json(result);
     } catch (err) {
       console.error('Walk-in registration error:', err);
-      res.status(201).json({
-        success: true,
-        message: 'Walk-in visitor registered. Approval request sent to Host Employee.',
-        appointment_number: `APT-WALKIN-${Date.now().toString().slice(-6)}`,
-        queue_number: `Q-W${Math.floor(100 + Math.random() * 900)}`,
-        appointment_id: 1,
-        status: 'PENDING_APPROVAL'
-      });
+      res.status(500).json({ error: err.message || 'Walk-in registration failed' });
+    }
+  }
+
+  async getWalkIns(req, res) {
+    try {
+      const walkIns = await ReceptionService.getWalkIns(req.query || {});
+      res.json(walkIns);
+    } catch (err) {
+      console.error('Get walk-ins error:', err);
+      res.status(500).json({ error: 'Failed to fetch walk-in registrations' });
+    }
+  }
+
+  async getWalkInById(req, res) {
+    try {
+      const walkIn = await ReceptionService.getWalkInById(req.params.id);
+      if (!walkIn) {
+        return res.status(404).json({ error: 'Walk-in visitor record not found' });
+      }
+      res.json(walkIn);
+    } catch (err) {
+      console.error('Get walk-in by ID error:', err);
+      res.status(500).json({ error: 'Failed to fetch walk-in details' });
+    }
+  }
+
+  async updateWalkIn(req, res) {
+    try {
+      const result = await ReceptionService.updateWalkIn(req.params.id, req.body, req.user);
+      res.json(result);
+    } catch (err) {
+      console.error('Update walk-in error:', err);
+      res.status(400).json({ error: err.message || 'Failed to update walk-in record' });
+    }
+  }
+
+  async deleteWalkIn(req, res) {
+    try {
+      const result = await ReceptionService.deleteWalkIn(req.params.id, req.user);
+      res.json(result);
+    } catch (err) {
+      console.error('Delete walk-in error:', err);
+      res.status(400).json({ error: err.message || 'Failed to delete walk-in record' });
+    }
+  }
+
+  async sendTempPassword(req, res) {
+    try {
+      const result = await ReceptionService.sendTempPassword(req.params.id, req.user);
+      res.json(result);
+    } catch (err) {
+      console.error('Send temp password error:', err);
+      res.status(400).json({ error: err.message || 'Failed to send temporary password' });
+    }
+  }
+
+  async sendUserId(req, res) {
+    try {
+      const result = await ReceptionService.sendUserId(req.params.id, req.user);
+      res.json(result);
+    } catch (err) {
+      console.error('Send user id error:', err);
+      res.status(400).json({ error: err.message || 'Failed to send User ID' });
     }
   }
 
@@ -136,7 +204,45 @@ class ReceptionController {
     }
   }
 
-  // 6. Visitor Pass Issuance
+  // 6. Visitor Pass Issuance & User ID Lookup
+  async lookupVisitor(req, res) {
+    try {
+      const q = req.query.q || req.query.userId || req.query.id || req.query.visitorId || '';
+      const data = await ReceptionService.getVisitorByUserId(q);
+      if (!data) {
+        return res.status(404).json({ success: false, message: 'Visitor not found for the given User ID' });
+      }
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error('Lookup visitor error:', err);
+      res.status(500).json({ success: false, error: 'Failed to look up visitor' });
+    }
+  }
+
+  async getQuickVisitors(req, res) {
+    try {
+      const visitors = await ReceptionService.getQuickVisitors();
+      res.json({ success: true, data: visitors });
+    } catch (err) {
+      console.error('Quick visitors error:', err);
+      res.status(500).json({ success: false, error: 'Failed to retrieve quick visitor list' });
+    }
+  }
+
+  async verifyPass(req, res) {
+    try {
+      const token = req.query.token || req.query.code || req.query.ref || req.query.pass_code || req.query.qr_token || '';
+      const pass = await ReceptionService.verifyPass(token);
+      if (!pass) {
+        return res.status(404).json({ success: false, message: 'Pass or credentials not found or expired' });
+      }
+      res.json({ success: true, data: pass });
+    } catch (err) {
+      console.error('Verify pass error:', err);
+      res.status(500).json({ success: false, error: 'Failed to verify visitor pass' });
+    }
+  }
+
   async generatePass(req, res) {
     try {
       const passData = req.body || {};

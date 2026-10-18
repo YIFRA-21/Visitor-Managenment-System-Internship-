@@ -81,7 +81,8 @@ export default function AppRoutes() {
       {/* Internal appointment routes */}
       <Route path={ROUTES.PUBLIC.BOOK} element={<ProtectedRoute><BookAppointmentPage /></ProtectedRoute>}/>
       <Route path={ROUTES.PUBLIC.TRACK} element={<ProtectedRoute><TrackAppointmentPage /></ProtectedRoute>}/>
-      <Route path={ROUTES.PUBLIC.VERIFY_PASS} element={<ProtectedRoute><VerifyVisitorPassPage /></ProtectedRoute>}/>
+      <Route path={ROUTES.PUBLIC.VERIFY_PASS} element={<VerifyVisitorPassPage />}/>
+      <Route path="/verify-pass" element={<VerifyVisitorPassPage />}/>
 
       <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>}/>
 
