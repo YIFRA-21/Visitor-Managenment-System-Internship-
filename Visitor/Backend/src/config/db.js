@@ -85,7 +85,15 @@ try {
       const userTemporaryCredentialAlters = [
         `ALTER TABLE users ADD COLUMN temporary_password_created_at DATETIME NULL`,
         `ALTER TABLE users ADD COLUMN temporary_password_expires_at DATETIME NULL`,
-        `ALTER TABLE users ADD COLUMN employee_id BIGINT UNSIGNED NULL`
+        `ALTER TABLE users ADD COLUMN employee_id BIGINT UNSIGNED NULL`,
+        `ALTER TABLE users ADD COLUMN user_code VARCHAR(50) NULL`,
+        `ALTER TABLE users ADD COLUMN first_login_required TINYINT(1) DEFAULT 0`,
+        `ALTER TABLE users ADD COLUMN mfa_enabled TINYINT(1) DEFAULT 0`,
+        `ALTER TABLE users ADD COLUMN branch_id BIGINT UNSIGNED NULL`,
+        `ALTER TABLE users ADD COLUMN organization_id BIGINT UNSIGNED NULL`,
+        `ALTER TABLE users ADD COLUMN verification_status VARCHAR(50) DEFAULT 'VERIFIED'`,
+        `ALTER TABLE users MODIFY COLUMN status VARCHAR(50) DEFAULT 'active'`,
+        `ALTER TABLE users MODIFY COLUMN account_status VARCHAR(50) DEFAULT 'ACTIVE'`
       ];
       for (const q of userTemporaryCredentialAlters) {
         try { await originalQuery(q); } catch { /* ignore column exists error */ }

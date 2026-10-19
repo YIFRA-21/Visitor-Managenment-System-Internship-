@@ -2100,6 +2100,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 <option value="LOCKED">LOCKED</option>
                 <option value="SUSPENDED">SUSPENDED</option>
                 <option value="INACTIVE">INACTIVE</option>
+                <option value="ARCHIVED">ARCHIVED</option>
               </select>
 
               {/* Role Dropdown Filter - shown only in unscoped All Users view */}

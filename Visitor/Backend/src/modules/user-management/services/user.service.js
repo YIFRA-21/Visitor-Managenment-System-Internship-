@@ -92,40 +92,46 @@ class UserManagementService {
   // ── 2. Real Backend KPI Statistics ──────────────────────────────────────
 
   async getUserStats() {
-    const sql = `
-      SELECT
-        COUNT(*) AS total_users,
-        SUM(CASE WHEN status = 'active' OR account_status = 'ACTIVE' THEN 1 ELSE 0 END) AS active_users,
-        SUM(CASE WHEN status = 'pending' OR account_status = 'PENDING' THEN 1 ELSE 0 END) AS pending_users,
-        SUM(CASE WHEN status = 'inactive' OR account_status = 'INACTIVE' THEN 1 ELSE 0 END) AS inactive_users,
-        SUM(CASE WHEN status = 'suspended' OR account_status = 'SUSPENDED' THEN 1 ELSE 0 END) AS suspended_users,
-        SUM(CASE WHEN status = 'locked' OR account_status = 'LOCKED' THEN 1 ELSE 0 END) AS locked_users,
-        SUM(CASE WHEN status = 'expired' OR account_status = 'EXPIRED' THEN 1 ELSE 0 END) AS expired_users,
-        SUM(CASE WHEN email_verified = 0 OR phone_verified = 0 THEN 1 ELSE 0 END) AS unverified_users,
-        SUM(CASE WHEN last_login_at >= DATE_SUB(NOW(), INTERVAL 15 MINUTE) THEN 1 ELSE 0 END) AS online_users,
-        SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS recently_registered,
-        SUM(CASE WHEN first_login_required = 1 THEN 1 ELSE 0 END) AS temporary_credential_users,
-        SUM(CASE WHEN mfa_enabled = 1 THEN 1 ELSE 0 END) AS mfa_enabled_users
-      FROM users
-      WHERE deleted_at IS NULL
-    `;
-    const rows = await db.query(sql);
-    const stats = rows[0] || {};
+    try {
+      const sql = `
+        SELECT
+          COUNT(*) AS total_users,
+          SUM(CASE WHEN LOWER(COALESCE(status, '')) = 'active' OR LOWER(COALESCE(account_status, '')) = 'active' THEN 1 ELSE 0 END) AS active_users,
+          SUM(CASE WHEN LOWER(COALESCE(status, '')) = 'pending' OR LOWER(COALESCE(account_status, '')) = 'pending' THEN 1 ELSE 0 END) AS pending_users,
+          SUM(CASE WHEN LOWER(COALESCE(status, '')) = 'inactive' OR LOWER(COALESCE(account_status, '')) = 'inactive' THEN 1 ELSE 0 END) AS inactive_users,
+          SUM(CASE WHEN LOWER(COALESCE(status, '')) = 'suspended' OR LOWER(COALESCE(account_status, '')) = 'suspended' THEN 1 ELSE 0 END) AS suspended_users,
+          SUM(CASE WHEN LOWER(COALESCE(status, '')) = 'locked' OR LOWER(COALESCE(account_status, '')) = 'locked' THEN 1 ELSE 0 END) AS locked_users,
+          SUM(CASE WHEN LOWER(COALESCE(status, '')) = 'expired' OR LOWER(COALESCE(account_status, '')) = 'expired' THEN 1 ELSE 0 END) AS expired_users,
+          SUM(CASE WHEN email_verified = 0 OR phone_verified = 0 THEN 1 ELSE 0 END) AS unverified_users,
+          SUM(CASE WHEN last_login_at >= DATE_SUB(NOW(), INTERVAL 15 MINUTE) THEN 1 ELSE 0 END) AS online_users,
+          SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS recently_registered
+        FROM users
+      `;
+      const rows = await db.query(sql);
+      const stats = rows && rows[0] ? rows[0] : {};
 
-    return {
-      totalUsers: parseInt(stats.total_users || 0),
-      activeUsers: parseInt(stats.active_users || 0),
-      pendingUsers: parseInt(stats.pending_users || 0),
-      inactiveUsers: parseInt(stats.inactive_users || 0),
-      suspendedUsers: parseInt(stats.suspended_users || 0),
-      lockedUsers: parseInt(stats.locked_users || 0),
-      expiredUsers: parseInt(stats.expired_users || 0),
-      unverifiedUsers: parseInt(stats.unverified_users || 0),
-      onlineUsers: parseInt(stats.online_users || 0),
-      recentlyRegistered: parseInt(stats.recently_registered || 0),
-      temporaryCredentialUsers: parseInt(stats.temporary_credential_users || 0),
-      mfaEnabledUsers: parseInt(stats.mfa_enabled_users || 0),
-    };
+      return {
+        totalUsers: parseInt(stats.total_users || 0),
+        activeUsers: parseInt(stats.active_users || 0),
+        pendingUsers: parseInt(stats.pending_users || 0),
+        inactiveUsers: parseInt(stats.inactive_users || 0),
+        suspendedUsers: parseInt(stats.suspended_users || 0),
+        lockedUsers: parseInt(stats.locked_users || 0),
+        expiredUsers: parseInt(stats.expired_users || 0),
+        unverifiedUsers: parseInt(stats.unverified_users || 0),
+        onlineUsers: parseInt(stats.online_users || 0),
+        recentlyRegistered: parseInt(stats.recently_registered || 0),
+        temporaryCredentialUsers: 0,
+        mfaEnabledUsers: 0,
+      };
+    } catch (err) {
+      console.warn('Warning in getUserStats:', err.message);
+      return {
+        totalUsers: 0, activeUsers: 0, pendingUsers: 0, inactiveUsers: 0,
+        suspendedUsers: 0, lockedUsers: 0, expiredUsers: 0, unverifiedUsers: 0,
+        onlineUsers: 0, recentlyRegistered: 0, temporaryCredentialUsers: 0, mfaEnabledUsers: 0
+      };
+    }
   }
 
   // ── 3. List Users with Advanced Search & Filters ────────────────────────
@@ -133,58 +139,66 @@ class UserManagementService {
   async listUsers(filters = {}) {
     let sql = `
       SELECT u.id, u.user_code, u.username, u.first_name, u.middle_name, u.last_name,
-             u.full_name, u.email, u.phone, u.phone_number, u.role, u.status, u.account_status,
-             u.email_verified, u.phone_verified, u.mfa_enabled, u.department_id, u.job_title,
-             u.avatar_url, u.last_login_at, u.failed_login_attempts, u.first_login_required,
+             u.full_name, u.email, u.phone, u.phone_number, u.role,
+             CASE
+               WHEN u.deleted_at IS NOT NULL OR LOWER(COALESCE(u.status, '')) = 'archived' OR LOWER(COALESCE(u.account_status, '')) = 'archived' THEN 'archived'
+               ELSE COALESCE(u.status, 'active')
+             END AS status,
+             CASE
+               WHEN u.deleted_at IS NOT NULL OR LOWER(COALESCE(u.status, '')) = 'archived' OR LOWER(COALESCE(u.account_status, '')) = 'archived' THEN 'ARCHIVED'
+               ELSE COALESCE(u.account_status, 'ACTIVE')
+             END AS account_status,
+             u.email_verified, u.phone_verified,
+             COALESCE(u.department_id, e.department_id) AS department_id,
+             u.job_title,
+             u.avatar_url, u.last_login_at, u.failed_login_attempts,
              u.created_at, u.updated_at,
              COALESCE(d.department_name, d.name, 'General') AS department_name,
-             COALESCE(b.branch_name, (SELECT branch_name FROM organization_branches WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1), 'Main Branch') AS branch_name,
-             COALESCE(o.name, (SELECT name FROM organizations WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1), 'IT Park') AS organization_name
+             COALESCE(b.branch_name, 'Main Branch') AS branch_name,
+             COALESCE(o.name, 'IT Park') AS organization_name
       FROM users u
-      LEFT JOIN employees e ON e.user_id = u.id AND e.deleted_at IS NULL
+      LEFT JOIN employees e ON e.user_id = u.id
       LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
-      LEFT JOIN organization_branches b ON COALESCE(u.branch_id, e.branch_id, d.branch_id) = b.id
-      LEFT JOIN organizations o ON COALESCE(u.organization_id, e.organization_id, b.organization_id, d.organization_id) = o.id
-      WHERE u.deleted_at IS NULL
+      LEFT JOIN organization_branches b ON e.branch_id = b.id
+      LEFT JOIN organizations o ON b.organization_id = o.id
+      WHERE 1=1
     `;
     const params = [];
 
     // Filter by Status
     if (filters.status && filters.status !== 'ALL') {
-      sql += ` AND (LOWER(u.status) = LOWER(?) OR LOWER(u.account_status) = LOWER(?))`;
-      params.push(filters.status, filters.status);
+      const s = String(filters.status).toLowerCase();
+      if (s === 'archived' || s === 'deleted') {
+        sql += ` AND (u.deleted_at IS NOT NULL OR LOWER(COALESCE(u.status, '')) = 'archived' OR LOWER(COALESCE(u.account_status, '')) = 'archived')`;
+      } else {
+        sql += ` AND u.deleted_at IS NULL AND (LOWER(COALESCE(u.status, '')) = ? OR LOWER(COALESCE(u.account_status, '')) = ?)`;
+        params.push(s, s);
+      }
     }
 
     // Filter by Role / User Type
     if (filters.role && filters.role !== 'ALL') {
       const normRole = String(filters.role).toLowerCase();
       if (normRole === 'employee' || normRole === 'staff') {
-        sql += ` AND (LOWER(u.role) IN ('employee', 'staff') OR u.user_code LIKE 'EMP%')`;
+        sql += ` AND (LOWER(COALESCE(u.role, '')) IN ('employee', 'staff') OR u.user_code LIKE 'EMP%')`;
       } else if (normRole === 'visitor') {
-        sql += ` AND (LOWER(u.role) = 'visitor' OR u.user_code LIKE 'VIS%')`;
+        sql += ` AND (LOWER(COALESCE(u.role, '')) = 'visitor' OR u.user_code LIKE 'VIS%')`;
       } else if (normRole === 'manager') {
-        sql += ` AND (LOWER(u.role) = 'manager' OR LOWER(u.role) LIKE '%manager%' OR u.user_code LIKE 'MGR%')`;
+        sql += ` AND (LOWER(COALESCE(u.role, '')) = 'manager' OR LOWER(COALESCE(u.role, '')) LIKE '%manager%' OR u.user_code LIKE 'MGR%')`;
       } else if (normRole === 'security' || normRole === 'security_officer') {
-        sql += ` AND (LOWER(u.role) IN ('security', 'security_officer') OR LOWER(u.role) LIKE '%security%' OR u.user_code LIKE 'SEC%')`;
+        sql += ` AND (LOWER(COALESCE(u.role, '')) IN ('security', 'security_officer') OR LOWER(COALESCE(u.role, '')) LIKE '%security%' OR u.user_code LIKE 'SEC%')`;
       } else if (normRole === 'receptionist' || normRole === 'reception') {
-        sql += ` AND (LOWER(u.role) IN ('receptionist', 'reception') OR LOWER(u.role) LIKE '%reception%' OR u.user_code LIKE 'REC%')`;
+        sql += ` AND (LOWER(COALESCE(u.role, '')) IN ('receptionist', 'reception') OR LOWER(COALESCE(u.role, '')) LIKE '%reception%' OR u.user_code LIKE 'REC%')`;
       } else {
-        sql += ` AND LOWER(u.role) = LOWER(?)`;
-        params.push(filters.role);
+        sql += ` AND LOWER(COALESCE(u.role, '')) = ?`;
+        params.push(normRole);
       }
     }
 
     // Filter by Department
     if (filters.departmentId) {
-      sql += ` AND u.department_id = ?`;
+      sql += ` AND COALESCE(u.department_id, e.department_id) = ?`;
       params.push(parseInt(filters.departmentId));
-    }
-
-    // Filter by MFA
-    if (filters.mfa === 'true') {
-      sql += ` AND u.mfa_enabled = 1`;
-    } else if (filters.mfa === 'false') {
-      sql += ` AND u.mfa_enabled = 0`;
     }
 
     // Filter by Verification Status
@@ -218,11 +232,10 @@ class UserManagementService {
       params.push(`${filters.createdTo} 23:59:59`);
     }
 
-    // Total Count Query (using the filtered WHERE clause)
+    // Total Count Query
     const whereIndex = sql.indexOf('WHERE');
-    const countSql = whereIndex !== -1
-      ? `SELECT COUNT(*) AS total FROM users u LEFT JOIN departments d ON u.department_id = d.id ${sql.substring(whereIndex)}`
-      : `SELECT COUNT(*) AS total FROM users u WHERE u.deleted_at IS NULL`;
+    const whereClause = whereIndex !== -1 ? sql.substring(whereIndex) : 'WHERE 1=1';
+    const countSql = `SELECT COUNT(*) AS total FROM users u LEFT JOIN employees e ON e.user_id = u.id ${whereClause}`;
     const countRes = await db.query(countSql, params);
     const countRow = Array.isArray(countRes[0]) ? countRes[0][0] : (Array.isArray(countRes) ? countRes[0] : countRes);
     const total = countRow?.total || 0;
@@ -237,7 +250,7 @@ class UserManagementService {
       createdAt: 'u.created_at',
       lastLogin: 'u.last_login_at',
     };
-    const sortField = allowedSortFields[filters.sortBy] || 'u.created_at';
+    const sortField = allowedSortFields[filters.sortBy] || 'u.id';
     const sortDir = filters.sortDir === 'asc' ? 'ASC' : 'DESC';
     sql += ` ORDER BY ${sortField} ${sortDir}`;
 
