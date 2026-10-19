@@ -225,12 +225,7 @@ async function authenticate(req, res, next) {
   return res.status(401).json({
     success: false,
     error: 'Authentication required',
-    message: 'This protected endpoint requires an authenticated user token.',
-    howToAuthenticate: {
-      inPostman: 'Go to the "Headers" tab and add: Key = "Authorization", Value = "Bearer <YOUR_JWT_TOKEN>"',
-      inBrowser: 'Append "?token=<YOUR_JWT_TOKEN>" to the URL in your browser, e.g. http://localhost:5000/api/auth/me?token=YOUR_TOKEN',
-      howToGetToken: 'Send a POST request to /api/auth/login with your email and password'
-    }
+    message: 'Authentication required'
   });
 }
 

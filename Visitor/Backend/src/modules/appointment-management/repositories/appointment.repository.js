@@ -233,11 +233,17 @@ class AppointmentRepository {
               v.visitor_id as visitorIdCode, v.reference_number as visitorReferenceNumber,
               v.company as visitorCompany, v.category as visitorCategory,
               v.id_type as idType, v.id_number as idNumber,
-              u.full_name as hostName, r.room_name as roomName
+              u.full_name as hostName, r.room_name as roomName,
+              COALESCE(c.entry_time, c.checked_in_at) as entryTime,
+              COALESCE(co.exit_time, co.checkout_time) as exitTime,
+              vp.pass_code as passNumber
        FROM appointments a
        LEFT JOIN visitors v ON a.visitor_id = v.id
        LEFT JOIN users u ON a.host_id = u.id
        LEFT JOIN meeting_rooms r ON a.room_id = r.id
+       LEFT JOIN checkins c ON c.appointment_id = a.id
+       LEFT JOIN visitor_checkouts co ON (co.appointment_id = a.id OR co.checkin_id = c.id)
+       LEFT JOIN visitor_passes vp ON (vp.appointment_id = a.id OR c.pass_id = vp.id)
        WHERE a.deleted_at IS NULL`;
     const params = [];
 

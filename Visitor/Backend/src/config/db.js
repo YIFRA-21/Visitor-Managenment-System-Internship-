@@ -24,6 +24,11 @@ try {
     connectTimeout: 20000,
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
+    ssl: {
+    rejectUnauthorized: true
+  },
+  waitForConnections: true,
+  connectionLimit: 10
   });
   originalQuery = pool.query.bind(pool);
   useMock = false;

@@ -16,7 +16,7 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
     const [liveAppt, setLiveAppt] = useState(null);
     const [passImgError, setPassImgError] = useState(false);
     const [qrImgError, setQrImgError] = useState(false);
-    const [, setUpdateTrigger] = useState(0);
+    const [updateTrigger, setUpdateTrigger] = useState(0);
     useEffect(() => {
         let cancelled = false;
         async function fetchLiveAppointment() {
@@ -24,7 +24,11 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
                 const res = await visitorPortalApi.getAppointments();
                 const appts = Array.isArray(res.data) ? res.data : (res.data?.data || []);
                 if (appts.length > 0 && !cancelled) {
-                    setLiveAppt(appts[0]);
+                    const targetId = passData?.appointmentId || passData?.referenceNo || passData?.reference_code || passData?.id;
+                    const matched = targetId
+                        ? appts.find(a => String(a.id) === String(targetId) || String(a.reference_code) === String(targetId))
+                        : null;
+                    setLiveAppt(matched || appts[0]);
                 }
             }
             catch (e) {
@@ -33,18 +37,27 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
         }
         fetchLiveAppointment();
         return () => { cancelled = true; };
-    }, [user]);
+    }, [user, passData, updateTrigger]);
     useEffect(() => {
         const handleUpdate = () => {
             setPassImgError(false);
             setQrImgError(false);
             setUpdateTrigger((prev) => prev + 1);
         };
+        const handleApptUpdate = () => {
+            setPassImgError(false);
+            setQrImgError(false);
+            setUpdateTrigger((prev) => prev + 1);
+        };
         window.addEventListener('storage', handleUpdate);
         window.addEventListener('user_updated', handleUpdate);
+        window.addEventListener('appointment_status_changed', handleApptUpdate);
+        window.addEventListener('appointment_updated', handleApptUpdate);
         return () => {
             window.removeEventListener('storage', handleUpdate);
             window.removeEventListener('user_updated', handleUpdate);
+            window.removeEventListener('appointment_status_changed', handleApptUpdate);
+            window.removeEventListener('appointment_updated', handleApptUpdate);
         };
     }, []);
     const isValidImageUrl = (url) => {
@@ -126,11 +139,38 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
         const finalPhoto = resolvePhotoUrl(resolvedPhoto);
         const activeAppt = liveAppt || p;
         const rawStatus = (activeAppt.approval_status || activeAppt.appointment_status || activeAppt.status || p.status || 'PENDING').toString().toUpperCase();
-        const isApproved = ['APPROVED', 'CONFIRMED', 'ACTIVE'].includes(rawStatus);
+        const rawCheckOut = (activeAppt.checkout_time || p.checkOutTime || p.checkout_time || '');
+        const hasCheckedOut = Boolean((rawCheckOut && rawCheckOut !== '-' && rawCheckOut !== 'null') || rawStatus === 'COMPLETED' || rawStatus.includes('CHECKED_OUT') || rawStatus.includes('CHECKED OUT'));
+
+        let normalizedStatus = 'PENDING';
+        if (rawStatus.includes('CANCEL')) {
+            normalizedStatus = 'CANCELLED';
+        } else if (rawStatus.includes('REJECT')) {
+            normalizedStatus = 'REJECTED';
+        } else if (rawStatus.includes('RESCHED')) {
+            normalizedStatus = 'RESCHEDULED';
+        } else if (rawStatus === 'COMPLETED' || hasCheckedOut) {
+            normalizedStatus = 'COMPLETED';
+        } else if (rawStatus.includes('CHECKED_IN') || rawStatus.includes('CHECKED IN') || rawStatus === 'ACTIVE' || rawStatus === 'IN_PROGRESS') {
+            normalizedStatus = 'CHECKED IN';
+        } else if (rawStatus.includes('APPROV') || rawStatus === 'CONFIRMED') {
+            normalizedStatus = 'APPROVED';
+        } else {
+            normalizedStatus = 'PENDING';
+        }
+
+        const isApproved = normalizedStatus === 'APPROVED' || normalizedStatus === 'CHECKED IN' || normalizedStatus === 'COMPLETED';
+        const verificationStatus = 
+            normalizedStatus === 'APPROVED' ? 'Approved / Verified' :
+            normalizedStatus === 'CHECKED IN' ? 'Checked In / Active' :
+            normalizedStatus === 'COMPLETED' ? 'Completed / Checked Out' :
+            normalizedStatus === 'RESCHEDULED' ? 'Rescheduled' :
+            normalizedStatus === 'CANCELLED' ? 'Cancelled' :
+            normalizedStatus === 'REJECTED' ? 'Rejected' :
+            'Pending Verification';
+
         const visitorCode = p.visitor_code || p.historyCode || user?.visitorCode || user?.userCode || `VIS-2026-${String(currentUserId).padStart(6, '0')}`;
         const refNumber = activeAppt.reference_code || p.reference_number || p.referenceNumber || user?.referenceNumber || `REF-REG-2026-${String(currentUserId).padStart(3, '0')}`;
-        const rawCheckOut = (p.checkOutTime && p.checkOutTime !== '-' && p.checkOutTime !== 'null') ? p.checkOutTime : '';
-        const hasCheckedOut = Boolean(rawCheckOut && rawStatus === 'COMPLETED');
         // Build authoritative visitor pass for THIS logged in user
         return {
             visitorName: authName,
@@ -146,7 +186,9 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
             date: activeAppt.scheduled_start ? new Date(activeAppt.scheduled_start).toLocaleDateString() : new Date().toLocaleDateString(),
             time: activeAppt.scheduled_start ? `${new Date(activeAppt.scheduled_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '09:00 AM - 11:30 AM',
             accessPoint: activeAppt.roomName || activeAppt.room_name || 'Main Gate / Reception',
-            status: rawStatus,
+            status: normalizedStatus,
+            rawStatus: rawStatus,
+            normalizedStatus: normalizedStatus,
             email: authEmail || p.email || '-',
             phone: p.phone || user?.phone || '-',
             company: (!p.company || ['information national', 'red cloud', 'africom', 'vms enterprise', 'abc company'].some(x => p.company.toLowerCase().includes(x))) ? 'IT Park' : p.company,
@@ -164,7 +206,7 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
             is_checked_out: hasCheckedOut,
             checkout_time: rawCheckOut || '-',
             registeredOn: p.registeredOn || new Date().toLocaleDateString(),
-            verificationStatus: isApproved ? 'Approved / Verified' : 'Pending Verification'
+            verificationStatus: verificationStatus
         };
     };
     const data = getInitialPassData();
@@ -261,32 +303,26 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
                 <div className="px-4 pt-1 pb-3 text-center space-y-2.5 relative z-10" style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
                   {/* Status Badge */}
                   {(() => {
-            const isCheckedOut = Boolean(data.checkedOut ||
-                (data.checkout_time && data.checkout_time !== '-' && data.checkout_time !== 'null') ||
-                (data.checkOutTime && data.checkOutTime !== '-' && data.checkOutTime !== 'null') ||
-                data.status === 'COMPLETED' ||
-                data.status === 'CHECKED_OUT');
-            const rawStatus = (data.status || 'PENDING').toUpperCase();
-            const displayStatus = (rawStatus.includes('PEND') || rawStatus.includes('REQUEST'))
-                ? 'PENDING'
-                : (rawStatus.includes('CANCEL') || rawStatus.includes('REJECT'))
-                    ? 'CANCELLED'
-                    : (isCheckedOut && rawStatus !== 'PENDING')
-                        ? 'COMPLETED'
-                        : (rawStatus.includes('CHECKED_IN') || rawStatus.includes('ACTIVE'))
-                            ? 'ACTIVE'
-                            : 'APPROVED';
-            return (<div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black text-[10px] uppercase tracking-wider shadow-sm" style={displayStatus === 'COMPLETED'
-                    ? { backgroundColor: '#e0f2fe', color: '#1e40af', border: '1px solid #93c5fd' }
-                    : displayStatus === 'CANCELLED'
-                        ? { backgroundColor: '#ffe4e6', color: '#9f1239', border: '1px solid #fca5a5' }
-                        : displayStatus === 'PENDING'
-                            ? { backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }
-                            : { backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac' }}>
+                    const st = data.normalizedStatus || 'PENDING';
+                    let badgeStyle = { backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' };
+                    if (st === 'APPROVED') {
+                      badgeStyle = { backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac' };
+                    } else if (st === 'CHECKED IN') {
+                      badgeStyle = { backgroundColor: '#ccfbf1', color: '#0f766e', border: '1px solid #5eead4' };
+                    } else if (st === 'COMPLETED') {
+                      badgeStyle = { backgroundColor: '#e0f2fe', color: '#1e40af', border: '1px solid #93c5fd' };
+                    } else if (st === 'RESCHEDULED') {
+                      badgeStyle = { backgroundColor: '#f3e8ff', color: '#7e22ce', border: '1px solid #d8b4fe' };
+                    } else if (st === 'CANCELLED' || st === 'REJECTED') {
+                      badgeStyle = { backgroundColor: '#ffe4e6', color: '#9f1239', border: '1px solid #fca5a5' };
+                    }
+                    return (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black text-[10px] uppercase tracking-wider shadow-sm" style={badgeStyle}>
                         <CheckCircle2 size={12}/>
-                        <span>{displayStatus}</span>
-                      </div>);
-        })()}
+                        <span>{st}</span>
+                      </div>
+                    );
+                  })()}
 
                   {/* Circular Profile Photo */}
                   <div className="w-20 h-20 mx-auto rounded-full overflow-hidden flex items-center justify-center shadow-md relative" style={{ backgroundColor: '#f1f5f9', border: '3px solid #247040', color: '#247040' }}>
@@ -493,13 +529,36 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
                     </div>
                   </div>
                   {/* Row - Verification */}
-                  <div className="flex items-center gap-3 px-4 py-3" style={{ backgroundColor: 'rgba(6, 78, 59, 0.25)' }}>
-                    <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)' }}>
-                      <CheckCircle2 className="h-4 w-4" style={{ color: '#34d399' }}/>
+                  <div className="flex items-center gap-3 px-4 py-3" style={{ backgroundColor: (() => {
+                    const st = data.normalizedStatus || 'PENDING';
+                    if (st === 'APPROVED' || st === 'CHECKED IN') return 'rgba(6, 78, 59, 0.25)';
+                    if (st === 'COMPLETED') return 'rgba(30, 58, 138, 0.25)';
+                    if (st === 'RESCHEDULED') return 'rgba(88, 28, 135, 0.25)';
+                    if (st === 'CANCELLED' || st === 'REJECTED') return 'rgba(136, 19, 55, 0.25)';
+                    return 'rgba(120, 53, 15, 0.25)';
+                  })() }}>
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)' }}>
+                      <CheckCircle2 className="h-4 w-4" style={{ color: (() => {
+                        const st = data.normalizedStatus || 'PENDING';
+                        if (st === 'APPROVED') return '#34d399';
+                        if (st === 'CHECKED IN') return '#2dd4bf';
+                        if (st === 'COMPLETED') return '#60a5fa';
+                        if (st === 'RESCHEDULED') return '#c084fc';
+                        if (st === 'CANCELLED' || st === 'REJECTED') return '#f87171';
+                        return '#fbbf24';
+                      })() }}/>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div style={fieldLabel}>{t('visitorPass.verificationStatus')}</div>
-                      <span className="px-2 py-0.5 rounded-full inline-block mt-1" style={{ backgroundColor: 'rgba(6, 78, 59, 0.5)', color: '#6ee7b7', fontWeight: 800, fontSize: '11px' }}>{data.verificationStatus}</span>
+                      <span className="px-2.5 py-0.5 rounded-full inline-block mt-1 font-black text-[11px]" style={(() => {
+                        const st = data.normalizedStatus || 'PENDING';
+                        if (st === 'APPROVED') return { backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', border: '1px solid #059669' };
+                        if (st === 'CHECKED IN') return { backgroundColor: 'rgba(20, 184, 166, 0.2)', color: '#5eead4', border: '1px solid #0d9488' };
+                        if (st === 'COMPLETED') return { backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', border: '1px solid #2563eb' };
+                        if (st === 'RESCHEDULED') return { backgroundColor: 'rgba(168, 85, 247, 0.2)', color: '#d8b4fe', border: '1px solid #9333ea' };
+                        if (st === 'CANCELLED' || st === 'REJECTED') return { backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', border: '1px solid #dc2626' };
+                        return { backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d', border: '1px solid #d97706' };
+                      })()}>{data.verificationStatus}</span>
                     </div>
                   </div>
                 </div>

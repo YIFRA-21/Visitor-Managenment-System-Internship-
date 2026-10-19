@@ -77,22 +77,28 @@ export default function VisitorAppointments({ departments = [], employees = [], 
         // Priority check for DB approval status
         const rawStatus = (a.approval_status || a.appointment_status || a.appointmentStatus || a.status || 'PENDING').toString().toUpperCase();
         let status = 'Pending';
-        if (['APPROVED', 'CONFIRMED', 'ACTIVE'].includes(rawStatus)) {
-            status = 'Approved';
-        }
-        else if (['REJECTED', 'DECLINED'].includes(rawStatus)) {
-            status = 'Rejected';
-        }
-        else if (['CANCELLED'].includes(rawStatus)) {
+        if (rawStatus.includes('CANCEL')) {
             status = 'Cancelled';
         }
-        else if (['COMPLETED', 'CHECKED_OUT'].includes(rawStatus)) {
+        else if (rawStatus.includes('RESCHED')) {
+            status = 'Rescheduled';
+        }
+        else if (rawStatus.includes('REJECT') || rawStatus.includes('DECLIN')) {
+            status = 'Rejected';
+        }
+        else if (rawStatus.includes('CHECKED_OUT') || rawStatus.includes('CHECKOUT') || rawStatus === 'COMPLETED') {
             status = 'Completed';
+        }
+        else if (rawStatus.includes('CHECKED_IN') || rawStatus.includes('CHECKIN') || rawStatus === 'IN_PROGRESS') {
+            status = 'Checked In';
+        }
+        else if (['APPROVED', 'CONFIRMED', 'ACTIVE'].includes(rawStatus) || rawStatus.includes('APPROV')) {
+            status = 'Approved';
         }
         else {
             status = 'Pending';
         }
-        const tabCategory = a.tabCategory || (status === 'Completed' ? 'completed' : status === 'Cancelled' ? 'cancelled' : 'upcoming');
+        const tabCategory = a.tabCategory || (['Completed', 'Checked Out'].includes(status) ? 'completed' : status === 'Cancelled' ? 'cancelled' : 'upcoming');
         return {
             ...a,
             month, day, weekDay,
@@ -164,6 +170,17 @@ export default function VisitorAppointments({ departments = [], employees = [], 
     };
     useEffect(() => {
         loadVisitorAppointments();
+        const handleSync = () => {
+            loadVisitorAppointments();
+        };
+        window.addEventListener('storage', handleSync);
+        window.addEventListener('appointment_status_changed', handleSync);
+        window.addEventListener('appointment_updated', handleSync);
+        return () => {
+            window.removeEventListener('storage', handleSync);
+            window.removeEventListener('appointment_status_changed', handleSync);
+            window.removeEventListener('appointment_updated', handleSync);
+        };
     }, [user]);
     const handleRefresh = async () => {
         if (refreshing)
@@ -192,8 +209,9 @@ export default function VisitorAppointments({ departments = [], employees = [], 
                     scheduledEnd: endIso,
                     reason: data.reason || 'Rescheduled by visitor'
                 });
+                window.dispatchEvent(new CustomEvent('appointment_status_changed', { detail: { id: apptId, status: 'RESCHEDULED' } }));
                 setToast({
-                    message: 'Reschedule request submitted to host for approval!',
+                    message: 'Reschedule request submitted successfully!',
                     type: 'info'
                 });
                 await loadVisitorAppointments();
@@ -203,7 +221,7 @@ export default function VisitorAppointments({ departments = [], employees = [], 
                 setAppointments(prev => {
                     const updated = prev.map(a => {
                         if (a.id === rescheduleAppt.id) {
-                            return { ...a, time: data.newTime || a.time, date: data.newDate || a.date };
+                            return { ...a, time: data.newTime || a.time, date: data.newDate || a.date, status: 'Rescheduled' };
                         }
                         return a;
                     });
@@ -213,8 +231,9 @@ export default function VisitorAppointments({ departments = [], employees = [], 
                     catch (e) { }
                     return updated;
                 });
+                window.dispatchEvent(new CustomEvent('appointment_status_changed', { detail: { id: apptId, status: 'RESCHEDULED' } }));
                 setToast({
-                    message: 'Reschedule request submitted to host for approval!',
+                    message: 'Reschedule request submitted successfully!',
                     type: 'info'
                 });
             }
@@ -225,6 +244,7 @@ export default function VisitorAppointments({ departments = [], employees = [], 
             const apptId = cancelAppt.id;
             try {
                 await visitorPortalApi.cancelAppointment(apptId, data.reason || data.comments || 'Cancelled by visitor');
+                window.dispatchEvent(new CustomEvent('appointment_status_changed', { detail: { id: apptId, status: 'CANCELLED' } }));
                 setToast({
                     message: 'Appointment has been cancelled successfully.',
                     type: 'danger'
@@ -246,6 +266,7 @@ export default function VisitorAppointments({ departments = [], employees = [], 
                     catch (e) { }
                     return updated;
                 });
+                window.dispatchEvent(new CustomEvent('appointment_status_changed', { detail: { id: apptId, status: 'CANCELLED' } }));
                 setToast({
                     message: 'Appointment has been cancelled successfully.',
                     type: 'danger'
@@ -301,18 +322,23 @@ export default function VisitorAppointments({ departments = [], employees = [], 
         return matchesStatus && matchesSearch;
     });
     const getStatusBadgeClass = (status) => {
-        switch ((status || '').toLowerCase()) {
-            case 'approved':
-                return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold';
-            case 'completed':
-                return 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold';
-            case 'rejected':
-            case 'cancelled':
-                return 'bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold';
-            case 'pending':
-            default:
-                return 'bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold';
+        const s = (status || '').toLowerCase();
+        if (s.includes('approved')) {
+            return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold';
         }
+        if (s.includes('checked in') || s.includes('checked_in')) {
+            return 'bg-teal-500/20 text-teal-300 border border-teal-500/30 font-bold';
+        }
+        if (s.includes('rescheduled')) {
+            return 'bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold';
+        }
+        if (s.includes('completed') || s.includes('checked out') || s.includes('checked_out')) {
+            return 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold';
+        }
+        if (s.includes('rejected') || s.includes('cancelled')) {
+            return 'bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold';
+        }
+        return 'bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold';
     };
     const getDeptBadgeClass = (dept) => {
         const d = dept.toLowerCase();

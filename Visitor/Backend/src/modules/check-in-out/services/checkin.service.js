@@ -139,6 +139,14 @@ class CheckinService {
           `UPDATE appointments SET appointment_status = 'CHECKED_IN', status = 'checked_in', arrival_time = IFNULL(arrival_time, ?) WHERE id = ?`,
           [checkedInAt, pass.appointment_id]
         );
+        await db.query(
+          `UPDATE visitor_histories SET visit_status = 'CHECKED_IN', checkin_time = ? WHERE appointment_id = ?`,
+          [checkedInAt, pass.appointment_id]
+        );
+        await db.query(
+          `UPDATE visitor_passes SET status = 'CHECKED_IN' WHERE id = ? OR appointment_id = ?`,
+          [pass.id, pass.appointment_id]
+        );
       } catch (e) {}
     }
 

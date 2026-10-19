@@ -155,6 +155,16 @@ class AppointmentService {
     const deptId = departmentId || hostUser?.departmentId || hostUser?.department_id || 1;
     const visitorUserId = visitor.user_id || operatorUserId || null;
 
+    let calculatedDur = appointmentData.expectedDurationMinutes || appointmentData.expected_duration_minutes || appointmentData.durationMinutes;
+    if (!calculatedDur && scheduledStart && scheduledEnd) {
+      const s1 = new Date(scheduledStart);
+      const s2 = new Date(scheduledEnd);
+      if (!isNaN(s1.getTime()) && !isNaN(s2.getTime()) && s2 >= s1) {
+        calculatedDur = Math.max(15, Math.round((s2.getTime() - s1.getTime()) / 60000));
+      }
+    }
+    if (!calculatedDur) calculatedDur = 60;
+
     const appointmentId = await appointmentRepository.create({
       organizationId,
       branchId,
@@ -170,6 +180,7 @@ class AppointmentService {
       visitType: visitType || 'business',
       scheduledStart,
       scheduledEnd,
+      expectedDurationMinutes: calculatedDur,
       referenceCode,
       qrToken,
       verificationStatus: verificationStatus || 'unverified',
@@ -356,6 +367,17 @@ class AppointmentService {
       isCancelled: true,
       cancellationReason: reason,
     });
+
+    try {
+      await db.query(
+        `UPDATE visitor_histories SET visit_status = 'CANCELLED' WHERE appointment_id = ? OR appointment_number = ? OR reference_number = ?`,
+        [id, appointment.reference_code, appointment.reference_code]
+      );
+      await db.query(
+        `UPDATE visitor_passes SET status = 'CANCELLED' WHERE appointment_id = ?`,
+        [id]
+      );
+    } catch (e) {}
 
     await auditRepository.log({
       userId: operatorUserId,

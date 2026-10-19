@@ -282,22 +282,51 @@ class VisitorPortalController {
         : new Date(Date.now() + 90000000).toISOString().slice(0, 19).replace('T', ' ');
       const reason = req.body?.reason || 'Rescheduled by visitor';
 
-      // Cancel old and create new
-      await appointmentService.cancelAppointment(appointment.id, reason, req.user.id).catch(() => {});
-      const result = await appointmentService.createAppointment({
-        visitorId: profile ? profile.id : 147,
-        visitorName: profile ? profile.full_name : 'Visitor User',
-        visitorEmail: profile ? profile.email : 'visitor@example.com',
-        hostId: appointment.host_id || 1,
-        departmentId: appointment.department_id || 1,
-        roomId: appointment.room_id || null,
-        purpose: appointment.purpose || 'General Consultation',
-        visitType: appointment.visit_type || 'STANDARD',
-        scheduledStart,
-        scheduledEnd,
-      }, req.user.id);
+      let calculatedDur = 60;
+      if (scheduledStart && scheduledEnd) {
+        const d1 = new Date(scheduledStart);
+        const d2 = new Date(scheduledEnd);
+        if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d2 >= d1) {
+          calculatedDur = Math.max(15, Math.round((d2.getTime() - d1.getTime()) / 60000));
+        }
+      }
 
-      res.json({ status: 'success', message: 'Appointment rescheduled', data: result });
+      const db = require('../../../config/db');
+      await db.query(
+        `UPDATE appointments 
+         SET appointment_status = 'RESCHEDULED', approval_status = 'PENDING', status = 'rescheduled',
+             scheduled_start = ?, scheduled_end = ?, expected_duration_minutes = ?, remarks = ?
+         WHERE id = ?`,
+        [scheduledStart, scheduledEnd, calculatedDur, reason, appointment.id]
+      );
+
+      await db.query(
+        `UPDATE visitor_histories 
+         SET visit_status = 'RESCHEDULED', appointment_date = DATE(?), completed_date = ?, visit_duration_minutes = ?
+         WHERE appointment_id = ? OR appointment_number = ? OR reference_number = ?`,
+        [scheduledStart, scheduledStart, calculatedDur, appointment.id, appointment.reference_code, appointment.reference_code]
+      ).catch(() => {});
+
+      await db.query(
+        `UPDATE visitor_passes 
+         SET status = 'RESCHEDULED' 
+         WHERE appointment_id = ?`,
+        [appointment.id]
+      ).catch(() => {});
+
+      res.json({
+        status: 'success',
+        message: 'Appointment rescheduled',
+        data: {
+          id: appointment.id,
+          referenceCode: appointment.reference_code,
+          appointment_status: 'RESCHEDULED',
+          status: 'RESCHEDULED',
+          scheduledStart,
+          scheduledEnd,
+          durationMinutes: calculatedDur
+        }
+      });
     } catch (err) {
       next(err);
     }

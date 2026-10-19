@@ -640,6 +640,12 @@ class VisitorRepository {
   async getPasses(visitorId) {
     return db.query(
       `SELECT vp.*,
+              COALESCE(vp.status, a.status, a.approval_status, 'PENDING') as status,
+              a.status as appointment_status,
+              a.approval_status as appointment_approval_status,
+              a.expected_duration_minutes,
+              c.checkin_time,
+              vco.checkout_time,
               v.full_name as visitor_name, v.full_name as visitorName,
               v.email as visitor_email, v.phone as visitor_phone,
               COALESCE(v.photo_url, u_vis.profile_photo, u_vis.avatar_url) as photo_url,
@@ -655,6 +661,12 @@ class VisitorRepository {
        LEFT JOIN visitors v ON vp.visitor_id = v.id
        LEFT JOIN users u_vis ON v.user_id = u_vis.id
        LEFT JOIN appointments a ON vp.appointment_id = a.id
+       LEFT JOIN (
+          SELECT appointment_id, MAX(COALESCE(checked_in_at, entry_time)) as checkin_time, MAX(id) as max_id
+          FROM checkins
+          GROUP BY appointment_id
+       ) c ON c.appointment_id = a.id
+       LEFT JOIN visitor_checkouts vco ON vco.checkin_id = c.max_id
        LEFT JOIN users u ON a.host_id = u.id
        LEFT JOIN departments d ON a.department_id = d.id
        LEFT JOIN meeting_rooms r ON a.room_id = r.id
@@ -667,6 +679,12 @@ class VisitorRepository {
   async getPassById(passId, visitorId) {
     const rows = await db.query(
       `SELECT vp.*,
+              COALESCE(vp.status, a.status, a.approval_status, 'PENDING') as status,
+              a.status as appointment_status,
+              a.approval_status as appointment_approval_status,
+              a.expected_duration_minutes,
+              c.checkin_time,
+              vco.checkout_time,
               v.full_name as visitor_name, v.full_name as visitorName,
               v.email as visitor_email, v.phone as visitor_phone,
               COALESCE(v.photo_url, u_vis.profile_photo, u_vis.avatar_url) as photo_url,
@@ -682,6 +700,12 @@ class VisitorRepository {
        LEFT JOIN visitors v ON vp.visitor_id = v.id
        LEFT JOIN users u_vis ON v.user_id = u_vis.id
        LEFT JOIN appointments a ON vp.appointment_id = a.id
+       LEFT JOIN (
+          SELECT appointment_id, MAX(COALESCE(checked_in_at, entry_time)) as checkin_time, MAX(id) as max_id
+          FROM checkins
+          GROUP BY appointment_id
+       ) c ON c.appointment_id = a.id
+       LEFT JOIN visitor_checkouts vco ON vco.checkin_id = c.max_id
        LEFT JOIN users u ON a.host_id = u.id
        LEFT JOIN departments d ON a.department_id = d.id
        LEFT JOIN meeting_rooms r ON a.room_id = r.id
@@ -695,7 +719,11 @@ class VisitorRepository {
   async findHistory(visitorId, filters = {}) {
     let apptSql = `SELECT a.id as appointmentId, a.reference_code as referenceCode,
                       a.scheduled_start as scheduledStart, a.scheduled_end as scheduledEnd,
-                      a.appointment_status as appointmentStatus, a.purpose,
+                      a.appointment_status as appointmentStatus,
+                      a.approval_status as approvalStatus,
+                      a.status as status,
+                      a.purpose,
+                      a.expected_duration_minutes as expectedDurationMinutes,
                       u.full_name as hostName, d.name as departmentName,
                       r.room_name as roomName,
                       COALESCE(c.entry_time, c.checked_in_at) as entryTime, COALESCE(co.exit_time, co.checkout_time) as exitTime,
@@ -722,7 +750,7 @@ class VisitorRepository {
                LEFT JOIN departments d ON a.department_id = d.id
                LEFT JOIN meeting_rooms r ON a.room_id = r.id
                LEFT JOIN checkins c ON c.appointment_id = a.id
-               LEFT JOIN visitor_checkouts co ON co.checkin_id = c.id
+               LEFT JOIN visitor_checkouts co ON (co.appointment_id = a.id OR co.checkin_id = c.id)
                WHERE (a.visitor_id = ? OR a.visitor_user_id = ? OR v.user_id = ?) AND a.deleted_at IS NULL`;
     const apptRows = await db.query(apptSql, [visitorId, visitorId, visitorId]).catch(() => []);
 
@@ -753,7 +781,55 @@ class VisitorRepository {
     // When an appointment request exists and history record exists, update the single history record
     if (apptRows.length > 0 && vhRows.length > 0) {
       const latestAppt = apptRows[apptRows.length - 1];
-      const apptDur = latestAppt.durationMinutes || 60;
+
+      // Calculate real visit duration from check-in & check-out if available, otherwise appointment requested duration
+      let calcDuration = null;
+      const tIn = vhRows[0].entryTime || latestAppt.entryTime || vhRows[0].checkin_time;
+      const tOut = vhRows[0].exitTime || latestAppt.exitTime || vhRows[0].checkout_time;
+      if (tIn && tOut && tIn !== '-' && tOut !== '-' && String(tIn).trim() !== String(tOut).trim()) {
+        const d1 = new Date(tIn);
+        const d2 = new Date(tOut);
+        if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d2 >= d1) {
+          calcDuration = Math.max(1, Math.round((d2.getTime() - d1.getTime()) / 60000));
+        }
+      }
+      if (!calcDuration && tIn && (!tOut || tOut === '-')) {
+        const d1 = new Date(tIn);
+        if (!isNaN(d1.getTime())) {
+          calcDuration = Math.max(1, Math.round((Date.now() - d1.getTime()) / 60000));
+        }
+      }
+      if (!calcDuration) {
+        calcDuration = latestAppt.expectedDurationMinutes || latestAppt.expected_duration_minutes;
+        if (!calcDuration && latestAppt.scheduledStart && latestAppt.scheduledEnd) {
+          const s1 = new Date(latestAppt.scheduledStart);
+          const s2 = new Date(latestAppt.scheduledEnd);
+          if (!isNaN(s1.getTime()) && !isNaN(s2.getTime()) && s2 >= s1) {
+            calcDuration = Math.max(15, Math.round((s2.getTime() - s1.getTime()) / 60000));
+          }
+        }
+        if (!calcDuration) calcDuration = latestAppt.durationMinutes || 60;
+      }
+
+      // Determine accurate synced status from appointment
+      const rawApptStat = (latestAppt.appointmentStatus || latestAppt.approvalStatus || latestAppt.status || 'PENDING').toString().toUpperCase();
+      let syncStatus = 'PENDING';
+      if (rawApptStat.includes('CANCEL')) {
+        syncStatus = 'CANCELLED';
+      } else if (rawApptStat.includes('RESCHED')) {
+        syncStatus = 'RESCHEDULED';
+      } else if (rawApptStat.includes('REJECT') || rawApptStat.includes('DECLIN')) {
+        syncStatus = 'REJECTED';
+      } else if (rawApptStat.includes('CHECKED_OUT') || rawApptStat === 'COMPLETED' || (tOut && tOut !== '-')) {
+        syncStatus = 'COMPLETED';
+      } else if (rawApptStat.includes('CHECKED_IN') || (tIn && (!tOut || tOut === '-'))) {
+        syncStatus = 'CHECKED_IN';
+      } else if (rawApptStat.includes('APPROV') || rawApptStat.includes('CONFIRM')) {
+        syncStatus = 'APPROVED';
+      } else {
+        syncStatus = 'PENDING';
+      }
+
       try {
         await db.query(`
           UPDATE visitor_histories SET
@@ -772,8 +848,8 @@ class VisitorRepository {
           latestAppt.hostName || vhRows[0].hostName,
           latestAppt.departmentName || vhRows[0].departmentName,
           latestAppt.purpose || vhRows[0].purpose,
-          apptDur,
-          latestAppt.appointmentStatus || 'Pending',
+          calcDuration,
+          syncStatus,
           latestAppt.scheduledStart || null,
           vhRows[0].id
         ]);
@@ -783,8 +859,8 @@ class VisitorRepository {
         vhRows[0].hostName = latestAppt.hostName || vhRows[0].hostName;
         vhRows[0].departmentName = latestAppt.departmentName || vhRows[0].departmentName;
         vhRows[0].purpose = latestAppt.purpose || vhRows[0].purpose;
-        vhRows[0].durationMinutes = apptDur;
-        vhRows[0].status = latestAppt.appointmentStatus || 'Pending';
+        vhRows[0].durationMinutes = calcDuration;
+        vhRows[0].status = syncStatus;
         vhRows[0].scheduledStart = latestAppt.scheduledStart || vhRows[0].scheduledStart;
         vhRows[0].photo_url = vhRows[0].photo_url || latestAppt.photo_url;
         vhRows[0].photoUrl = vhRows[0].photoUrl || latestAppt.photoUrl || vhRows[0].photo_url;

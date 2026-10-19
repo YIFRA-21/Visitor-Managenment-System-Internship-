@@ -123,6 +123,8 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
                     purpose: formData.purpose,
                     scheduled_start: `${formData.visitDate} ${formData.startTime}:00`,
                     scheduled_end: `${formData.visitDate} ${formData.endTime}:00`,
+                    expected_duration_minutes: calculatedDuration.totalMinutes || 60,
+                    durationMinutes: calculatedDuration.totalMinutes || 60,
                     location: formData.location,
                     room_name: formData.meetingRoom,
                     notes: formData.notes,
@@ -152,6 +154,8 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
             catch (e) {
                 console.error('Local storage update error:', e);
             }
+            window.dispatchEvent(new CustomEvent('appointment_status_changed', { detail: newAppointment }));
+            window.dispatchEvent(new CustomEvent('appointment_updated', { detail: newAppointment }));
             setSuccess(true);
             setTimeout(() => {
                 onSubmit(newAppointment);

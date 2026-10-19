@@ -1,6 +1,0 @@
-$kind: http-request
-url: "{{baseUrl}}/api/departments"
-method: GET
-headers:
-  Authorization: Bearer {{authToken}}
-order: 1000

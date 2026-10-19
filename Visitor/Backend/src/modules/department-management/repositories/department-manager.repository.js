@@ -778,6 +778,9 @@ class DepartmentManagerRepository {
       [managerUserId, apptId, deptId]
     );
 
+    await db.query(`UPDATE visitor_histories SET visit_status = 'APPROVED' WHERE appointment_id = ?`, [apptId]).catch(() => {});
+    await db.query(`UPDATE visitor_passes SET status = 'APPROVED' WHERE appointment_id = ?`, [apptId]).catch(() => {});
+
     await db.query(
       `UPDATE appointment_approvals 
        SET decision = 'APPROVED', decided_at = NOW(), comments = ?, updated_by = ?
@@ -821,6 +824,9 @@ class DepartmentManagerRepository {
        WHERE id = ? AND department_id = ?`,
       [comments || 'Rejected by Department Manager', managerUserId, apptId, deptId]
     );
+
+    await db.query(`UPDATE visitor_histories SET visit_status = 'REJECTED' WHERE appointment_id = ?`, [apptId]).catch(() => {});
+    await db.query(`UPDATE visitor_passes SET status = 'REJECTED' WHERE appointment_id = ?`, [apptId]).catch(() => {});
 
     await db.query(
       `UPDATE appointment_approvals 

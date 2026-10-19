@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET Current User Details (/me)
-url: "{{baseUrl}}/api/auth/me"
-method: GET
-headers:
-  Authorization: Bearer {{authToken}}
-order: 3000

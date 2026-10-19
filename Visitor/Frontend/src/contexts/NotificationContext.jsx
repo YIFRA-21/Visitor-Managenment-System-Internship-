@@ -59,6 +59,11 @@ export function NotificationProvider({ children }) {
     cleanMessage = String(cleanMessage).trim();
     if (!cleanMessage) return null;
 
+    // Suppress technical token / protected endpoint / authentication toast messages on login/logout
+    if (/authenticated user token|protected endpoint requires|authentication required/i.test(cleanMessage)) {
+      return null;
+    }
+
     // Hide sensitive raw SQL errors from user
     if (/select|insert|update|delete|table|column|sql|syntax error|foreign key/i.test(cleanMessage) && cleanMessage.length > 50) {
       cleanMessage = 'A database operation could not be completed. Please verify your data and try again.';

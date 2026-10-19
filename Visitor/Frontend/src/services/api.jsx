@@ -33,17 +33,16 @@ api.interceptors.response.use((res) => res, (err) => {
         if (!isPublicPath) {
             window.location.href = isBlocked ? '/login?blocked=true' : '/login';
         }
+        return Promise.reject(err);
     }
 
     // Trigger global notification for API errors unless silenced by caller
-    if (!err.config?.skipGlobalErrorNotification && !err.config?.silent) {
-        // Suppress 401 redirect errors on private paths as user is navigating to login
-        if (!(status === 401 && !isPublicPath)) {
-            const errorMessage = getErrorMessage(err);
-            if (typeof window !== 'undefined' && window.showNotification) {
-                const notifType = status === 403 ? 'warning' : status >= 500 ? 'error' : 'error';
-                window.showNotification(errorMessage, notifType);
-            }
+    // 401 is an authentication state (login/logout transition) and should never display a global toast
+    if (!err.config?.skipGlobalErrorNotification && !err.config?.silent && status !== 401) {
+        const errorMessage = getErrorMessage(err);
+        if (errorMessage && typeof window !== 'undefined' && window.showNotification) {
+            const notifType = status === 403 ? 'warning' : status >= 500 ? 'error' : 'error';
+            window.showNotification(errorMessage, notifType);
         }
     }
 
@@ -80,13 +79,19 @@ export const getErrorMessage = (err) => {
         return 'Network error. Server may be unavailable.';
     const status = axErr.response?.status;
     const data = axErr.response?.data;
+    if (status === 401)
+        return '';
     if (status === 429)
         return 'Upload rate limit exceeded. Please wait a moment and retry.';
     if (status === 413)
         return 'Maximum file size exceeded (5MB limit).';
     // First try: plain string message field (most backend AppError responses)
-    if (typeof data?.message === 'string' && data.message)
+    if (typeof data?.message === 'string' && data.message) {
+        if (/authenticated user token|protected endpoint requires|authentication required/i.test(data.message)) {
+            return '';
+        }
         return data.message;
+    }
     // Second try: validation details array (e.g. { error: 'Validation failed', details: [{field, message}] })
     if (Array.isArray(data?.details) && data.details.length > 0) {
         const firstDetail = data.details[0];

@@ -167,14 +167,20 @@ export default function VisitHistory() {
                         String(rawCheckOut) !== String(rawCheckIn);
                     const rawStat = (item.approval_status || item.appointment_status || item.appointmentStatus || item.visit_status || item.status || 'PENDING').toString().toUpperCase();
                     let status = 'PENDING';
-                    if (hasCheckedOut || (['COMPLETED', 'CHECKED_OUT'].includes(rawStat) && hasCheckedOut)) {
-                        status = 'COMPLETED';
+                    if (rawStat.includes('CANCEL')) {
+                        status = 'CANCELLED';
                     }
-                    else if (['REJECTED', 'DECLINED'].includes(rawStat)) {
+                    else if (rawStat.includes('RESCHED')) {
+                        status = 'RESCHEDULED';
+                    }
+                    else if (rawStat.includes('REJECT') || rawStat.includes('DECLIN')) {
                         status = 'REJECTED';
                     }
-                    else if (['CANCELLED'].includes(rawStat)) {
-                        status = 'CANCELLED';
+                    else if (hasCheckedOut || ['COMPLETED', 'CHECKED_OUT', 'CHECKOUT'].some(s => rawStat.includes(s))) {
+                        status = 'COMPLETED';
+                    }
+                    else if (rawStat.includes('CHECKED_IN') || rawStat.includes('CHECKIN') || rawStat === 'IN_PROGRESS') {
+                        status = 'CHECKED IN';
                     }
                     else if (['APPROVED', 'CONFIRMED'].includes(rawStat)) {
                         status = 'APPROVED';
@@ -188,7 +194,35 @@ export default function VisitHistory() {
                     const checkOutTime = hasCheckedOut
                         ? (!isNaN(Date.parse(rawCheckOut)) ? new Date(rawCheckOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : String(rawCheckOut))
                         : '-';
-                    const duration = item.durationMinutes || item.visit_duration_minutes || item.duration || item.expected_duration_minutes || (hasCheckedOut ? 15 : 60);
+
+                    // Compute real duration from check-in/out timestamps or requested appointment duration
+                    let realDuration = 0;
+                    if (rawCheckIn && rawCheckOut && rawCheckIn !== '-' && rawCheckOut !== '-' && String(rawCheckIn).trim() !== String(rawCheckOut).trim()) {
+                        const dIn = new Date(rawCheckIn);
+                        const dOut = new Date(rawCheckOut);
+                        if (!isNaN(dIn.getTime()) && !isNaN(dOut.getTime()) && dOut >= dIn) {
+                            realDuration = Math.max(1, Math.round((dOut.getTime() - dIn.getTime()) / 60000));
+                        }
+                    } else if (rawCheckIn && rawCheckIn !== '-' && (!rawCheckOut || rawCheckOut === '-')) {
+                        const dIn = new Date(rawCheckIn);
+                        if (!isNaN(dIn.getTime())) {
+                            realDuration = Math.max(1, Math.round((Date.now() - dIn.getTime()) / 60000));
+                        }
+                    }
+
+                    let reqDuration = item.expected_duration_minutes || item.expectedDurationMinutes || item.durationMinutes || item.visit_duration_minutes || item.duration;
+                    const sStart = item.scheduledStart || item.scheduled_start;
+                    const sEnd = item.scheduledEnd || item.scheduled_end;
+                    if (!reqDuration && sStart && sEnd) {
+                        const d1 = new Date(sStart);
+                        const d2 = new Date(sEnd);
+                        if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d2 >= d1) {
+                            reqDuration = Math.max(15, Math.round((d2.getTime() - d1.getTime()) / 60000));
+                        }
+                    }
+                    if (!reqDuration) reqDuration = 60;
+
+                    const duration = realDuration > 0 ? realDuration : reqDuration;
                     return {
                         id: String(item.id || item.appointmentId || `VIS-${idx + 100}`),
                         historyCode: item.history_code || item.historyCode || `VIS-2026-${String(idx + 1).padStart(6, '0')}`,
@@ -339,9 +373,13 @@ export default function VisitHistory() {
         };
         window.addEventListener('storage', handleStorageUpdate);
         window.addEventListener('user_updated', handleStorageUpdate);
+        window.addEventListener('appointment_status_changed', handleStorageUpdate);
+        window.addEventListener('appointment_updated', handleStorageUpdate);
         return () => {
             window.removeEventListener('storage', handleStorageUpdate);
             window.removeEventListener('user_updated', handleStorageUpdate);
+            window.removeEventListener('appointment_status_changed', handleStorageUpdate);
+            window.removeEventListener('appointment_updated', handleStorageUpdate);
         };
     }, [fetchHistory]);
     const handleSort = (field) => {
@@ -370,20 +408,26 @@ export default function VisitHistory() {
     });
     const renderSortIcon = (column) => (<ArrowUpDown className={`h-3 w-3 ms-1 inline-block ${sortBy === column ? 'text-blue-500' : 'text-slate-400'}`}/>);
     const getStatusBadge = (status) => {
-        switch (status?.toUpperCase()) {
-            case 'COMPLETED':
-            case 'CHECKED_OUT':
-                return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
-            case 'APPROVED':
-            case 'CONFIRMED':
-                return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
-            case 'PENDING':
-                return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
-            case 'CANCELLED':
-                return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
-            default:
-                return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+        const s = (status || '').toUpperCase();
+        if (s.includes('CANCEL')) {
+            return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
         }
+        if (s.includes('RESCHED')) {
+            return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20';
+        }
+        if (s.includes('REJECT') || s.includes('DECLIN')) {
+            return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
+        }
+        if (s === 'COMPLETED' || s.includes('CHECKED_OUT') || s.includes('CHECKOUT')) {
+            return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
+        }
+        if (s.includes('CHECKED_IN') || s.includes('CHECKIN') || s === 'CHECKED IN') {
+            return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+        }
+        if (s === 'APPROVED' || s === 'CONFIRMED') {
+            return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+        }
+        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
     };
     const handleViewDetails = (item) => {
         setSelectedAppt(item);

@@ -271,13 +271,21 @@ class CheckinRepository {
            WHERE id = ?`,
           [appointmentId]
         );
+        try {
+          await tx.execute(
+            `UPDATE visitor_histories 
+             SET visit_status = 'Completed', checkout_time = ?, visit_duration_minutes = ?
+             WHERE appointment_id = ?`,
+            [checkoutTime, totalVisitDuration, appointmentId]
+          );
+        } catch (e) {}
       }
 
-      // 4. Set pass status to EXPIRED
+      // 4. Set pass status to CHECKED_OUT / EXPIRED
       await tx.execute(
         `UPDATE visitor_passes vp
          JOIN checkins c ON c.pass_id = vp.id
-         SET vp.status = 'EXPIRED', vp.updated_at = CURRENT_TIMESTAMP
+         SET vp.status = 'CHECKED_OUT', vp.updated_at = CURRENT_TIMESTAMP
          WHERE c.id = ?`,
         [checkinId]
       );
