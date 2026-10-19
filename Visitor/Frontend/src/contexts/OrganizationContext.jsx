@@ -119,6 +119,24 @@ export const OrganizationProvider = ({ children }) => {
     useEffect(() => {
         fetchOrganization();
     }, [fetchOrganization]);
+
+    // Dynamically update browser tab favicon and document title
+    useEffect(() => {
+        const iconUrl = organization.faviconUrl || organization.logoUrl || '/logo.png';
+        if (iconUrl) {
+            let link = document.querySelector("link[rel*='icon']");
+            if (!link) {
+                link = document.createElement('link');
+                link.rel = 'icon';
+                document.head.appendChild(link);
+            }
+            link.href = iconUrl;
+            link.type = iconUrl.endsWith('.png') ? 'image/png' : (iconUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/x-icon');
+        }
+        if (organization.name) {
+            document.title = `${organization.name} - Visitor Management System`;
+        }
+    }, [organization.faviconUrl, organization.logoUrl, organization.name]);
     const updateLocalOrganization = useCallback((data) => {
         setOrganization((prev) => {
             const updated = { ...prev, ...data };
