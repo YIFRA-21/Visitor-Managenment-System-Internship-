@@ -11,25 +11,32 @@ let useMock = false;
 let originalQuery;
 
 try {
-  pool = mysql.createPool({
+  const isCloudOrSsl = process.env.DB_SSL === 'true' || 
+    Boolean(process.env.DB_HOST && !['localhost', '127.0.0.1'].includes(process.env.DB_HOST.toLowerCase()));
+
+  const poolOptions = {
     host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3307'),
+    port: parseInt(process.env.DB_PORT || '3306'),
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'Yetm@1234',
+    password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'visitor_db',
     waitForConnections: true,
-    connectionLimit: 20, // Enterprise production pool size
+    connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '20'),
     queueLimit: 0,
     dateStrings: true,
     connectTimeout: 20000,
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
-    ssl: {
-    rejectUnauthorized: true
-  },
-  waitForConnections: true,
-  connectionLimit: 10
-  });
+  };
+
+  if (isCloudOrSsl) {
+    poolOptions.ssl = {
+      minVersion: 'TLSv1.2',
+      rejectUnauthorized: true,
+    };
+  }
+
+  pool = mysql.createPool(poolOptions);
   originalQuery = pool.query.bind(pool);
   useMock = false;
   console.log('Database connection pool initialized (MySQL database active).');
