@@ -28,6 +28,8 @@ import VerificationStatusPage from '../../modules/identity-verification/pages/Ve
 import ReviewerQueuePage from '../../modules/identity-verification/pages/ReviewerQueuePage';
 import ReviewerCaseDetailPage from '../../modules/identity-verification/pages/ReviewerCaseDetailPage';
 import VerificationPolicySettingsPage from '../../modules/identity-verification/pages/VerificationPolicySettingsPage';
+import LoadingScreen from '../../components/LoadingScreen';
+
 const DashboardRedirect = () => {
     const { user } = useAuth();
     const location = useLocation();
@@ -47,9 +49,7 @@ const DashboardRedirect = () => {
 const RootRoute = () => {
     const { user, loading } = useAuth();
     if (loading) {
-        return (<div className="flex items-center justify-center min-h-screen bg-[#070b13]">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"/>
-      </div>);
+        return <LoadingScreen />;
     }
     if (user) {
         const statusUpper = String(user.accountStatus || user.status || '').toUpperCase();

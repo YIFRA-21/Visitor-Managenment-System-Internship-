@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, BLOCKED_ACCOUNT_STATUSES } from '../contexts/AuthContext';
 import SessionTimeoutModal from './SessionTimeoutModal';
 import { isAdminRole } from '../config/routes';
+import LoadingScreen from './LoadingScreen';
 export default function ProtectedRoute({ children, requiredPermission, requiredRole, }) {
     const { user, loading: authLoading, hasPermission, hasRole } = useAuth();
     const location = useLocation();
@@ -85,9 +86,7 @@ export default function ProtectedRoute({ children, requiredPermission, requiredR
         setChecking(false);
     }, [user, authLoading, location.pathname, requiredPermission, requiredRole, hasPermission, hasRole]);
     if (authLoading || checking) {
-        return (<div className="flex min-h-screen items-center justify-center bg-[#070b13]">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"/>
-      </div>);
+        return <LoadingScreen />;
     }
     if (!user)
         return <Navigate to="/login" replace/>;
