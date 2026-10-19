@@ -277,21 +277,22 @@ class UserManagementService {
 
   // ── 4. Get Single User Details ────────────────────────────────────────────
 
-  async getUser(id) {
+  async getUser(id, includeDeleted = true) {
+    const whereClause = includeDeleted ? 'WHERE u.id = ?' : 'WHERE u.id = ? AND u.deleted_at IS NULL';
     const rows = await db.query(
       `SELECT u.id, u.user_code, u.username, u.email, u.first_name, u.middle_name, u.last_name, u.full_name,
               u.phone, u.avatar_url, u.account_status, u.status, u.email_verified, u.phone_verified,
               u.failed_login_attempts, u.last_login_at, u.role, u.department_id, u.first_login_required,
-              u.created_at, u.updated_at,
+              u.created_at, u.updated_at, u.deleted_at,
               COALESCE(d.department_name, d.name, 'General') AS department_name,
-              COALESCE(b.branch_name, (SELECT branch_name FROM organization_branches WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1), 'Main Branch') AS branch_name,
-              COALESCE(o.name, (SELECT name FROM organizations WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1), 'IT Park') AS organization_name
+              COALESCE(b.branch_name, 'Main Branch') AS branch_name,
+              COALESCE(o.name, 'IT Park') AS organization_name
        FROM users u
-       LEFT JOIN employees e ON e.user_id = u.id AND e.deleted_at IS NULL
+       LEFT JOIN employees e ON e.user_id = u.id
        LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
-       LEFT JOIN organization_branches b ON COALESCE(u.branch_id, e.branch_id, d.branch_id) = b.id
-       LEFT JOIN organizations o ON COALESCE(u.organization_id, e.organization_id, b.organization_id, d.organization_id) = o.id
-       WHERE u.id = ? AND u.deleted_at IS NULL`,
+       LEFT JOIN organization_branches b ON e.branch_id = b.id
+       LEFT JOIN organizations o ON b.organization_id = o.id
+       ${whereClause}`,
       [id]
     );
     if (!rows[0]) throw new AppError('User not found', 404);
@@ -1438,8 +1439,8 @@ class UserManagementService {
   // ── 17. User Account Archival & Restoration ──────────────────────────────
 
   async archiveUser(userId, operatorUserId = 1) {
-    const user = await this.getUser(userId);
-    if (user.role === 'admin' || userId === 1) {
+    const user = await this.getUser(userId, true);
+    if (user.role === 'admin' && userId === 1) {
       await auditRepository.log({
         userId: operatorUserId || 1,
         action: 'USER_ARCHIVED',
@@ -1465,20 +1466,12 @@ class UserManagementService {
   }
 
   async deleteUser(userId, operatorUserId = 1) {
-    const user = await this.getUser(userId);
-    if (user.role === 'admin' || userId === 1) {
-      await auditRepository.log({
-        userId: operatorUserId || 1,
-        action: 'USER_DELETED',
-        module: 'USER_MANAGEMENT',
-        entity: 'users',
-        recordId: userId,
-        newValues: { note: 'Primary administrator preserved' }
-      });
-      return true;
+    const user = await this.getUser(userId, true);
+    if (user.role === 'admin' && userId === 1) {
+      throw new AppError('Cannot delete the primary system administrator account.', 400);
     }
 
-    await userRepository.archiveUser(userId, operatorUserId || 1);
+    await userRepository.deleteUser(userId, operatorUserId || 1);
 
     await auditRepository.log({
       userId: operatorUserId || 1,

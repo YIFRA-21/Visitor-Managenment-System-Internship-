@@ -420,46 +420,66 @@ class UserRepository {
     return result.affectedRows || 0;
   }
 
-  async archiveUser(userId, operatorId) {
-    const rows = await db.query(`SELECT id, email, username FROM users WHERE id = ?`, [userId]);
+  async archiveUser(userId, operatorId = 1) {
+    const rows = await db.query(`SELECT id, email, username, user_code FROM users WHERE id = ?`, [userId]);
     const u = rows && rows[0];
     const ts = Date.now();
     if (u) {
-      const origEmail = u.email.replace(/^deleted_\d+_/, '');
-      const freedEmail = `deleted_${ts}_${origEmail}`;
-      const freedUsername = `deleted_${ts}_${u.username.replace(/^deleted_\d+_/, '')}`;
-      await db.query(
-        `UPDATE users
-         SET account_status = 'ARCHIVED',
-             status = 'archived',
-             is_active = 0,
-             email = ?,
-             username = ?,
-             user_code = CONCAT('DEL_', id, '_', UNIX_TIMESTAMP(), '_', user_code),
-             deleted_at = CURRENT_TIMESTAMP,
-             archived_at = CURRENT_TIMESTAMP,
-             archived_by = ?
-         WHERE id = ?`,
-        [freedEmail, freedUsername, operatorId, userId]
-      );
+      const origEmail = (u.email || '').replace(/^deleted_\d+_/, '');
+      const freedEmail = `deleted_${ts}_${origEmail}`.slice(0, 100);
+      const cleanUsername = (u.username || `user_${userId}`).replace(/^deleted_\d+_/, '');
+      const freedUsername = `deleted_${ts}_${cleanUsername}`.slice(0, 100);
+      const cleanUserCode = (u.user_code || `USR-${userId}`).replace(/^DEL_\d+_\d+_/, '');
+      const freedUserCode = `DEL_${userId}_${Math.floor(ts / 1000)}_${cleanUserCode}`.slice(0, 50);
+
+      try {
+        await db.query(
+          `UPDATE users
+           SET account_status = 'ARCHIVED',
+               status = 'archived',
+               is_active = 0,
+               email = ?,
+               username = ?,
+               user_code = ?,
+               deleted_at = CURRENT_TIMESTAMP,
+               archived_at = CURRENT_TIMESTAMP,
+               archived_by = ?
+           WHERE id = ?`,
+          [freedEmail, freedUsername, freedUserCode, operatorId, userId]
+        );
+      } catch (err) {
+        await db.query(
+          `UPDATE users
+           SET account_status = 'ARCHIVED',
+               status = 'archived',
+               is_active = 0,
+               deleted_at = CURRENT_TIMESTAMP,
+               archived_at = CURRENT_TIMESTAMP,
+               archived_by = ?
+           WHERE id = ?`,
+          [operatorId, userId]
+        ).catch(() => {});
+      }
+
       // Free email and employee_number from employees table if linked
       await db.query(
         `UPDATE employees
          SET email = CONCAT('deleted_${ts}_', email),
-             employee_number = CONCAT('DEL_', id, '_', UNIX_TIMESTAMP(), '_', employee_number),
              employment_status = 'Inactive',
              is_host_enabled = 0,
              deleted_at = CURRENT_TIMESTAMP
          WHERE user_id = ? OR LOWER(email) = LOWER(?) OR LOWER(email) = LOWER(?)`,
         [userId, u.email, origEmail]
-      ).catch(err => console.error('Error updating employees on archiveUser:', err));
+      ).catch(() => {});
+
       // Free manager_number from manager_profiles table if linked
       await db.query(
         `UPDATE manager_profiles
-         SET manager_number = CONCAT('DEL_', id, '_', UNIX_TIMESTAMP(), '_', manager_number)
+         SET status = 'INACTIVE'
          WHERE user_id = ?`,
         [userId]
-      ).catch(err => console.error('Error updating manager_profiles on archiveUser:', err));
+      ).catch(() => {});
+
       // Free email from visitors table if linked
       await db.query(
         `UPDATE visitors
@@ -469,22 +489,70 @@ class UserRepository {
              status = 'DELETED'
          WHERE user_id = ? OR LOWER(email) = LOWER(?) OR LOWER(email) = LOWER(?)`,
         [userId, u.email, origEmail]
-      ).catch(err => console.error('Error updating visitors on archiveUser:', err));
+      ).catch(() => {});
     } else {
       await db.query(
         `UPDATE users
          SET account_status = 'ARCHIVED', status = 'archived', deleted_at = CURRENT_TIMESTAMP, archived_at = CURRENT_TIMESTAMP, archived_by = ?
          WHERE id = ?`,
         [operatorId, userId]
-      );
+      ).catch(() => {});
     }
     await db.query(`UPDATE user_roles SET is_active = 0, deleted_at = CURRENT_TIMESTAMP WHERE user_id = ?`, [userId]).catch(() => {});
     await db.query(`UPDATE user_sessions SET is_active = 0 WHERE user_id = ?`, [userId]).catch(() => {});
     return true;
   }
 
-  async deleteUser(userId, operatorId) {
-    return this.archiveUser(userId, operatorId);
+  async deleteUser(userId, operatorId = 1) {
+    if (!userId || userId === 1) return false;
+
+    const safeExec = async (query, params = []) => {
+      try {
+        await db.query(query, params);
+      } catch (e) {}
+    };
+
+    // 1. Delete associated child table records
+    await safeExec(`DELETE FROM user_sessions WHERE user_id = ?`, [userId]);
+    await safeExec(`DELETE FROM user_tokens WHERE user_id = ?`, [userId]);
+    await safeExec(`DELETE FROM user_roles WHERE user_id = ?`, [userId]);
+    await safeExec(`DELETE FROM user_permissions WHERE user_id = ?`, [userId]);
+    await safeExec(`DELETE FROM user_activity_logs WHERE user_id = ?`, [userId]);
+    await safeExec(`DELETE FROM user_login_history WHERE user_id = ?`, [userId]);
+    await safeExec(`DELETE FROM notifications WHERE user_id = ?`, [userId]);
+    await safeExec(`DELETE FROM notification_recipients WHERE user_id = ?`, [userId]);
+    await safeExec(`DELETE FROM user_security_settings WHERE user_id = ?`, [userId]);
+    await safeExec(`DELETE FROM user_preferences WHERE user_id = ?`, [userId]);
+
+    // 2. Unlink linked employee, visitor, or manager profile
+    await safeExec(`UPDATE employees SET user_id = NULL WHERE user_id = ?`, [userId]);
+    await safeExec(`UPDATE visitors SET user_id = NULL WHERE user_id = ?`, [userId]);
+    await safeExec(`UPDATE manager_profiles SET user_id = NULL WHERE user_id = ?`, [userId]);
+
+    // 3. Dynamic foreign key cleanup from INFORMATION_SCHEMA
+    try {
+      const fks = await db.query(`
+        SELECT TABLE_NAME, COLUMN_NAME
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE REFERENCED_TABLE_NAME = 'users' AND REFERENCED_COLUMN_NAME = 'id'
+      `);
+      if (Array.isArray(fks)) {
+        for (const fk of fks) {
+          if (fk.TABLE_NAME && fk.TABLE_NAME.toLowerCase() !== 'users') {
+            await safeExec(`DELETE FROM ${fk.TABLE_NAME} WHERE ${fk.COLUMN_NAME} = ?`, [userId]);
+          }
+        }
+      }
+    } catch (fkErr) {}
+
+    // 4. Finally delete the user from users table
+    try {
+      const result = await db.query(`DELETE FROM users WHERE id = ?`, [userId]);
+      return result.affectedRows > 0;
+    } catch (delErr) {
+      // If hard delete still hits an unforeseen constraint, archive the user
+      return this.archiveUser(userId, operatorId);
+    }
   }
 
   async restoreUser(userId, operatorId) {
