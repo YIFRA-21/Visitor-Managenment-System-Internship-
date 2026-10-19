@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/manager/visitors
-url: "{{baseUrl}}/api/manager/visitors"
-method: GET
-headers:
-  Content-Type: application/json
-order: 15000

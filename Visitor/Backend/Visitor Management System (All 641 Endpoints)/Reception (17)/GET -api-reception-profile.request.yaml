@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/reception/profile
-url: "{{baseUrl}}/api/reception/profile"
-method: GET
-headers:
-  Content-Type: application/json
-order: 16000

@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/hierarchy/validate
-url: "{{baseUrl}}/api/hierarchy/validate"
-method: GET
-headers:
-  Content-Type: application/json
-order: 4000

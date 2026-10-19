@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/system/settings/categories
-url: "{{baseUrl}}/api/system/settings/categories"
-method: GET
-headers:
-  Content-Type: application/json
-order: 4000

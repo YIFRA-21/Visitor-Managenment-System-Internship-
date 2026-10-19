@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/system/feature-flags
-url: "{{baseUrl}}/api/system/feature-flags"
-method: GET
-headers:
-  Content-Type: application/json
-order: 8000

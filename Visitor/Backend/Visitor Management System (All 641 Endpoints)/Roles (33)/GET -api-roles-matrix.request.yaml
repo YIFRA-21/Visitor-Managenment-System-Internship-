@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/roles/matrix
-url: "{{baseUrl}}/api/roles/matrix"
-method: GET
-headers:
-  Content-Type: application/json
-order: 3000

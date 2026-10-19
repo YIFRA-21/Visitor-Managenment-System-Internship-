@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/rules/jobs
-url: "{{baseUrl}}/api/rules/jobs"
-method: GET
-headers:
-  Content-Type: application/json
-order: 36000

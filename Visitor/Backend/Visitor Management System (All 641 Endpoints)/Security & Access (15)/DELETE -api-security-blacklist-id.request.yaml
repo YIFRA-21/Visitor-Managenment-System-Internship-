@@ -1,7 +1,0 @@
-$kind: http-request
-name: DELETE /api/security/blacklist/:id
-url: "{{baseUrl}}/api/security/blacklist/:id"
-method: DELETE
-headers:
-  Content-Type: application/json
-order: 3000

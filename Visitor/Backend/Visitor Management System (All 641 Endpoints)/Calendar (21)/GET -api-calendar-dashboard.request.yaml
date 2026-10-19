@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/calendar/dashboard
-url: "{{baseUrl}}/api/calendar/dashboard"
-method: GET
-headers:
-  Content-Type: application/json
-order: 1000

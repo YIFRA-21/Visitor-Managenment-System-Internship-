@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/identity-verification/:id
-url: "{{baseUrl}}/api/identity-verification/:id"
-method: GET
-headers:
-  Content-Type: application/json
-order: 15000

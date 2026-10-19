@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/security/access-rules
-url: "{{baseUrl}}/api/security/access-rules"
-method: GET
-headers:
-  Content-Type: application/json
-order: 12000

@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/reports/kpis
-url: "{{baseUrl}}/api/reports/kpis"
-method: GET
-headers:
-  Content-Type: application/json
-order: 10000

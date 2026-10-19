@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/rules/production-status
-url: "{{baseUrl}}/api/rules/production-status"
-method: GET
-headers:
-  Content-Type: application/json
-order: 39000

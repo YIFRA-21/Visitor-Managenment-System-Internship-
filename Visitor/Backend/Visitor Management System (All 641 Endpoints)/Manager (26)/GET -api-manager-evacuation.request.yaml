@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/manager/evacuation
-url: "{{baseUrl}}/api/manager/evacuation"
-method: GET
-headers:
-  Content-Type: application/json
-order: 25000

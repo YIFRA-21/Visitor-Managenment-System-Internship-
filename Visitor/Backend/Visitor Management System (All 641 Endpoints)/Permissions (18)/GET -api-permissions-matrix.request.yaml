@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/permissions/matrix
-url: "{{baseUrl}}/api/permissions/matrix"
-method: GET
-headers:
-  Content-Type: application/json
-order: 2000

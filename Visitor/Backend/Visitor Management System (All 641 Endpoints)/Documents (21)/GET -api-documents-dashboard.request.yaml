@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/documents/dashboard
-url: "{{baseUrl}}/api/documents/dashboard"
-method: GET
-headers:
-  Content-Type: application/json
-order: 1000

@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/auth/me/resources
-url: "{{baseUrl}}/api/auth/me/resources"
-method: GET
-headers:
-  Content-Type: application/json
-order: 17000

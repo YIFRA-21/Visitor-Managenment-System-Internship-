@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/reports/peak-hours
-url: "{{baseUrl}}/api/reports/peak-hours"
-method: GET
-headers:
-  Content-Type: application/json
-order: 8000

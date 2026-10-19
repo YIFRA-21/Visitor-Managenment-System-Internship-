@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/rules/reminders
-url: "{{baseUrl}}/api/rules/reminders"
-method: GET
-headers:
-  Content-Type: application/json
-order: 3000

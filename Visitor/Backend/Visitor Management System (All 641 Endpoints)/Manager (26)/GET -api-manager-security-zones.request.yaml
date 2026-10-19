@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/manager/security-zones
-url: "{{baseUrl}}/api/manager/security-zones"
-method: GET
-headers:
-  Content-Type: application/json
-order: 26000

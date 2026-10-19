@@ -1,7 +1,0 @@
-$kind: http-request
-name: DELETE /api/communication/chat/conversations/:convId/participants/:userId
-url: "{{baseUrl}}/api/communication/chat/conversations/:convId/participants/:userId"
-method: DELETE
-headers:
-  Content-Type: application/json
-order: 8000

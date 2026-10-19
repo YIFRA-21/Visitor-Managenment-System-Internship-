@@ -1,7 +1,0 @@
-$kind: http-request
-name: DELETE /api/visitor-history/:id
-url: "{{baseUrl}}/api/visitor-history/:id"
-method: DELETE
-headers:
-  Content-Type: application/json
-order: 5000

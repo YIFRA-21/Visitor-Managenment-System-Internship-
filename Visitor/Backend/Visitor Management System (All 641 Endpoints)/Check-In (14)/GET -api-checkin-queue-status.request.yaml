@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/checkin/queue/status
-url: "{{baseUrl}}/api/checkin/queue/status"
-method: GET
-headers:
-  Content-Type: application/json
-order: 13000

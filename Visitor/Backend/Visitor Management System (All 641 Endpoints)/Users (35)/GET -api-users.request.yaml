@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/users
-url: "{{baseUrl}}/api/users"
-method: GET
-headers:
-  Content-Type: application/json
-order: 14000

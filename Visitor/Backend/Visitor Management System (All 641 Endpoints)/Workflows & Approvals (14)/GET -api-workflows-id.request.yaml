@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/workflows/:id
-url: "{{baseUrl}}/api/workflows/:id"
-method: GET
-headers:
-  Content-Type: application/json
-order: 7000

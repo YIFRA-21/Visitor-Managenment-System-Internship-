@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/permissions/groups
-url: "{{baseUrl}}/api/permissions/groups"
-method: GET
-headers:
-  Content-Type: application/json
-order: 4000

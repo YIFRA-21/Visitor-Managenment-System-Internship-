@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/exports/ping
-url: "{{baseUrl}}/api/exports/ping"
-method: GET
-headers:
-  Content-Type: application/json
-order: 1000

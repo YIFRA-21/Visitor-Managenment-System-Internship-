@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/audit-logs/feature-flags
-url: "{{baseUrl}}/api/audit-logs/feature-flags"
-method: GET
-headers:
-  Content-Type: application/json
-order: 8000

@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/employee-portal/dashboard
-url: "{{baseUrl}}/api/employee-portal/dashboard"
-method: GET
-headers:
-  Content-Type: application/json
-order: 1000

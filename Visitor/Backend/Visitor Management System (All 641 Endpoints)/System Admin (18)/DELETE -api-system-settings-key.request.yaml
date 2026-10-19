@@ -1,7 +1,0 @@
-$kind: http-request
-name: DELETE /api/system/settings/:key
-url: "{{baseUrl}}/api/system/settings/:key"
-method: DELETE
-headers:
-  Content-Type: application/json
-order: 7000

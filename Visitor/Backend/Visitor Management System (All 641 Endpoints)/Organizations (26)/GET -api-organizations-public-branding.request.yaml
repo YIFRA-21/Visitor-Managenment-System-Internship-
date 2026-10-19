@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/organizations/public-branding
-url: "{{baseUrl}}/api/organizations/public-branding"
-method: GET
-headers:
-  Content-Type: application/json
-order: 4000

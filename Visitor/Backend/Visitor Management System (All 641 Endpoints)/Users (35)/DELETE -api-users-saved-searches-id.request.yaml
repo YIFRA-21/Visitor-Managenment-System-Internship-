@@ -1,7 +1,0 @@
-$kind: http-request
-name: DELETE /api/users/saved-searches/:id
-url: "{{baseUrl}}/api/users/saved-searches/:id"
-method: DELETE
-headers:
-  Content-Type: application/json
-order: 9000

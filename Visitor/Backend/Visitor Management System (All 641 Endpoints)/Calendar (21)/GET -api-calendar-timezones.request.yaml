@@ -1,7 +1,0 @@
-$kind: http-request
-name: GET /api/calendar/timezones
-url: "{{baseUrl}}/api/calendar/timezones"
-method: GET
-headers:
-  Content-Type: application/json
-order: 20000
