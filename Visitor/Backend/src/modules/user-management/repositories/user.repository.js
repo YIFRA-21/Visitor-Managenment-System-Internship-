@@ -512,43 +512,27 @@ class UserRepository {
       } catch (e) {}
     };
 
-    // 1. Delete associated child table records
-    await safeExec(`DELETE FROM user_sessions WHERE user_id = ?`, [userId]);
-    await safeExec(`DELETE FROM user_tokens WHERE user_id = ?`, [userId]);
-    await safeExec(`DELETE FROM user_roles WHERE user_id = ?`, [userId]);
-    await safeExec(`DELETE FROM user_permissions WHERE user_id = ?`, [userId]);
-    await safeExec(`DELETE FROM user_activity_logs WHERE user_id = ?`, [userId]);
-    await safeExec(`DELETE FROM user_login_history WHERE user_id = ?`, [userId]);
-    await safeExec(`DELETE FROM notifications WHERE user_id = ?`, [userId]);
-    await safeExec(`DELETE FROM notification_recipients WHERE user_id = ?`, [userId]);
-    await safeExec(`DELETE FROM user_security_settings WHERE user_id = ?`, [userId]);
-    await safeExec(`DELETE FROM user_preferences WHERE user_id = ?`, [userId]);
+    // 1. Parallel cleanup of all child records & foreign-key references
+    await Promise.allSettled([
+      safeExec(`DELETE FROM user_sessions WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM user_tokens WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM user_roles WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM user_permissions WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM user_activity_logs WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM user_login_history WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM notifications WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM notification_recipients WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM user_security_settings WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM user_preferences WHERE user_id = ?`, [userId]),
+      safeExec(`UPDATE employees SET user_id = NULL WHERE user_id = ?`, [userId]),
+      safeExec(`UPDATE visitors SET user_id = NULL WHERE user_id = ?`, [userId]),
+      safeExec(`UPDATE manager_profiles SET user_id = NULL WHERE user_id = ?`, [userId]),
+    ]);
 
-    // 2. Unlink linked employee, visitor, or manager profile
-    await safeExec(`UPDATE employees SET user_id = NULL WHERE user_id = ?`, [userId]);
-    await safeExec(`UPDATE visitors SET user_id = NULL WHERE user_id = ?`, [userId]);
-    await safeExec(`UPDATE manager_profiles SET user_id = NULL WHERE user_id = ?`, [userId]);
-
-    // 3. Dynamic foreign key cleanup from INFORMATION_SCHEMA
-    try {
-      const fks = await db.query(`
-        SELECT TABLE_NAME, COLUMN_NAME
-        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-        WHERE REFERENCED_TABLE_NAME = 'users' AND REFERENCED_COLUMN_NAME = 'id'
-      `);
-      if (Array.isArray(fks)) {
-        for (const fk of fks) {
-          if (fk.TABLE_NAME && fk.TABLE_NAME.toLowerCase() !== 'users') {
-            await safeExec(`DELETE FROM ${fk.TABLE_NAME} WHERE ${fk.COLUMN_NAME} = ?`, [userId]);
-          }
-        }
-      }
-    } catch (fkErr) {}
-
-    // 4. Finally delete the user from users table
+    // 2. Perform direct permanent deletion from users table
     try {
       const result = await db.query(`DELETE FROM users WHERE id = ?`, [userId]);
-      return result.affectedRows > 0;
+      return result?.affectedRows > 0;
     } catch (delErr) {
       // If hard delete still hits an unforeseen constraint, archive the user
       return this.archiveUser(userId, operatorId);

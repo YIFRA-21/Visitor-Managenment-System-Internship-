@@ -5025,37 +5025,40 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                     type="button"
                     disabled={isDeletingUser}
                     onClick={async () => {
-                      setIsDeletingUser(true);
+                      const target = actionModalUser;
+                      if (!target) return;
+                      
+                      // 1. Instantly dismiss modal (zero perceived delay)
+                      setActionModalUser(null);
+                      
+                      // 2. Optimistically remove user from directory table immediately
+                      setUsersList(prev => prev.filter(u => u.id !== target.id));
+                      setPagination(prev => ({ ...prev, total: Math.max(0, (prev.total || 1) - 1) }));
+                      
+                      // 3. Immediate instant confirmation banner
+                      setAlert({ 
+                        type: 'success', 
+                        message: `User account ${target.full_name || target.email} deleted successfully.` 
+                      });
+                      
+                      // 4. Background deletion with silent fallback and rollback on error
                       try {
-                        await api.delete(`/users/${actionModalUser.id}`);
-                        setAlert({ 
-                          type: 'success', 
-                          message: `User account ${actionModalUser.full_name || actionModalUser.email} deleted successfully.` 
-                        });
-                        setActionModalUser(null);
-                        fetchUsers();
+                        await api.delete(`/users/${target.id}`);
                         fetchStats();
                       }
                       catch (err) {
                         try {
-                          await api.post(`/users/${actionModalUser.id}/archive`);
-                          setAlert({ 
-                            type: 'success', 
-                            message: `User account ${actionModalUser.full_name || actionModalUser.email} deleted/archived successfully.` 
-                          });
-                          setActionModalUser(null);
-                          fetchUsers();
+                          await api.post(`/users/${target.id}/archive`);
                           fetchStats();
                         }
                         catch (fallbackErr) {
+                          fetchUsers();
+                          fetchStats();
                           setAlert({ 
                             type: 'error', 
                             message: extractErrorMessage(err || fallbackErr, 'Failed to delete user account.') 
                           });
                         }
-                      }
-                      finally {
-                        setIsDeletingUser(false);
                       }
                     }} 
                     className="px-5 py-2 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-900/60 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black rounded-xl uppercase flex items-center gap-2 shadow-lg shadow-rose-600/30 transition-all cursor-pointer active:scale-95"
