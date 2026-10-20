@@ -364,11 +364,11 @@ export const reportsApi = {
     export: (data) => api.post('/reports/export', data),
 };
 export const notificationsApi = {
-    list: (params) => api.get('/notifications', { params }),
-    getNotifications: (params) => api.get('/notifications', { params }),
+    list: (params) => api.get('/notifications', { params, skipGlobalErrorNotification: true }),
+    getNotifications: (params) => api.get('/notifications', { params, skipGlobalErrorNotification: true }),
     getDetails: (id) => api.get(`/notifications/${id}`),
-    unreadCounts: () => api.get('/notifications/unread-count'),
-    getUnreadCount: () => api.get('/notifications/unread-count'),
+    unreadCounts: () => api.get('/notifications/unread-count', { skipGlobalErrorNotification: true }),
+    getUnreadCount: () => api.get('/notifications/unread-count', { skipGlobalErrorNotification: true }),
     markRead: (id) => api.put(`/notifications/${id}/read`),
     markAsRead: (id) => api.put(`/notifications/${id}/read`),
     markUnread: (id) => api.patch(`/notifications/${id}/unread`),

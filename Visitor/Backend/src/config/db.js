@@ -117,6 +117,39 @@ try {
         try { await originalQuery(q); } catch { /* ignore */ }
       }
 
+      // Enterprise RBAC and Roles Schema Migration
+      const rbacAlters = [
+        `ALTER TABLE roles ADD COLUMN role_id VARCHAR(50) NULL`,
+        `ALTER TABLE roles ADD COLUMN is_system_role TINYINT(1) DEFAULT 1`,
+        `ALTER TABLE roles ADD COLUMN scope_type VARCHAR(50) DEFAULT 'GLOBAL'`,
+        `ALTER TABLE roles ADD COLUMN role_type VARCHAR(50) DEFAULT 'STANDARD'`,
+        `ALTER TABLE roles ADD COLUMN priority INT DEFAULT 0`,
+        `ALTER TABLE roles ADD COLUMN is_assignment_allowed TINYINT(1) DEFAULT 1`,
+        `ALTER TABLE roles ADD COLUMN is_temporary_allowed TINYINT(1) DEFAULT 0`,
+        `ALTER TABLE roles ADD COLUMN is_multiple_allowed TINYINT(1) DEFAULT 1`,
+        `ALTER TABLE roles ADD COLUMN requires_approval TINYINT(1) DEFAULT 0`,
+        `ALTER TABLE roles ADD COLUMN risk_level VARCHAR(20) DEFAULT 'LOW'`,
+        `ALTER TABLE roles ADD COLUMN version VARCHAR(20) DEFAULT 'v1.0'`,
+        `ALTER TABLE roles ADD COLUMN parent_role_id INT NULL`,
+        `ALTER TABLE roles ADD COLUMN organization_id INT NULL`,
+        `ALTER TABLE roles ADD COLUMN created_by INT NULL`,
+        `ALTER TABLE roles ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
+        `ALTER TABLE user_roles ADD COLUMN is_active TINYINT(1) DEFAULT 1`,
+        `ALTER TABLE user_roles ADD COLUMN deleted_at DATETIME NULL`,
+        `ALTER TABLE user_roles ADD COLUMN start_date DATETIME NULL`,
+        `ALTER TABLE user_roles ADD COLUMN end_date DATETIME NULL`,
+        `ALTER TABLE user_roles ADD COLUMN assignment_status VARCHAR(50) DEFAULT 'ACTIVE'`,
+        `CREATE TABLE IF NOT EXISTS role_permissions (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          role_id INT NOT NULL,
+          permission_id INT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`
+      ];
+      for (const q of rbacAlters) {
+        try { await originalQuery(q); } catch { /* ignore */ }
+      }
+
       // Password history table (prevents reuse of recent passwords)
       try {
         await pool.query(`CREATE TABLE IF NOT EXISTS password_history (
