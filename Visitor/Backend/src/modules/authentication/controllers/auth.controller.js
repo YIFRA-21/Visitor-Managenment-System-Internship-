@@ -51,6 +51,36 @@ class AuthController {
     }
   }
 
+  async checkUsername(req, res, next) {
+    try {
+      const { username } = req.body;
+      if (!username || !username.trim()) {
+        return res.status(400).json({ success: false, field: 'username', message: 'Username is required' });
+      }
+      const trimmed = username.trim();
+      const existingUser = await userRepository.findByUsername(trimmed);
+
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          field: 'username',
+          message: 'This username is already taken. Please choose another username.'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Username is available'
+      });
+    } catch (err) {
+      console.warn('checkUsername pre-check non-fatal database warning:', err.message);
+      return res.status(200).json({
+        success: true,
+        message: 'Username available (advisory pre-check)'
+      });
+    }
+  }
+
   async getDuplicateEmailsReport(req, res, next) {
     try {
       const db = require('../../../config/db');

@@ -1,6 +1,7 @@
 import { apiClient } from '../../../services/apiClient';
 export const authService = {
     checkEmail: (email) => apiClient.post('/auth/check-email', { email }, { silent: true }),
+    checkUsername: (username) => apiClient.post('/auth/check-username', { username }, { silent: true }),
     login: (identifier, password) => apiClient.post('/auth/login', { identifier, email: identifier, password }),
     register: (data) => apiClient.post('/auth/register', data),
     me: () => apiClient.get('/auth/me'),

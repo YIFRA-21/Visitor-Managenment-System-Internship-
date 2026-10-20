@@ -37,8 +37,9 @@ api.interceptors.response.use((res) => res, (err) => {
     }
 
     // Trigger global notification for API errors unless silenced by caller
-    // 401 is an authentication state (login/logout transition) and should never display a global toast
-    if (!err.config?.skipGlobalErrorNotification && !err.config?.silent && status !== 401) {
+    // 401 is an authentication state and client validation errors (400, 409, 422) on public auth pages are handled inline
+    const isPublicFormValidation = isPublicPath && (status === 400 || status === 409 || status === 422);
+    if (!err.config?.skipGlobalErrorNotification && !err.config?.silent && status !== 401 && !isPublicFormValidation) {
         const errorMessage = getErrorMessage(err);
         if (errorMessage && typeof window !== 'undefined' && window.showNotification) {
             const notifType = status === 403 ? 'warning' : status >= 500 ? 'error' : 'error';
@@ -139,6 +140,7 @@ export const getErrorMessage = (err) => {
 export default api;
 export const authApi = {
     checkEmail: (email) => api.post('/auth/check-email', { email }, { silent: true }),
+    checkUsername: (username) => api.post('/auth/check-username', { username }, { silent: true }),
     login: (identifier, password) => api.post('/auth/login', { identifier, email: identifier, password }),
     register: (data) => api.post('/auth/register', data),
     me: () => api.get('/auth/me'),

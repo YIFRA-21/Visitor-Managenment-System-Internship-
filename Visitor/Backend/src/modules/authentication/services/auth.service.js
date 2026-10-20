@@ -294,6 +294,17 @@ class AuthService {
       throw err;
     }
 
+    // Check unique username in users table
+    if (userData.username) {
+      const cleanUsername = String(userData.username).trim();
+      const existingUsernameUser = await userRepository.findByUsername(cleanUsername);
+      if (existingUsernameUser) {
+        const err = new AppError('This username is already taken. Please choose another username.', 409);
+        err.field = 'username';
+        throw err;
+      }
+    }
+
     // Security Check: Staff role creation restricted to active Administrators
     const normalizedRole = role.toLowerCase();
     const isStaffRole = [
@@ -321,7 +332,7 @@ class AuthService {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
-    return db.transaction(async (tx) => {
+    const regResult = await db.transaction(async (tx) => {
       // 1. Create base user record
       const userId = await userRepository.create({
         username: userData.username || (email ? email.split('@')[0] : 'user') + '_' + Math.floor(Math.random() * 1000),

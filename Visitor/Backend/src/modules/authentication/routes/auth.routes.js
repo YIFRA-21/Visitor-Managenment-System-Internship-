@@ -41,6 +41,7 @@ const upload = multer({
 
 // Authentication Endpoints
 router.post('/check-email', authController.checkEmail);
+router.post('/check-username', authController.checkUsername);
 router.get('/admin/duplicate-emails', authenticate, authorize('admin'), authController.getDuplicateEmailsReport);
 router.post('/register', optionalAuth, authController.register);
 router.get('/login', (_req, res) => {

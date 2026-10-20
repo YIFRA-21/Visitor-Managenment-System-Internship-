@@ -371,8 +371,30 @@ export default function SignupPage() {
             newErrors.confirmPassword = confErr;
         }
 
+        // Pre-check username availability
+        if (!newErrors.username) {
+            try {
+                setLoading(true);
+                const checkUserRes = await authApi.checkUsername(username.trim());
+                if (checkUserRes.data && checkUserRes.data.success === false && checkUserRes.data.field === 'username') {
+                    newErrors.username = isAm ? 'ይህ የተጠቃሚ መለያ ቀድሞውኑ ተይዟል። እባክዎ ሌላ ይምረጡ.' : '❌ This username is already taken. Please choose another username.';
+                }
+            } catch (checkErr) {
+                if (checkErr.response && checkErr.response.status === 409) {
+                    newErrors.username = isAm ? 'ይህ የተጠቃሚ መለያ ቀድሞውኑ ተይዟል። እባክዎ ሌላ ይምረጡ.' : '❌ This username is already taken. Please choose another username.';
+                }
+            }
+        }
+
         if (Object.keys(newErrors).length > 0) {
             setFieldErrors(newErrors);
+            setLoading(false);
+            const firstKey = Object.keys(newErrors)[0];
+            const el = document.getElementById(`field-${firstKey}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.focus();
+            }
             return;
         }
         setFieldErrors({});
@@ -403,13 +425,23 @@ export default function SignupPage() {
         }
         catch (err) {
             console.error('Registration failed:', err);
-            const msg = getErrorMessage(err);
-            if (msg.toLowerCase().includes('email')) {
+            const field = err.response?.data?.field;
+            const respMsg = err.response?.data?.message || err.response?.data?.error;
+            const msg = respMsg || getErrorMessage(err);
+            const lowerMsg = (String(msg) + ' ' + String(respMsg || '')).toLowerCase();
+
+            if (field === 'username' || lowerMsg.includes('username') || lowerMsg.includes('user id') || lowerMsg.includes('uq_users_username')) {
+                const userErrMsg = isAm ? 'ይህ የተጠቃሚ መለያ ቀድሞውኑ ተይዟል። እባክዎ ሌላ ይምረጡ.' : '❌ This username is already taken. Please choose another username.';
+                setFieldErrors({ username: userErrMsg });
+                const el = document.getElementById('field-username');
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.focus();
+                }
+            }
+            else if (field === 'email' || lowerMsg.includes('email') || lowerMsg.includes('uq_users_email')) {
                 setFieldErrors({ email: msg });
                 setCurrentStep(0); // Return to Step 1 to fix email
-            }
-            else if (msg.toLowerCase().includes('username') || msg.toLowerCase().includes('user id')) {
-                setFieldErrors({ username: msg });
             }
             else {
                 setError(msg || 'Registration failed. Please check your inputs and try again.');

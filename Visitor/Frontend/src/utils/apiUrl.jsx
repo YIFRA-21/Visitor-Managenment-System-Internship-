@@ -16,23 +16,33 @@ export function getBackendBaseUrl() {
     if (typeof window !== 'undefined' && window.location?.hostname) {
         const currentHostname = window.location.hostname;
         const protocol = window.location.protocol || 'http:';
+
+        const isLanIp = (
+            /^10\./.test(currentHostname) ||
+            /^192\.168\./.test(currentHostname) ||
+            /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(currentHostname) ||
+            currentHostname.endsWith('.local')
+        );
+
         // If an environment URL is explicitly configured:
         if (envUrl) {
             const stripped = envUrl.replace(/\/api\/?$/, '');
-            // If envUrl is explicitly pointing to localhost or 127.0.0.1,
-            // but the current device is accessing the frontend via a LAN IP (e.g. 10.x.x.x, 192.168.x.x),
-            // dynamically swap localhost with the current LAN host so the device connects to the host machine:
-            if ((stripped.includes('localhost') || stripped.includes('127.0.0.1')) &&
-                currentHostname !== 'localhost' &&
-                currentHostname !== '127.0.0.1') {
+            // Only swap localhost with current host if device is genuinely on a private LAN:
+            if ((stripped.includes('localhost') || stripped.includes('127.0.0.1')) && isLanIp) {
                 return stripped
                     .replace('localhost', currentHostname)
                     .replace('127.0.0.1', currentHostname);
             }
             return stripped;
         }
-        // Default development backend port is 5000:
-        return `${protocol}//${currentHostname}:5000`;
+
+        // On local/LAN development:
+        if (currentHostname === 'localhost' || currentHostname === '127.0.0.1' || isLanIp) {
+            return `${protocol}//${currentHostname}:5000`;
+        }
+
+        // On deployed public internet hosting without explicit envUrl:
+        return window.location.origin;
     }
     // Fallback for non-browser/SSR contexts:
     if (envUrl) {

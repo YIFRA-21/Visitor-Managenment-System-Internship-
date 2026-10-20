@@ -15,16 +15,33 @@ function errorHandler(err, req, res, next) {
   err.statusCode = err.statusCode || (typeof err.status === 'number' ? err.status : undefined) || 500;
   err.status = err.status || 'error';
 
-  if (err.statusCode === 409 || err.field === 'email' || (err.message && (err.message.toLowerCase().includes('already registered') || err.message.toLowerCase().includes('already exists')))) {
-    const message = err.message || 'This record already exists.';
+  const isDuplicate = err.code === 'ER_DUP_ENTRY' || err.errno === 1062 || (err.message && (
+    err.message.toLowerCase().includes('already registered') || 
+    err.message.toLowerCase().includes('already exists') ||
+    err.message.toLowerCase().includes('duplicate entry')
+  ));
+
+  if (err.statusCode === 409 || err.field === 'email' || err.field === 'username' || isDuplicate) {
+    const rawSql = err.sqlMessage || err.message || '';
+    let message = err.message || 'This record already exists.';
     let field = err.field;
     if (!field) {
-      const lower = message.toLowerCase();
-      if (lower.includes('email')) field = 'email';
-      else if (lower.includes('phone')) field = 'phone';
-      else if (lower.includes('username')) field = 'username';
-      else if (lower.includes('code') || lower.includes('user id')) field = 'userCode';
-      else field = 'form';
+      const lower = (rawSql + ' ' + message).toLowerCase();
+      if (lower.includes('username') || lower.includes('uq_users_username')) {
+        field = 'username';
+        message = 'This username is already taken. Please choose another username.';
+      } else if (lower.includes('email') || lower.includes('uq_users_email')) {
+        field = 'email';
+        message = 'This email address is already registered. Please use another email or sign in.';
+      } else if (lower.includes('phone')) {
+        field = 'phone';
+        message = 'This phone number is already registered.';
+      } else if (lower.includes('code') || lower.includes('user id')) {
+        field = 'userCode';
+        message = 'This user ID is already in use.';
+      } else {
+        field = 'form';
+      }
     }
     return res.status(409).json({
       success: false,
