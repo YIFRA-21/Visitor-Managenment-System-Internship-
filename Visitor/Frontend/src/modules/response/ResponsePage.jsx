@@ -40,6 +40,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getRoleLanding } from '../../config/routes';
 import { RESPONSE_TYPES, RESPONSE_TYPE_CONFIG } from './responseConfig';
 import { sanitizeReturnUrl } from './useResponseNavigation';
+import ThemeToggle from '../../components/ThemeToggle/ThemeToggle';
 
 export default function ResponsePage() {
   const location = useLocation();
@@ -222,11 +223,14 @@ export default function ResponsePage() {
           </div>
         </div>
 
-        {/* Ethiopia Accent Ribbon on header */}
-        <div className="flex items-center space-x-1">
-          <span className="w-2.5 h-1.5 rounded-sm bg-emerald-500" title="Integrity" />
-          <span className="w-2.5 h-1.5 rounded-sm bg-amber-400" title="Security" />
-          <span className="w-2.5 h-1.5 rounded-sm bg-rose-500" title="Verification" />
+        {/* Theme Toggle & Ethiopia Accent Ribbon on header */}
+        <div className="flex items-center space-x-3">
+          <ThemeToggle />
+          <div className="flex items-center space-x-1">
+            <span className="w-2.5 h-1.5 rounded-sm bg-emerald-500" title="Integrity" />
+            <span className="w-2.5 h-1.5 rounded-sm bg-amber-400" title="Security" />
+            <span className="w-2.5 h-1.5 rounded-sm bg-rose-500" title="Verification" />
+          </div>
         </div>
       </header>
 

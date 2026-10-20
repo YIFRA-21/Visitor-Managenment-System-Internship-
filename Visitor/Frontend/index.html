@@ -17,15 +17,17 @@
           document.documentElement.style.colorScheme = theme;
           if (theme === 'dark') {
             document.documentElement.classList.add('dark');
+            document.documentElement.style.backgroundColor = '#070b13';
           } else {
             document.documentElement.classList.remove('dark');
+            document.documentElement.style.backgroundColor = '#f8fafc';
           }
         } catch (e) {}
       })();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.js"></script>
   </head>
-  <body>
+  <body style="margin: 0; background-color: var(--vms-bg-canvas, #070b13); color: var(--vms-text-primary, #f8fafc);">
     <div id="root">
       <div id="vms-initial-loader" style="
         position: fixed;

@@ -24,10 +24,14 @@ function applyTheme(theme) {
     if (theme === 'dark') {
         document.documentElement.classList.add('dark');
         document.body?.classList.add('dark');
+        document.documentElement.style.backgroundColor = '#070b13';
+        if (document.body) document.body.style.backgroundColor = '#070b13';
     }
     else {
         document.documentElement.classList.remove('dark');
         document.body?.classList.remove('dark');
+        document.documentElement.style.backgroundColor = '#f8fafc';
+        if (document.body) document.body.style.backgroundColor = '#f8fafc';
     }
 }
 export function ThemeProvider({ children }) {

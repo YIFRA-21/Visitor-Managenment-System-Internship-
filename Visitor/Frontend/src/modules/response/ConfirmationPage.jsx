@@ -26,6 +26,7 @@ import { getRoleLanding } from '../../config/routes';
 import { RESPONSE_TYPES } from './responseConfig';
 import { normalizeApiError } from './errorNormalizationService';
 import { sanitizeReturnUrl } from './useResponseNavigation';
+import ThemeToggle from '../../components/ThemeToggle/ThemeToggle';
 
 export default function ConfirmationPage() {
   const location = useLocation();
@@ -189,11 +190,14 @@ export default function ConfirmationPage() {
           </div>
         </div>
 
-        {/* Ethiopia Accent Ribbon */}
-        <div className="flex items-center space-x-1">
-          <span className="w-2.5 h-1.5 rounded-sm bg-emerald-500" />
-          <span className="w-2.5 h-1.5 rounded-sm bg-amber-400" />
-          <span className="w-2.5 h-1.5 rounded-sm bg-rose-500" />
+        {/* Theme Toggle & Ethiopia Accent Ribbon */}
+        <div className="flex items-center space-x-3">
+          <ThemeToggle />
+          <div className="flex items-center space-x-1">
+            <span className="w-2.5 h-1.5 rounded-sm bg-emerald-500" />
+            <span className="w-2.5 h-1.5 rounded-sm bg-amber-400" />
+            <span className="w-2.5 h-1.5 rounded-sm bg-rose-500" />
+          </div>
         </div>
       </header>
 

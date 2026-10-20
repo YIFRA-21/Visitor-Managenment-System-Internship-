@@ -7,6 +7,7 @@ import { useAuth, BLOCKED_ACCOUNT_STATUSES } from '../../../../contexts/AuthCont
 import { useOrganization } from '../../../../contexts/OrganizationContext';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import LanguageDropdown from '../../../../components/common/LanguageDropdown';
+import ThemeToggle from '../../../../components/ThemeToggle/ThemeToggle';
 import { useEnterpriseForm } from '../../../../hooks/useEnterpriseForm';
 import { ValidationRules } from '../../../../services/validationService';
 import FieldError from '../../../../components/common/FieldError';
@@ -279,8 +280,9 @@ export default function LoginPage() {
             RIGHT LOGIN FORM PANEL
            ═══════════════════════════════════════════════════ */}
       <div className="w-full lg:w-[48%] flex items-center justify-center p-4 sm:p-8 lg:p-12 z-10 bg-[#070b13] relative">
-        {/* Language Dropdown Selector */}
-        <div className="absolute top-6 right-6 z-20">
+        {/* Theme Toggle & Language Dropdown Selector */}
+        <div className="absolute top-6 right-6 z-20 flex items-center gap-2.5">
+          <ThemeToggle />
           <LanguageDropdown variant="dark"/>
         </div>
 
@@ -320,10 +322,22 @@ export default function LoginPage() {
 
               {/* Success Alert */}
               <AnimatePresence>
-                {success && (<motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="rounded-lg border border-emerald-500/20 bg-emerald-950/25 p-3.5 text-xs text-emerald-400 flex items-center gap-2 font-semibold">
-                    <CheckCircle className="h-4 w-4 shrink-0"/>
-                    <span>{success}</span>
-                  </motion.div>)}
+                {success && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: -4 }}
+                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="rounded-xl border border-emerald-500/40 bg-emerald-950/60 p-4 text-xs text-emerald-200 font-bold flex items-center gap-3 shadow-xl shadow-emerald-950/50 backdrop-blur-md"
+                  >
+                    <div className="p-1.5 bg-emerald-500/25 border border-emerald-500/50 rounded-lg text-emerald-300 shrink-0">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[11px] font-black uppercase tracking-wider text-emerald-400 mb-0.5">Authentication Verified</div>
+                      <span className="text-white text-xs leading-relaxed font-bold">{success}</span>
+                    </div>
+                  </motion.div>
+                )}
               </AnimatePresence>
 
               {/* User ID / Email Field */}
