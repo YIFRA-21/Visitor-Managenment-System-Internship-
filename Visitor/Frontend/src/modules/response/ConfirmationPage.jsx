@@ -160,10 +160,8 @@ export default function ConfirmationPage() {
           title: successConfig.title || 'Action Confirmed',
           message: successConfig.message || `The operation on ${entityName || entityType} has been processed.`,
           returnUrl,
-          primaryActionText: 'Return to Module',
+          confirmText: 'Confirm',
           primaryActionUrl: returnUrl,
-          secondaryActionText: 'Go to Dashboard',
-          secondaryActionUrl: roleDashboard,
           timestamp: new Date().toLocaleString(),
         },
       });

@@ -150,8 +150,9 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         toConfirmation({
             title: 'Confirm Permanent User Deletion',
             message: `Are you sure you want to permanently delete user account "${target.full_name || target.email}" (${target.user_code || `USR-${target.id}`})?`,
-            actionType: 'DELETE_USER',
-            targetEntity: `${target.full_name || target.email} (${target.role || 'User'})`,
+            entityType: 'User Account',
+            entityName: `${target.full_name || target.email} (${target.role || 'User'})`,
+            entityId: target.id,
             consequences: [
                 'The user account and associated login credentials will be permanently removed.',
                 'Active sessions, refresh tokens, and permissions will be revoked immediately.',
@@ -159,11 +160,16 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             ],
             confirmLabel: 'Yes, Delete Account',
             cancelLabel: 'Cancel',
-            danger: true,
-            onConfirmApi: () => api.delete(`/users/${target.id}`).catch(() => api.post(`/users/${target.id}/archive`)),
-            successTitle: 'User Account Deleted',
-            successMessage: `User "${target.full_name || target.email}" was deleted successfully.`,
-            returnUrl: '/admin?view=users'
+            confirmVariant: 'danger',
+            apiEndpoint: `/users/${target.id}`,
+            apiMethod: 'DELETE',
+            returnUrl: window.location.pathname + window.location.search,
+            successConfig: {
+                type: 'RECORD_DELETED',
+                title: 'User Account Deleted',
+                message: `User "${target.full_name || target.email}" was deleted successfully.`,
+                returnUrl: window.location.pathname + window.location.search,
+            }
         });
     };
     const [activeSubView, setActiveSubView] = useState(initialTab);

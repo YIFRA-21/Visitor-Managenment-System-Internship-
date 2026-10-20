@@ -4,7 +4,7 @@
  * Renders dedicated result screens for all operations, modules, and roles.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -56,7 +56,14 @@ export default function ResponsePage() {
   const queryRef = searchParams.get('ref');
 
   const resolvedType = state.type || queryType || RESPONSE_TYPES.SUCCESS;
-  const config = RESPONSE_TYPE_CONFIG[resolvedType] || RESPONSE_TYPE_CONFIG[RESPONSE_TYPES.INFO];
+  const isLikelySuccess = 
+    resolvedType === RESPONSE_TYPES.SUCCESS || 
+    String(resolvedType).includes('SUCCESS') || 
+    String(resolvedType).includes('DELETED') || 
+    String(resolvedType).includes('CREATED') || 
+    String(resolvedType).includes('UPDATED');
+
+  const config = RESPONSE_TYPE_CONFIG[resolvedType] || (isLikelySuccess ? RESPONSE_TYPE_CONFIG[RESPONSE_TYPES.SUCCESS] : RESPONSE_TYPE_CONFIG[RESPONSE_TYPES.INFO]);
 
   const title = state.title || queryTitle || config.defaultTitle;
   const message = state.message || queryMessage || config.defaultMessage;
@@ -76,7 +83,21 @@ export default function ResponsePage() {
 
   const confirmActionText = state.confirmText || 'Confirm';
 
+  // Auto-redirect configuration (defaults to 2s for all successful operations across modules)
+  const isAutoRedirectable = state.autoRedirect !== undefined
+    ? Boolean(state.autoRedirect)
+    : (config.severity !== 'danger' && resolvedType !== RESPONSE_TYPES.ERROR && resolvedType !== RESPONSE_TYPES.UNEXPECTED_ERROR);
+
+  const initialCountdown = state.autoRedirectDuration !== undefined 
+    ? state.autoRedirectDuration 
+    : (isAutoRedirectable ? 2 : null);
+
+  const [countdown, setCountdown] = useState(initialCountdown);
+  const hasRedirectedRef = useRef(false);
+
   const handleConfirm = () => {
+    if (hasRedirectedRef.current) return;
+    hasRedirectedRef.current = true;
     // Navigate directly back to the initiating page (own page), never to dashboard unless no returnUrl
     const destination = primaryActionUrl || returnUrl;
     if (destination && destination !== '/response' && !destination.startsWith('/response')) {
@@ -87,6 +108,21 @@ export default function ResponsePage() {
       navigate(roleDashboard, { replace: true });
     }
   };
+
+  useEffect(() => {
+    if (!isAutoRedirectable || countdown === null) return;
+
+    if (countdown <= 0) {
+      handleConfirm();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown, isAutoRedirectable, primaryActionUrl, returnUrl]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -110,6 +146,9 @@ export default function ResponsePage() {
   const renderIcon = () => {
     switch (resolvedType) {
       case RESPONSE_TYPES.SUCCESS:
+      case RESPONSE_TYPES.RECORD_DELETED:
+      case RESPONSE_TYPES.RECORD_CREATED:
+      case RESPONSE_TYPES.RECORD_UPDATED:
         return <CheckCircle2 className="w-10 h-10 text-emerald-400" />;
       case RESPONSE_TYPES.ERROR:
       case RESPONSE_TYPES.UNEXPECTED_ERROR:
@@ -300,22 +339,38 @@ export default function ResponsePage() {
             </details>
           )}
 
-          {/* Action Navigation Buttons - Single Confirm Button */}
-          <div className="pt-4 border-t border-slate-800/80 flex items-center justify-end">
-            <button
-              id="response-confirm-btn"
-              onClick={handleConfirm}
-              className={`w-full sm:w-auto min-w-[140px] px-8 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95 ${
-                config.severity === 'danger'
-                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/25 hover:shadow-rose-600/40'
-                  : config.severity === 'warning'
-                  ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/25 hover:shadow-amber-600/40'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/25 hover:shadow-emerald-600/40'
-              }`}
-            >
-              <Check className="w-4 h-4 stroke-[2.5]" />
-              <span>{confirmActionText}</span>
-            </button>
+          {/* Action Navigation Buttons - Single Confirm Button with Auto-Dismiss Countdown */}
+          <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
+            {isAutoRedirectable && countdown !== null && (
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>
+                  Returning to your page in <strong className="text-emerald-400 font-mono">{countdown}s</strong>...
+                </span>
+              </div>
+            )}
+            <div className="ml-auto w-full sm:w-auto">
+              <button
+                id="response-confirm-btn"
+                onClick={handleConfirm}
+                className={`w-full sm:w-auto min-w-[140px] px-8 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95 ${
+                  config.severity === 'danger'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/25 hover:shadow-rose-600/40'
+                    : config.severity === 'warning'
+                    ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/25 hover:shadow-amber-600/40'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/25 hover:shadow-emerald-600/40'
+                }`}
+              >
+                <Check className="w-4 h-4 stroke-[2.5]" />
+                <span>
+                  {confirmActionText}
+                  {isAutoRedirectable && countdown !== null && countdown > 0 ? ` (${countdown}s)` : ''}
+                </span>
+              </button>
+            </div>
           </div>
         </motion.div>
       </main>

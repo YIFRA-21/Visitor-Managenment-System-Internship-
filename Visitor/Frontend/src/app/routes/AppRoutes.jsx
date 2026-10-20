@@ -109,11 +109,17 @@ export default function AppRoutes() {
       <Route path="/security/identity-reviews" element={<ProtectedRoute requiredRole="security"><ReviewerQueuePage /></ProtectedRoute>} />
       <Route path="/admin/identity-policy" element={<ProtectedRoute requiredRole="admin"><VerificationPolicySettingsPage /></ProtectedRoute>} />
 
+      <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>}/>
       <Route path="/admin/*" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>}/>
+      <Route path="/employee" element={<ProtectedRoute requiredRole="employee"><DashboardPage /></ProtectedRoute>}/>
       <Route path="/employee/*" element={<ProtectedRoute requiredRole="employee"><DashboardPage /></ProtectedRoute>}/>
+      <Route path="/manager" element={<ProtectedRoute requiredRole="manager"><DashboardPage /></ProtectedRoute>}/>
       <Route path="/manager/*" element={<ProtectedRoute requiredRole="manager"><DashboardPage /></ProtectedRoute>}/>
+      <Route path="/reception" element={<ProtectedRoute requiredRole="receptionist"><DashboardPage /></ProtectedRoute>}/>
       <Route path="/reception/*" element={<ProtectedRoute requiredRole="receptionist"><DashboardPage /></ProtectedRoute>}/>
+      <Route path="/security" element={<ProtectedRoute requiredRole="security"><DashboardPage /></ProtectedRoute>}/>
       <Route path="/security/*" element={<ProtectedRoute requiredRole="security"><DashboardPage /></ProtectedRoute>}/>
+      <Route path="/visitor" element={<ProtectedRoute requiredRole="visitor"><DashboardPage /></ProtectedRoute>}/>
       <Route path="/visitor/*" element={<ProtectedRoute requiredRole="visitor"><DashboardPage /></ProtectedRoute>}/>
 
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>}/>

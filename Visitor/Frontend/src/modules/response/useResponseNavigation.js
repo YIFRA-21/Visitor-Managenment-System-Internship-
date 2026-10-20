@@ -17,7 +17,7 @@ export function sanitizeReturnUrl(targetUrl, fallbackUrl = '/dashboard') {
   if (!targetUrl || typeof targetUrl !== 'string') {
     return fallbackUrl;
   }
-  const trimmed = targetUrl.trim();
+  let trimmed = targetUrl.trim();
   // Disallow absolute external URLs (e.g., http://, https://, //, javascript:)
   if (
     trimmed.startsWith('http://') ||
@@ -30,8 +30,29 @@ export function sanitizeReturnUrl(targetUrl, fallbackUrl = '/dashboard') {
   }
   // Must begin with a single slash
   if (!trimmed.startsWith('/')) {
-    return `/${trimmed}`;
+    trimmed = `/${trimmed}`;
   }
+
+  // Prevent looping to confirmation or response screens
+  if (trimmed.startsWith('/response') || trimmed.startsWith('/confirm')) {
+    return fallbackUrl;
+  }
+
+  // Normalize root role paths that lack sub-routes so React Router matches reliably
+  if (trimmed.startsWith('/admin?') || trimmed === '/admin') {
+    trimmed = trimmed.replace(/^\/admin/, '/admin/dashboard');
+  } else if (trimmed.startsWith('/employee?') || trimmed === '/employee') {
+    trimmed = trimmed.replace(/^\/employee/, '/employee/dashboard');
+  } else if (trimmed.startsWith('/manager?') || trimmed === '/manager') {
+    trimmed = trimmed.replace(/^\/manager/, '/manager/dashboard');
+  } else if (trimmed.startsWith('/reception?') || trimmed === '/reception') {
+    trimmed = trimmed.replace(/^\/reception/, '/reception/dashboard');
+  } else if (trimmed.startsWith('/security?') || trimmed === '/security') {
+    trimmed = trimmed.replace(/^\/security/, '/security/dashboard');
+  } else if (trimmed.startsWith('/visitor?') || trimmed === '/visitor') {
+    trimmed = trimmed.replace(/^\/visitor/, '/visitor/dashboard');
+  }
+
   return trimmed;
 }
 
@@ -139,33 +160,45 @@ export function useResponseNavigation() {
     returnUrl = null,
     successConfig = null,
     onConfirm = null,
+    // Aliases for broad compatibility
+    targetEntity = null,
+    actionType = null,
+    danger = false,
+    onConfirmApi = null,
+    successTitle = null,
+    successMessage = null,
   } = {}) => {
     const safeReturn = sanitizeReturnUrl(returnUrl || location.pathname, roleDashboard);
+    const resolvedEndpoint = apiEndpoint || (typeof onConfirmApi === 'string' ? onConfirmApi : null);
+    const resolvedName = entityName || targetEntity || '';
+    const resolvedVariant = confirmVariant || (danger ? 'danger' : 'primary');
+
+    const resolvedSuccessConfig = successConfig || {
+      type: RESPONSE_TYPES.SUCCESS,
+      title: successTitle || 'Operation Completed',
+      message: successMessage || `${entityType || 'Record'} has been successfully updated.`,
+      returnUrl: safeReturn,
+    };
 
     navigate('/confirm', {
       state: {
         title,
         message,
         entityType,
-        entityName,
+        entityName: resolvedName,
         entityId,
         consequences: Array.isArray(consequences) && consequences.length > 0 
           ? consequences 
           : ['This action modifies corporate records and cannot be undone.'],
         confirmLabel,
         cancelLabel,
-        confirmVariant,
-        apiEndpoint,
+        confirmVariant: resolvedVariant,
+        apiEndpoint: resolvedEndpoint,
         apiMethod,
         apiPayload,
         returnUrl: safeReturn,
-        successConfig: successConfig || {
-          type: RESPONSE_TYPES.SUCCESS,
-          title: 'Operation Completed',
-          message: `${entityType || 'Record'} has been successfully updated.`,
-          returnUrl: safeReturn,
-        },
-        hasDirectCallback: Boolean(onConfirm),
+        successConfig: resolvedSuccessConfig,
+        hasDirectCallback: Boolean(onConfirm || (typeof onConfirmApi === 'function')),
       },
     });
   };

@@ -41,6 +41,9 @@ export const RESPONSE_TYPES = {
   PASSWORD_UPDATE_RESULT: 'PASSWORD_UPDATE_RESULT',
   WATCHLIST_RESULT: 'WATCHLIST_RESULT',
   SYSTEM_BACKUP_RESULT: 'SYSTEM_BACKUP_RESULT',
+  RECORD_DELETED: 'RECORD_DELETED',
+  RECORD_CREATED: 'RECORD_CREATED',
+  RECORD_UPDATED: 'RECORD_UPDATED',
 };
 
 export const RESPONSE_SEVERITY = {
@@ -315,6 +318,36 @@ export const RESPONSE_TYPE_CONFIG = {
     gradientTop: 'from-indigo-500 via-purple-500 to-pink-500',
     iconBg: 'bg-indigo-950/40 border-indigo-500/40 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.25)]',
     cardBorder: 'border-indigo-500/30',
+  },
+  [RESPONSE_TYPES.RECORD_DELETED]: {
+    severity: RESPONSE_SEVERITY.SUCCESS,
+    badgeText: 'Record Removed',
+    defaultTitle: 'Record Deleted Successfully',
+    defaultMessage: 'The requested record has been permanently removed from the enterprise database.',
+    accentColor: '#10b981',
+    gradientTop: 'from-emerald-500 via-teal-400 to-emerald-600',
+    iconBg: 'bg-emerald-950/40 border-emerald-500/40 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.25)]',
+    cardBorder: 'border-emerald-500/30',
+  },
+  [RESPONSE_TYPES.RECORD_CREATED]: {
+    severity: RESPONSE_SEVERITY.SUCCESS,
+    badgeText: 'Record Created',
+    defaultTitle: 'Record Created Successfully',
+    defaultMessage: 'The new record has been created and registered successfully.',
+    accentColor: '#10b981',
+    gradientTop: 'from-emerald-500 via-teal-400 to-emerald-600',
+    iconBg: 'bg-emerald-950/40 border-emerald-500/40 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.25)]',
+    cardBorder: 'border-emerald-500/30',
+  },
+  [RESPONSE_TYPES.RECORD_UPDATED]: {
+    severity: RESPONSE_SEVERITY.SUCCESS,
+    badgeText: 'Record Updated',
+    defaultTitle: 'Record Updated Successfully',
+    defaultMessage: 'All changes to the record have been successfully committed.',
+    accentColor: '#10b981',
+    gradientTop: 'from-emerald-500 via-teal-400 to-emerald-600',
+    iconBg: 'bg-emerald-950/40 border-emerald-500/40 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.25)]',
+    cardBorder: 'border-emerald-500/30',
   },
 };
 
