@@ -4,7 +4,7 @@
  * Renders dedicated result screens for all operations, modules, and roles.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -73,10 +73,30 @@ export default function ResponsePage() {
   const roleDashboard = getRoleLanding(userRole, user) || '/dashboard';
   const returnUrl = sanitizeReturnUrl(state.returnUrl, roleDashboard);
   const primaryActionUrl = sanitizeReturnUrl(state.primaryActionUrl || returnUrl, roleDashboard);
-  const secondaryActionUrl = sanitizeReturnUrl(state.secondaryActionUrl || roleDashboard, roleDashboard);
 
-  const primaryActionText = state.primaryActionText || (config.severity === 'danger' ? 'Retry Action' : 'Return to Module');
-  const secondaryActionText = state.secondaryActionText || 'Go to Dashboard';
+  const confirmActionText = state.confirmText || 'Confirm';
+
+  const handleConfirm = () => {
+    // Navigate directly back to the initiating page (own page), never to dashboard unless no returnUrl
+    const destination = primaryActionUrl || returnUrl;
+    if (destination && destination !== '/response' && !destination.startsWith('/response')) {
+      navigate(destination, { replace: true });
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(roleDashboard, { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        handleConfirm();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [primaryActionUrl, returnUrl]);
 
   const handleCopyRef = () => {
     if (referenceId) {
@@ -280,38 +300,21 @@ export default function ResponsePage() {
             </details>
           )}
 
-          {/* Action Navigation Buttons */}
-          <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-end gap-3">
+          {/* Action Navigation Buttons - Single Confirm Button */}
+          <div className="pt-4 border-t border-slate-800/80 flex items-center justify-end">
             <button
-              onClick={() => navigate(secondaryActionUrl)}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-2"
-            >
-              <LayoutDashboard className="w-4 h-4 text-slate-400" />
-              <span>{secondaryActionText}</span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (config.severity === 'danger' && state.retryUrl) {
-                  navigate(state.retryUrl);
-                } else {
-                  navigate(primaryActionUrl);
-                }
-              }}
-              className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg flex items-center justify-center gap-2 ${
+              id="response-confirm-btn"
+              onClick={handleConfirm}
+              className={`w-full sm:w-auto min-w-[140px] px-8 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95 ${
                 config.severity === 'danger'
-                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20'
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/25 hover:shadow-rose-600/40'
                   : config.severity === 'warning'
-                  ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/20'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
+                  ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/25 hover:shadow-amber-600/40'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/25 hover:shadow-emerald-600/40'
               }`}
             >
-              {config.severity === 'danger' ? (
-                <RotateCcw className="w-4 h-4" />
-              ) : (
-                <ArrowLeft className="w-4 h-4" />
-              )}
-              <span>{primaryActionText}</span>
+              <Check className="w-4 h-4 stroke-[2.5]" />
+              <span>{confirmActionText}</span>
             </button>
           </div>
         </motion.div>

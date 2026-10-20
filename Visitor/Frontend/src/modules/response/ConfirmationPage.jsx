@@ -119,10 +119,8 @@ export default function ConfirmationPage() {
             entityType,
             entityName,
             returnUrl,
-            primaryActionText: successConfig.primaryActionText || 'Return to Previous Module',
+            confirmText: 'Confirm',
             primaryActionUrl: returnUrl,
-            secondaryActionText: 'Go to Dashboard',
-            secondaryActionUrl: roleDashboard,
             timestamp: new Date().toLocaleString(),
           },
         });
