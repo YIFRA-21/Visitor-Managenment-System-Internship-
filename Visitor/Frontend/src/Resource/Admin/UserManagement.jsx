@@ -718,6 +718,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     // Status Action Modal State
     const [actionModalUser, setActionModalUser] = useState(null);
     const [actionType, setActionType] = useState(null);
+    const [isDeletingUser, setIsDeletingUser] = useState(false);
     const [targetStatus, setTargetStatus] = useState('ACTIVE');
     const [statusReason, setStatusReason] = useState('');
     const [newAdminPassword, setNewAdminPassword] = useState('');
