@@ -586,33 +586,31 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
                   <div className="col-4">
                     <button onClick={() => {
             const shareUrl = window.location.href;
+            const updateBtnFeedback = () => {
+                const btn = document.getElementById('share-link-btn');
+                if (btn) {
+                    btn.textContent = '✓ Link Copied!';
+                    setTimeout(() => { btn.innerHTML = '<span class="d-inline-flex align-items-center gap-1">🔗 Share Link</span>'; }, 2000);
+                }
+            };
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(shareUrl).then(() => {
-                    const btn = document.getElementById('share-link-btn');
-                    if (btn) {
-                        btn.textContent = '✓ Link Copied!';
-                        setTimeout(() => { btn.textContent = ''; }, 2000);
-                    }
-                }).catch(() => {
-                    // Fallback for older browsers
+                navigator.clipboard.writeText(shareUrl).then(updateBtnFeedback).catch(() => {
                     const input = document.createElement('input');
                     input.value = shareUrl;
                     document.body.appendChild(input);
                     input.select();
                     document.execCommand('copy');
                     document.body.removeChild(input);
-                    alert('Pass link copied to clipboard!');
+                    updateBtnFeedback();
                 });
-            }
-            else {
-                // Fallback
+            } else {
                 const input = document.createElement('input');
                 input.value = shareUrl;
                 document.body.appendChild(input);
                 input.select();
                 document.execCommand('copy');
                 document.body.removeChild(input);
-                alert('Pass link copied to clipboard!');
+                updateBtnFeedback();
             }
         }} id="share-link-btn" className="w-full rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer" style={{ backgroundColor: '#0f172a', color: '#cbd5e1', fontWeight: 700, fontSize: '11px', padding: '10px 8px', border: '1px solid #1e293b' }}>
                       <Share2 className="h-4 w-4" style={{ color: '#a78bfa' }}/> Share Link

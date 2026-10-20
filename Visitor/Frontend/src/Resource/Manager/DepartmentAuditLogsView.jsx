@@ -29,9 +29,12 @@ import BackButton from '../../components/common/BackButton';
 import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { useLanguage } from '../../contexts/LanguageContext';
 import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
 
 export default function DepartmentAuditLogsView() {
   const { t } = useLanguage();
+  const { toResponse, toError } = useResponseNavigation();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -198,7 +201,11 @@ export default function DepartmentAuditLogsView() {
     setExporting(true);
     try {
       if (filteredLogs.length === 0) {
-        alert('No audit logs available to export.');
+        toResponse(RESPONSE_TYPES.INFO, {
+          title: 'No Audit Logs Available',
+          message: 'There are currently no filtered audit log records available to export.',
+          returnUrl: window.location.pathname + window.location.search,
+        });
         return;
       }
       const headers = ['ID', 'Timestamp', 'Action', 'Module', 'Actor Name', 'Actor Role', 'Entity', 'Record ID', 'Details', 'IP Address'];
@@ -224,7 +231,10 @@ export default function DepartmentAuditLogsView() {
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      alert('Export failed: ' + err.message);
+      toError(err, {
+        title: 'CSV Audit Export Failed',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } finally {
       setExporting(false);
     }
@@ -241,7 +251,10 @@ export default function DepartmentAuditLogsView() {
       downloadAnchor.click();
       downloadAnchor.remove();
     } catch (err) {
-      alert('JSON Export failed: ' + err.message);
+      toError(err, {
+        title: 'JSON Audit Export Failed',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     }
   };
 

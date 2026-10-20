@@ -5,8 +5,10 @@ import StatusBadge from '../../components/StatusBadge';
 import { appointmentsApi } from '../../services/api';
 import { getBackendBaseUrl } from '../../utils/apiUrl';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useResponseNavigation } from '../../modules/response';
 const API_BASE = getBackendBaseUrl();
 export default function Approvals() {
+    const { toConfirmation } = useResponseNavigation();
     const { t } = useLanguage();
     const [appointments, setAppointments] = useState([]);
     const [comment, setComment] = useState({});
@@ -17,31 +19,47 @@ export default function Approvals() {
     useEffect(() => {
         load();
     }, []);
-    const approve = async (id) => {
-        setActionLoading(id);
-        try {
-            await appointmentsApi.approve(id, comment[id]);
-            load();
-        }
-        catch (err) {
-            console.error(err);
-        }
-        finally {
-            setActionLoading(null);
-        }
+    const approve = (a) => {
+        const id = parseInt(a.id);
+        toConfirmation({
+            title: 'Confirm Appointment Approval',
+            message: `Authorize appointment request for visitor "${a.visitor_name}" on ${new Date(a.scheduled_start).toLocaleString()}?`,
+            actionType: 'APPROVE_APPOINTMENT',
+            targetEntity: `${a.visitor_name} (${a.reference_code})`,
+            consequences: [
+                'The appointment status will be updated to APPROVED.',
+                'A digital visitor pass and entrance QR code will be generated for the visitor.',
+                'Security gate check-in will be authorized for this appointment window.'
+            ],
+            confirmLabel: 'Approve & Issue Access',
+            cancelLabel: 'Cancel',
+            danger: false,
+            onConfirmApi: () => appointmentsApi.approve(id, comment[id]),
+            successTitle: 'Appointment Approved',
+            successMessage: `Appointment for ${a.visitor_name} has been approved and access credentials generated.`,
+            returnUrl: '/manager?view=approvals'
+        });
     };
-    const reject = async (id) => {
-        setActionLoading(id);
-        try {
-            await appointmentsApi.reject(id, comment[id] || 'Rejected');
-            load();
-        }
-        catch (err) {
-            console.error(err);
-        }
-        finally {
-            setActionLoading(null);
-        }
+    const reject = (a) => {
+        const id = parseInt(a.id);
+        toConfirmation({
+            title: 'Confirm Appointment Rejection',
+            message: `Are you sure you want to reject the appointment request for visitor "${a.visitor_name}"?`,
+            actionType: 'REJECT_APPOINTMENT',
+            targetEntity: `${a.visitor_name} (${a.reference_code})`,
+            consequences: [
+                'The appointment status will be changed to REJECTED.',
+                'The visitor and host will receive a rejection notice with your remarks.',
+                'The reserved room and time slot will be released.'
+            ],
+            confirmLabel: 'Yes, Reject Request',
+            cancelLabel: 'Keep Pending',
+            danger: true,
+            onConfirmApi: () => appointmentsApi.reject(id, comment[id] || 'Rejected by Department Manager'),
+            successTitle: 'Appointment Rejected',
+            successMessage: `Appointment for ${a.visitor_name} has been rejected.`,
+            returnUrl: '/manager?view=approvals'
+        });
     };
     return (<div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl text-slate-100 shadow-2xl transition-all duration-300 hover:border-indigo-500/50">
       <div className="mb-8 pb-6 border-b border-slate-800 flex items-start justify-between">
@@ -92,10 +110,10 @@ export default function Approvals() {
                     <input className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 px-4 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono" placeholder={t('placeholder.notes', 'Add a comment (optional)')} value={comment[parseInt(a.id)] || ''} onChange={(e) => setComment({ ...comment, [a.id]: e.target.value })}/>
                   </div>
                 </div>
-                <button onClick={() => approve(parseInt(a.id))} disabled={actionLoading === parseInt(a.id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors">
+                <button onClick={() => approve(a)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer">
                   <Check className="h-4 w-4"/> {t('btn.approve', 'Approve')}
                 </button>
-                <button onClick={() => reject(parseInt(a.id))} disabled={actionLoading === parseInt(a.id)} className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors">
+                <button onClick={() => reject(a)} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer">
                   <X className="h-4 w-4"/> {t('btn.decline', 'Reject')}
                 </button>
               </div>

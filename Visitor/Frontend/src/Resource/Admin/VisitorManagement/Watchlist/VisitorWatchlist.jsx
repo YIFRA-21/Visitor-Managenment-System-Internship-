@@ -14,9 +14,12 @@ import {
   X
 } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
+import useResponseNavigation from '../../../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../../../modules/response/responseConfig';
 
 export default function VisitorWatchlist() {
   const { t, tStatus } = useLanguage();
+  const { toConfirmation } = useResponseNavigation();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -100,9 +103,26 @@ export default function VisitorWatchlist() {
   };
 
   const handleDelete = (id, name) => {
-    if (!window.confirm(`Permanently remove ${name} from watchlist?`)) return;
-    setWatchlistEntries(prev => prev.filter(e => e.id !== id));
-    showToast(`🗑️ ${name} deleted from database.`, 'info');
+    toConfirmation({
+      title: 'Remove from Watchlist',
+      message: `Are you sure you want to permanently remove ${name} from the security watchlist?`,
+      entityType: 'Watchlist Record',
+      entityName: name,
+      consequences: [
+        'Security screening flags for this individual will be removed.',
+        'Front-desk alerts will no longer be generated when this individual registers.'
+      ],
+      confirmLabel: 'Remove from Watchlist',
+      confirmVariant: 'warning',
+      apiEndpoint: `/security/watchlist/${id}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.WATCHLIST_RESULT,
+        title: 'Subject Removed from Watchlist',
+        message: `${name} has been removed from the security watchlist.`,
+      }
+    });
   };
 
   const getSeverityBadge = (severity) => {

@@ -23,9 +23,12 @@ import {
 import BackButton from '../../components/common/BackButton';
 import { securityApi, getErrorMessage } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
 
 export default function AccessControlRules() {
   const { t, tStatus, language } = useLanguage();
+  const { toConfirmation } = useResponseNavigation();
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -112,16 +115,27 @@ export default function AccessControlRules() {
     }
   };
 
-  const handleDeleteRule = async (id, ruleName) => {
-    if (!window.confirm(`Are you sure you want to delete access rule "${ruleName}"?`)) return;
-
-    try {
-      await securityApi.deleteAccessRule(id);
-      setRules((prev) => prev.filter((r) => r.id !== id));
-      setFeedback({ type: 'success', message: `Rule "${ruleName}" removed from security system.` });
-    } catch (err) {
-      setFeedback({ type: 'error', message: getErrorMessage(err) });
-    }
+  const handleDeleteRule = (id, ruleName) => {
+    toConfirmation({
+      title: 'Delete Access Control Rule',
+      message: `Are you sure you want to permanently delete access rule "${ruleName}"?`,
+      entityType: 'Access Rule',
+      entityName: ruleName,
+      consequences: [
+        'Security zone enforcement for this rule will be immediately deactivated.',
+        'Visitors and personnel matching this criteria will fall back to default building permissions.'
+      ],
+      confirmLabel: 'Delete Access Rule',
+      confirmVariant: 'danger',
+      apiEndpoint: `/security/access-rules/${id}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Rule Deleted',
+        message: `Access control rule "${ruleName}" has been removed from the security system.`,
+      }
+    });
   };
 
   const evaluateSandbox = () => {

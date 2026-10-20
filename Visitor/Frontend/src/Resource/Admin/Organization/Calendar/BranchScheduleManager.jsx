@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Save, RotateCcw, Copy } from 'lucide-react';
 import api from '../../../../services/api';
+import useResponseNavigation from '../../../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../../../modules/response/responseConfig';
+
 export default function BranchScheduleManager({ onNotify }) {
+    const { toConfirmation } = useResponseNavigation();
     const [branches, setBranches] = useState([
         { id: 1, name: 'Main Bole Headquarters', code: 'HQ' }
     ]);
@@ -77,24 +81,31 @@ export default function BranchScheduleManager({ onNotify }) {
             onNotify('Failed to copy organization schedule.', 'danger');
         }
     };
-    const handleReset = async () => {
-        if (!window.confirm('Are you sure you want to delete this branch schedule override and inherit defaults?'))
-            return;
-        try {
-            const res = await api.post('/calendar/schedules/branch/reset', {
+    const handleReset = () => {
+        toConfirmation({
+            title: 'Reset Branch Schedule Override',
+            message: 'Are you sure you want to delete this branch schedule override and inherit organizational defaults?',
+            entityType: 'Branch Schedule Override',
+            entityName: `Branch #${selectedBranchId}`,
+            consequences: [
+                'Branch-specific working hours and lunch breaks will be discarded.',
+                'The branch will immediately inherit enterprise master calendar rules.'
+            ],
+            confirmLabel: 'Reset to Master Defaults',
+            confirmVariant: 'warning',
+            apiEndpoint: '/calendar/schedules/branch/reset',
+            apiMethod: 'POST',
+            apiPayload: {
                 organizationId: 1,
                 branchId: selectedBranchId
-            });
-            if (res.data) {
-                setWeeklySchedule(res.data.data.weeklySchedule);
-                setTimeZone(res.data.data.timeZone);
-                setStatus('INHERITED');
-                onNotify('Branch override cleared. Inheriting organization default schedule.', 'success');
+            },
+            returnUrl: window.location.pathname,
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Branch Schedule Reset',
+                message: 'Branch schedule override cleared. Master calendar defaults inherited.',
             }
-        }
-        catch {
-            onNotify('Failed to reset branch schedule.', 'danger');
-        }
+        });
     };
     const handleSaveOverride = async () => {
         // Validate shift ranges

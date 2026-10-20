@@ -496,12 +496,11 @@ export default function PermissionManagement({ initialSubView = 'dashboard' }) {
         }
     };
     const handleClonePermission = async (id, currentCode) => {
-        const newCode = prompt('Enter unique code for cloned permission:', `${currentCode}_CLONE`);
-        if (!newCode)
-            return;
+        const uniqueSuffix = Math.floor(1000 + Math.random() * 9000);
+        const newCode = `${currentCode}_CLONE_${uniqueSuffix}`;
         try {
-            await api.post(`/permissions/${id}/clone`, { newCode, newName: `${currentCode} (Clone)` });
-            setAlert({ type: 'success', message: `Permission cloned as '${newCode}'` });
+            await api.post(`/permissions/${id}/clone`, { newCode, newName: `${currentCode} (Clone ${uniqueSuffix})` });
+            setAlert({ type: 'success', message: `Permission successfully cloned as '${newCode}'` });
             fetchPermissions();
             fetchStats();
         }

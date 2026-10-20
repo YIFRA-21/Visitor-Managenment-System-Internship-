@@ -31,6 +31,7 @@ import { securityApi, authApi, getErrorMessage } from '../../services/api';
 import BackButton from '../../components/common/BackButton';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
 import FieldError from '../../components/common/FieldError';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 import {
   validateName,
   validatePhone,
@@ -41,6 +42,7 @@ import {
 export default function SecurityOfficerProfileView() {
   const { t } = useLanguage();
   const { user, updateUser } = useAuth();
+  const { toSuccess, toError, toConfirmation } = useResponseNavigation();
   const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -208,10 +210,19 @@ export default function SecurityOfficerProfileView() {
           await authApi.updateProfile({ avatarUrl: base64Url }).catch(() => {});
 
           setProfile((prev) => ({ ...prev, photo_url: base64Url }));
-          setMessage({ type: 'success', text: 'Security officer photo updated and synchronized across system!' });
+          toSuccess({
+            type: RESPONSE_TYPES.PROFILE_UPDATED,
+            title: 'Photo Synchronized',
+            message: 'Security officer badge photo updated and synchronized across all security gates and logs.',
+            entityType: 'Security Photo',
+            returnUrl: window.location.pathname + window.location.search,
+          });
         } catch (err) {
-          console.error(err);
-          setMessage({ type: 'error', text: 'Failed to update photo.' });
+          toError(err, {
+            title: 'Failed to Update Photo',
+            entityType: 'Security Photo',
+            returnUrl: window.location.pathname + window.location.search,
+          });
         }
       }
     };
@@ -220,29 +231,47 @@ export default function SecurityOfficerProfileView() {
 
   // Remove Photo Handler
   const handleRemovePhoto = async () => {
-    setPhotoPreview(null);
-    const userKey = `user_photo_${user?.id || 'security'}`;
-    try {
-      sessionStorage.removeItem(userKey);
-      localStorage.removeItem(userKey);
-      sessionStorage.removeItem('security_profile_photo');
-      localStorage.removeItem('security_profile_photo');
+    toConfirmation({
+      title: 'Confirm Officer Photo Removal',
+      message: 'Remove your security badge identity portrait? A standard duty avatar will be assigned.',
+      entityType: 'Security Officer Badge Photo',
+      entityName: user?.fullName || 'Security Photo',
+      consequences: [
+        'Your photo will be cleared from gate monitors and turnstile security consoles.',
+        'An updated security officer photo can be uploaded at any time.'
+      ],
+      confirmLabel: 'Remove Officer Photo',
+      confirmVariant: 'danger',
+      returnUrl: window.location.pathname + window.location.search,
+      onConfirm: async () => {
+        setPhotoPreview(null);
+        const userKey = `user_photo_${user?.id || 'security'}`;
+        try {
+          sessionStorage.removeItem(userKey);
+          localStorage.removeItem(userKey);
+          sessionStorage.removeItem('security_profile_photo');
+          localStorage.removeItem('security_profile_photo');
 
-      if (updateUser) {
-        updateUser({ avatarUrl: '' });
+          if (updateUser) {
+            updateUser({ avatarUrl: '' });
+          }
+
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(new Event('user-profile-updated'));
+
+          await securityApi.updateProfile({ photoUrl: null, avatarUrl: '' });
+          await authApi.updateProfile({ avatarUrl: '' }).catch(() => {});
+          setProfile((prev) => ({ ...prev, photo_url: null }));
+        } catch (err) {
+          console.error(err);
+        }
+      },
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Photo Removed',
+        message: 'Security officer badge photo has been cleared.',
       }
-
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new Event('user-profile-updated'));
-
-      await securityApi.updateProfile({ photoUrl: null, avatarUrl: '' });
-      await authApi.updateProfile({ avatarUrl: '' }).catch(() => {});
-
-      setProfile((prev) => ({ ...prev, photo_url: null }));
-      setMessage({ type: 'success', text: 'Profile photo removed.' });
-    } catch (err) {
-      console.error(err);
-    }
+    });
   };
 
   // Edit Info Submit Handler
@@ -290,11 +319,19 @@ export default function SecurityOfficerProfileView() {
       }));
 
       setEditErrors({});
-      setMessage({ type: 'success', text: 'Security officer details updated successfully!' });
-      setActiveTab('overview');
+      toSuccess({
+        type: RESPONSE_TYPES.PROFILE_UPDATED,
+        title: 'Security Profile Updated',
+        message: 'Security officer details and station assignments updated successfully.',
+        entityType: 'Security Profile',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to update security profile') });
+      toError(err, {
+        title: 'Failed to Update Security Profile',
+        entityType: 'Security Profile',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } finally {
       setSaving(false);
     }
@@ -318,15 +355,24 @@ export default function SecurityOfficerProfileView() {
     }
 
     setChangingPassword(true);
-    setMessage(null);
 
     try {
       await authApi.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setPasswordErrors({});
-      setMessage({ type: 'success', text: 'Password changed successfully!' });
+      toSuccess({
+        type: RESPONSE_TYPES.PASSWORD_RESET_SUCCESS,
+        title: 'Security Credentials Updated',
+        message: 'Officer security login password has been changed securely.',
+        entityType: 'Security Credentials',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } catch (err) {
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to change password. Please verify current password.') });
+      toError(err, {
+        title: 'Password Change Failed',
+        entityType: 'Security Credentials',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } finally {
       setChangingPassword(false);
     }

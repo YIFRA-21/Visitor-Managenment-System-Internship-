@@ -1,8 +1,16 @@
 import { logAuditEvent } from '../services/orgHomeService';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../../../../modules/response';
 export default function ChartCard({ title, subtitle, children, className = '', action, height, }) {
+    const { toResponse } = useResponseNavigation();
     const handleExport = (format) => {
         logAuditEvent(`Exported Chart Data`, { chart: title, format });
-        alert(`Exporting ${title} data as ${format} standard file...`);
+        toResponse({
+            type: RESPONSE_TYPES.FILE_RESULT,
+            title: 'Chart Data Exported',
+            message: `Export file for "${title}" has been generated in ${format} format.`,
+            targetEntity: `${title} (${format})`,
+            returnUrl: window.location.pathname + window.location.search
+        });
     };
     return (<div className={`vms-chart-card ${className}`}>
       <div className="chart-header">

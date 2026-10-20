@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Clock } from 'lucide-react';
+import { useResponseNavigation } from '../../../modules/response';
 export default function SchedulerJobsAdmin() {
+    const { toConfirmation } = useResponseNavigation();
     const [jobs] = useState([
         { id: 1, name: 'Daily Visitor Overstay Check', cron: '0 * * * *', status: 'ACTIVE', last_run: '10 mins ago', next_run: 'in 50 mins' },
         { id: 2, name: 'Audit Log Archival', cron: '0 0 * * 0', status: 'ACTIVE', last_run: '4 days ago', next_run: 'in 3 days' },
@@ -43,7 +45,25 @@ export default function SchedulerJobsAdmin() {
                 <td className="p-4 text-slate-400">{j.last_run}</td>
                 <td className="p-4 text-slate-400">{j.next_run}</td>
                 <td className="p-4 text-right">
-                  <button onClick={() => alert(`Running ${j.name} manually...`)} className="px-3 py-1 bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30 rounded-lg text-xs font-semibold">
+                  <button onClick={() => {
+                    toConfirmation({
+                      title: 'Execute Background Job',
+                      message: `Are you sure you want to manually trigger "${j.name}" now?`,
+                      actionType: 'RUN_SCHEDULER_JOB',
+                      targetEntity: j.name,
+                      consequences: [
+                        'The background scheduler worker will immediately begin executing this job.',
+                        'Execution results will be appended to the job audit logs.'
+                      ],
+                      confirmLabel: 'Run Job Now',
+                      cancelLabel: 'Cancel',
+                      danger: false,
+                      onConfirmApi: () => Promise.resolve({ data: { success: true } }),
+                      successTitle: 'Job Triggered Successfully',
+                      successMessage: `Background job "${j.name}" has been queued for execution.`,
+                      returnUrl: '/admin?view=scheduler'
+                    });
+                  }} className="px-3 py-1 bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30 rounded-lg text-xs font-semibold">
                     Run Now
                   </button>
                 </td>

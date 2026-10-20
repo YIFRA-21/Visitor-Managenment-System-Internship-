@@ -31,10 +31,12 @@ import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { authApi, getErrorMessage } from '../../services/api';
 import BackButton from '../../components/common/BackButton';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 
 export default function DepartmentManagerProfileView() {
   const { t } = useLanguage();
   const { user, updateUser } = useAuth();
+  const { toSuccess, toError, toConfirmation } = useResponseNavigation();
   const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -180,10 +182,19 @@ export default function DepartmentManagerProfileView() {
           await authApi.updateProfile({ avatarUrl: base64Url }).catch(() => {});
 
           setProfile((prev) => ({ ...prev, photo_url: base64Url }));
-          setMessage({ type: 'success', text: 'Executive photo updated and synchronized across system!' });
+          toSuccess({
+            type: RESPONSE_TYPES.PROFILE_UPDATED,
+            title: 'Photo Synchronized',
+            message: 'Executive management photo updated and synchronized across the enterprise.',
+            entityType: 'Executive Photo',
+            returnUrl: window.location.pathname + window.location.search,
+          });
         } catch (err) {
-          console.error(err);
-          setMessage({ type: 'error', text: 'Failed to update photo.' });
+          toError(err, {
+            title: 'Failed to Update Photo',
+            entityType: 'Executive Photo',
+            returnUrl: window.location.pathname + window.location.search,
+          });
         }
       }
     };
@@ -192,36 +203,53 @@ export default function DepartmentManagerProfileView() {
 
   // Remove Photo Handler
   const handleRemovePhoto = async () => {
-    setPhotoPreview(null);
-    const userKey = `user_photo_${user?.id || 'manager'}`;
-    try {
-      sessionStorage.removeItem(userKey);
-      localStorage.removeItem(userKey);
-      sessionStorage.removeItem('manager_profile_photo');
-      localStorage.removeItem('manager_profile_photo');
+    toConfirmation({
+      title: 'Confirm Executive Photo Removal',
+      message: 'Remove your executive portrait? A default identity avatar will be displayed across executive panels.',
+      entityType: 'Executive Portrait',
+      entityName: user?.fullName || 'Manager Photo',
+      consequences: [
+        'Your photo will be cleared from visitor pass approvals and departmental dashboards.',
+        'You can upload a new corporate portrait at any time.'
+      ],
+      confirmLabel: 'Remove Executive Photo',
+      confirmVariant: 'danger',
+      returnUrl: window.location.pathname + window.location.search,
+      onConfirm: async () => {
+        setPhotoPreview(null);
+        const userKey = `user_photo_${user?.id || 'manager'}`;
+        try {
+          sessionStorage.removeItem(userKey);
+          localStorage.removeItem(userKey);
+          sessionStorage.removeItem('manager_profile_photo');
+          localStorage.removeItem('manager_profile_photo');
 
-      if (updateUser) {
-        updateUser({ avatarUrl: '' });
+          if (updateUser) {
+            updateUser({ avatarUrl: '' });
+          }
+
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(new Event('user-profile-updated'));
+
+          await managerApi.updateProfile({ photoUrl: null, avatarUrl: '' });
+          await authApi.updateProfile({ avatarUrl: '' }).catch(() => {});
+          setProfile((prev) => ({ ...prev, photo_url: null }));
+        } catch (err) {
+          console.error(err);
+        }
+      },
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Photo Removed',
+        message: 'Your executive portrait has been cleared.',
       }
-
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new Event('user-profile-updated'));
-
-      await managerApi.updateProfile({ photoUrl: null, avatarUrl: '' });
-      await authApi.updateProfile({ avatarUrl: '' }).catch(() => {});
-
-      setProfile((prev) => ({ ...prev, photo_url: null }));
-      setMessage({ type: 'success', text: 'Profile photo removed.' });
-    } catch (err) {
-      console.error(err);
-    }
+    });
   };
 
   // Edit Info Submit Handler
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setMessage(null);
 
     try {
       await managerApi.updateProfile({
@@ -246,11 +274,19 @@ export default function DepartmentManagerProfileView() {
         office: editForm.office,
       }));
 
-      setMessage({ type: 'success', text: 'Executive details updated successfully!' });
-      setActiveTab('overview');
+      toSuccess({
+        type: RESPONSE_TYPES.PROFILE_UPDATED,
+        title: 'Executive Profile Updated',
+        message: 'Department manager details updated and synchronized successfully.',
+        entityType: 'Manager Profile',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to update manager profile') });
+      toError(err, {
+        title: 'Failed to Update Profile',
+        entityType: 'Manager Profile',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } finally {
       setSaving(false);
     }
@@ -269,14 +305,23 @@ export default function DepartmentManagerProfileView() {
     }
 
     setChangingPassword(true);
-    setMessage(null);
 
     try {
       await authApi.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setMessage({ type: 'success', text: 'Password changed successfully!' });
+      toSuccess({
+        type: RESPONSE_TYPES.PASSWORD_RESET_SUCCESS,
+        title: 'Password Security Updated',
+        message: 'Your executive managerial credentials have been updated securely.',
+        entityType: 'Executive Security',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } catch (err) {
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to change password. Please verify current password.') });
+      toError(err, {
+        title: 'Password Change Failed',
+        entityType: 'Executive Security',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } finally {
       setChangingPassword(false);
     }

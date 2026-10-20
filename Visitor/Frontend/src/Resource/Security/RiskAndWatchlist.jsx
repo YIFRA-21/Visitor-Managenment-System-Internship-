@@ -20,9 +20,12 @@ import {
 import { securityApi, blacklistWatchlistApi, getErrorMessage } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
 
 export default function RiskAndWatchlist() {
   const { t } = useLanguage();
+  const { toConfirmation } = useResponseNavigation();
   const { showNotification } = useNotification();
   const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -69,15 +72,27 @@ export default function RiskAndWatchlist() {
     }
   };
 
-  const handleRemove = async (id, name) => {
-    if (!window.confirm(t('confirm.removeWatchlist', 'Are you sure you want to remove this record?'))) return;
-    try {
-      await securityApi.removeFromWatchlist(id);
-      setWatchlist(prev => prev.filter(x => x.id !== id));
-      showToast(`${name || 'Record'} removed from watchlist.`, 'info');
-    } catch (err) {
-      showToast(getErrorMessage(err), 'error');
-    }
+  const handleRemove = (id, name) => {
+    toConfirmation({
+      title: 'Remove Watchlist Record',
+      message: `Are you sure you want to remove ${name || 'this record'} from the security watchlist?`,
+      entityType: 'Watchlist Entry',
+      entityName: name || `Record #${id}`,
+      consequences: [
+        'Security screening flags for this individual will be removed.',
+        'Access gates will no longer automatically alert on this credential.'
+      ],
+      confirmLabel: 'Remove from Watchlist',
+      confirmVariant: 'warning',
+      apiEndpoint: `/security/watchlist/${id}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.WATCHLIST_RESULT,
+        title: 'Watchlist Record Removed',
+        message: `${name || 'The subject'} was successfully removed from the security watchlist.`,
+      }
+    });
   };
 
   const handleElevateBlacklist = async (item) => {

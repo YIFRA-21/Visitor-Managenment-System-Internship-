@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Edit, Trash2, Network, MapPin, User } from 'lucide-react';
 import api from '../../../../services/api';
+import useResponseNavigation from '../../../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../../../modules/response/responseConfig';
+
 export default function DeptList() {
+    const navigate = useNavigate();
+    const { toConfirmation } = useResponseNavigation();
     const [depts, setDepts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -17,19 +23,31 @@ export default function DeptList() {
             .catch(console.error)
             .finally(() => setLoading(false));
     };
-    const deleteDept = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this department?'))
-            return;
-        try {
-            await api.delete(`/departments/${id}`);
-            fetchDepts();
-        }
-        catch (err) {
-            console.error(err);
-        }
+    const deleteDept = (id, name) => {
+        toConfirmation({
+            title: `Delete Department "${name || id}"`,
+            message: 'Are you sure you want to permanently delete this department?',
+            entityType: 'Department',
+            entityName: name || `Dept #${id}`,
+            entityId: id,
+            consequences: [
+                'Employees assigned to this department will be unassigned.',
+                'Associated branch department mappings will be detached.'
+            ],
+            confirmLabel: 'Delete Department',
+            confirmVariant: 'danger',
+            apiEndpoint: `/departments/${id}`,
+            apiMethod: 'DELETE',
+            returnUrl: window.location.pathname,
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Department Deleted',
+                message: `Department "${name || id}" has been removed.`,
+            }
+        });
     };
-    const filtered = depts.filter(d => d.department_name.toLowerCase().includes(search.toLowerCase()) ||
-        d.department_code.toLowerCase().includes(search.toLowerCase()));
+    const filtered = depts.filter(d => (d.department_name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (d.department_code || '').toLowerCase().includes(search.toLowerCase()));
     return (<div className="space-y-6">
       
       {/* Header */}
@@ -42,7 +60,7 @@ export default function DeptList() {
             Corporate divisions, structural layouts, and assigned department heads.
           </p>
         </div>
-        <button onClick={() => alert('Add department flow')} className="btn btn-primary btn-sm d-flex align-items-center gap-2 text-xs font-bold">
+        <button onClick={() => navigate('/admin/dashboard?view=dept_create')} className="btn btn-primary btn-sm d-flex align-items-center gap-2 text-xs font-bold">
           <Plus className="h-4 w-4"/> Add Department
         </button>
       </div>
@@ -101,10 +119,10 @@ export default function DeptList() {
                     </td>
                     <td className="px-4 py-3 text-end">
                       <div className="d-flex align-items-center justify-content-end gap-2">
-                        <button onClick={() => alert('Edit department')} className="btn btn-sm btn-outline-secondary p-1.5 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800" title="Edit Department">
+                        <button onClick={() => navigate(`/admin/dashboard?view=dept_edit&id=${d.id}`)} className="btn btn-sm btn-outline-secondary p-1.5 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800" title="Edit Department">
                           <Edit className="h-4 w-4"/>
                         </button>
-                        <button onClick={() => deleteDept(d.id)} className="btn btn-sm btn-outline-danger p-1.5" title="Delete Department">
+                        <button onClick={() => deleteDept(d.id, d.department_name)} className="btn btn-sm btn-outline-danger p-1.5" title="Delete Department">
                           <Trash2 className="h-4 w-4"/>
                         </button>
                       </div>

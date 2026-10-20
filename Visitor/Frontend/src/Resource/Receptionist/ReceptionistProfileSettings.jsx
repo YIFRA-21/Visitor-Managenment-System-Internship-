@@ -30,10 +30,12 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { receptionApi, authApi, getErrorMessage } from '../../services/api';
 import BackButton from '../../components/common/BackButton';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 
 export default function ReceptionistProfileSettings() {
   const { t } = useLanguage();
   const { user, updateUser } = useAuth();
+  const { toSuccess, toError, toConfirmation } = useResponseNavigation();
   const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -181,10 +183,19 @@ export default function ReceptionistProfileSettings() {
           await authApi.updateProfile({ avatarUrl: base64Url }).catch(() => {});
 
           setProfile((prev) => ({ ...prev, photo_url: base64Url }));
-          setMessage({ type: 'success', text: 'Profile photo updated and synchronized across system!' });
+          toSuccess({
+            type: RESPONSE_TYPES.PROFILE_UPDATED,
+            title: 'Photo Synchronized',
+            message: 'Receptionist desk identity photo updated and synchronized across all terminals.',
+            entityType: 'Reception Photo',
+            returnUrl: window.location.pathname + window.location.search,
+          });
         } catch (err) {
-          console.error(err);
-          setMessage({ type: 'error', text: 'Failed to save updated photo.' });
+          toError(err, {
+            title: 'Failed to Save Photo',
+            entityType: 'Reception Photo',
+            returnUrl: window.location.pathname + window.location.search,
+          });
         }
       }
     };
@@ -193,36 +204,53 @@ export default function ReceptionistProfileSettings() {
 
   // Remove Photo Handler
   const handleRemovePhoto = async () => {
-    setPhotoPreview(null);
-    const userKey = `user_photo_${user?.id || 'reception'}`;
-    try {
-      sessionStorage.removeItem(userKey);
-      localStorage.removeItem(userKey);
-      sessionStorage.removeItem('receptionist_profile_photo');
-      localStorage.removeItem('receptionist_profile_photo');
+    toConfirmation({
+      title: 'Confirm Profile Photo Removal',
+      message: 'Remove your receptionist identity photo? A default avatar placeholder will be used.',
+      entityType: 'Profile Photo',
+      entityName: user?.fullName || 'Receptionist Photo',
+      consequences: [
+        'Your photo will be cleared from visitor check-in kiosks and employee directories.',
+        'A new photograph can be uploaded at any time.'
+      ],
+      confirmLabel: 'Remove Photo',
+      confirmVariant: 'danger',
+      returnUrl: window.location.pathname + window.location.search,
+      onConfirm: async () => {
+        setPhotoPreview(null);
+        const userKey = `user_photo_${user?.id || 'reception'}`;
+        try {
+          sessionStorage.removeItem(userKey);
+          localStorage.removeItem(userKey);
+          sessionStorage.removeItem('receptionist_profile_photo');
+          localStorage.removeItem('receptionist_profile_photo');
 
-      if (updateUser) {
-        updateUser({ avatarUrl: '' });
+          if (updateUser) {
+            updateUser({ avatarUrl: '' });
+          }
+
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(new Event('user-profile-updated'));
+
+          await receptionApi.updateProfile({ avatarUrl: '' });
+          await authApi.updateProfile({ avatarUrl: '' }).catch(() => {});
+          setProfile((prev) => ({ ...prev, photo_url: null }));
+        } catch (err) {
+          console.error(err);
+        }
+      },
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Photo Removed',
+        message: 'Your receptionist profile photo has been cleared.',
       }
-
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new Event('user-profile-updated'));
-
-      await receptionApi.updateProfile({ avatarUrl: '' });
-      await authApi.updateProfile({ avatarUrl: '' }).catch(() => {});
-
-      setProfile((prev) => ({ ...prev, photo_url: null }));
-      setMessage({ type: 'success', text: 'Profile photo removed.' });
-    } catch (err) {
-      console.error(err);
-    }
+    });
   };
 
   // Edit Info Submit Handler
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setMessage(null);
 
     try {
       await receptionApi.updateProfile({
@@ -249,11 +277,19 @@ export default function ReceptionistProfileSettings() {
         shift_schedule: editForm.shiftSchedule,
       }));
 
-      setMessage({ type: 'success', text: 'Profile & contact details updated successfully!' });
-      setActiveTab('overview');
+      toSuccess({
+        type: RESPONSE_TYPES.PROFILE_UPDATED,
+        title: 'Profile Updated Successfully',
+        message: 'Receptionist desk & contact details have been synchronized.',
+        entityType: 'Receptionist Profile',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to update profile info') });
+      toError(err, {
+        title: 'Failed to Update Profile',
+        entityType: 'Receptionist Profile',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } finally {
       setSaving(false);
     }
@@ -272,14 +308,23 @@ export default function ReceptionistProfileSettings() {
     }
 
     setChangingPassword(true);
-    setMessage(null);
 
     try {
       await authApi.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setMessage({ type: 'success', text: 'Password changed successfully!' });
+      toSuccess({
+        type: RESPONSE_TYPES.PASSWORD_RESET_SUCCESS,
+        title: 'Password Security Updated',
+        message: 'Your receptionist access password has been changed securely.',
+        entityType: 'Account Security',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } catch (err) {
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to change password. Verify your current password.') });
+      toError(err, {
+        title: 'Password Change Failed',
+        entityType: 'Account Security',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } finally {
       setChangingPassword(false);
     }

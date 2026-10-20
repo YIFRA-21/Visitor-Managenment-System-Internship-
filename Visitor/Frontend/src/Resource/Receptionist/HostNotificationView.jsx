@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { Bell, Send, Mail, Smartphone, CheckCircle2, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 import BackButton from '../../components/common/BackButton';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
+
 export default function HostNotificationView() {
+    const { toSuccess, toError } = useResponseNavigation();
     const [hostId, setHostId] = useState('');
     const [notificationType, setNotificationType] = useState('VISITOR_ARRIVED');
     const [customMsg, setCustomMsg] = useState('');
@@ -34,12 +37,22 @@ export default function HostNotificationView() {
                 message_custom: customMsg,
                 channels,
             });
-            setMessage({ type: 'success', text: res.data.message || 'Host notification dispatched successfully.' });
-            setCustomMsg('');
+            toSuccess({
+                type: RESPONSE_TYPES.NOTIFICATION_SENT,
+                title: 'Host Notification Dispatched',
+                message: res.data?.message || `Host notification (${notificationType}) dispatched successfully across ${channels.join(', ')}.`,
+                referenceId: `NOTIF-${hostId}`,
+                entityType: 'Host Notification',
+                entityName: `Host #${hostId}`,
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         catch (err) {
-            console.error(err);
-            setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to dispatch host notification.' });
+            toError(err, {
+                title: 'Failed to Dispatch Notification',
+                entityType: 'Host Notification',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         finally {
             setLoading(false);

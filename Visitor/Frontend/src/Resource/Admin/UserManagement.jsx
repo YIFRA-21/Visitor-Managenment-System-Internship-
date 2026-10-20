@@ -12,6 +12,7 @@ import { validateDateOfBirth, validatePhoneNumber } from '../../data/countriesDa
 import { required, email, phone, passwordStrength } from '../../validation';
 import { sanitizeFormValues } from '../../utils/sanitizer';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useResponseNavigation } from '../../modules/response';
 
 const maxAllowedDob = (() => {
   const d = new Date();
@@ -142,6 +143,29 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     const { t } = useLanguage();
     // Navigation Sub-Views & History
     const navigate = useNavigate();
+    const { toConfirmation, toSuccess, toError } = useResponseNavigation();
+
+    const handleDeleteUserWithConfirmation = (target) => {
+        if (!target) return;
+        toConfirmation({
+            title: 'Confirm Permanent User Deletion',
+            message: `Are you sure you want to permanently delete user account "${target.full_name || target.email}" (${target.user_code || `USR-${target.id}`})?`,
+            actionType: 'DELETE_USER',
+            targetEntity: `${target.full_name || target.email} (${target.role || 'User'})`,
+            consequences: [
+                'The user account and associated login credentials will be permanently removed.',
+                'Active sessions, refresh tokens, and permissions will be revoked immediately.',
+                'Audit records and visitor event history will be preserved for compliance.'
+            ],
+            confirmLabel: 'Yes, Delete Account',
+            cancelLabel: 'Cancel',
+            danger: true,
+            onConfirmApi: () => api.delete(`/users/${target.id}`).catch(() => api.post(`/users/${target.id}/archive`)),
+            successTitle: 'User Account Deleted',
+            successMessage: `User "${target.full_name || target.email}" was deleted successfully.`,
+            returnUrl: '/admin?view=users'
+        });
+    };
     const [activeSubView, setActiveSubView] = useState(initialTab);
     const [subViewHistory, setSubViewHistory] = useState([]);
     useEffect(() => {
@@ -2345,10 +2369,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                           </button>
 
                           {/* Delete User Account */}
-                          <button onClick={() => {
-                    setActionModalUser(user);
-                    setActionType('delete');
-                }} className="w-8 h-8 p-0 inline-flex items-center justify-center shrink-0 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-400 hover:shadow-rose-500/30 transition-all shadow-sm group/del" title="Delete User Account">
+                          <button onClick={() => handleDeleteUserWithConfirmation(user)} className="w-8 h-8 p-0 inline-flex items-center justify-center shrink-0 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-400 hover:shadow-rose-500/30 transition-all shadow-sm group/del" title="Delete User Account">
                             <Trash2 className="w-4 h-4 shrink-0 text-rose-500 group-hover/del:text-white transition-colors"/>
                           </button>
                         </div>
@@ -3345,10 +3366,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                   <button onClick={() => setAlert({ type: 'success', message: `Notification sent to ${activeDetailsUser.email}` })} className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-lg text-xs font-bold flex items-center gap-1">
                     <Mail className="w-3.5 h-3.5"/> Send Notification
                   </button>
-                  <button onClick={() => {
-                        setActionModalUser(activeDetailsUser);
-                        setActionType('delete');
-                    }} className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/40 text-rose-400 rounded-lg text-xs font-bold flex items-center gap-1">
+                  <button onClick={() => handleDeleteUserWithConfirmation(activeDetailsUser)} className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/40 text-rose-400 rounded-lg text-xs font-bold flex items-center gap-1">
                     <Trash2 className="w-3.5 h-3.5"/> Delete User
                   </button>
                 </div>
@@ -4881,10 +4899,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                       <button onClick={() => handleResendPhoneVerification(selectedUser.id)} className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-lg font-bold text-xs">
                         ðŸ“± Resend Phone OTP Verification
                       </button>
-                      <button onClick={() => {
-                    setActionModalUser(selectedUser);
-                    setActionType('delete');
-                }} className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 rounded-lg font-bold text-xs flex items-center gap-1.5">
+                      <button onClick={() => handleDeleteUserWithConfirmation(selectedUser)} className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 rounded-lg font-bold text-xs flex items-center gap-1.5">
                         <Trash2 className="w-3.5 h-3.5 text-rose-400"/>
                         <span>Delete User Account</span>
                       </button>

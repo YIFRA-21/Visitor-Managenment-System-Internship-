@@ -3,11 +3,15 @@ import { ArrowLeft, GitBranch, Mail, Phone, Globe, MapPin, Clock, Edit, ShieldAl
 import api from '../../../../services/api';
 import BranchStatusBadge from './components/BranchStatusBadge';
 import ConfirmationDialog from '../Profile/components/ConfirmationDialog';
+import useResponseNavigation from '../../../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../../../modules/response/responseConfig';
+
 const SHORT_DAYS = {
     MONDAY: 'Mon', TUESDAY: 'Tue', WEDNESDAY: 'Wed', THURSDAY: 'Thu',
     FRIDAY: 'Fri', SATURDAY: 'Sat', SUNDAY: 'Sun',
 };
 export default function BranchDetails() {
+    const { toConfirmation } = useResponseNavigation();
     const [branch, setBranch] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -40,20 +44,29 @@ export default function BranchDetails() {
             return dateStr;
         }
     };
-    const handleDelete = async () => {
-        setDeleting(true);
-        try {
-            await api.delete(`/branches/${branch.id}`);
-            setShowDeleteModal(false);
-            handleNav('branches');
-        }
-        catch (err) {
-            console.error('Delete branch failed:', err);
-            alert(err?.response?.data?.message || 'Failed to delete branch. Please try again.');
-        }
-        finally {
-            setDeleting(false);
-        }
+    const handleDelete = () => {
+        if (!branch) return;
+        toConfirmation({
+            title: `Delete Branch "${branch.branchName}"`,
+            message: `Are you sure you want to permanently delete branch "${branch.branchName}" (${branch.branchCode})?`,
+            entityType: 'Branch Office',
+            entityName: branch.branchName,
+            entityId: branch.id,
+            consequences: [
+                'Departments and personnel associated with this branch must be reassigned.',
+                'Active visitor pass checkpoints for this branch facility will be deactivated.'
+            ],
+            confirmLabel: 'Delete Branch',
+            confirmVariant: 'danger',
+            apiEndpoint: `/branches/${branch.id}`,
+            apiMethod: 'DELETE',
+            returnUrl: '/admin/dashboard?view=branches',
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Branch Deleted',
+                message: `Branch "${branch.branchName}" was permanently removed from the organization.`,
+            }
+        });
     };
     if (loading) {
         return <div className="p-20 text-center"><div className="spinner-border text-primary" role="status"/><p className="text-slate-400 text-xs fw-semibold mt-3">Loading branch details...</p></div>;
@@ -62,8 +75,6 @@ export default function BranchDetails() {
         return <div className="alert alert-danger text-xs font-semibold">Branch not found or could not be loaded.</div>;
     }
     return (<div className="space-y-6">
-      <ConfirmationDialog show={showDeleteModal} title="Delete Branch" message={`Are you sure you want to delete branch "${branch.branchName}"?`} confirmLabel="Delete Branch" danger={true} loading={deleting} onConfirm={handleDelete} onCancel={() => setShowDeleteModal(false)}/>
-
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center">
         <div className="d-flex align-items-center gap-3">
@@ -86,7 +97,7 @@ export default function BranchDetails() {
           <button onClick={() => handleNav('branch_edit', branch.id)} className="btn btn-primary d-flex align-items-center gap-2 text-xs font-bold px-3 py-2">
             <Edit className="h-4 w-4"/> Edit Branch
           </button>
-          <button onClick={() => setShowDeleteModal(true)} className="btn btn-outline-danger d-flex align-items-center gap-2 text-xs font-bold px-3 py-2" title="Delete Branch" aria-label="Delete Branch">
+          <button onClick={handleDelete} className="btn btn-outline-danger d-flex align-items-center gap-2 text-xs font-bold px-3 py-2" title="Delete Branch" aria-label="Delete Branch">
             <Trash2 className="h-4 w-4"/> Delete Branch
           </button>
         </div>

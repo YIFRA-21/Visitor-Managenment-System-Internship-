@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Database, Download, RotateCcw } from 'lucide-react';
+import { useResponseNavigation } from '../../../../modules/response';
 export default function BackupAndRestoreView() {
+    const { toConfirmation } = useResponseNavigation();
     const [backups, setBackups] = useState([
         { backupId: 'bak_20260805_01', createdAt: '2026-08-05 00:00:00', createdBy: 'System Auto Backup', version: '1.4.2', checksum: 'e3b0c44298fc1c14...', size: '142.5 KB' }
     ]);
@@ -43,7 +45,25 @@ export default function BackupAndRestoreView() {
               </span>
             </div>
 
-            <button onClick={() => alert(`System restored to backup ${b.backupId}`)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold font-sans rounded-xl flex items-center space-x-2">
+            <button onClick={() => {
+              toConfirmation({
+                title: 'Restore Configuration Archive',
+                message: `Are you sure you want to restore notification engine settings and templates from backup "${b.backupId}"?`,
+                actionType: 'RESTORE_NOTIFICATION_BACKUP',
+                targetEntity: b.backupId,
+                consequences: [
+                  'Notification templates and routing policies will revert to version ' + b.version,
+                  'Active worker queues will reload with restored settings.'
+                ],
+                confirmLabel: 'Restore Archive',
+                cancelLabel: 'Cancel',
+                danger: true,
+                onConfirmApi: () => Promise.resolve({ data: { success: true } }),
+                successTitle: 'Archive Restored Successfully',
+                successMessage: `Notification configuration restored from ${b.backupId}.`,
+                returnUrl: window.location.pathname + window.location.search
+              });
+            }} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold font-sans rounded-xl flex items-center space-x-2">
               <RotateCcw className="h-3.5 w-3.5"/>
               <span>Restore Archive</span>
             </button>

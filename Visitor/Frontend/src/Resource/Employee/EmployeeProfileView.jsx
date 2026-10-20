@@ -7,6 +7,7 @@ import api from '../../services/api';
 import BackButton from '../../components/common/BackButton';
 import CountryPhoneInput from '../../components/common/CountryPhoneInput';
 import FieldError from '../../components/common/FieldError';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 import {
     validatePhone,
     validatePassword,
@@ -16,6 +17,7 @@ import {
 export default function EmployeeProfileView() {
     const { t } = useLanguage();
     const { user, updateUser } = useAuth();
+    const { toSuccess, toError, toConfirmation } = useResponseNavigation();
     const fileInputRef = useRef(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -171,34 +173,59 @@ export default function EmployeeProfileView() {
                     window.dispatchEvent(new Event('user-profile-updated'));
                 }
                 catch (err) { }
-                setMessage({ type: 'success', text: 'Profile photo updated successfully!' });
+                toSuccess({
+                    type: RESPONSE_TYPES.PROFILE_UPDATED,
+                    title: 'Photo Synchronized',
+                    message: 'Employee host profile photo updated and synchronized successfully.',
+                    entityType: 'Employee Photo',
+                    returnUrl: window.location.pathname + window.location.search,
+                });
             }
         };
         reader.readAsDataURL(file);
     };
     const handleRemovePhoto = () => {
-        setPhotoPreview(null);
-        const userKey = `user_photo_${userAny?.id || 'admin'}`;
-        const roleLower = userAny?.role?.toLowerCase();
-        try {
-            sessionStorage.removeItem(userKey);
-            localStorage.removeItem(userKey);
-            if (roleLower === 'admin') {
-                sessionStorage.removeItem('admin_profile_photo');
-                localStorage.removeItem('admin_profile_photo');
+        toConfirmation({
+            title: 'Confirm Profile Photo Removal',
+            message: 'Remove your corporate identity photo? A default avatar placeholder will be used.',
+            entityType: 'Profile Photo',
+            entityName: userAny?.fullName || 'User Photo',
+            consequences: [
+                'Your photo will be cleared from reception, security turnstiles, and directory lookup.',
+                'A new photo can be uploaded at any time.'
+            ],
+            confirmLabel: 'Remove Photo',
+            confirmVariant: 'danger',
+            returnUrl: window.location.pathname + window.location.search,
+            onConfirm: () => {
+                setPhotoPreview(null);
+                const userKey = `user_photo_${userAny?.id || 'admin'}`;
+                const roleLower = userAny?.role?.toLowerCase();
+                try {
+                    sessionStorage.removeItem(userKey);
+                    localStorage.removeItem(userKey);
+                    if (roleLower === 'admin') {
+                        sessionStorage.removeItem('admin_profile_photo');
+                        localStorage.removeItem('admin_profile_photo');
+                    }
+                    else if (roleLower === 'employee' || roleLower === 'staff') {
+                        sessionStorage.removeItem('employee_uploaded_photo');
+                        localStorage.removeItem('employee_uploaded_photo');
+                    }
+                    if (updateUser) {
+                        updateUser({ avatarUrl: '' });
+                    }
+                    window.dispatchEvent(new Event('storage'));
+                    window.dispatchEvent(new Event('user-profile-updated'));
+                }
+                catch (e) { }
+            },
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Photo Removed',
+                message: 'Your profile photo has been cleared.',
             }
-            else if (roleLower === 'employee' || roleLower === 'staff') {
-                sessionStorage.removeItem('employee_uploaded_photo');
-                localStorage.removeItem('employee_uploaded_photo');
-            }
-            if (updateUser) {
-                updateUser({ avatarUrl: '' });
-            }
-            window.dispatchEvent(new Event('storage'));
-            window.dispatchEvent(new Event('user-profile-updated'));
-        }
-        catch (e) { }
-        setMessage({ type: 'success', text: 'Profile photo removed.' });
+        });
     };
     const handleEditSubmit = async (e) => {
         e.preventDefault();
@@ -222,13 +249,20 @@ export default function EmployeeProfileView() {
             setProfile((prev) => ({ ...prev, ...editForm }));
             setShowEditModal(false);
             setEditErrors({});
-            setMessage({ type: 'success', text: 'Profile contact info updated successfully!' });
+            toSuccess({
+                type: RESPONSE_TYPES.PROFILE_UPDATED,
+                title: 'Profile Updated Successfully',
+                message: 'Your contact and departmental information has been saved.',
+                entityType: 'Employee Profile',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         catch (err) {
-            setProfile((prev) => ({ ...prev, ...editForm }));
-            setShowEditModal(false);
-            setEditErrors({});
-            setMessage({ type: 'success', text: 'Contact info updated locally.' });
+            toError(err, {
+                title: 'Profile Update Failed',
+                entityType: 'Employee Profile',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         finally {
             setSaving(false);
@@ -259,13 +293,20 @@ export default function EmployeeProfileView() {
             setShowPasswordModal(false);
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
             setPasswordErrors({});
-            setMessage({ type: 'success', text: 'Password updated successfully!' });
+            toSuccess({
+                type: RESPONSE_TYPES.PASSWORD_RESET_SUCCESS,
+                title: 'Password Security Updated',
+                message: 'Your account credentials have been updated securely.',
+                entityType: 'Account Security',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         catch (err) {
-            setShowPasswordModal(false);
-            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-            setPasswordErrors({});
-            setMessage({ type: 'success', text: 'Password security updated successfully!' });
+            toError(err, {
+                title: 'Password Change Failed',
+                entityType: 'Account Security',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         finally {
             setSaving(false);

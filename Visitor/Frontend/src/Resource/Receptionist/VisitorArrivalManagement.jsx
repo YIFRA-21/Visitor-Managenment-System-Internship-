@@ -8,6 +8,7 @@ import { resolvePhotoUrl, getPhotoFallbackInitials } from '../../utils/photoUtil
 import BackButton from '../../components/common/BackButton';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 
 // ── Visitor Profile Avatar with Graceful Fallback ──
 function VisitorAvatar({ photo, name }) {
@@ -36,6 +37,7 @@ function VisitorAvatar({ photo, name }) {
 export default function VisitorArrivalManagement({ onNavigate }) {
   const { t, language } = useLanguage();
   const isAm = language === 'am';
+  const { toSuccess, toError, toConfirmation } = useResponseNavigation();
   const { organization, logoUrl: orgLogoUrl, orgName: organizationName } = useOrganization();
   const companyLogo = orgLogoUrl || organization?.logoUrl || '/logo.png';
   const companyName = organizationName || organization?.name || 'Acme Enterprise';
@@ -81,44 +83,52 @@ export default function VisitorArrivalManagement({ onNavigate }) {
     setActionLoading(true);
     try {
       const res = await api.post(`/reception/arrivals/${id}/confirm`);
-      setMessage({ type: 'success', text: res.data?.message || (isAm ? 'የጎብኝ መድረስ ተረጋግጧል!' : 'Arrival confirmed and host notified.') });
-      fetchArrivals();
+      toSuccess({
+        type: RESPONSE_TYPES.CHECKIN_SUCCESS,
+        title: isAm ? 'የጎብኝ መድረስ ተረጋግጧል' : 'Arrival Confirmed & Host Notified',
+        message: res.data?.message || (isAm ? 'የጎብኝ መድረስ ተረጋግጧል!' : 'Arrival confirmed and host notified successfully.'),
+        referenceId: `ARR-${id}`,
+        entityType: 'Arrival Confirmation',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } catch (err) {
-      setMessage({ type: 'error', text: getErrorMessage(err) });
+      toError(err, {
+        title: 'Arrival Confirmation Failed',
+        entityType: 'Arrival Confirmation',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } finally {
       setActionLoading(false);
     }
   };
 
-  // ── Remove / Cancel Arrival (Instantly Responsive & Optimistic) ──
+  // ── Remove / Cancel Arrival ──
   const handleRemoveArrival = async (appt) => {
     const apptId = appt.id;
     const visitorName = appt.visitor_name || 'Visitor';
 
-    // 1. Instantly remove from the active page UI so it responds immediately!
-    setArrivals((prev) => prev.filter((item) => item.id !== apptId));
-    setMessage({ 
-      type: 'success', 
-      text: isAm 
-        ? `የጎብኝ "${visitorName}" ምዝገባ ከዚህ ገጽ ተሰርዟል።` 
-        : `Arrival record for "${visitorName}" removed from this page.` 
+    toConfirmation({
+      title: 'Confirm Arrival Removal',
+      message: `Remove arrival record for "${visitorName}" from today's active arrivals queue?`,
+      entityType: 'Visitor Arrival',
+      entityName: visitorName,
+      entityId: apptId,
+      consequences: [
+        'The appointment will be marked as cancelled or removed from reception arrivals.',
+        'Speed gate and kiosk lookup for this appointment code will be disabled.',
+        'This removal action is recorded in the reception audit log.'
+      ],
+      confirmLabel: 'Remove Arrival Record',
+      confirmVariant: 'danger',
+      apiEndpoint: `/reception/arrivals/${apptId}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.RECORD_DELETED,
+        title: 'Arrival Record Removed',
+        message: `Arrival record for "${visitorName}" has been removed from today's queue.`,
+      }
     });
-
-    // 2. Perform backend cancellation in the background
-    try {
-      await api.delete(`/reception/arrivals/${apptId}`).catch(async () => {
-        // Fallback to cancel route if delete method differs
-        await api.post(`/reception/arrivals/${apptId}/cancel`, { reason: 'Removed by Receptionist' });
-      });
-    } catch (err) {
-      console.error('Failed to cancel arrival on backend:', err);
-      // Re-fetch only if failed
-      fetchArrivals();
-      setMessage({ 
-        type: 'error', 
-        text: isAm ? 'የጎብኝውን መረጃ ማስወገድ አልተቻለም።' : 'Failed to remove arrival record.' 
-      });
-    }
   };
 
   // ── Open Issue Pass Modal ──

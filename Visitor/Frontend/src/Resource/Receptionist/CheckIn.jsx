@@ -38,10 +38,12 @@ import BackButton from '../../components/common/BackButton';
 import api, { checkinApi, getErrorMessage } from '../../services/api';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 
 export default function CheckIn() {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  const { toSuccess, toError, toConfirmation } = useResponseNavigation();
 
   // Mode Selection: 'id_ref' (Rapid Search/Tap), 'qr_scan' (Optical Scanner), 'face_scan' (Biometric Face)
   const [activeTab, setActiveTab] = useState('id_ref');
@@ -107,23 +109,29 @@ export default function CheckIn() {
   const handleDeleteArrival = async (item) => {
     const name = item.visitor_name || item.visitorName || 'this visitor';
     const idToDelete = item.id;
-    setActionInProgressId(idToDelete);
-    try {
-      if (idToDelete) {
-        await api.delete(`/appointments/${idToDelete}`);
+    setCancellingArrival(null);
+    toConfirmation({
+      title: 'Confirm Removal of Expected Arrival',
+      message: `Remove expected arrival reservation for "${name}" from today's ingress queue?`,
+      entityType: 'Arrival Record',
+      entityName: name,
+      entityId: idToDelete,
+      consequences: [
+        'The visitor appointment status will be updated or removed from expected arrivals.',
+        'Speed gate pre-authorization credentials will be deactivated.',
+        'The host will be informed that the arrival was cancelled.'
+      ],
+      confirmLabel: 'Remove Expected Arrival',
+      confirmVariant: 'danger',
+      apiEndpoint: `/appointments/${idToDelete}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.RECORD_DELETED,
+        title: 'Arrival Record Removed',
+        message: `Arrival record for "${name}" has been removed from today's registry.`,
       }
-      loadExpectedArrivals(true);
-      if (inspectingGuest && inspectingGuest.id === idToDelete) {
-        setInspectingGuest(null);
-      }
-      setCancellingArrival(null);
-      setMessage({ type: 'success', text: `Arrival record for "${name}" removed.` });
-    } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to remove arrival record') });
-    } finally {
-      setActionInProgressId(null);
-    }
+    });
   };
 
   // Start webcam stream for camera tab
@@ -266,9 +274,16 @@ export default function CheckIn() {
       // Trigger Turnstile Barrier Unlock animation!
       triggerTurnstileUnlock(visitorName);
 
-      setMessage({
-        type: 'success',
-        text: `✓ Turnstile Ingress Authorized! Welcome ${visitorName}. Assigned Badge: ${res.data?.badgeNumber || allocatedBadge}. Barrier Unlocked.`
+      toSuccess({
+        type: RESPONSE_TYPES.CHECKIN_SUCCESS,
+        title: 'Turnstile Ingress Authorized',
+        message: `Ingress Authorized! Welcome ${visitorName}. Assigned Badge: ${res.data?.badgeNumber || allocatedBadge}. Lane: ${turnstileLane}.`,
+        referenceId: res.data?.badgeNumber || allocatedBadge,
+        entityType: 'Visitor Check-In',
+        entityName: visitorName,
+        primaryActionText: 'Process Next Check-In',
+        primaryActionUrl: '/dashboard?view=checkin',
+        returnUrl: '/dashboard?view=checkin',
       });
 
       // Refresh arrivals and reset search
@@ -282,7 +297,12 @@ export default function CheckIn() {
         setInspectingGuest(null);
       }
     } catch (err) {
-      setMessage({ type: 'error', text: getErrorMessage(err) });
+      toError(err, {
+        title: 'Ingress Check-In Verification Failed',
+        entityType: 'Visitor Check-In',
+        entityName: visitorName,
+        returnUrl: '/dashboard?view=checkin',
+      });
     } finally {
       setLoading(false);
       setActionInProgressId(null);

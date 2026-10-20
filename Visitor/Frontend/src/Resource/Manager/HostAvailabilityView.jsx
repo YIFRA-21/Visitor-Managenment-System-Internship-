@@ -5,9 +5,12 @@ import BackButton from '../../components/common/BackButton';
 import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { useLanguage } from '../../contexts/LanguageContext';
 import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
 
 export default function HostAvailabilityView() {
     const { t, tStatus } = useLanguage();
+    const { toError } = useResponseNavigation();
     const [hosts, setHosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -41,7 +44,10 @@ export default function HostAvailabilityView() {
             setHosts(prev => prev.map(h => (h.id === employeeId ? { ...h, availability_status: newStatus } : h)));
         }
         catch (err) {
-            alert(err?.response?.data?.message || 'Failed to update status');
+            toError(err, {
+                title: 'Failed to Update Host Availability',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         finally {
             setActionLoadingId(null);

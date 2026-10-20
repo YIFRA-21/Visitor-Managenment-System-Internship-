@@ -5,9 +5,12 @@ import BackButton from '../../components/common/BackButton';
 import CountdownAlert from '../../components/common/CountdownAlert';
 import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { useLanguage } from '../../contexts/LanguageContext';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
 
 export default function DepartmentEmployeesView() {
     const { t, tStatus } = useLanguage();
+    const { toError } = useResponseNavigation();
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -50,7 +53,10 @@ export default function DepartmentEmployeesView() {
             setEmployees((prev) => prev.map((e) => (e.id === employee.id ? { ...e, is_host_enabled: nextStatus ? 1 : 0 } : e)));
         }
         catch (err) {
-            alert(err?.response?.data?.message || 'Failed to update host status');
+            toError(err, {
+                title: 'Host Status Update Failed',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         finally {
             setActionLoadingId(null);
@@ -65,7 +71,10 @@ export default function DepartmentEmployeesView() {
             setEmployees((prev) => prev.map((e) => (e.id === employeeId ? { ...e, availability_status: newStatus } : e)));
         }
         catch (err) {
-            alert(err?.response?.data?.message || 'Failed to update availability');
+            toError(err, {
+                title: 'Availability Status Update Failed',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         finally {
             setActionLoadingId(null);

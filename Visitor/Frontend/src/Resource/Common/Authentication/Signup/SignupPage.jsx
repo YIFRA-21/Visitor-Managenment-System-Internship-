@@ -316,13 +316,18 @@ export default function SignupPage() {
             try {
                 setLoading(true);
                 const checkRes = await authApi.checkEmail(email.trim());
-                if (checkRes.data && checkRes.data.success === false) {
+                // Only block if the backend explicitly says the email is taken
+                if (checkRes.data && checkRes.data.success === false && checkRes.data.field === 'email') {
                     newErrors.email = '❌ This email address is already registered. Please use another email or sign in.';
                 }
             } catch (err) {
-                if (err.response?.status === 409 || err.response?.data?.field === 'email' || err.response?.data?.message?.includes('already registered')) {
+                // Only block the user on an explicit 409 Conflict (email genuinely exists)
+                if (err.response && err.response.status === 409) {
                     newErrors.email = '❌ This email address is already registered. Please use another email or sign in.';
                 }
+                // For network errors, timeouts, 500s, or any other failure:
+                // Allow the user to proceed — the actual registration endpoint (Step 2)
+                // will re-validate email uniqueness before creating the account.
             } finally {
                 setLoading(false);
             }

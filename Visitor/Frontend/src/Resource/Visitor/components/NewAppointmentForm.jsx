@@ -5,7 +5,9 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useEnterpriseForm } from '../../../hooks/useEnterpriseForm';
 import { ValidationRules } from '../../../services/validationService';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../../modules/response';
 export default function NewAppointmentForm({ onSubmit, onCancel }) {
+    const { toResponse } = useResponseNavigation();
     const { user } = useAuth();
     const { t } = useLanguage();
     const [success, setSuccess] = useState(false);
@@ -159,7 +161,15 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
             setSuccess(true);
             setTimeout(() => {
                 onSubmit(newAppointment);
-            }, 600);
+                toResponse({
+                    type: RESPONSE_TYPES.APPOINTMENT_RESULT,
+                    title: 'Appointment Request Submitted',
+                    message: `Your appointment request with host "${formData.hostName}" on ${formData.visitDate} (${timeDisplay}) has been submitted for approval.`,
+                    referenceNumber: newAppointment.referenceCode,
+                    targetEntity: `${formData.hostName} — ${formData.department}`,
+                    returnUrl: '/visitor?view=appointments'
+                });
+            }, 500);
         }
     });
     // ══════════════════════════════════════════════════════════════════════════

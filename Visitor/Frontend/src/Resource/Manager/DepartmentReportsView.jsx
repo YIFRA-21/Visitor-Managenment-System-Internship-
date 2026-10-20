@@ -41,6 +41,8 @@ import BackButton from '../../components/common/BackButton';
 import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { useLanguage } from '../../contexts/LanguageContext';
 import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
 
 // Status colors palette for donut chart
 const STATUS_COLORS = {
@@ -62,6 +64,7 @@ const PIE_COLORS = ['#10b981', '#f59e0b', '#f43f5e', '#06b6d4', '#6366f1', '#a85
 
 export default function DepartmentReportsView() {
   const { t } = useLanguage();
+  const { toResponse, toError } = useResponseNavigation();
   const [reports, setReports] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -211,7 +214,11 @@ export default function DepartmentReportsView() {
       const res = await managerApi.exportData(type);
       const items = res.data || [];
       if (items.length === 0) {
-        alert('No data available to export.');
+        toResponse(RESPONSE_TYPES.INFO, {
+          title: 'No Export Data Available',
+          message: `There are currently no records available to export for ${type}.`,
+          returnUrl: window.location.pathname + window.location.search,
+        });
         return;
       }
       const headers = Object.keys(items[0]).join(',');
@@ -229,7 +236,10 @@ export default function DepartmentReportsView() {
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      alert('Export failed: ' + (err?.message || 'Error'));
+      toError(err, {
+        title: 'Report Export Failed',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } finally {
       setExporting(null);
     }

@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Armchair, Clock, User, Bell, RefreshCw } from 'lucide-react';
 import api from '../../services/api';
 import BackButton from '../../components/common/BackButton';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
+
 export default function WaitingAreaManagement() {
+    const { toConfirmation } = useResponseNavigation();
     const [loading, setLoading] = useState(true);
     const [waitingList, setWaitingList] = useState([]);
     const [message, setMessage] = useState('');
@@ -37,17 +41,28 @@ export default function WaitingAreaManagement() {
             console.error(err);
         }
     };
-    const handleRemove = async (queueId) => {
-        if (!window.confirm('Remove visitor from reception waiting queue?'))
-            return;
-        try {
-            await api.put(`/reception/queue/${queueId}`, { status: 'CANCELLED' });
-            setMessage(`Visitor removed from waiting queue.`);
-            fetchWaiting();
-        }
-        catch (err) {
-            console.error(err);
-        }
+    const handleRemove = (queueId) => {
+        toConfirmation({
+            title: 'Remove from Waiting Lounge',
+            message: 'Remove visitor from the reception waiting lounge and release their seat allocation?',
+            entityType: 'Waiting Area Queue',
+            entityName: `Queue #${queueId}`,
+            consequences: [
+                'The visitor status will be marked as departed or cancelled.',
+                'The reception dashboard waiting counter will be decremented.'
+            ],
+            confirmLabel: 'Remove Visitor',
+            confirmVariant: 'warning',
+            apiEndpoint: `/reception/queue/${queueId}`,
+            apiMethod: 'PUT',
+            apiPayload: { status: 'CANCELLED' },
+            returnUrl: window.location.pathname + window.location.search,
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Visitor Removed',
+                message: 'Visitor was removed from the reception waiting area.',
+            }
+        });
     };
     return (<div className="p-6 space-y-6 bg-slate-900 min-h-screen text-slate-100 font-sans">
       {/* Header */}

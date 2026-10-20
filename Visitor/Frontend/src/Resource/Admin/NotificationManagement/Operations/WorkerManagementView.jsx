@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Cpu } from 'lucide-react';
 import { WorkerCard } from './components/OperationsCards';
+import { useResponseNavigation } from '../../../../modules/response';
 export default function WorkerManagementView() {
+    const { toConfirmation } = useResponseNavigation();
     const [workers, setWorkers] = useState([
         { id: 'worker_1', name: 'RabbitMQ Consumer #1 (High Priority)', status: 'active', assignedQueue: 'q_high_priority', processedCount: 1450, failedCount: 2, cpuUsagePct: 4.2 },
         { id: 'worker_2', name: 'RabbitMQ Consumer #2 (Normal Priority)', status: 'active', assignedQueue: 'q_normal_priority', processedCount: 12400, failedCount: 12, cpuUsagePct: 11.5 },
@@ -19,7 +21,26 @@ export default function WorkerManagementView() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {workers.map(w => (<WorkerCard key={w.id} {...w} onRestart={() => alert(`Restart signal sent to ${w.name}`)}/>))}
+        {workers.map(w => (<WorkerCard key={w.id} {...w} onRestart={() => {
+          toConfirmation({
+            title: 'Restart Queue Worker',
+            message: `Are you sure you want to send a graceful restart signal to "${w.name}"?`,
+            actionType: 'RESTART_WORKER',
+            targetEntity: w.name,
+            consequences: [
+              'The worker process will complete pending message acknowledgements.',
+              'The consumer connection will reconnect to ' + w.assignedQueue,
+              'Processing will resume automatically after thread initialization.'
+            ],
+            confirmLabel: 'Restart Worker',
+            cancelLabel: 'Cancel',
+            danger: false,
+            onConfirmApi: () => Promise.resolve({ data: { success: true } }),
+            successTitle: 'Worker Restart Initiated',
+            successMessage: `Restart signal sent to ${w.name}.`,
+            returnUrl: window.location.pathname + window.location.search
+          });
+        }}/>))}
       </div>
     </div>);
 }

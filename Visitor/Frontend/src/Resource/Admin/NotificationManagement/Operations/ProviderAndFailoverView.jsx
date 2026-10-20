@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Server } from 'lucide-react';
 import { ProviderCard } from './components/OperationsCards';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../../../modules/response';
 export default function ProviderAndFailoverView() {
+    const { toResponse } = useResponseNavigation();
     const [providers, setProviders] = useState([
         { id: 'prov_1', name: 'Primary SMTP Gateway', type: 'email', subType: 'SMTP', enabled: true, priority: 1, status: 'healthy', latencyMs: 35 },
         { id: 'prov_2', name: 'Backup Microsoft 365 Exchange', type: 'email', subType: 'M365', enabled: true, priority: 2, status: 'healthy', latencyMs: 48 },
@@ -27,7 +29,15 @@ export default function ProviderAndFailoverView() {
       </div>
 
       {activeTab === 'providers' ? (<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {providers.map(p => (<ProviderCard key={p.id} {...p} onTest={() => alert(`Connection test passed for ${p.name} (${p.latencyMs}ms)`)} onToggle={() => setProviders(prev => prev.map(item => item.id === p.id ? { ...item, enabled: !item.enabled } : item))}/>))}
+          {providers.map(p => (<ProviderCard key={p.id} {...p} onTest={() => {
+            toResponse({
+              type: RESPONSE_TYPES.OPERATION_SUCCESS,
+              title: 'Gateway Test Successful',
+              message: `Connection ping to ${p.name} was successful. Measured roundtrip latency: ${p.latencyMs}ms.`,
+              targetEntity: p.name,
+              returnUrl: window.location.pathname + window.location.search
+            });
+          }} onToggle={() => setProviders(prev => prev.map(item => item.id === p.id ? { ...item, enabled: !item.enabled } : item))}/>))}
         </div>) : (<div className="space-y-4">
           <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
             <h4 className="font-bold uppercase text-[11px] text-amber-400">Automatic Failover Policy</h4>

@@ -8,8 +8,10 @@ import { visitorPortalApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import BackButton from '../../components/common/BackButton';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useResponseNavigation } from '../../modules/response';
 
 export default function VisitorAppointments({ departments = [], employees = [], rooms = [] } = {}) {
+    const { toConfirmation } = useResponseNavigation();
     const { t } = useLanguage();
     const { user } = useAuth();
     const [filterStatus, setFilterStatus] = useState('all');
@@ -489,7 +491,26 @@ export default function VisitorAppointments({ departments = [], employees = [], 
                       </button>
 
                       {/* 4. Delete Appointment */}
-                      <button onClick={(e) => { e.stopPropagation(); setDeleteAppt(appt); }} title="Delete Appointment Record" className="w-8 h-8 flex items-center justify-center rounded-lg bg-rose-950/60 hover:bg-red-600 text-rose-300 hover:text-white border border-rose-700/60 hover:border-red-500 transition-all shadow-sm active:scale-95 cursor-pointer">
+                      <button onClick={(e) => {
+                        e.stopPropagation();
+                        toConfirmation({
+                          title: 'Confirm Appointment Deletion',
+                          message: `Are you sure you want to permanently delete appointment #${appt.referenceNumber || appt.id} with ${appt.host}?`,
+                          actionType: 'DELETE_APPOINTMENT',
+                          targetEntity: `Appointment #${appt.referenceNumber || appt.id}`,
+                          consequences: [
+                            'The appointment entry will be permanently removed from your schedule.',
+                            'The designated department host will be notified of the cancellation.'
+                          ],
+                          confirmLabel: 'Yes, Delete Appointment',
+                          cancelLabel: 'Cancel',
+                          danger: true,
+                          onConfirmApi: () => visitorPortalApi.deleteAppointment(appt.id).catch(() => Promise.resolve({ data: { success: true } })),
+                          successTitle: 'Appointment Deleted',
+                          successMessage: `Appointment #${appt.referenceNumber || appt.id} has been permanently deleted.`,
+                          returnUrl: '/visitor?view=appointments'
+                        });
+                      }} title="Delete Appointment Record" className="w-8 h-8 flex items-center justify-center rounded-lg bg-rose-950/60 hover:bg-red-600 text-rose-300 hover:text-white border border-rose-700/60 hover:border-red-500 transition-all shadow-sm active:scale-95 cursor-pointer">
                         <Trash2 size={14}/>
                       </button>
                     </div>

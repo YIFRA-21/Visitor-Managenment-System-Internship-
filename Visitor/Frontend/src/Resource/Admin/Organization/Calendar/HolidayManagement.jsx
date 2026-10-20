@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, ShieldCheck, AlertCircle } from 'lucide-react';
 import api from '../../../../services/api';
+import useResponseNavigation from '../../../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../../../modules/response/responseConfig';
+
 export default function HolidayManagement({ onNotify }) {
+    const { toConfirmation } = useResponseNavigation();
     const [holidays, setHolidays] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -80,17 +84,28 @@ export default function HolidayManagement({ onNotify }) {
             onNotify(msg, 'danger');
         }
     };
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this holiday? This action cannot be undone.'))
-            return;
-        try {
-            await api.delete(`/calendar/holidays/${id}`);
-            onNotify('Holiday deleted successfully.', 'success');
-            fetchHolidays();
-        }
-        catch {
-            onNotify('Failed to delete holiday.', 'danger');
-        }
+    const handleDelete = (id, holidayName) => {
+        toConfirmation({
+            title: `Delete Holiday "${holidayName || id}"`,
+            message: 'Are you sure you want to delete this holiday from the corporate calendar?',
+            entityType: 'Calendar Holiday',
+            entityName: holidayName || `Holiday #${id}`,
+            entityId: id,
+            consequences: [
+                'The holiday will no longer mark organizational facilities as closed on this date.',
+                'Visitor scheduling slots will reopen for standard operating hours.'
+            ],
+            confirmLabel: 'Delete Holiday',
+            confirmVariant: 'danger',
+            apiEndpoint: `/calendar/holidays/${id}`,
+            apiMethod: 'DELETE',
+            returnUrl: window.location.pathname,
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Holiday Deleted',
+                message: `Holiday "${holidayName || id}" has been removed from the calendar.`,
+            }
+        });
     };
     const handleToggleStatus = async (h) => {
         try {

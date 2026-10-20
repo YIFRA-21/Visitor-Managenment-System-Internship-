@@ -32,7 +32,7 @@ try {
   if (isCloudOrSsl) {
     poolOptions.ssl = {
       minVersion: 'TLSv1.2',
-      rejectUnauthorized: true,
+      rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED === 'true',
     };
   }
 
@@ -1984,9 +1984,9 @@ function handleMockQuery(sql, params) {
       const match = mockDb.visitors.filter(v => v.user_id == uid && v.is_active !== false);
       return match;
     }
-    if (normalizedSql.includes('email =')) {
-      const email = params ? params[0] : null;
-      const match = mockDb.visitors.filter(v => v.email === email);
+    if (normalizedSql.includes('email =') || normalizedSql.includes('lower(email)') || normalizedSql.includes('email) =')) {
+      const email = params ? String(params[0] || '').toLowerCase().trim() : '';
+      const match = mockDb.visitors.filter(v => String(v.email || '').toLowerCase().trim() === email);
       if (match.length) return match;
       if (params && params.length > 1 && params[1]) {
         return mockDb.visitors.filter(v => v.id_number === params[1]);

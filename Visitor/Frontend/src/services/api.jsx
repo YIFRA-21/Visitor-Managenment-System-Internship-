@@ -138,7 +138,7 @@ export const getErrorMessage = (err) => {
 };
 export default api;
 export const authApi = {
-    checkEmail: (email) => api.post('/auth/check-email', { email }),
+    checkEmail: (email) => api.post('/auth/check-email', { email }, { silent: true }),
     login: (identifier, password) => api.post('/auth/login', { identifier, email: identifier, password }),
     register: (data) => api.post('/auth/register', data),
     me: () => api.get('/auth/me'),

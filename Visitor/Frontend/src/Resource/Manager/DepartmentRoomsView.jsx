@@ -5,9 +5,11 @@ import { DoorOpen, Users, MapPin, Calendar, Clock, Search, Plus, Monitor, Wifi, 
 import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { useLanguage } from '../../contexts/LanguageContext';
 import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 
 export default function DepartmentRoomsView() {
     const { t, tStatus } = useLanguage();
+    const { toSuccess, toError } = useResponseNavigation();
     const [rooms, setRooms] = useState([]);
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -40,20 +42,29 @@ export default function DepartmentRoomsView() {
         if (!selectedRoom)
             return;
         setSubmitting(true);
-        setMessage(null);
         try {
             await managerApi.bookRoom({
                 roomId: selectedRoom.id,
                 appointmentId: bookingForm.appointmentId ? parseInt(bookingForm.appointmentId, 10) : undefined,
                 notes: bookingForm.notes
             });
-            setMessage({ type: 'success', text: `Room "${selectedRoom.name}" booked successfully!` });
             setShowBookingModal(false);
-            setBookingForm({ appointmentId: '', notes: '' });
-            fetchRoomsData();
+            toSuccess({
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Room Reserved Successfully',
+                message: `Room "${selectedRoom.name}" has been reserved for your department session.`,
+                referenceId: selectedRoom.code || `ROOM-${selectedRoom.id}`,
+                entityType: 'Meeting Room',
+                entityName: selectedRoom.name,
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         catch (err) {
-            setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to book room.' });
+            toError(err, {
+                title: 'Room Reservation Failed',
+                entityType: 'Meeting Room',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         finally {
             setSubmitting(false);

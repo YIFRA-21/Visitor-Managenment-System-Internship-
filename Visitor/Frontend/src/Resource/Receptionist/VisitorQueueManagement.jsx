@@ -3,9 +3,12 @@ import { Clock, UserCheck, Megaphone, RefreshCw, Trash2, Check } from 'lucide-re
 import api from '../../services/api';
 import BackButton from '../../components/common/BackButton';
 import { useLanguage } from '../../contexts/LanguageContext';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
 
 export default function VisitorQueueManagement() {
     const { t, tStatus } = useLanguage();
+    const { toConfirmation } = useResponseNavigation();
     const [loading, setLoading] = useState(true);
     const [queue, setQueue] = useState([]);
     const [message, setMessage] = useState('');
@@ -47,17 +50,27 @@ export default function VisitorQueueManagement() {
             console.error(err);
         }
     };
-    const handleDeleteQueue = async (id, visitorName) => {
-        if (!window.confirm(`Are you sure you want to remove "${visitorName || 'this visitor'}" from the queue?`)) return;
-        try {
-            await api.delete(`/reception/queue/${id}`);
-            setMessage(`Visitor removed from queue.`);
-            fetchQueue();
-        }
-        catch (err) {
-            console.error(err);
-            setMessage(err.response?.data?.error || err.message || 'Failed to remove from queue');
-        }
+    const handleDeleteQueue = (id, visitorName) => {
+        toConfirmation({
+            title: 'Remove Visitor from Queue',
+            message: `Are you sure you want to remove "${visitorName || 'this visitor'}" from the reception queue?`,
+            entityType: 'Queue Entry',
+            entityName: visitorName || `Queue #${id}`,
+            consequences: [
+                'The visitor will forfeit their current position in line.',
+                'The next waiting guest will be called forward automatically.'
+            ],
+            confirmLabel: 'Remove from Queue',
+            confirmVariant: 'danger',
+            apiEndpoint: `/reception/queue/${id}`,
+            apiMethod: 'DELETE',
+            returnUrl: window.location.pathname + window.location.search,
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Removed from Queue',
+                message: `Visitor "${visitorName || 'Guest'}" was removed from the reception queue.`,
+            }
+        });
     };
     return (<div className="p-6 space-y-6 bg-slate-900 min-h-screen text-slate-100 font-sans">
       {/* Header */}

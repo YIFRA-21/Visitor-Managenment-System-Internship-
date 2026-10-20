@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { BarChart3, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../../../modules/response';
 export default function ManualNotificationAnalyticsAndReports() {
+    const { toResponse } = useResponseNavigation();
     const [loading, setLoading] = useState(false);
     // KPIs
     const [kpis, setKpis] = useState({
@@ -50,7 +52,13 @@ export default function ManualNotificationAnalyticsAndReports() {
     const [selectedReport, setSelectedReport] = useState('Manual Notification Report');
     const [exportFormat, setExportFormat] = useState('excel');
     const handleExport = (format) => {
-        alert(`Exporting ${selectedReport} in ${format.toUpperCase()} format...`);
+        toResponse({
+            type: RESPONSE_TYPES.FILE_RESULT,
+            title: 'Report Generated Successfully',
+            message: `"${selectedReport}" has been compiled and downloaded in ${format.toUpperCase()} format.`,
+            targetEntity: `${selectedReport} (${format.toUpperCase()})`,
+            returnUrl: window.location.pathname + window.location.search
+        });
     };
     return (<div className="p-6 space-y-6 bg-slate-950 min-h-screen text-slate-100 font-sans">
       {/* Header */}

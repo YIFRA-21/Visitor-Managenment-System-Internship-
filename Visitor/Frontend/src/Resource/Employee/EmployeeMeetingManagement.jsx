@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Building, Users, CheckCircle2, Plus, AlertCircle, RefreshCw, } from 'lucide-react';
 import { employeePortalApi } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
+
 export default function EmployeeMeetingManagement() {
     const { t } = useLanguage();
+    const { toSuccess, toError } = useResponseNavigation();
     const [loading, setLoading] = useState(true);
     const [rooms, setRooms] = useState([]);
     const [bookings, setBookings] = useState([]);
@@ -55,13 +58,23 @@ export default function EmployeeMeetingManagement() {
                 scheduledEnd: reserveForm.scheduledEnd,
                 meetingNotes: reserveForm.meetingNotes,
             });
-            setMessage({ type: 'success', text: `Room ${selectedRoom.room_name} reserved successfully!` });
             setShowReserveModal(false);
-            setReserveForm({ title: '', scheduledStart: '', scheduledEnd: '', meetingNotes: '' });
-            fetchRooms();
+            toSuccess({
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Room Reserved Successfully',
+                message: `Room "${selectedRoom.room_name}" has been reserved for "${reserveForm.title || 'Guest Meeting'}".`,
+                referenceId: `ROOM-${selectedRoom.id}`,
+                entityType: 'Conference Room',
+                entityName: selectedRoom.room_name,
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         catch (err) {
-            setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to reserve room.' });
+            toError(err, {
+                title: 'Room Reservation Failed',
+                entityType: 'Conference Room',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         finally {
             setSubmitting(false);

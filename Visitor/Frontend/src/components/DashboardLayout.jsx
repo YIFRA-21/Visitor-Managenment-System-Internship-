@@ -9,6 +9,7 @@ import { isAdminRole } from '../config/routes';
 import { useSocket } from '../hooks/useSocket';
 import { useLanguage } from '../contexts/LanguageContext';
 import ProfileModal from './profile/ProfileModal';
+import { useResponseNavigation } from '../modules/response';
 const sidebarConfig = [
     {
         key: 'dashboard-group',
@@ -265,6 +266,7 @@ const sidebarConfig = [
 export default function DashboardLayout({ children, currentView: propCurrentView, }) {
     const { user, logout } = useAuth();
     const { t } = useLanguage();
+    const { toConfirmation } = useResponseNavigation();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     // Layout states
@@ -451,8 +453,26 @@ export default function DashboardLayout({ children, currentView: propCurrentView
     };
     const currentView = propCurrentView || getLayoutView();
     const handleLogout = () => {
-        logout();
-        navigate('/login');
+        toConfirmation({
+            title: 'Confirm Secure Logout',
+            message: 'Are you sure you want to end your current active session?',
+            actionType: 'LOGOUT',
+            targetEntity: `${user?.role ? user.role.toUpperCase() : 'Active'} Session (${user?.fullName || user?.email || 'User'})`,
+            consequences: [
+                'Active authentication tokens will be securely cleared from this browser.',
+                'You will need to sign in again to access protected workspace modules.'
+            ],
+            confirmLabel: 'Sign Out',
+            cancelLabel: 'Stay Logged In',
+            danger: false,
+            onConfirmApi: () => {
+                logout();
+                return Promise.resolve({ data: { success: true } });
+            },
+            successTitle: 'Signed Out Successfully',
+            successMessage: 'You have been safely logged out of the Enterprise Visitor Management System.',
+            returnUrl: '/login'
+        });
     };
     const toggleSidebar = () => {
         const nextState = !isCollapsed;

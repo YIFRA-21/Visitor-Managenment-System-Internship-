@@ -106,6 +106,7 @@ export const RegistrationWizard = ({ onSuccess, onCancel, initialDraftId, depart
     const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
     const [registeredResult, setRegisteredResult] = useState(null);
+    const [copiedField, setCopiedField] = useState(null);
     // Vehicle Optional Toggle
     const [hasVehicle, setHasVehicle] = useState(false);
     // Drag & Drop States
@@ -1516,15 +1517,17 @@ export const RegistrationWizard = ({ onSuccess, onCancel, initialDraftId, depart
               <div className="flex flex-wrap justify-center gap-3 pt-2">
                 <button type="button" onClick={() => {
                 navigator.clipboard.writeText(registeredResult.visitorCode);
-                alert('Visitor ID copied to clipboard!');
+                setCopiedField('id');
+                setTimeout(() => setCopiedField(null), 2000);
             }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800/90 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 hover:border-indigo-400 shadow-md hover:shadow-indigo-500/40 hover:scale-105 active:scale-95 transition-all duration-200">
-                  <Copy size={14}/> {t('btn.copyId', 'Copy Visitor ID')}
+                  {copiedField === 'id' ? <Check size={14}/> : <Copy size={14}/>} {copiedField === 'id' ? 'Copied ID!' : t('btn.copyId', 'Copy Visitor ID')}
                 </button>
                 <button type="button" onClick={() => {
                 navigator.clipboard.writeText(registeredResult.referenceNumber);
-                alert('Reference Number copied to clipboard!');
+                setCopiedField('ref');
+                setTimeout(() => setCopiedField(null), 2000);
             }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800/90 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 hover:border-emerald-400 shadow-md hover:shadow-emerald-500/40 hover:scale-105 active:scale-95 transition-all duration-200">
-                  <Copy size={14}/> {t('btn.copyRef', 'Copy Ref Number')}
+                  {copiedField === 'ref' ? <Check size={14}/> : <Copy size={14}/>} {copiedField === 'ref' ? 'Copied Ref!' : t('btn.copyRef', 'Copy Ref Number')}
                 </button>
                 <button type="button" onClick={() => window.print()} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800/90 hover:bg-blue-600 text-slate-200 hover:text-white border border-slate-700 hover:border-blue-400 shadow-md hover:shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all duration-200">
                   <Printer size={14}/> {t('btn.print', 'Print Confirmation')}

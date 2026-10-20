@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { Download } from 'lucide-react';
 import { reportsApi, getErrorMessage } from '../../services/api';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
+
 export default function ExportCenter() {
+    const { toResponse, toError } = useResponseNavigation();
     const [downloading, setDownloading] = useState(false);
     const [reportType, setReportType] = useState('visitors');
     const [format, setFormat] = useState('csv');
@@ -17,7 +21,11 @@ export default function ExportCenter() {
                 res = await reportsApi.visitors();
             const dataset = Array.isArray(res.data) ? res.data : res.data.data || [];
             if (!dataset.length) {
-                alert('No data available for export.');
+                toResponse(RESPONSE_TYPES.INFO, {
+                    title: 'No Data Available for Export',
+                    message: `The selected report category (${reportType}) does not contain any exportable entries.`,
+                    returnUrl: window.location.pathname,
+                });
                 setDownloading(false);
                 return;
             }
@@ -33,7 +41,10 @@ export default function ExportCenter() {
             URL.revokeObjectURL(url);
         }
         catch (err) {
-            alert(getErrorMessage(err));
+            toError(err, {
+                title: 'Data Export Failed',
+                returnUrl: window.location.pathname,
+            });
         }
         finally {
             setDownloading(false);

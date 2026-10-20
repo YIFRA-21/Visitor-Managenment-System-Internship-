@@ -37,10 +37,12 @@ import BackButton from '../../components/common/BackButton';
 import api, { checkinApi, checkoutApi, getErrorMessage } from '../../services/api';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 
 export default function CheckOut() {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const { toSuccess, toError, toConfirmation } = useResponseNavigation();
 
   // Mode Selection: 'id_ref' (Rapid Search/Tap), 'qr_scan' (Optical Scanner), 'face_scan' (Biometric Face)
   const [activeTab, setActiveTab] = useState('id_ref');
@@ -107,24 +109,30 @@ export default function CheckOut() {
 
   const handleDeleteSession = async (item) => {
     const name = item.visitorName || item.visitor_name || 'this visitor';
-    setActionInProgressId(item.checkinId || item.id);
-    try {
-      const idToDelete = item.checkinId || item.id;
-      if (idToDelete) {
-        await checkinApi.delete(idToDelete);
+    const idToDelete = item.checkinId || item.id;
+    setVoidingGuest(null);
+    toConfirmation({
+      title: 'Confirm Voiding Active Visit Session',
+      message: `Void active visit session for "${name}" and deactivate access badge?`,
+      entityType: 'Active Visit Session',
+      entityName: name,
+      entityId: idToDelete,
+      consequences: [
+        'The active visit session will be terminated immediately.',
+        'Speed gate egress credentials and NFC badge will be revoked.',
+        'An administrative void entry will be registered in the enterprise audit log.'
+      ],
+      confirmLabel: 'Void Visit Session',
+      confirmVariant: 'danger',
+      apiEndpoint: `/checkin/${idToDelete}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.RECORD_DELETED,
+        title: 'Visit Session Voided',
+        message: `Active session for "${name}" has been terminated and purged from building roster.`,
       }
-      loadPendingInside(true);
-      if (inspectingGuest && (inspectingGuest.checkinId || inspectingGuest.id) === idToDelete) {
-        setInspectingGuest(null);
-      }
-      setVoidingGuest(null);
-      setMessage({ type: 'success', text: `Active visit session for "${name}" removed.` });
-    } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to delete visit session') });
-    } finally {
-      setActionInProgressId(null);
-    }
+    });
   };
 
   // Camera stream controls
@@ -280,9 +288,16 @@ export default function CheckOut() {
       // Unlock turnstile barrier animation!
       triggerTurnstileUnlock(visitorDisplayName);
 
-      setMessage({
-        type: 'success',
-        text: `✓ Turnstile Egress Authorized! ${visitorDisplayName} checked out (Duration: ${durationMins}m). Turnstile Barrier Unlocked.`
+      toSuccess({
+        type: RESPONSE_TYPES.CHECKOUT_SUCCESS,
+        title: 'Turnstile Egress Authorized',
+        message: `Egress Authorized! ${visitorDisplayName} checked out (Duration: ${durationMins}m). Turnstile Barrier Unlocked.`,
+        referenceId: targetCode,
+        entityType: 'Visitor Check-Out',
+        entityName: visitorDisplayName,
+        primaryActionText: 'Process Next Check-Out',
+        primaryActionUrl: '/dashboard?view=checkout',
+        returnUrl: '/dashboard?view=checkout',
       });
 
       // Refresh pending inside list and reset active session
@@ -308,9 +323,16 @@ export default function CheckOut() {
           remarks: checkoutRemarks || 'Gate Turnstile departure confirmed'
         });
         triggerTurnstileUnlock(visitorDisplayName);
-        setMessage({
-          type: 'success',
-          text: `✓ Turnstile Egress Authorized! ${visitorDisplayName} released. Barrier Unlocked.`
+        toSuccess({
+          type: RESPONSE_TYPES.CHECKOUT_SUCCESS,
+          title: 'Turnstile Egress Authorized',
+          message: `Egress Authorized! ${visitorDisplayName} released. Barrier Unlocked.`,
+          referenceId: targetCode,
+          entityType: 'Visitor Check-Out',
+          entityName: visitorDisplayName,
+          primaryActionText: 'Process Next Check-Out',
+          primaryActionUrl: '/dashboard?view=checkout',
+          returnUrl: '/dashboard?view=checkout',
         });
         loadPendingInside(true);
         setActiveSession(null);
@@ -318,7 +340,12 @@ export default function CheckOut() {
         setSearchInput('');
         if (inspectingGuest) setInspectingGuest(null);
       } catch (err2) {
-        setMessage({ type: 'error', text: getErrorMessage(err) });
+        toError(err2 || err, {
+          title: 'Egress Authorization Failed',
+          entityType: 'Visitor Check-Out',
+          entityName: visitorDisplayName,
+          returnUrl: '/dashboard?view=checkout',
+        });
       }
     } finally {
       setLoading(false);

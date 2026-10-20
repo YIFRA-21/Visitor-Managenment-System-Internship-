@@ -3,6 +3,7 @@ import { Shield, ShieldAlert, ShieldCheck, Activity, FileText, Search, RefreshCw
 import { motion, AnimatePresence } from 'framer-motion';
 import BackButton from '../../components/common/BackButton';
 import { systemApi } from '../../services/api';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 const PROCESS_MAP = {
     AUTH: {
         label: 'Authentication',
@@ -125,6 +126,7 @@ const PROCESS_MAP = {
     },
 };
 export default function AuditLogs() {
+    const { toResponse, toError } = useResponseNavigation();
     // State
     const [logs, setLogs] = useState([]);
     const [stats, setStats] = useState(null);
@@ -226,7 +228,13 @@ export default function AuditLogs() {
             });
             const records = res.data?.data || logs;
             if (!records || records.length === 0) {
-                alert('No records available to export.');
+                toResponse({
+                    type: RESPONSE_TYPES.INFORMATIONAL,
+                    title: 'No Audit Records to Export',
+                    message: 'There are no audit logs matching your current filter criteria to export.',
+                    targetEntity: 'Audit Trail Export',
+                    returnUrl: window.location.pathname + window.location.search
+                });
                 return;
             }
             const headers = ['ID', 'Timestamp', 'Process/Module', 'Event Action', 'Entity', 'Actor', 'IP Address', 'Severity', 'Status'];
@@ -251,7 +259,11 @@ export default function AuditLogs() {
             document.body.removeChild(link);
         }
         catch (err) {
-            alert('Failed to export audit logs.');
+            toError(err, {
+                title: 'Audit Log Export Failed',
+                message: 'An error occurred while compiling and exporting the audit logs.',
+                returnUrl: window.location.pathname + window.location.search
+            });
         }
     };
     // Copy JSON to clipboard

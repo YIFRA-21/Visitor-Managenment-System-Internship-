@@ -63,8 +63,19 @@ export default function RegistrationComplete({ visitorId = 'VIS-2026-000145', re
 
       {/* Action Buttons */}
       <div className="space-y-2.5 pt-2">
-        <button onClick={() => alert('Downloading Receipt PDF...')} className="w-100 btn bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold text-xs py-2.5 rounded-xl d-flex align-items-center justify-content-center gap-2 transition-all">
-          <Download className="h-4 w-4 text-blue-400"/> Download Receipt (PDF)
+        <button onClick={() => {
+          const receiptContent = `==============================\nVISITOR MANAGEMENT SYSTEM - RECEIPT\n==============================\nVisitor ID: ${visitorId}\nReference No: ${referenceNo}\nIssued: ${new Date().toLocaleString()}\nStatus: Registered & Verified\n==============================\nPlease present this receipt or your Reference Number upon arrival at the security/reception desk.\n==============================`;
+          const blob = new Blob([receiptContent], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `VMS_Receipt_${visitorId}.txt`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }} className="w-100 btn bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold text-xs py-2.5 rounded-xl d-flex align-items-center justify-content-center gap-2 transition-all">
+          <Download className="h-4 w-4 text-blue-400"/> Download Receipt
         </button>
 
         <button onClick={onGoToDashboard} className="w-100 btn bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2.5 rounded-xl d-flex align-items-center justify-content-center gap-2 shadow-lg shadow-emerald-600/20 transition-all">

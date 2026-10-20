@@ -42,6 +42,8 @@ import { HostReassignmentModal } from './components/HostReassignmentModal';
 import { RequestDetailsModal } from './components/RequestDetailsModal';
 import { useLanguage } from '../../contexts/LanguageContext';
 import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
 
 // Robust default mock data when database has empty records or offline
 const DEFAULT_FALLBACK_MEETINGS = [
@@ -182,6 +184,7 @@ const DEFAULT_ROOMS = [
 
 export default function DepartmentAppointmentsView() {
   const { t } = useLanguage();
+  const { toResponse, toSuccess, toError, toConfirmation } = useResponseNavigation();
   // Primary States
   const [appointments, setAppointments] = useState([]);
   const [rooms, setRooms] = useState(DEFAULT_ROOMS);
@@ -438,11 +441,19 @@ export default function DepartmentAppointmentsView() {
   const handleCreateMeeting = async (e) => {
     e.preventDefault();
     if (!newMeeting.visitor_name.trim()) {
-      alert('Please enter visitor name.');
+      toResponse(RESPONSE_TYPES.VALIDATION_FAILED, {
+        title: 'Visitor Name Required',
+        message: 'Please enter the full name of the visitor attending the meeting.',
+        returnUrl: window.location.pathname + window.location.search,
+      });
       return;
     }
     if (!newMeeting.purpose.trim()) {
-      alert('Please enter meeting agenda / purpose.');
+      toResponse(RESPONSE_TYPES.VALIDATION_FAILED, {
+        title: 'Meeting Purpose Required',
+        message: 'Please specify the business agenda and purpose for this department meeting.',
+        returnUrl: window.location.pathname + window.location.search,
+      });
       return;
     }
 
@@ -488,13 +499,25 @@ export default function DepartmentAppointmentsView() {
         scheduled_end: endIso,
         purpose: newMeeting.purpose
       });
+      toSuccess({
+        type: RESPONSE_TYPES.APPOINTMENT_SUBMISSION_RESULT,
+        title: 'Meeting Scheduled Successfully',
+        message: `Department meeting "${createdRecord.purpose}" has been confirmed for ${createdRecord.visitor_name}.`,
+        referenceId: createdRecord.reference_code,
+        entityType: 'Meeting Appointment',
+        entityName: createdRecord.purpose,
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } catch (err) {
-      // Graceful fallback: local update
+      toError(err, {
+        title: 'Meeting Scheduling Failed',
+        returnUrl: window.location.pathname + window.location.search,
+      });
+      return;
     }
 
     setAppointments([createdRecord, ...appointments]);
     setShowScheduleModal(false);
-    setSuccessToast(`Meeting "${createdRecord.purpose}" scheduled successfully! Reference #${createdRecord.reference_code}`);
 
     // Reset Form
     setNewMeeting({
@@ -531,26 +554,23 @@ export default function DepartmentAppointmentsView() {
         new_end: endIso,
         reason: rescheduleData.reason
       });
+      setShowRescheduleModal(false);
+      toSuccess({
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Meeting Rescheduled Successfully',
+        message: `Meeting #${selectedForAction.reference_code || selectedForAction.appointment_number} has been updated to ${startIso.replace('T', ' ')}.`,
+        referenceId: selectedForAction.reference_code || selectedForAction.appointment_number,
+        entityType: 'Department Meeting',
+        entityName: selectedForAction.purpose,
+        returnUrl: window.location.pathname + window.location.search,
+      });
     } catch (err) {
-      // Local fallback
+      toError(err, {
+        title: 'Reschedule Failed',
+        entityType: 'Department Meeting',
+        returnUrl: window.location.pathname + window.location.search,
+      });
     }
-
-    setAppointments(
-      appointments.map((a) =>
-        a.id === selectedForAction.id
-          ? {
-              ...a,
-              scheduled_start: startIso,
-              scheduled_end: endIso,
-              appointment_status: 'CONFIRMED',
-              status: 'CONFIRMED'
-            }
-          : a
-      )
-    );
-
-    setShowRescheduleModal(false);
-    setSuccessToast(`Meeting #${selectedForAction.reference_code || selectedForAction.appointment_number} rescheduled successfully.`);
   };
 
   // Cancel Meeting Submit
@@ -558,46 +578,45 @@ export default function DepartmentAppointmentsView() {
     e.preventDefault();
     if (!selectedForAction) return;
 
-    try {
-      await managerApi.cancelAppointment(selectedForAction.id, cancelReason);
-    } catch (err) {
-      // Local fallback
-    }
-
-    setAppointments(
-      appointments.map((a) =>
-        a.id === selectedForAction.id
-          ? {
-              ...a,
-              appointment_status: 'CANCELLED',
-              status: 'CANCELLED',
-              cancellation_reason: cancelReason
-            }
-          : a
-      )
-    );
-
     setShowCancelModal(false);
-    setCancelReason('');
-    setSuccessToast(`Meeting #${selectedForAction.reference_code || selectedForAction.appointment_number} has been cancelled.`);
+    toConfirmation({
+      title: 'Confirm Department Meeting Cancellation',
+      message: `Cancel meeting #${selectedForAction.reference_code || selectedForAction.appointment_number} with ${selectedForAction.visitor_name}?`,
+      entityType: 'Department Meeting',
+      entityName: selectedForAction.purpose,
+      entityId: selectedForAction.id,
+      consequences: [
+        'The host employee and visitor will be notified of cancellation.',
+        'Reserved room and AV equipment allocations will be released immediately.',
+        'The audit log will record managerial cancellation with reason provided.'
+      ],
+      confirmLabel: 'Confirm Cancellation',
+      confirmVariant: 'danger',
+      apiEndpoint: `/manager/appointments/${selectedForAction.id}/cancel`,
+      apiMethod: 'POST',
+      apiPayload: { reason: cancelReason || 'Cancelled by department manager' },
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.CANCELLATION_SUCCESS,
+        title: 'Meeting Cancelled',
+        message: `Meeting #${selectedForAction.reference_code || selectedForAction.appointment_number} has been officially cancelled.`,
+      }
+    });
   };
 
   // Reassign Host Success
   const handleReassignSuccess = (result) => {
     if (selectedForAction && result?.newHost) {
-      setAppointments(
-        appointments.map((a) =>
-          a.id === selectedForAction.id
-            ? {
-                ...a,
-                host_name: result.newHost.full_name,
-                host_position: result.newHost.position,
-                host_employee_id: result.newHost.id
-              }
-            : a
-        )
-      );
-      setSuccessToast(`Host reassigned to ${result.newHost.full_name} successfully.`);
+      setShowReassignModal(false);
+      toSuccess({
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Host Reassigned Successfully',
+        message: `Meeting #${selectedForAction.reference_code || selectedForAction.appointment_number} reassigned to ${result.newHost.full_name}.`,
+        referenceId: selectedForAction.reference_code || selectedForAction.appointment_number,
+        entityType: 'Department Meeting',
+        entityName: selectedForAction.purpose,
+        returnUrl: window.location.pathname + window.location.search,
+      });
     }
     setShowReassignModal(false);
   };

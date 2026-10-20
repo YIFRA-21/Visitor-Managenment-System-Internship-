@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, Calendar } from 'lucide-react';
 import api from '../../../../services/api';
+import useResponseNavigation from '../../../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../../../modules/response/responseConfig';
+
 export default function SpecialWorkingDays({ onNotify }) {
+    const { toConfirmation } = useResponseNavigation();
     const [specialDays, setSpecialDays] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -60,17 +64,28 @@ export default function SpecialWorkingDays({ onNotify }) {
             onNotify('Failed to save special working day settings.', 'danger');
         }
     };
-    const handleDelete = async (id) => {
-        if (!window.confirm('Delete this special working day rule?'))
-            return;
-        try {
-            await api.delete(`/calendar/special-days/${id}`);
-            onNotify('Special working day rule removed.', 'success');
-            fetchSpecialDays();
-        }
-        catch {
-            onNotify('Failed to delete rule.', 'danger');
-        }
+    const handleDelete = (id) => {
+        toConfirmation({
+            title: 'Delete Special Working Day Rule',
+            message: 'Are you sure you want to delete this special working day schedule override?',
+            entityType: 'Calendar Schedule Override',
+            entityName: `Special Day Rule #${id}`,
+            entityId: id,
+            consequences: [
+                'The system calendar will revert to standard organizational operating hours.',
+                'Visitor booking slots on this date will recalculate based on standard operating hours.'
+            ],
+            confirmLabel: 'Delete Schedule Override',
+            confirmVariant: 'danger',
+            apiEndpoint: `/calendar/special-days/${id}`,
+            apiMethod: 'DELETE',
+            returnUrl: window.location.pathname,
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Schedule Override Removed',
+                message: 'Special working day rule was deleted.',
+            }
+        });
     };
     return (<div className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
       {/* Header */}

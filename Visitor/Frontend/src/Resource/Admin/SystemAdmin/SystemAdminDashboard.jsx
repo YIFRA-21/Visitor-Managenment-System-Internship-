@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Shield, Server, Cpu, HardDrive, Database, RefreshCw, AlertTriangle, CheckCircle2, FileText, Radio, Layers, PauseCircle, PlayCircle, Download } from 'lucide-react';
 import api from '../../../services/api';
+import { useResponseNavigation } from '../../../modules/response';
 export default function SystemAdminDashboard() {
+    const { toConfirmation, toSuccess, toError } = useResponseNavigation();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState(null);
     const [maintenanceMsg, setMaintenanceMsg] = useState('');
@@ -49,30 +51,68 @@ export default function SystemAdminDashboard() {
     useEffect(() => {
         fetchDashboard();
     }, []);
-    const handleToggleMaintenance = async () => {
+    const handleToggleMaintenance = () => {
         if (!data)
             return;
         const nextState = !data.maintenanceMode?.is_active;
-        try {
-            await api.put('/admin/system/maintenance', { is_active: nextState, message: maintenanceMsg || 'System undergoing maintenance' });
-            setData((prev) => ({
-                ...prev,
-                maintenanceMode: { ...prev.maintenanceMode, is_active: nextState }
-            }));
-        }
-        catch (err) {
-            console.warn('Maintenance toggle note:', err);
+        if (nextState) {
+            toConfirmation({
+                title: 'Enter Maintenance Mode',
+                message: 'Are you sure you want to activate System Maintenance Mode? Non-admin users will be temporarily restricted.',
+                actionType: 'ENABLE_MAINTENANCE_MODE',
+                targetEntity: 'Global System Availability',
+                consequences: [
+                    'Non-administrative users will see maintenance holding notices.',
+                    'Visitor self-service portals will pause incoming check-ins.',
+                    'Administrators retain full management console access.'
+                ],
+                confirmLabel: 'Activate Maintenance',
+                cancelLabel: 'Cancel',
+                danger: true,
+                onConfirmApi: () => api.put('/admin/system/maintenance', { is_active: true, message: maintenanceMsg || 'System undergoing scheduled maintenance' }),
+                successTitle: 'Maintenance Mode Activated',
+                successMessage: 'The platform is now in maintenance mode.',
+                returnUrl: '/admin?view=system'
+            });
+        } else {
+            toConfirmation({
+                title: 'Resume Normal Operations',
+                message: 'Are you sure you want to deactivate Maintenance Mode and resume full operational access?',
+                actionType: 'DISABLE_MAINTENANCE_MODE',
+                targetEntity: 'Global System Availability',
+                consequences: [
+                    'Standard access will be restored across all visitor portals and reception desks.',
+                    'Normal system scheduling and alerts will resume.'
+                ],
+                confirmLabel: 'Resume Operations',
+                cancelLabel: 'Cancel',
+                danger: false,
+                onConfirmApi: () => api.put('/admin/system/maintenance', { is_active: false, message: 'Normal operations restored' }),
+                successTitle: 'Operations Resumed',
+                successMessage: 'Maintenance mode deactivated. All services are active.',
+                returnUrl: '/admin?view=system'
+            });
         }
     };
-    const handleManualBackup = async () => {
-        try {
-            await api.post('/admin/system/backups', { type: 'FULL' });
-            alert('System backup initiated successfully!');
-            fetchDashboard();
-        }
-        catch (err) {
-            alert('Backup initiated.');
-        }
+    const handleManualBackup = () => {
+        toConfirmation({
+            title: 'Initiate Full System Backup',
+            message: 'Are you sure you want to trigger a manual full system and database backup snapshot now?',
+            actionType: 'TRIGGER_FULL_BACKUP',
+            targetEntity: 'Enterprise VMS SQL & System Files',
+            consequences: [
+                'A complete database snapshot will be generated and verified.',
+                'The backup archive will be registered in the backup recovery catalog.',
+                'Background processing may briefly prioritize snapshot compression.'
+            ],
+            confirmLabel: 'Start Full Backup',
+            cancelLabel: 'Cancel',
+            danger: false,
+            onConfirmApi: () => api.post('/admin/system/backups', { type: 'FULL' }),
+            successTitle: 'Backup Initiated Successfully',
+            successMessage: 'The system backup job has been dispatched and is archiving in the background.',
+            returnUrl: '/admin?view=system'
+        });
     };
     if (loading && !data) {
         return (<div className="p-6 space-y-6 animate-pulse">

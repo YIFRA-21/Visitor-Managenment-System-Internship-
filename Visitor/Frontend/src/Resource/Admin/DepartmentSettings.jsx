@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { departmentsApi } from '../../services/api';
 import RefreshButton from '../../components/common/RefreshButton';
-import BackButton from '../../components/common/BackButton';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
+
 export default function DepartmentSettings({ departments = [], setDepartments }) {
     const [departmentCode, setDepartmentCode] = useState('');
     const [departmentName, setDepartmentName] = useState('');
@@ -10,50 +12,64 @@ export default function DepartmentSettings({ departments = [], setDepartments })
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [deletingId, setDeletingId] = useState(null);
-    const handleDelete = async (id, name) => {
-        if (!window.confirm(`Are you sure you want to delete department "${name}"?`))
-            return;
-        setDeletingId(id);
-        setError('');
-        setSuccess('');
-        try {
-            await departmentsApi.delete(id);
-            setSuccess(`Department "${name}" deleted successfully.`);
-            if (setDepartments) {
-                const res = await departmentsApi.list();
-                setDepartments(res.data);
+    const { toConfirmation, toSuccess, toError } = useResponseNavigation();
+
+    const handleDelete = (id, name) => {
+        toConfirmation({
+            title: `Delete Department "${name}"`,
+            message: `You are about to permanently remove department "${name}" from the enterprise system.`,
+            entityType: 'Department',
+            entityName: name,
+            entityId: id,
+            consequences: [
+                'Employees assigned to this department will require reassignment.',
+                'Sub-units and rooms linked to this department will lose their parent association.',
+                'Active visitor appointments mapped to this department will be flagged for review.'
+            ],
+            confirmLabel: 'Confirm Permanent Deletion',
+            confirmVariant: 'danger',
+            apiEndpoint: `/departments/${id}`,
+            apiMethod: 'DELETE',
+            returnUrl: '/admin/departments',
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Department Deleted',
+                message: `Department "${name}" has been permanently deleted from the database.`,
+                entityType: 'Department',
+                entityName: name,
             }
-        }
-        catch {
-            setError('Failed to delete department.');
-        }
-        finally {
-            setDeletingId(null);
-        }
+        });
     };
+
     const fetchDepartments = async () => {
         if (setDepartments) {
             const res = await departmentsApi.list();
             setDepartments(res.data);
         }
     };
+
     const handleCreate = async (e) => {
         e.preventDefault();
         setError('');
         setSuccess('');
         try {
-            await departmentsApi.create({ departmentCode, departmentName, description });
-            setSuccess('Department added.');
-            setDepartmentCode('');
-            setDepartmentName('');
-            setDescription('');
-            if (setDepartments) {
-                const res = await departmentsApi.list();
-                setDepartments(res.data);
-            }
+            const res = await departmentsApi.create({ departmentCode, departmentName, description });
+            toSuccess({
+                title: 'Department Created Successfully',
+                message: `Department "${departmentName}" (${departmentCode}) has been successfully created.`,
+                entityType: 'Department',
+                entityName: departmentName,
+                referenceId: res?.data?.id || departmentCode,
+                returnUrl: '/admin/departments',
+            });
         }
-        catch {
-            setError('Failed to create department');
+        catch (err) {
+            toError(err, {
+                title: 'Failed to Create Department',
+                entityType: 'Department',
+                entityName: departmentName,
+                returnUrl: '/admin/departments',
+            });
         }
     };
     return (<div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl text-slate-100 shadow-2xl transition-all duration-300 hover:border-indigo-500/50">

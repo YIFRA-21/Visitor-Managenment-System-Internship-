@@ -13,12 +13,15 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useSocket } from '../../../hooks/useSocket';
 import { communicationApi, notificationsApi, profileApi, getErrorMessage } from '../../../services/api';
 import BackButton from '../../../components/common/BackButton';
+import useResponseNavigation from '../../response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../response/responseConfig';
 
 export default function UnifiedNotificationCenter({ initialTab = 'messages', onNavigate }) {
   const [searchParams] = useSearchParams();
   const notifIdFromUrl = searchParams.get('notifId');
   const { user } = useAuth();
   const { socket } = useSocket();
+  const { toConfirmation, toSuccess, toError } = useResponseNavigation();
 
   // Authenticated user role & details
   const myUserId = user?.id;
@@ -505,28 +508,51 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
   };
 
   // Delete Message Submit
-  const handleDeleteMessage = async (msg) => {
-    if (!window.confirm('Are you sure you want to delete this message?')) return;
-    try {
-      await communicationApi.deleteChatMessage(activeConvId, msg.id);
-      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-      showToast('Message deleted.', 'success');
-    } catch (err) {
-      showToast(getErrorMessage(err) || 'Failed to delete message.', 'error');
-    }
+  const handleDeleteMessage = (msg) => {
+    toConfirmation({
+      title: 'Delete Chat Message',
+      message: 'Are you sure you want to delete this message from the conversation?',
+      entityType: 'Message',
+      entityName: msg?.message ? (msg.message.length > 30 ? `${msg.message.substring(0, 30)}...` : msg.message) : 'Chat Message',
+      consequences: [
+        'The message will be removed from all participants\' view.',
+        'Attached media links associated with this message will be invalidated.'
+      ],
+      confirmLabel: 'Delete Message',
+      confirmVariant: 'danger',
+      apiEndpoint: `/communication/conversations/${activeConvId}/messages/${msg.id}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Message Deleted',
+        message: 'The selected message has been removed from the conversation.',
+      }
+    });
   };
 
   // Delete Media (Photo / Video) directly from chat
-  const handleDeleteMediaAttachment = async (msg, att) => {
-    if (!window.confirm(`Are you sure you want to delete ${att?.name || 'this media file'} from the chat?`)) return;
-    try {
-      await communicationApi.deleteChatMessage(activeConvId, msg.id);
-      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-      setContextMenu({ visible: false, x: 0, y: 0, message: null, attachment: null });
-      showToast('Photo/Video deleted from chat ✓', 'success');
-    } catch (err) {
-      showToast(getErrorMessage(err) || 'Failed to delete media file.', 'error');
-    }
+  const handleDeleteMediaAttachment = (msg, att) => {
+    toConfirmation({
+      title: 'Delete Media Attachment',
+      message: `Are you sure you want to delete ${att?.name || 'this media file'} from the chat?`,
+      entityType: 'Media Attachment',
+      entityName: att?.name || 'Media file',
+      consequences: [
+        'The file will be unlinked and deleted from cloud storage.',
+        'Recipients will no longer be able to download or preview this file.'
+      ],
+      confirmLabel: 'Delete Media',
+      confirmVariant: 'danger',
+      apiEndpoint: `/communication/conversations/${activeConvId}/messages/${msg.id}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Media Deleted',
+        message: 'The media file was deleted from the chat.',
+      }
+    });
   };
 
   // Open Chat Profile / Edit Info Modal
@@ -783,18 +809,27 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
   };
 
   // Delete Announcement
-  const handleDeleteAnnouncement = async (annId) => {
-    if (!window.confirm('Are you sure you want to delete this announcement?')) return;
-    try {
-      await communicationApi.deleteAnnouncement(annId);
-      setAnnouncements((prev) => prev.filter((a) => a.id !== annId));
-      if (selectedAnnouncement?.id === annId) {
-        setSelectedAnnouncement(null);
+  const handleDeleteAnnouncement = (annId) => {
+    toConfirmation({
+      title: 'Delete Enterprise Announcement',
+      message: 'Are you sure you want to permanently delete this broadcast announcement?',
+      entityType: 'Announcement',
+      entityName: `Announcement #${annId}`,
+      consequences: [
+        'The announcement will immediately vanish from all recipient dashboards.',
+        'Audience delivery records will be marked as retracted.'
+      ],
+      confirmLabel: 'Delete Announcement',
+      confirmVariant: 'danger',
+      apiEndpoint: `/communication/announcements/${annId}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Announcement Deleted',
+        message: 'The broadcast announcement has been permanently removed.',
       }
-      showToast('Announcement deleted successfully ✓', 'success');
-    } catch (err) {
-      showToast(getErrorMessage(err) || 'Failed to delete announcement.', 'error');
-    }
+    });
   };
 
   // Edit Announcement Submit
@@ -937,20 +972,27 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
   };
 
   // Delete Single Notification
-  const handleDeleteNotification = async (notifId, e) => {
+  const handleDeleteNotification = (notifId, e) => {
     e?.stopPropagation();
-    if (!window.confirm('Delete this notification permanently from the database?')) return;
-    try {
-      setNotificationsList((prev) => prev.filter((n) => n.id !== notifId));
-      if (selectedNotifForView?.id === notifId) {
-        setSelectedNotifForView(null);
+    toConfirmation({
+      title: 'Delete Notification',
+      message: 'Delete this notification permanently from the database?',
+      entityType: 'Notification',
+      entityName: `Notification #${notifId}`,
+      consequences: [
+        'This notification will be permanently purged from your account history.'
+      ],
+      confirmLabel: 'Delete Permanently',
+      confirmVariant: 'danger',
+      apiEndpoint: `/notifications/${notifId}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Notification Deleted',
+        message: 'The notification has been permanently deleted.',
       }
-      await notificationsApi.delete(notifId);
-      window.dispatchEvent(new CustomEvent('vms-notification-read', { detail: { id: notifId } }));
-      showToast('Notification deleted successfully ✓', 'success');
-    } catch (err) {
-      showToast('Notification removed from list ✓', 'success');
-    }
+    });
   };
 
   // Forward Notification Submit
@@ -992,24 +1034,29 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
   };
 
   // Bulk Delete Marked Notifications from MySQL
-  const handleBulkDeleteNotifications = async () => {
+  const handleBulkDeleteNotifications = () => {
     if (selectedNotifIds.length === 0) return;
-    if (!window.confirm(`Are you sure you want to permanently delete ${selectedNotifIds.length} marked notification(s)?`)) return;
-    try {
-      const idsToDelete = [...selectedNotifIds];
-      await notificationsApi.bulkDelete(idsToDelete);
-      setNotificationsList((prev) => prev.filter((n) => !idsToDelete.includes(n.id)));
-      setSelectedNotifIds([]);
-      if (selectedNotifForView && idsToDelete.includes(selectedNotifForView.id)) {
-        setSelectedNotifForView(null);
+    toConfirmation({
+      title: 'Bulk Delete Notifications',
+      message: `Are you sure you want to permanently delete ${selectedNotifIds.length} marked notification(s)?`,
+      entityType: 'Batch Notifications',
+      entityName: `${selectedNotifIds.length} Selected Notifications`,
+      consequences: [
+        `All ${selectedNotifIds.length} notifications will be permanently expunged from the database.`,
+        'This bulk action cannot be reversed.'
+      ],
+      confirmLabel: `Delete ${selectedNotifIds.length} Notifications`,
+      confirmVariant: 'danger',
+      apiEndpoint: '/notifications/bulk-delete',
+      apiMethod: 'POST',
+      apiPayload: { ids: selectedNotifIds },
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Notifications Deleted',
+        message: `${selectedNotifIds.length} notification(s) permanently removed.`,
       }
-      idsToDelete.forEach((id) => {
-        window.dispatchEvent(new CustomEvent('vms-notification-read', { detail: { id } }));
-      });
-      showToast(`Deleted ${idsToDelete.length} notification(s) permanently ✓`, 'success');
-    } catch (err) {
-      showToast(getErrorMessage(err) || 'Failed to delete selected notifications.', 'error');
-    }
+    });
   };
 
   // Bulk Mark Marked Notifications as Read
@@ -1062,17 +1109,30 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
   };
 
   // Delete Own Account
-  const handleDeleteOwnAccount = async () => {
-    if (!window.confirm('Are you sure you want to permanently delete your account? All access will be revoked immediately.')) return;
-    try {
-      await profileApi.deleteAccount();
-      showToast('Your account was deactivated. Redirecting to login...', 'info');
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 1500);
-    } catch (err) {
-      showToast(getErrorMessage(err) || 'Failed to delete account.', 'error');
-    }
+  const handleDeleteOwnAccount = () => {
+    toConfirmation({
+      title: 'Deactivate & Delete Account',
+      message: 'Are you sure you want to permanently delete your account? All access will be revoked immediately.',
+      entityType: 'User Account',
+      entityName: user?.email || user?.name || 'My Account',
+      consequences: [
+        'All active access tokens will be revoked immediately.',
+        'You will be logged out and cannot sign back in without administrator approval.',
+        'Assigned duties and approvals will be reassigned.'
+      ],
+      confirmLabel: 'Permanently Deactivate Account',
+      confirmVariant: 'danger',
+      apiEndpoint: '/profile/account',
+      apiMethod: 'DELETE',
+      returnUrl: '/login',
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Account Deactivated',
+        message: 'Your account has been deactivated.',
+        primaryActionText: 'Proceed to Login',
+        primaryActionUrl: '/login',
+      }
+    });
   };
 
   // Save Own Profile (Name, Phone, Notes)
@@ -1160,22 +1220,27 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
   };
 
   // Delete Team Channel Permanently
-  const handleDeleteConversation = async (convId) => {
-    if (!window.confirm('Are you sure you want to delete this team channel? All messages will be deactivated.')) return;
-    try {
-      await communicationApi.deleteConversation(convId);
-      setConversations((prev) => prev.filter((c) => c.id !== convId));
-      setContactProfileModal({ visible: false, user: null, conversation: null, isGroup: false, formData: {} });
-      const remaining = conversations.filter((c) => c.id !== convId);
-      if (remaining.length > 0) {
-        setActiveConvId(remaining[0].id);
-      } else {
-        setActiveConvId(null);
+  const handleDeleteConversation = (convId) => {
+    toConfirmation({
+      title: 'Delete Team Channel',
+      message: 'Are you sure you want to delete this team channel? All messages will be deactivated.',
+      entityType: 'Team Channel',
+      entityName: `Channel #${convId}`,
+      consequences: [
+        'Channel messages and discussions will be closed to all members.',
+        'Team membership links for this channel will be dismantled.'
+      ],
+      confirmLabel: 'Delete Team Channel',
+      confirmVariant: 'danger',
+      apiEndpoint: `/communication/conversations/${convId}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Channel Deleted',
+        message: 'Team channel has been deactivated.',
       }
-      showToast('Team channel deleted successfully ✓', 'success');
-    } catch (err) {
-      showToast(getErrorMessage(err) || 'Failed to delete team channel.', 'error');
-    }
+    });
   };
 
   // Add Member to Team
@@ -1190,15 +1255,27 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
   };
 
   // Remove Member from Team
-  const handleRemoveMemberFromTeam = async (convId, userIdToRemove) => {
-    if (!window.confirm('Remove this member from the team channel?')) return;
-    try {
-      await communicationApi.removeParticipant(convId, userIdToRemove);
-      await fetchConversations();
-      showToast('Member removed from team ✓', 'info');
-    } catch (err) {
-      showToast(getErrorMessage(err) || 'Failed to remove member.', 'error');
-    }
+  const handleRemoveMemberFromTeam = (convId, userIdToRemove) => {
+    toConfirmation({
+      title: 'Remove Team Member',
+      message: 'Are you sure you want to remove this member from the team channel?',
+      entityType: 'Team Participant',
+      entityName: `User #${userIdToRemove}`,
+      consequences: [
+        'The member will lose access to team channel messages and media.',
+        'They can only be re-added by an authorized channel administrator.'
+      ],
+      confirmLabel: 'Remove Member',
+      confirmVariant: 'warning',
+      apiEndpoint: `/communication/conversations/${convId}/participants/${userIdToRemove}`,
+      apiMethod: 'DELETE',
+      returnUrl: window.location.pathname + window.location.search,
+      successConfig: {
+        type: RESPONSE_TYPES.SUCCESS,
+        title: 'Member Removed',
+        message: 'Member has been removed from the channel.',
+      }
+    });
   };
 
   // Create Group Chat Submit (Team Name first, then update & add members in profile)

@@ -46,11 +46,13 @@ import {
 import { resolvePhotoUrl } from '../../utils/photoUtils';
 import { appointmentsApi, employeePortalApi, roomsApi } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 
 const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
 
 export default function EmployeeAppointments() {
     const { t, tStatus } = useLanguage();
+    const { toSuccess, toError, toConfirmation } = useResponseNavigation();
     const [loading, setLoading] = useState(true);
     const [appointments, setAppointments] = useState([]);
     const [rooms, setRooms] = useState([]);
@@ -235,31 +237,32 @@ export default function EmployeeAppointments() {
 
         setSubmitting(true);
         try {
-            await appointmentsApi.create(newForm);
-            setMessage({ type: 'success', text: 'Appointment created successfully!' });
+            const res = await appointmentsApi.create(newForm);
             setShowNewModal(false);
             setCreateErrors({});
-            setNewForm({
-                visitor_name: '',
-                visitor_email: '',
-                visitor_phone: '',
-                visitor_company: '',
-                visitor_category: 'Business Visitor',
-                title: '',
-                purpose: '',
-                room_id: '',
-                scheduled_start: '',
-                scheduled_end: '',
-                comments: '',
+            toSuccess({
+                type: RESPONSE_TYPES.APPOINTMENT_SUBMISSION_RESULT,
+                title: 'Appointment Scheduled Successfully',
+                message: `Appointment for ${newForm.visitor_name} has been created and registered in the corporate access system.`,
+                referenceId: res?.data?.reference_code || res?.data?.id || null,
+                entityType: 'Appointment',
+                entityName: newForm.visitor_name,
+                returnUrl: window.location.pathname + window.location.search,
             });
-            fetchAppointments();
         }
         catch (err) {
             const backend = parseBackendFormErrors(err);
             if (backend && backend.fieldErrors && Object.keys(backend.fieldErrors).length > 0) {
                 setCreateErrors(backend.fieldErrors);
+                setMessage({ type: 'error', text: err.response?.data?.error || err.response?.data?.message || 'Please correct the validation errors.' });
+            } else {
+                toError(err, {
+                    title: 'Failed to Create Appointment',
+                    entityType: 'Appointment',
+                    entityName: newForm.visitor_name,
+                    returnUrl: window.location.pathname + window.location.search,
+                });
             }
-            setMessage({ type: 'error', text: err.response?.data?.error || err.response?.data?.message || 'Failed to create appointment.' });
         }
         finally {
             setSubmitting(false);
@@ -286,14 +289,25 @@ export default function EmployeeAppointments() {
                 newStart: rescheduleStart,
                 newEnd: rescheduleEnd,
             });
-            setMessage({ type: 'success', text: `Appointment #${rescheduleApt.reference_code || rescheduleApt.id} rescheduled.` });
             setShowRescheduleModal(false);
             setRescheduleApt(null);
             setRescheduleErrors({});
-            fetchAppointments();
+            toSuccess({
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Appointment Rescheduled',
+                message: `Appointment #${rescheduleApt.reference_code || rescheduleApt.id} has been moved to ${rescheduleStart}.`,
+                referenceId: rescheduleApt.reference_code || rescheduleApt.id,
+                entityType: 'Appointment',
+                entityName: rescheduleApt.visitor_name,
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         catch (err) {
-            setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to reschedule appointment.' });
+            toError(err, {
+                title: 'Reschedule Operation Failed',
+                entityType: 'Appointment',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         finally {
             setRescheduling(false);
@@ -307,41 +321,58 @@ export default function EmployeeAppointments() {
             setCancelErrors({ cancelReason: 'Cancellation reason is required (min 3 characters).' });
             return;
         }
-        setSubmitting(true);
-        try {
-            await employeePortalApi.requestAction(cancelApt.id, 'CANCEL', { comment: cancelReason || 'Cancelled by host' });
-            setMessage({ type: 'success', text: `Appointment #${cancelApt.reference_code || cancelApt.id} cancelled.` });
-            setShowCancelModal(false);
-            setCancelApt(null);
-            setCancelReason('');
-            setCancelErrors({});
-            fetchAppointments();
-        }
-        catch (err) {
-            setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to cancel appointment.' });
-        }
-        finally {
-            setSubmitting(false);
-        }
+        setShowCancelModal(false);
+        toConfirmation({
+            title: 'Confirm Appointment Cancellation',
+            message: `Are you sure you want to cancel the scheduled visit for ${cancelApt.visitor_name}?`,
+            entityType: 'Appointment',
+            entityName: `#${cancelApt.reference_code || cancelApt.id} - ${cancelApt.visitor_name}`,
+            entityId: cancelApt.id,
+            consequences: [
+                'The visitor and security desk will receive instant cancellation notifications.',
+                'Any scheduled meeting room or visitor badge associated will be released.',
+                'This cancellation event will be recorded in the departmental audit log.'
+            ],
+            confirmLabel: 'Confirm Cancellation',
+            confirmVariant: 'danger',
+            apiEndpoint: `/employee/appointments/${cancelApt.id}/action`,
+            apiMethod: 'POST',
+            apiPayload: { action: 'CANCEL', comment: cancelReason || 'Cancelled by host employee' },
+            returnUrl: window.location.pathname + window.location.search,
+            successConfig: {
+                type: RESPONSE_TYPES.CANCELLATION_SUCCESS,
+                title: 'Appointment Cancelled',
+                message: `Appointment #${cancelApt.reference_code || cancelApt.id} has been successfully cancelled.`,
+            }
+        });
     };
     const handleDeleteSubmit = async (e) => {
         e.preventDefault();
         if (!deleteApt)
             return;
-        setDeleting(true);
-        try {
-            await appointmentsApi.delete(deleteApt.id);
-            setMessage({ type: 'success', text: `Appointment #${deleteApt.reference_code || deleteApt.id} deleted successfully.` });
-            setShowDeleteModal(false);
-            setDeleteApt(null);
-            fetchAppointments();
-        }
-        catch (err) {
-            setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to delete appointment.' });
-        }
-        finally {
-            setDeleting(false);
-        }
+        setShowDeleteModal(false);
+        toConfirmation({
+            title: 'Confirm Permanent Deletion',
+            message: `Permanently delete appointment record #${deleteApt.reference_code || deleteApt.id} for ${deleteApt.visitor_name}?`,
+            entityType: 'Appointment Record',
+            entityName: `#${deleteApt.reference_code || deleteApt.id} (${deleteApt.visitor_name})`,
+            entityId: deleteApt.id,
+            consequences: [
+                'The appointment entry will be permanently erased from all system views.',
+                'All automated access codes and QR passes will be immediately invalidated.',
+                'This action is irreversible and recorded in the audit trail.'
+            ],
+            confirmLabel: 'Permanently Delete Record',
+            confirmVariant: 'danger',
+            apiEndpoint: `/appointments/${deleteApt.id}`,
+            apiMethod: 'DELETE',
+            returnUrl: window.location.pathname + window.location.search,
+            successConfig: {
+                type: RESPONSE_TYPES.RECORD_DELETED,
+                title: 'Appointment Record Purged',
+                message: `Appointment #${deleteApt.reference_code || deleteApt.id} has been permanently deleted.`,
+            }
+        });
     };
 
     const handleOpenDocs = async (apt) => {
@@ -419,18 +450,31 @@ export default function EmployeeAppointments() {
     };
 
     const handleApproveFromDoc = async (apt) => {
-        if (!apt || approvingDoc) return;
-        setApprovingDoc(true);
-        try {
-            await employeePortalApi.requestAction(apt.id, 'APPROVE', { comment: 'Approved by host after document inspection.' });
-            setMessage({ type: 'success', text: `Appointment #${apt.reference_code || apt.id} approved successfully!` });
-            setShowDocModal(false);
-            fetchAppointments();
-        } catch (err) {
-            setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to approve appointment.' });
-        } finally {
-            setApprovingDoc(false);
-        }
+        if (!apt) return;
+        setShowDocModal(false);
+        toConfirmation({
+            title: 'Authorize Visitor Appointment',
+            message: `Authorize and confirm appointment #${apt.reference_code || apt.id} for ${apt.visitor_name} after reviewing credentials?`,
+            entityType: 'Appointment Authorization',
+            entityName: `${apt.visitor_name} (#${apt.reference_code || apt.id})`,
+            entityId: apt.id,
+            consequences: [
+                'The visitor will receive official pass credentials for entry.',
+                'Security gates and reception desks will receive notification of authorization.',
+                'An official entry token and visitor badge will be generated.'
+            ],
+            confirmLabel: 'Approve & Issue Access',
+            confirmVariant: 'success',
+            apiEndpoint: `/employee/appointments/${apt.id}/action`,
+            apiMethod: 'POST',
+            apiPayload: { action: 'APPROVE', comment: 'Approved by host after document inspection.' },
+            returnUrl: window.location.pathname + window.location.search,
+            successConfig: {
+                type: RESPONSE_TYPES.APPROVAL_PROCESSED,
+                title: 'Appointment Approved',
+                message: `Appointment #${apt.reference_code || apt.id} for ${apt.visitor_name} has been approved.`,
+            }
+        });
     };
 
     const clearFilters = () => {
@@ -726,14 +770,63 @@ export default function EmployeeAppointments() {
                           </button>
 
                           {/* 3. Cancel Appointment — XCircle Icon */}
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setCancelApt(apt); setShowCancelModal(true); }} disabled={(apt.status || '').toUpperCase() === 'CANCELLED' || (apt.status || '').toUpperCase() === 'REJECTED'} className={`group w-[34px] h-[34px] rounded-[12px] flex items-center justify-center transition-all duration-200 shadow-sm ${(apt.status || '').toUpperCase() === 'CANCELLED' || (apt.status || '').toUpperCase() === 'REJECTED'
-                        ? 'bg-slate-800/40 border border-slate-800 text-slate-600 cursor-not-allowed'
-                        : 'border border-amber-500/80 bg-amber-500/10 text-amber-400 hover:bg-amber-600 hover:text-white hover:border-amber-500 hover:shadow-[0_4px_14px_rgba(245,158,11,0.4)] hover:-translate-y-0.5 active:scale-95 cursor-pointer'}`} title={(apt.status || '').toUpperCase() === 'CANCELLED' ? 'Already Cancelled' : 'Cancel Appointment'}>
+                          <button type="button" onClick={(e) => {
+                            e.stopPropagation();
+                            toConfirmation({
+                              title: 'Confirm Appointment Cancellation',
+                              message: `Are you sure you want to cancel the scheduled visit for ${apt.visitor_name}?`,
+                              entityType: 'Appointment',
+                              entityName: `#${apt.reference_code || apt.id} - ${apt.visitor_name}`,
+                              entityId: apt.id,
+                              consequences: [
+                                'The visitor and reception desk will receive immediate cancellation notices.',
+                                'Any reserved conference space or meeting slot will be freed.',
+                                'This cancellation action is logged under your employee profile.'
+                              ],
+                              confirmLabel: 'Confirm Cancellation',
+                              confirmVariant: 'danger',
+                              apiEndpoint: `/employee/appointments/${apt.id}/action`,
+                              apiMethod: 'POST',
+                              apiPayload: { action: 'CANCEL', comment: 'Cancelled by host employee via appointments view' },
+                              returnUrl: window.location.pathname + window.location.search,
+                              successConfig: {
+                                type: RESPONSE_TYPES.CANCELLATION_SUCCESS,
+                                title: 'Appointment Cancelled',
+                                message: `Appointment #${apt.reference_code || apt.id} has been cancelled.`,
+                              }
+                            });
+                          }} disabled={(apt.status || '').toUpperCase() === 'CANCELLED' || (apt.status || '').toUpperCase() === 'REJECTED'} className={`group w-[34px] h-[34px] rounded-[12px] flex items-center justify-center transition-all duration-200 shadow-sm ${(apt.status || '').toUpperCase() === 'CANCELLED' || (apt.status || '').toUpperCase() === 'REJECTED'
+                            ? 'bg-slate-800/40 border border-slate-800 text-slate-600 cursor-not-allowed'
+                            : 'border border-amber-500/80 bg-amber-500/10 text-amber-400 hover:bg-amber-600 hover:text-white hover:border-amber-500 hover:shadow-[0_4px_14px_rgba(245,158,11,0.4)] hover:-translate-y-0.5 active:scale-95 cursor-pointer'}`} title={(apt.status || '').toUpperCase() === 'CANCELLED' ? 'Already Cancelled' : 'Cancel Appointment'}>
                             <XCircle className="h-4 w-4 stroke-[1.8] transition-colors"/>
                           </button>
 
                           {/* 4. Delete Appointment — Trash2 Icon */}
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setDeleteApt(apt); setShowDeleteModal(true); }} className="group w-[34px] h-[34px] rounded-[12px] border border-red-500/80 bg-red-500/10 text-red-400 hover:bg-rose-600 hover:text-white hover:border-rose-500 hover:shadow-[0_4px_14px_rgba(244,63,94,0.4)] hover:-translate-y-0.5 active:scale-95 flex items-center justify-center transition-all duration-200 shadow-sm cursor-pointer" title="Delete Appointment Record">
+                          <button type="button" onClick={(e) => {
+                            e.stopPropagation();
+                            toConfirmation({
+                              title: 'Confirm Permanent Deletion',
+                              message: `Permanently delete appointment record #${apt.reference_code || apt.id} for ${apt.visitor_name}?`,
+                              entityType: 'Appointment Record',
+                              entityName: `#${apt.reference_code || apt.id} (${apt.visitor_name})`,
+                              entityId: apt.id,
+                              consequences: [
+                                'The appointment entry will be permanently erased from all system views.',
+                                'All automated access codes and QR passes will be immediately invalidated.',
+                                'This administrative action is irreversible.'
+                              ],
+                              confirmLabel: 'Permanently Delete Record',
+                              confirmVariant: 'danger',
+                              apiEndpoint: `/appointments/${apt.id}`,
+                              apiMethod: 'DELETE',
+                              returnUrl: window.location.pathname + window.location.search,
+                              successConfig: {
+                                type: RESPONSE_TYPES.RECORD_DELETED,
+                                title: 'Appointment Record Purged',
+                                message: `Appointment #${apt.reference_code || apt.id} has been permanently deleted.`,
+                              }
+                            });
+                          }} className="group w-[34px] h-[34px] rounded-[12px] border border-red-500/80 bg-red-500/10 text-red-400 hover:bg-rose-600 hover:text-white hover:border-rose-500 hover:shadow-[0_4px_14px_rgba(244,63,94,0.4)] hover:-translate-y-0.5 active:scale-95 flex items-center justify-center transition-all duration-200 shadow-sm cursor-pointer" title="Delete Appointment Record">
                             <Trash2 className="h-4 w-4 stroke-[1.8] text-red-400 group-hover:text-white transition-colors"/>
                           </button>
                         </div>

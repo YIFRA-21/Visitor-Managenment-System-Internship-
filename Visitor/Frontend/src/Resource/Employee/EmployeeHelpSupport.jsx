@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { HelpCircle, BookOpen, Send, Search, CheckCircle2, PhoneCall, AlertCircle, } from 'lucide-react';
 import { employeePortalApi } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
+
 export default function EmployeeHelpSupport() {
     const { t } = useLanguage();
+    const { toSuccess, toError } = useResponseNavigation();
     const [searchQuery, setSearchQuery] = useState('');
     const [showTicketModal, setShowTicketModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -37,12 +40,23 @@ export default function EmployeeHelpSupport() {
         setSubmitting(true);
         try {
             const res = await employeePortalApi.createSupportTicket(ticketForm);
-            setMessage({ type: 'success', text: `Support Ticket #${res.data?.ticket?.ticket_number || 'TKT-1029'} created successfully!` });
             setShowTicketModal(false);
-            setTicketForm({ subject: '', category: 'General Technical', priority: 'MEDIUM', description: '' });
+            toSuccess({
+                type: RESPONSE_TYPES.SUPPORT_TICKET_SUBMITTED,
+                title: 'Support Ticket Submitted',
+                message: `Your technical support ticket "${ticketForm.subject}" has been queued for immediate review.`,
+                referenceId: res.data?.ticket?.ticket_number || 'TKT-1029',
+                entityType: 'Support Ticket',
+                entityName: ticketForm.subject,
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         catch (err) {
-            setMessage({ type: 'error', text: 'Failed to submit support ticket.' });
+            toError(err, {
+                title: 'Ticket Submission Failed',
+                entityType: 'Support Ticket',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         }
         finally {
             setSubmitting(false);

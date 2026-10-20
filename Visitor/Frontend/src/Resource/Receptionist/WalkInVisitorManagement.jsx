@@ -11,6 +11,7 @@ import BackButton from '../../components/common/BackButton';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 import CountryNationalitySelect from '../../components/common/CountryNationalitySelect';
 import CountryPhoneInput from '../../components/common/CountryPhoneInput';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
@@ -40,6 +41,7 @@ export default function WalkInVisitorManagement({ onNavigate }) {
     const { t, language } = useLanguage();
     const isAm = language === 'am';
     const { notify } = useNotification();
+    const { toSuccess, toError, toConfirmation } = useResponseNavigation();
 
     // Dynamic Organization Context
     const { organization, logoUrl: orgLogoUrl, orgName: organizationName } = useOrganization();
@@ -486,32 +488,47 @@ export default function WalkInVisitorManagement({ onNavigate }) {
 
     // ── WALK-IN HISTORY ACTIONS ──
     const handleDeleteWalkIn = async (appointmentId, visitorName) => {
-        try {
-            // Optimistic update
-            setHistoryList(prev => prev.filter(item => item.appointment_id !== appointmentId));
-            setMessage({ type: 'success', text: `Walk-in record for "${visitorName}" deleted successfully.` });
-            await api.delete(`/reception/walk-ins/${appointmentId}`);
-        } catch (err) {
-            console.error('Delete error:', err);
-            setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to delete walk-in record.' });
-            fetchWalkInHistory();
-        }
+        toConfirmation({
+            title: 'Confirm Deletion of Walk-In Visitor Record',
+            message: `Permanently delete the walk-in registration for "${visitorName}"?`,
+            entityType: 'Walk-In Record',
+            entityName: visitorName,
+            entityId: appointmentId,
+            consequences: [
+                'The visitor log, temporary credentials, and gate pass will be revoked.',
+                'The departmental host and reception log will reflect permanent removal.',
+                'This administrative action is irreversible and recorded in the audit trail.'
+            ],
+            confirmLabel: 'Permanently Delete Walk-In',
+            confirmVariant: 'danger',
+            apiEndpoint: `/reception/walk-ins/${appointmentId}`,
+            apiMethod: 'DELETE',
+            returnUrl: window.location.pathname + window.location.search,
+            successConfig: {
+                type: RESPONSE_TYPES.RECORD_DELETED,
+                title: 'Walk-In Record Removed',
+                message: `Walk-in registration for "${visitorName}" has been permanently purged.`,
+            }
+        });
     };
 
     const handleSendTempPassword = async (appointmentId) => {
         setActionLoadingId(appointmentId);
         try {
             const res = await api.post(`/reception/walk-ins/${appointmentId}/send-temp-password`);
-            setMessage({ 
-                type: 'success', 
-                text: res.data?.message || 'Temporary password generated and sent to visitor email.' 
+            toSuccess({
+                type: RESPONSE_TYPES.CREDENTIALS_GENERATED,
+                title: 'Temporary Password Dispatched',
+                message: res.data?.message || 'Temporary password generated and sent to visitor email.',
+                referenceId: `AUTH-${appointmentId}`,
+                entityType: 'Visitor Credentials',
+                returnUrl: window.location.pathname + window.location.search,
             });
-            fetchWalkInHistory();
         } catch (err) {
-            console.error('Send temp password error:', err);
-            setMessage({ 
-                type: 'error', 
-                text: err.response?.data?.error || 'Failed to send temporary password.' 
+            toError(err, {
+                title: 'Failed to Dispatch Credentials',
+                entityType: 'Visitor Credentials',
+                returnUrl: window.location.pathname + window.location.search,
             });
         } finally {
             setActionLoadingId(null);
@@ -522,16 +539,19 @@ export default function WalkInVisitorManagement({ onNavigate }) {
         setActionLoadingId(appointmentId);
         try {
             const res = await api.post(`/reception/walk-ins/${appointmentId}/send-user-id`);
-            setMessage({ 
-                type: 'success', 
-                text: res.data?.message || 'Visitor User ID and pass ticket dispatched to email.' 
+            toSuccess({
+                type: RESPONSE_TYPES.PASS_ISSUED,
+                title: 'Visitor ID & Pass Dispatched',
+                message: res.data?.message || 'Visitor User ID and pass ticket dispatched to email.',
+                referenceId: `PASS-${appointmentId}`,
+                entityType: 'Visitor Pass',
+                returnUrl: window.location.pathname + window.location.search,
             });
-            fetchWalkInHistory();
         } catch (err) {
-            console.error('Send User ID error:', err);
-            setMessage({ 
-                type: 'error', 
-                text: err.response?.data?.error || 'Failed to send User ID.' 
+            toError(err, {
+                title: 'Failed to Dispatch Pass Ticket',
+                entityType: 'Visitor Pass',
+                returnUrl: window.location.pathname + window.location.search,
             });
         } finally {
             setActionLoadingId(null);
@@ -544,12 +564,22 @@ export default function WalkInVisitorManagement({ onNavigate }) {
         setActionLoadingId(editingWalkIn.appointment_id);
         try {
             await api.put(`/reception/walk-ins/${editingWalkIn.appointment_id}`, editingWalkIn);
-            setMessage({ type: 'success', text: 'Walk-in registration details updated successfully.' });
             setEditingWalkIn(null);
-            fetchWalkInHistory();
+            toSuccess({
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Walk-In Record Updated',
+                message: 'Walk-in registration details updated successfully.',
+                referenceId: editingWalkIn.appointment_id,
+                entityType: 'Walk-In Record',
+                entityName: `${editingWalkIn.first_name || ''} ${editingWalkIn.last_name || ''}`.trim(),
+                returnUrl: window.location.pathname + window.location.search,
+            });
         } catch (err) {
-            console.error('Save edit error:', err);
-            setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update record.' });
+            toError(err, {
+                title: 'Update Walk-In Failed',
+                entityType: 'Walk-In Record',
+                returnUrl: window.location.pathname + window.location.search,
+            });
         } finally {
             setActionLoadingId(null);
         }

@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ShieldAlert, Bell, RefreshCw, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { checkoutApi, getErrorMessage } from '../../services/api';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
+
 export default function OverstayManagement() {
+    const { toConfirmation, toResponse } = useResponseNavigation();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -23,16 +27,40 @@ export default function OverstayManagement() {
     useEffect(() => { load(); }, [load]);
     const handleAlertHost = (item) => {
         setNotified(prev => ({ ...prev, [item.checkinId]: true }));
-        alert(`Alert notification dispatched to Host: ${item.hostName} (${item.hostEmail}) for visitor ${item.visitorName}`);
+        toResponse(RESPONSE_TYPES.INFO, {
+            title: 'Host Overstay Alert Dispatched',
+            message: `Emergency overstay notice sent to Host ${item.hostName} (${item.hostEmail}) for visitor ${item.visitorName}.`,
+            entityType: 'Overstay Notice',
+            entityName: item.visitorName,
+            returnUrl: window.location.pathname + window.location.search,
+        });
     };
-    const handleForceCheckout = async (item) => {
-        try {
-            await checkoutApi.process({ code: item.referenceCode || item.badgeNumber || String(item.checkinId), remarks: 'Forced overstay checkout' });
-            setItems(prev => prev.filter(x => x.checkinId !== item.checkinId));
-        }
-        catch (err) {
-            alert(getErrorMessage(err));
-        }
+    const handleForceCheckout = (item) => {
+        toConfirmation({
+            title: `Force Check-Out: ${item.visitorName}`,
+            message: `Force immediate exit processing and revoke credentials for visitor "${item.visitorName}" due to exceeding authorized stay?`,
+            entityType: 'Overstaying Visitor',
+            entityName: item.visitorName,
+            consequences: [
+                'Digital visitor pass and RFID credentials will be terminated immediately.',
+                'Security checkpoints will flag this individual if they attempt door access.',
+                'An overstay violation entry will be logged into the permanent visitor registry.'
+            ],
+            confirmLabel: 'Force Check-Out & Revoke Badge',
+            confirmVariant: 'danger',
+            apiEndpoint: '/checkout/process',
+            apiMethod: 'POST',
+            apiPayload: {
+                code: item.referenceCode || item.badgeNumber || String(item.checkinId),
+                remarks: 'Forced overstay checkout'
+            },
+            returnUrl: window.location.pathname + window.location.search,
+            successConfig: {
+                type: RESPONSE_TYPES.CHECKOUT_RESULT,
+                title: 'Forced Check-Out Processed',
+                message: `Visitor "${item.visitorName}" has been checked out and access credentials revoked.`,
+            }
+        });
     };
     return (<div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

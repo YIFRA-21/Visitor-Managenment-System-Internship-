@@ -318,6 +318,7 @@ function VisitorDocumentManagementInner() {
     const fileInputRef = useRef(null);
     const [enableOcr, setEnableOcr] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadErrorMessage, setUploadErrorMessage] = useState('');
     const [visitorIdInput, setVisitorIdInput] = useState('');
     const [foundVisitor, setFoundVisitor] = useState(null);
     const [uploadForm, setUploadForm] = useState({
@@ -480,8 +481,9 @@ function VisitorDocumentManagementInner() {
     // ─── Submit Upload (supports multiple files) ───
     const handleUploadSubmit = async (e) => {
         e.preventDefault();
+        setUploadErrorMessage('');
         if (!uploadQueue || uploadQueue.length === 0) {
-            alert('Please select at least one file to upload.');
+            setUploadErrorMessage('Please select at least one file to upload.');
             return;
         }
         setIsUploading(true);
@@ -573,7 +575,7 @@ function VisitorDocumentManagementInner() {
         }
         catch (err) {
             console.error('Upload failed:', err);
-            alert('Upload failed. Please check file format and server connection.');
+            setUploadErrorMessage(err?.response?.data?.message || err?.message || 'Upload failed. Please check file format and server connection.');
         }
         finally {
             setIsUploading(false);
@@ -1147,6 +1149,12 @@ function VisitorDocumentManagementInner() {
             </div>
 
             <form onSubmit={handleUploadSubmit} className="p-6 space-y-6">
+              {uploadErrorMessage && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-semibold flex items-center justify-between">
+                  <span>{uploadErrorMessage}</span>
+                  <button type="button" onClick={() => setUploadErrorMessage('')} className="text-rose-400 hover:text-white font-bold ml-2">✕</button>
+                </div>
+              )}
               {/* Hidden multi-file input */}
               <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.docx" onChange={handleFileSelect} className="hidden"/>
 

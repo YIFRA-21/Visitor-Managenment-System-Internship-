@@ -132,7 +132,13 @@ export default function EnterpriseNotificationComposer() {
                 <button onClick={() => formatText('underline')} className="p-1.5 bg-slate-900 text-slate-300 hover:text-white rounded-lg text-xs underline">U</button>
                 <div className="h-4 w-px bg-slate-800 mx-1"/>
                 <button onClick={() => formatText('insertUnorderedList')} className="p-1.5 bg-slate-900 text-slate-300 hover:text-white rounded-lg text-xs">• List</button>
-                <button onClick={() => formatText('createLink', prompt('URL:') || '')} className="p-1.5 bg-slate-900 text-slate-300 hover:text-white rounded-lg text-xs">🔗 Link</button>
+                <button onClick={() => {
+                  if (editorMode === 'rich') {
+                    formatText('createLink', 'https://');
+                  } else {
+                    setBody(prev => prev + ' [link](https://)');
+                  }
+                }} className="p-1.5 bg-slate-900 text-slate-300 hover:text-white rounded-lg text-xs">🔗 Link</button>
               </div>
             </div>
 

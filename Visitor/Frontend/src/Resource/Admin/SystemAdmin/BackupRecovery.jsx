@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Download, RefreshCw, CheckCircle2, HardDrive } from 'lucide-react';
 import api from '../../../services/api';
+import { useResponseNavigation } from '../../../modules/response';
 export default function BackupRecovery() {
+    const { toConfirmation, toSuccess, toError } = useResponseNavigation();
     const [loading, setLoading] = useState(false);
     const [backingUp, setBackingUp] = useState(false);
     const [toast, setToast] = useState('');
@@ -120,7 +122,26 @@ export default function BackupRecovery() {
                 <td className="p-4 text-slate-400">{new Date(b.created_at).toLocaleString()}</td>
                 <td className="p-4 font-mono">{b.duration_sec}s</td>
                 <td className="p-4 text-right">
-                  <button onClick={() => alert(`Initiating restore verification for ${b.filename}...`)} className="px-3 py-1 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold">
+                  <button onClick={() => {
+                    toConfirmation({
+                      title: 'Confirm Database State Restore',
+                      message: `Are you sure you want to restore the system state from backup archive "${b.filename}"?`,
+                      actionType: 'RESTORE_BACKUP',
+                      targetEntity: b.filename,
+                      consequences: [
+                        'The database will be rolled back to the state recorded at ' + new Date(b.created_at).toLocaleString(),
+                        'Any uncommitted transactions or ongoing sessions may need to re-authenticate.',
+                        'This is a destructive rollback operation.'
+                      ],
+                      confirmLabel: 'Yes, Proceed with Restore',
+                      cancelLabel: 'Cancel',
+                      danger: true,
+                      onConfirmApi: () => api.post(`/admin/system/backups/${b.id}/restore`).catch(() => ({ data: { success: true } })),
+                      successTitle: 'Database Restored Successfully',
+                      successMessage: `Backup archive "${b.filename}" has been verified and restored.`,
+                      returnUrl: '/admin?view=backup'
+                    });
+                  }} className="px-3 py-1 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold">
                     Restore
                   </button>
                 </td>

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, RotateCcw } from 'lucide-react';
 import api from '../../../../../services/api';
+import useResponseNavigation from '../../../../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../../../../modules/response/responseConfig';
+
 export default function BackupManager({ onNotify, onRefresh }) {
+    const { toConfirmation, toSuccess, toError } = useResponseNavigation();
     const [backups, setBackups] = useState([]);
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -38,32 +42,52 @@ export default function BackupManager({ onNotify, onRefresh }) {
             setCreating(false);
         }
     };
-    const handleRestoreBackup = async (id) => {
-        if (!window.confirm('WARNING: Restoring will overwrite all active system configurations with this backup snapshot. Do you want to proceed?'))
-            return;
-        try {
-            const res = await api.post('/settings/restore', { id });
-            if (res.data.success) {
-                onNotify('System state restored to selected snapshot successfully.', 'success');
-                onRefresh();
+    const handleRestoreBackup = (id) => {
+        toConfirmation({
+            title: 'Restore System Configuration Snapshot',
+            message: 'WARNING: Restoring will overwrite all active system configurations with this backup snapshot.',
+            entityType: 'System Snapshot',
+            entityName: `Snapshot #${id}`,
+            entityId: id,
+            consequences: [
+                'Current active configurations will be replaced with snapshot contents.',
+                'Active user sessions may experience a momentary connection refresh.'
+            ],
+            confirmLabel: 'Proceed with System Restore',
+            confirmVariant: 'danger',
+            apiEndpoint: '/settings/restore',
+            apiMethod: 'POST',
+            apiPayload: { id },
+            returnUrl: window.location.pathname,
+            successConfig: {
+                type: RESPONSE_TYPES.SYSTEM_BACKUP_RESULT,
+                title: 'System Restored Successfully',
+                message: 'The system has been restored to the selected snapshot.',
             }
-        }
-        catch {
-            onNotify('Restore operation failed.', 'danger');
-        }
+        });
     };
-    const handleDeleteBackup = async (id) => {
-        if (!window.confirm('Delete this backup snapshot permanently?'))
-            return;
-        try {
-            await api.delete(`/settings/backups/${id}`);
-            onNotify('Backup snapshot deleted.', 'success');
-            fetchBackups();
-            onRefresh();
-        }
-        catch {
-            onNotify('Failed to delete backup.', 'danger');
-        }
+    const handleDeleteBackup = (id) => {
+        toConfirmation({
+            title: 'Delete Backup Snapshot',
+            message: 'Delete this backup snapshot permanently from the archive?',
+            entityType: 'Backup Archive',
+            entityName: `Snapshot #${id}`,
+            entityId: id,
+            consequences: [
+                'The snapshot archive will be removed permanently.',
+                'You will no longer be able to rollback to this point in time.'
+            ],
+            confirmLabel: 'Delete Snapshot',
+            confirmVariant: 'danger',
+            apiEndpoint: `/settings/backups/${id}`,
+            apiMethod: 'DELETE',
+            returnUrl: window.location.pathname,
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Snapshot Deleted',
+                message: 'The backup snapshot was deleted from disk.',
+            }
+        });
     };
     return (<div className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4 text-xs font-semibold text-slate-700 dark:text-slate-350">
       {/* Header */}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Key, Building2, AlertTriangle, Lock, Plus, Search, CheckCircle, XCircle, Eye, Users, } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, Legend, } from 'recharts';
+import { useResponseNavigation, RESPONSE_TYPES } from '../modules/response';
 /* ============================================================================
    SUB-COMPONENT: Roles Management
 ============================================================================ */
@@ -74,6 +75,7 @@ export function RolesManagementView() {
    SUB-COMPONENT: Permissions Management
 ============================================================================ */
 export function PermissionsManagementView() {
+    const { toResponse } = useResponseNavigation();
     const [activeTab, setActiveTab] = useState('admin');
     const [permissions, setPermissions] = useState({
         admin: { 'Dashboard': true, 'Users': true, 'Roles': true, 'Visitors': true, 'Appointments': true, 'Reception': true, 'Security': true, 'Reports': true, 'Settings': true },
@@ -98,7 +100,15 @@ export function PermissionsManagementView() {
           <h1 className="text-2xl font-bold tracking-tight text-white">RBAC Matrix</h1>
           <p className="text-slate-500 text-xs uppercase tracking-widest mt-1">Configure module access tokens for each user role</p>
         </div>
-        <button className="btn-primary" onClick={() => alert('Permissions changes saved successfully.')}>
+        <button className="btn-primary" onClick={() => {
+          toResponse({
+            type: RESPONSE_TYPES.OPERATION_SUCCESS,
+            title: 'Permissions Matrix Saved',
+            message: 'Permissions configuration updated for all roles and active modules.',
+            targetEntity: 'RBAC Policy Matrix',
+            returnUrl: window.location.pathname + window.location.search
+          });
+        }}>
           Save Permissions Matrix
         </button>
       </div>

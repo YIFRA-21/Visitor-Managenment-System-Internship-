@@ -5,6 +5,7 @@ export default function ReviewDecisionModal({ isOpen, onClose, caseItem, onSubmi
   const [decision, setDecision] = useState('APPROVED');
   const [reviewNotes, setReviewNotes] = useState('');
   const [selectedReasons, setSelectedReasons] = useState([]);
+  const [validationError, setValidationError] = useState('');
 
   if (!isOpen || !caseItem) return null;
 
@@ -25,8 +26,9 @@ export default function ReviewDecisionModal({ isOpen, onClose, caseItem, onSubmi
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setValidationError('');
     if (!reviewNotes.trim()) {
-      alert('Please provide review notes explaining this decision.');
+      setValidationError('Please provide review notes explaining this decision.');
       return;
     }
     onSubmit({
@@ -127,6 +129,12 @@ export default function ReviewDecisionModal({ isOpen, onClose, caseItem, onSubmi
               placeholder="Detail reasons for decision in compliance with security guidelines..."
               className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
+            {validationError && (
+              <p className="text-rose-400 text-xs font-semibold pt-1 flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>{validationError}</span>
+              </p>
+            )}
           </div>
 
           {/* Actions */}

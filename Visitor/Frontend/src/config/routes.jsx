@@ -13,6 +13,10 @@ export const ROUTES = {
         UNAUTHORIZED: '/unauthorized',
         ACCESS_DENIED: '/access-denied',
         CHANGE_PASSWORD: '/change-password',
+        RESPONSE: '/response',
+        CONFIRM: '/confirm',
+        NOT_FOUND: '/not-found',
+        ERROR: '/error',
     },
     VISITOR: {
         BASE: '/visitor',

@@ -2,9 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Users, Search, RefreshCw, Loader2, AlertCircle, LogOut, ShieldAlert, Trash2 } from 'lucide-react';
 import { checkinApi, checkoutApi, getErrorMessage } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import useResponseNavigation from '../../modules/response/useResponseNavigation';
+import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
+
 const fmt = (dt) => dt ? new Date(dt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
 export default function PendingCheckOuts() {
     const { t } = useLanguage();
+    const { toConfirmation, toSuccess, toError } = useResponseNavigation();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -28,26 +32,52 @@ export default function PendingCheckOuts() {
     const handleQuickCheckout = async (item) => {
         setCheckoutLoading(item.checkinId);
         try {
-            await checkoutApi.process({ code: item.referenceCode || item.badgeNumber || String(item.checkinId) });
+            const res = await checkoutApi.process({ code: item.referenceCode || item.badgeNumber || String(item.checkinId) });
             setItems(prev => prev.filter(x => x.checkinId !== item.checkinId));
+            toSuccess({
+                type: RESPONSE_TYPES.CHECKOUT_RESULT,
+                title: 'Visitor Check-Out Completed',
+                message: `Visitor ${item.visitorName || 'Guest'} has been successfully checked out.`,
+                referenceId: item.referenceCode || String(item.checkinId),
+                entityType: 'Visitor Departure',
+                entityName: item.visitorName,
+                returnUrl: '/reception/dashboard?view=pending_checkouts',
+            });
         }
         catch (err) {
-            alert(getErrorMessage(err));
+            toError(err, {
+                title: 'Check-Out Failed',
+                entityType: 'Visitor',
+                entityName: item.visitorName,
+                returnUrl: '/reception/dashboard?view=pending_checkouts',
+            });
         }
         finally {
             setCheckoutLoading(null);
         }
     };
-    const handleDeleteCheckin = async (item) => {
+    const handleDeleteCheckin = (item) => {
         const targetName = item.visitorName || 'this visitor';
-        if (!window.confirm(`Are you sure you want to delete the check-in record for "${targetName}"?`)) return;
-        try {
-            await checkinApi.delete(item.checkinId);
-            setItems(prev => prev.filter(x => x.checkinId !== item.checkinId));
-        }
-        catch (err) {
-            alert(getErrorMessage(err, 'Failed to delete check-in record'));
-        }
+        toConfirmation({
+            title: 'Delete Check-In Record',
+            message: `Are you sure you want to delete the active check-in record for "${targetName}"?`,
+            entityType: 'Active Visit Record',
+            entityName: targetName,
+            consequences: [
+                'The visitor will be removed from the active building roster.',
+                'Associated temporary access credentials will be unlinked.'
+            ],
+            confirmLabel: 'Delete Check-In Record',
+            confirmVariant: 'danger',
+            apiEndpoint: `/checkin/${item.checkinId}`,
+            apiMethod: 'DELETE',
+            returnUrl: '/reception/dashboard?view=pending_checkouts',
+            successConfig: {
+                type: RESPONSE_TYPES.SUCCESS,
+                title: 'Check-In Record Deleted',
+                message: `Check-in record for "${targetName}" has been removed.`,
+            }
+        });
     };
     return (<div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-6 space-y-5">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

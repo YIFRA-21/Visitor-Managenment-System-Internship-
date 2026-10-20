@@ -15,6 +15,10 @@ import ResetPasswordPage from '../../modules/authentication/pages/ResetPasswordP
 import ChangePasswordPage from '../../modules/authentication/pages/ChangePasswordPage';
 import UnauthorizedPage from '../../modules/authentication/pages/UnauthorizedPage';
 import AccessDeniedPage from '../../modules/authentication/pages/AccessDeniedPage';
+import ResponsePage from '../../modules/response/ResponsePage';
+import ConfirmationPage from '../../modules/response/ConfirmationPage';
+import NotFoundPage from '../../modules/response/NotFoundPage';
+import GlobalErrorPage from '../../modules/response/GlobalErrorPage';
 import DashboardPage from '../../modules/dashboards/pages/DashboardPage';
 import NotificationsPage from '../../modules/notifications/pages/NotificationsPage';
 import { ROUTES, getRoleLanding } from './routeConfig';
@@ -77,6 +81,15 @@ export default function AppRoutes() {
       <Route path={ROUTES.PUBLIC.CHANGE_PASSWORD} element={<ChangePasswordPage />}/>
       <Route path={ROUTES.PUBLIC.UNAUTHORIZED} element={<UnauthorizedPage />}/>
       <Route path={ROUTES.PUBLIC.ACCESS_DENIED} element={<AccessDeniedPage />}/>
+      <Route path={ROUTES.PUBLIC.RESPONSE} element={<ResponsePage />}/>
+      <Route path="/response" element={<ResponsePage />}/>
+      <Route path={ROUTES.PUBLIC.CONFIRM} element={<ConfirmationPage />}/>
+      <Route path="/confirm" element={<ConfirmationPage />}/>
+      <Route path="/confirm/:operation/:id" element={<ConfirmationPage />}/>
+      <Route path={ROUTES.PUBLIC.NOT_FOUND} element={<NotFoundPage />}/>
+      <Route path="/not-found" element={<NotFoundPage />}/>
+      <Route path={ROUTES.PUBLIC.ERROR} element={<GlobalErrorPage />}/>
+      <Route path="/error" element={<GlobalErrorPage />}/>
 
       {/* Internal appointment routes */}
       <Route path={ROUTES.PUBLIC.BOOK} element={<ProtectedRoute><BookAppointmentPage /></ProtectedRoute>}/>
@@ -110,6 +123,6 @@ export default function AppRoutes() {
       <Route path="/feedback/*" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}/>
       <Route path="/help-support/*" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}/>
 
-      <Route path="*" element={<Navigate to="/" replace/>}/>
+      <Route path="*" element={<NotFoundPage />}/>
     </Routes>);
 }
