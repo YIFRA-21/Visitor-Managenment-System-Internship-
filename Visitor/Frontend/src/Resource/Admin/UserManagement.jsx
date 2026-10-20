@@ -4951,26 +4951,6 @@ export default function UserManagement({ departments = [], initialTab = 'users',
           </div>
         </div>)}
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â              <div className="flex items-center justify-end space-x-2 border-t border-slate-800 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => setActionModalUser(null)}
-                    className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold uppercase"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold uppercase shadow-lg shadow-indigo-600/30"
-                  >
-                    Confirm & Execute
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-  
         {/* Save Search Preset Modal */}
       {saveSearchModalOpen && (<div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#0b1220] border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
@@ -4993,8 +4973,8 @@ export default function UserManagement({ departments = [], initialTab = 'users',
           </div>
         </div>)}
 
-      {/* ACTION MODAL OVERLAY (FOR STATUS TOGGLE & PASSWORD RESET) */}
-      {actionModalUser && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+      {/* ACTION MODAL OVERLAY (FOR STATUS TOGGLE, DELETE & PASSWORD RESET) */}
+      {actionModalUser && (<div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-150">
           <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 text-xs">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="font-black text-white text-sm uppercase tracking-wider flex items-center gap-2">
@@ -5009,7 +4989,14 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                     <span>Admin Password Reset</span>
                   </>)}
               </h3>
-              <button onClick={() => setActionModalUser(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
+              <button 
+                type="button"
+                disabled={isDeletingUser}
+                onClick={() => !isDeletingUser && setActionModalUser(null)} 
+                className="text-slate-400 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
 
             {actionType === 'delete' ? (<div className="space-y-3">
@@ -5018,38 +5005,71 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 </p>
                 <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl space-y-1">
                   <p className="text-rose-400 font-bold flex items-center gap-1.5 text-xs">
-                    <AlertTriangle className="w-3.5 h-3.5"/> Confirm Account Deletion
+                    <AlertTriangle className="w-3.5 h-3.5"/> Confirm Permanent Account Deletion
                   </p>
                   <p className="text-[11px] text-rose-300/80">
-                    This will immediately revoke all active sessions and archive the user account from the system directory.
+                    This will permanently delete the user, revoke active sessions, clear role bindings, and refresh directory telemetry.
                   </p>
                 </div>
                 <div className="pt-3 flex justify-end gap-2">
-                  <button onClick={() => setActionModalUser(null)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold">
+                  <button 
+                    type="button"
+                    disabled={isDeletingUser}
+                    onClick={() => !isDeletingUser && setActionModalUser(null)} 
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300 rounded-xl font-bold cursor-pointer transition-colors"
+                  >
                     Cancel
                   </button>
-                  <button onClick={async () => {
-                    try {
+                  <button 
+                    type="button"
+                    disabled={isDeletingUser}
+                    onClick={async () => {
+                      setIsDeletingUser(true);
+                      try {
                         await api.delete(`/users/${actionModalUser.id}`);
-                        setAlert({ type: 'success', message: `User account ${actionModalUser.full_name || actionModalUser.email} deleted successfully.` });
-                    }
-                    catch (err) {
-                        try {
-                            await api.post(`/users/${actionModalUser.id}/archive`);
-                            setAlert({ type: 'success', message: `User account ${actionModalUser.full_name || actionModalUser.email} deleted/archived successfully.` });
-                        }
-                        catch (fallbackErr) {
-                            setAlert({ type: 'error', message: extractErrorMessage(err || fallbackErr, 'Failed to delete user account.') });
-                        }
-                    }
-                    finally {
+                        setAlert({ 
+                          type: 'success', 
+                          message: `User account ${actionModalUser.full_name || actionModalUser.email} deleted successfully.` 
+                        });
                         setActionModalUser(null);
                         fetchUsers();
                         fetchStats();
-                    }
-                }} className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl uppercase flex items-center gap-1.5 transition-colors">
-                    <Trash2 className="w-3.5 h-3.5"/>
-                    <span>Delete User</span>
+                      }
+                      catch (err) {
+                        try {
+                          await api.post(`/users/${actionModalUser.id}/archive`);
+                          setAlert({ 
+                            type: 'success', 
+                            message: `User account ${actionModalUser.full_name || actionModalUser.email} deleted/archived successfully.` 
+                          });
+                          setActionModalUser(null);
+                          fetchUsers();
+                          fetchStats();
+                        }
+                        catch (fallbackErr) {
+                          setAlert({ 
+                            type: 'error', 
+                            message: extractErrorMessage(err || fallbackErr, 'Failed to delete user account.') 
+                          });
+                        }
+                      }
+                      finally {
+                        setIsDeletingUser(false);
+                      }
+                    }} 
+                    className="px-5 py-2 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-900/60 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black rounded-xl uppercase flex items-center gap-2 shadow-lg shadow-rose-600/30 transition-all cursor-pointer active:scale-95"
+                  >
+                    {isDeletingUser ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-white"/>
+                        <span>Deleting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-3.5 h-3.5 text-white"/>
+                        <span>Delete User</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>) : actionType === 'status' ? (<div className="space-y-3">
