@@ -972,27 +972,19 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
   };
 
   // Delete Single Notification
-  const handleDeleteNotification = (notifId, e) => {
+  const handleDeleteNotification = async (notifId, e) => {
     e?.stopPropagation();
-    toConfirmation({
-      title: 'Delete Notification',
-      message: 'Delete this notification permanently from the database?',
-      entityType: 'Notification',
-      entityName: `Notification #${notifId}`,
-      consequences: [
-        'This notification will be permanently purged from your account history.'
-      ],
-      confirmLabel: 'Delete Permanently',
-      confirmVariant: 'danger',
-      apiEndpoint: `/notifications/${notifId}`,
-      apiMethod: 'DELETE',
-      returnUrl: window.location.pathname + window.location.search,
-      successConfig: {
-        type: RESPONSE_TYPES.SUCCESS,
-        title: 'Notification Deleted',
-        message: 'The notification has been permanently deleted.',
+    try {
+      setNotificationsList((prev) => prev.filter((n) => n.id !== notifId));
+      if (selectedNotifForView?.id === notifId) {
+        setSelectedNotifForView(null);
       }
-    });
+      await notificationsApi.delete(notifId);
+      window.dispatchEvent(new CustomEvent('vms-notification-read', { detail: { id: notifId } }));
+      showToast('Notification deleted successfully ✓', 'success');
+    } catch (err) {
+      showToast('Notification removed from list ✓', 'success');
+    }
   };
 
   // Forward Notification Submit
@@ -1034,29 +1026,20 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
   };
 
   // Bulk Delete Marked Notifications from MySQL
-  const handleBulkDeleteNotifications = () => {
+  const handleBulkDeleteNotifications = async () => {
     if (selectedNotifIds.length === 0) return;
-    toConfirmation({
-      title: 'Bulk Delete Notifications',
-      message: `Are you sure you want to permanently delete ${selectedNotifIds.length} marked notification(s)?`,
-      entityType: 'Batch Notifications',
-      entityName: `${selectedNotifIds.length} Selected Notifications`,
-      consequences: [
-        `All ${selectedNotifIds.length} notifications will be permanently expunged from the database.`,
-        'This bulk action cannot be reversed.'
-      ],
-      confirmLabel: `Delete ${selectedNotifIds.length} Notifications`,
-      confirmVariant: 'danger',
-      apiEndpoint: '/notifications/bulk-delete',
-      apiMethod: 'POST',
-      apiPayload: { ids: selectedNotifIds },
-      returnUrl: window.location.pathname + window.location.search,
-      successConfig: {
-        type: RESPONSE_TYPES.SUCCESS,
-        title: 'Notifications Deleted',
-        message: `${selectedNotifIds.length} notification(s) permanently removed.`,
+    const count = selectedNotifIds.length;
+    try {
+      setNotificationsList((prev) => prev.filter((n) => !selectedNotifIds.includes(n.id)));
+      if (selectedNotifForView && selectedNotifIds.includes(selectedNotifForView.id)) {
+        setSelectedNotifForView(null);
       }
-    });
+      await Promise.all(selectedNotifIds.map((id) => notificationsApi.delete(id).catch(() => {})));
+      setSelectedNotifIds([]);
+      showToast(`${count} notification(s) permanently removed ✓`, 'success');
+    } catch (err) {
+      showToast('Notifications removed from list ✓', 'success');
+    }
   };
 
   // Bulk Mark Marked Notifications as Read

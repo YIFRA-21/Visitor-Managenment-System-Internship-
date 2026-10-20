@@ -6,6 +6,8 @@
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
+import apiClient from '../../services/apiClient';
 import { getRoleLanding, ROUTES } from '../../config/routes';
 import { RESPONSE_TYPES } from './responseConfig';
 import { normalizeApiError } from './errorNormalizationService';
@@ -57,150 +59,123 @@ export function sanitizeReturnUrl(targetUrl, fallbackUrl = '/dashboard') {
 }
 
 /**
- * Hook providing clean methods for navigating to dedicated response & confirmation pages
+ * Hook providing clean methods for in-place responses and notifications.
+ * Eliminates full-page confirmation and response redirects across all roles and pages.
  */
 export function useResponseNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const notificationCtx = useNotification();
+
+  const notify = notificationCtx?.notify || (typeof window !== 'undefined' ? window.notify : null) || {
+    success: (m) => console.log(m),
+    error: (m) => console.error(m),
+    warning: (m) => console.warn(m),
+    info: (m) => console.log(m),
+  };
 
   const userRole = user?.role || 'visitor';
   const roleDashboard = getRoleLanding(userRole, user) || '/dashboard';
 
   /**
-   * Navigate to the dedicated Success response page
+   * Display in-page Success notification without navigating away
    */
   const toSuccess = ({
     title = 'Operation Completed Successfully',
     message = 'The action has been validated and committed successfully.',
-    referenceId = null,
-    entityType = null,
-    entityName = null,
-    module = null,
-    details = null,
-    metadata = null,
     returnUrl = null,
-    primaryActionText = null,
-    primaryActionUrl = null,
-    secondaryActionText = 'Return to Dashboard',
-    secondaryActionUrl = roleDashboard,
-    type = RESPONSE_TYPES.SUCCESS,
   } = {}) => {
-    const safeReturn = sanitizeReturnUrl(returnUrl || location.pathname, roleDashboard);
-
-    navigate('/response', {
-      replace: true,
-      state: {
-        type,
-        title,
-        message,
-        referenceId,
-        entityType,
-        entityName,
-        module,
-        details,
-        metadata,
-        returnUrl: safeReturn,
-        confirmText: 'Confirm',
-        primaryActionText: 'Confirm',
-        primaryActionUrl: primaryActionUrl ? sanitizeReturnUrl(primaryActionUrl, safeReturn) : safeReturn,
-        timestamp: new Date().toISOString(),
-      },
-    });
+    const displayMsg = message || title;
+    notify.success(displayMsg);
+    if (returnUrl && returnUrl !== location.pathname && returnUrl !== '/response' && returnUrl !== '/confirm') {
+      const safe = sanitizeReturnUrl(returnUrl, roleDashboard);
+      if (safe && safe !== location.pathname) {
+        navigate(safe, { replace: true });
+      }
+    }
   };
 
   /**
-   * Navigate to the dedicated Error response page with sanitized normalization
+   * Display in-page Error notification without navigating away
    */
   const toError = (error, options = {}) => {
     const normalized = normalizeApiError(error, options);
-    const safeReturn = sanitizeReturnUrl(options.returnUrl || location.pathname, roleDashboard);
-    const safeRetry = options.retryUrl ? sanitizeReturnUrl(options.retryUrl, safeReturn) : safeReturn;
-
-    navigate('/response', {
-      replace: true,
-      state: {
-        type: normalized.type || RESPONSE_TYPES.ERROR,
-        title: options.title || normalized.title,
-        message: options.message || normalized.message,
-        details: normalized.details,
-        validationErrors: normalized.validationErrors,
-        statusCode: normalized.statusCode,
-        errorCode: normalized.errorCode,
-        actionableGuidance: normalized.actionableGuidance,
-        entityType: options.entityType,
-        entityName: options.entityName,
-        module: options.module,
-        returnUrl: safeReturn,
-        retryUrl: safeRetry,
-        confirmText: 'Confirm',
-        primaryActionText: 'Confirm',
-        primaryActionUrl: safeRetry,
-        timestamp: normalized.timestamp || new Date().toISOString(),
-      },
-    });
+    const displayMsg = options?.message || normalized.message || 'Operation failed.';
+    notify.error(displayMsg);
   };
 
   /**
-   * Navigate to dedicated Consequential Confirmation page
+   * Execute consequential actions in-place and display a status toast.
+   * Completely avoids full-page /confirm or /response transitions.
    */
-  const toConfirmation = ({
-    title = 'Confirm Consequential Action',
-    message = 'Please confirm before proceeding with this permanent action.',
+  const toConfirmation = async ({
+    title = 'Confirm Operation',
+    message = 'Please confirm before proceeding with this action.',
     entityType = 'Record',
     entityName = '',
-    entityId = null,
-    consequences = [],
-    confirmLabel = 'Confirm & Proceed',
-    cancelLabel = 'Cancel & Go Back',
-    confirmVariant = 'danger', // danger | warning | primary | success
     apiEndpoint = null,
     apiMethod = 'DELETE',
     apiPayload = null,
     returnUrl = null,
     successConfig = null,
     onConfirm = null,
-    // Aliases for broad compatibility
-    targetEntity = null,
-    actionType = null,
-    danger = false,
     onConfirmApi = null,
     successTitle = null,
     successMessage = null,
   } = {}) => {
-    const safeReturn = sanitizeReturnUrl(returnUrl || location.pathname, roleDashboard);
     const resolvedEndpoint = apiEndpoint || (typeof onConfirmApi === 'string' ? onConfirmApi : null);
-    const resolvedName = entityName || targetEntity || '';
-    const resolvedVariant = confirmVariant || (danger ? 'danger' : 'primary');
 
-    const resolvedSuccessConfig = successConfig || {
-      type: RESPONSE_TYPES.SUCCESS,
-      title: successTitle || 'Operation Completed',
-      message: successMessage || `${entityType || 'Record'} has been successfully updated.`,
-      returnUrl: safeReturn,
-    };
+    try {
+      if (resolvedEndpoint) {
+        const method = (apiMethod || 'DELETE').toUpperCase();
+        if (method === 'DELETE') {
+          await apiClient.delete(resolvedEndpoint, { data: apiPayload });
+        } else if (method === 'POST') {
+          await apiClient.post(resolvedEndpoint, apiPayload);
+        } else if (method === 'PUT') {
+          await apiClient.put(resolvedEndpoint, apiPayload);
+        } else if (method === 'PATCH') {
+          await apiClient.patch(resolvedEndpoint, apiPayload);
+        } else {
+          await apiClient.get(resolvedEndpoint);
+        }
+      } else if (typeof onConfirmApi === 'function') {
+        await onConfirmApi();
+      } else if (typeof onConfirm === 'function') {
+        await onConfirm();
+      }
 
-    navigate('/confirm', {
-      state: {
-        title,
-        message,
-        entityType,
-        entityName: resolvedName,
-        entityId,
-        consequences: Array.isArray(consequences) && consequences.length > 0 
-          ? consequences 
-          : ['This action modifies corporate records and cannot be undone.'],
-        confirmLabel,
-        cancelLabel,
-        confirmVariant: resolvedVariant,
-        apiEndpoint: resolvedEndpoint,
-        apiMethod,
-        apiPayload,
-        returnUrl: safeReturn,
-        successConfig: resolvedSuccessConfig,
-        hasDirectCallback: Boolean(onConfirm || (typeof onConfirmApi === 'function')),
-      },
-    });
+      if (typeof onSuccess === 'function') {
+        await onSuccess();
+      }
+
+      const successMsg = successConfig?.message || successMessage || `${entityName || entityType || 'Record'} processed successfully.`;
+      notify.success(successMsg);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('vms-record-updated', {
+          detail: { entityType, entityName, apiEndpoint: resolvedEndpoint }
+        }));
+      }
+
+      const currentFullPath = location.pathname + location.search;
+      if (
+        returnUrl &&
+        returnUrl !== currentFullPath &&
+        returnUrl !== location.pathname &&
+        returnUrl !== '/response' &&
+        returnUrl !== '/confirm'
+      ) {
+        const safe = sanitizeReturnUrl(returnUrl, roleDashboard);
+        if (safe && safe !== currentFullPath && safe !== location.pathname) {
+          navigate(safe, { replace: true });
+        }
+      }
+    } catch (err) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Operation could not be completed.';
+      notify.error(errMsg);
+    }
   };
 
   /**
@@ -241,20 +216,23 @@ export function useResponseNavigation() {
   };
 
   /**
-   * Generic dispatcher for any specific response type
+   * Generic notification dispatcher
    */
   const toResponse = (type, customState = {}) => {
-    const safeReturn = sanitizeReturnUrl(customState.returnUrl || location.pathname, roleDashboard);
-    navigate('/response', {
-      replace: true,
-      state: {
-        type: type || RESPONSE_TYPES.INFO,
-        returnUrl: safeReturn,
-        secondaryActionUrl: roleDashboard,
-        ...customState,
-        timestamp: new Date().toISOString(),
-      },
-    });
+    const msg = customState.message || customState.title || 'Operation Completed';
+    if (String(type).includes('ERROR') || String(type).includes('FAILED')) {
+      notify.error(msg);
+    } else if (String(type).includes('WARN')) {
+      notify.warning(msg);
+    } else {
+      notify.success(msg);
+    }
+    if (customState.returnUrl && customState.returnUrl !== location.pathname && customState.returnUrl !== '/response' && customState.returnUrl !== '/confirm') {
+      const safe = sanitizeReturnUrl(customState.returnUrl, roleDashboard);
+      if (safe && safe !== location.pathname) {
+        navigate(safe, { replace: true });
+      }
+    }
   };
 
   return {

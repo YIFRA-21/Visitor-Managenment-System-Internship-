@@ -81,11 +81,13 @@ export default function AppRoutes() {
       <Route path={ROUTES.PUBLIC.CHANGE_PASSWORD} element={<ChangePasswordPage />}/>
       <Route path={ROUTES.PUBLIC.UNAUTHORIZED} element={<UnauthorizedPage />}/>
       <Route path={ROUTES.PUBLIC.ACCESS_DENIED} element={<AccessDeniedPage />}/>
-      <Route path={ROUTES.PUBLIC.RESPONSE} element={<ResponsePage />}/>
-      <Route path="/response" element={<ResponsePage />}/>
-      <Route path={ROUTES.PUBLIC.CONFIRM} element={<ConfirmationPage />}/>
-      <Route path="/confirm" element={<ConfirmationPage />}/>
-      <Route path="/confirm/:operation/:id" element={<ConfirmationPage />}/>
+      {/* Standalone Confirmation and Response pages disabled across all roles and pages: redirect directly */}
+      <Route path={ROUTES.PUBLIC.RESPONSE} element={<Navigate to="/dashboard" replace />} />
+      <Route path="/response" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/response/*" element={<Navigate to="/dashboard" replace />} />
+      <Route path={ROUTES.PUBLIC.CONFIRM} element={<Navigate to="/dashboard" replace />} />
+      <Route path="/confirm" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/confirm/*" element={<Navigate to="/dashboard" replace />} />
       <Route path={ROUTES.PUBLIC.NOT_FOUND} element={<NotFoundPage />}/>
       <Route path="/not-found" element={<NotFoundPage />}/>
       <Route path={ROUTES.PUBLIC.ERROR} element={<GlobalErrorPage />}/>

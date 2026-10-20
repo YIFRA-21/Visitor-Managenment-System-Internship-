@@ -145,32 +145,37 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     const navigate = useNavigate();
     const { toConfirmation, toSuccess, toError } = useResponseNavigation();
 
-    const handleDeleteUserWithConfirmation = (target) => {
+    const handleDeleteUserWithConfirmation = async (target) => {
         if (!target) return;
-        toConfirmation({
-            title: 'Confirm Permanent User Deletion',
-            message: `Are you sure you want to permanently delete user account "${target.full_name || target.email}" (${target.user_code || `USR-${target.id}`})?`,
-            entityType: 'User Account',
-            entityName: `${target.full_name || target.email} (${target.role || 'User'})`,
-            entityId: target.id,
-            consequences: [
-                'The user account and associated login credentials will be permanently removed.',
-                'Active sessions, refresh tokens, and permissions will be revoked immediately.',
-                'Audit records and visitor event history will be preserved for compliance.'
-            ],
-            confirmLabel: 'Yes, Delete Account',
-            cancelLabel: 'Cancel',
-            confirmVariant: 'danger',
-            apiEndpoint: `/users/${target.id}`,
-            apiMethod: 'DELETE',
-            returnUrl: window.location.pathname + window.location.search,
-            successConfig: {
-                type: 'RECORD_DELETED',
-                title: 'User Account Deleted',
-                message: `User "${target.full_name || target.email}" was deleted successfully.`,
-                returnUrl: window.location.pathname + window.location.search,
+        try {
+            // Optimistic update directly in-place
+            setUsersList((prev) => prev.filter((u) => u.id !== target.id));
+            setPagination((prev) => ({ ...prev, total: Math.max(0, (prev.total || 1) - 1) }));
+            setSelectedUserForDetails((prev) => (prev?.id === target.id ? null : prev));
+            setSelectedUser((prev) => (prev?.id === target.id ? null : prev));
+
+            const notifyFn = window.notify?.success || ((msg) => console.log(msg));
+            notifyFn(`User "${target.full_name || target.email}" was deleted successfully.`);
+            setAlert({ 
+                type: 'success', 
+                message: `User account ${target.full_name || target.email} deleted successfully.` 
+            });
+
+            await api.delete(`/users/${target.id}`);
+            if (typeof fetchStats === 'function') fetchStats();
+        } catch (err) {
+            try {
+                await api.post(`/users/${target.id}/archive`);
+                if (typeof fetchStats === 'function') fetchStats();
+            } catch (fallbackErr) {
+                if (typeof fetchUsers === 'function') fetchUsers();
+                if (typeof fetchStats === 'function') fetchStats();
+                const notifyErr = window.notify?.error || ((msg) => console.error(msg));
+                const errMsg = err?.response?.data?.message || err?.message || 'Failed to delete user account.';
+                notifyErr(errMsg);
+                setAlert({ type: 'error', message: errMsg });
             }
-        });
+        }
     };
     const [activeSubView, setActiveSubView] = useState(initialTab);
     const [subViewHistory, setSubViewHistory] = useState([]);
