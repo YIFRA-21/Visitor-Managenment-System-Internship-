@@ -49,12 +49,90 @@ export default function SignupPage() {
     const [birthMonth, setBirthMonth] = useState('');
     const [birthDay, setBirthDay] = useState('');
     const [birthYear, setBirthYear] = useState('');
-    const [nationality, setNationality] = useState('');
+    const [nationality, setNationality] = useState('Ethiopian');
     const [phone, setPhone] = useState('');
     const [phonePrefix, setPhonePrefix] = useState('+251');
     const [email, setEmail] = useState('');
     const [address, setAddress] = useState('');
     const [showBirthdayInfo, setShowBirthdayInfo] = useState(false);
+
+    // Helper to detect if a phone number or prefix belongs to Ethiopia
+    const isEthiopianPhone = (phoneNum, prefix) => {
+        const raw = String(phoneNum || '').trim();
+        const digits = raw.replace(/\D/g, '');
+        const cleanPrefix = String(prefix || '').trim();
+
+        if (cleanPrefix === '+251' || cleanPrefix === '251') return true;
+        if (raw.startsWith('+251')) return true;
+        if (digits.startsWith('251')) return true;
+        if (digits.startsWith('09') || digits.startsWith('07')) return true;
+        if ((cleanPrefix === '+251' || !cleanPrefix) && (digits.startsWith('9') || digits.startsWith('7'))) return true;
+        return false;
+    };
+
+    const handlePhoneChange = (e) => {
+        const val = typeof e === 'string' ? e : e?.target?.value || '';
+        setPhone(val);
+        clearFieldError('phone');
+
+        // When Ethiopian phone number entered or +251, automatically select Ethiopian nationality
+        if (isEthiopianPhone(val, phonePrefix)) {
+            setNationality('Ethiopian');
+            clearFieldError('nationality');
+        }
+    };
+
+    const handleDialCodeChange = (dial, countryObj) => {
+        setPhonePrefix(dial);
+        clearFieldError('phone');
+
+        if (dial === '+251' || (countryObj && countryObj.code === 'ET')) {
+            setNationality('Ethiopian');
+            clearFieldError('nationality');
+        } else {
+            const digits = phone.replace(/\D/g, '');
+            const hasEtNumber = digits.startsWith('09') || digits.startsWith('07') || digits.startsWith('251') || (digits.length >= 9 && (digits.startsWith('9') || digits.startsWith('7')));
+            if (hasEtNumber) {
+                setPhonePrefix('+251');
+                setNationality('Ethiopian');
+                setFieldErrors(prev => ({
+                    ...prev,
+                    phone: 'This phone number format is Ethiopian (+251). Dial code remains +251 and nationality is Ethiopia.'
+                }));
+            } else if (countryObj && countryObj.nationality) {
+                setNationality(countryObj.nationality);
+                clearFieldError('nationality');
+            }
+        }
+    };
+
+    const handleNationalityChange = (e, countryObj) => {
+        const selectedVal = typeof e === 'string' ? e : (e?.target?.value || '');
+        const selectedCountry = countryObj || e?.target?.country;
+
+        const isEt = isEthiopianPhone(phone, phonePrefix);
+
+        // If phone number is Ethiopian, enforce Ethiopian nationality and prevent others
+        if (isEt) {
+            if (selectedVal && selectedVal.toLowerCase() !== 'ethiopian' && selectedVal.toLowerCase() !== 'ethiopia') {
+                setNationality('Ethiopian');
+                setFieldErrors(prev => ({
+                    ...prev,
+                    nationality: 'Ethiopian phone numbers (+251) require Ethiopia as nationality.'
+                }));
+                return;
+            }
+        }
+
+        setNationality(selectedVal);
+        clearFieldError('nationality');
+
+        // Auto-sync dial code if country changed and phone is not Ethiopian
+        if (selectedCountry && selectedCountry.dialCode && !isEt) {
+            setPhonePrefix(selectedCountry.dialCode);
+        }
+    };
+
     // Derived formatted Date of Birth: YYYY-MM-DD
     const dateOfBirth = (birthYear && birthMonth && birthDay)
         ? `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`
@@ -94,7 +172,7 @@ export default function SignupPage() {
         setBirthMonth('');
         setBirthDay('');
         setBirthYear('');
-        setNationality('');
+        setNationality('Ethiopian');
         setPhone('');
         setPhonePrefix('+251');
         setEmail('');
@@ -218,7 +296,14 @@ export default function SignupPage() {
         if (!gender) {
             newErrors.gender = isAm ? 'እባክዎ ጾታ ይምረጡ.' : 'Please select gender.';
         }
-        if (!nationality || !nationality.trim()) {
+
+        // Ensure Ethiopian phone is strictly paired with Ethiopian nationality
+        const isEt = isEthiopianPhone(phone, phonePrefix);
+        if (isEt) {
+            if (!nationality || (nationality.toLowerCase() !== 'ethiopian' && nationality.toLowerCase() !== 'ethiopia')) {
+                setNationality('Ethiopian');
+            }
+        } else if (!nationality || !nationality.trim()) {
             newErrors.nationality = isAm ? 'እባክዎ ዜግነት ይምረጡ.' : 'Please select nationality.';
         }
         if (address && address.trim()) {
@@ -459,37 +544,45 @@ export default function SignupPage() {
             }
         }
     };
-    return (<div className="signup-page-container flex min-h-screen w-full bg-slate-100 dark:bg-[#050811] text-slate-900 dark:text-slate-100 font-sans relative px-4 py-6 md:py-10 items-center justify-center transition-colors duration-300">
+    return (<div className="signup-page-container flex min-h-screen w-full bg-[#f8fafc] dark:bg-[#070b13] text-slate-900 dark:text-slate-100 font-sans relative p-0 m-0 overflow-x-hidden transition-colors duration-300">
       
       {/* SCOPED THEME OVERRIDES */}
       <style>{`
+        .signup-page-container {
+          background-color: #f8fafc;
+        }
         .signup-card-wrapper {
-          background-color: #ffffff;
-          border: 1px solid #cbd5e1;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+          background-color: #f8fafc;
+          border: none !important;
+          box-shadow: none !important;
         }
         .signup-sidebar {
-          background-color: #f8fafc;
+          background-color: #ffffff;
           border-right: 1px solid #e2e8f0;
         }
         .signup-content-panel {
-          background-color: #ffffff;
+          background-color: #f8fafc;
         }
 
+        [data-theme="dark"] .signup-page-container,
+        .dark .signup-page-container {
+          background-color: #070b13 !important;
+        }
         [data-theme="dark"] .signup-card-wrapper,
         .dark .signup-card-wrapper {
-          background-color: #0b1220 !important;
-          border-color: #1e293b !important;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+          background-color: #070b13 !important;
+          border: none !important;
+          box-shadow: none !important;
         }
         [data-theme="dark"] .signup-sidebar,
         .dark .signup-sidebar {
-          background-color: #070c18 !important;
-          border-color: #1e293b !important;
+          background-color: #060910 !important;
+          border-right: 1px solid #172033 !important;
+          border-bottom: 1px solid #172033 !important;
         }
         [data-theme="dark"] .signup-content-panel,
         .dark .signup-content-panel {
-          background-color: #0d1527 !important;
+          background-color: #070b13 !important;
         }
 
         .signup-field-input {
@@ -567,11 +660,11 @@ export default function SignupPage() {
         }
       `}</style>
 
-      {/* Main Full-Size Card Wrapper */}
-      <div className="signup-card-wrapper w-full max-w-6xl rounded-3xl overflow-hidden flex flex-col md:flex-row min-h-[700px] z-10 transition-all duration-300">
+      {/* Main Full-Size Edge-to-Edge Container */}
+      <div className="signup-card-wrapper w-full min-h-screen flex flex-col lg:flex-row z-10 m-0 p-0 border-0 shadow-none">
         
         {/* Left Sidebar Stepper Panel */}
-        <div className="signup-sidebar md:w-80 p-8 flex flex-col justify-between border-b md:border-b-0 md:border-r">
+        <div className="signup-sidebar w-full lg:w-84 xl:w-96 p-6 sm:p-8 lg:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#060910] shrink-0">
           <div>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-white p-1 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
@@ -645,11 +738,10 @@ export default function SignupPage() {
         </div>
 
         {/* Right Content Panel */}
-        <div className="signup-content-panel flex-1 p-4 sm:p-8 md:p-12 flex flex-col justify-between relative min-w-0">
-
-          
-          {/* Header Bar */}
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
+        <div className="signup-content-panel flex-1 p-6 sm:p-8 md:p-12 flex flex-col justify-between relative min-w-0 bg-[#f8fafc] dark:bg-[#070b13]">
+          <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-between">
+            {/* Header Bar */}
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
             {/* Brand Logo & Title on Register Form */}
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-800 p-1 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
@@ -758,16 +850,10 @@ export default function SignupPage() {
                         required
                         value={phone}
                         dialCode={phonePrefix}
-                        onDialCodeChange={(dial) => {
-                          setPhonePrefix(dial);
-                          clearFieldError('phone');
-                        }}
-                        onChange={(e) => {
-                          setPhone(e.target.value);
-                          clearFieldError('phone');
-                        }}
+                        onDialCodeChange={handleDialCodeChange}
+                        onChange={handlePhoneChange}
                         error={fieldErrors.phone}
-                        placeholder="Phone number"
+                        placeholder="911 234 567"
                       />
                     </div>
                   </div>
@@ -905,13 +991,16 @@ export default function SignupPage() {
                         label={t('signup.nationality')}
                         required
                         value={nationality}
-                        onChange={(e) => {
-                          setNationality(e.target.value);
-                          clearFieldError('nationality');
-                        }}
+                        onChange={handleNationalityChange}
                         error={fieldErrors.nationality}
                         placeholder="Search & select nationality..."
                       />
+                      {isEthiopianPhone(phone, phonePrefix) && (
+                        <p className="mt-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 animate-in fade-in">
+                          <CheckCircle className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                          <span>Automatically selected as Ethiopia for Ethiopian phone (+251)</span>
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -1228,6 +1317,7 @@ export default function SignupPage() {
                 </motion.div>)}
 
             </AnimatePresence>
+          </div>
           </div>
         </div>
 
