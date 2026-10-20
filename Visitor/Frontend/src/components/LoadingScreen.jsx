@@ -1,141 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Cpu, Lock, Sparkles, Activity } from 'lucide-react';
+import React from 'react';
 
-const STATUS_MESSAGES = [
-  'Initializing Security & Biometric Protocols...',
-  'Connecting to Enterprise Access Gateway...',
-  'Synchronizing Visitor & Personnel Registry...',
-  'Securing Zero-Trust Encrypted Session...',
-  'Finalizing System Interface...'
-];
-
-export default function LoadingScreen({ message }) {
-  const [msgIndex, setMsgIndex] = useState(0);
-  const [progress, setProgress] = useState(15);
-
-  useEffect(() => {
-    const msgInterval = setInterval(() => {
-      setMsgIndex((prev) => (prev + 1) % STATUS_MESSAGES.length);
-    }, 1800);
-
-    const progInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 92) return 92;
-        return prev + Math.floor(Math.random() * 8) + 4;
-      });
-    }, 280);
-
-    return () => {
-      clearInterval(msgInterval);
-      clearInterval(progInterval);
-    };
-  }, []);
-
+export default function LoadingScreen() {
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-[#040812] select-none">
-      {/* Background Cinematic Image with Subtle Slow Zoom */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-10000 ease-out scale-105"
-        style={{
-          backgroundImage: "url('/vms-loading-bg.jpg')",
-          filter: 'brightness(0.38) saturate(1.2)'
-        }}
-      />
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden select-none bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950">
+      {/* Dynamic Animated Ambient Glow Spheres (Vibrant colors, no black background) */}
+      <div className="absolute -top-24 -left-24 w-[420px] h-[420px] bg-gradient-to-br from-indigo-500/30 to-purple-600/25 rounded-full blur-[110px] pointer-events-none animate-pulse [animation-duration:4s]" />
+      <div className="absolute -bottom-24 -right-24 w-[420px] h-[420px] bg-gradient-to-tl from-cyan-400/30 to-blue-600/25 rounded-full blur-[110px] pointer-events-none animate-pulse [animation-duration:5s] [animation-delay:2s]" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-sky-500/15 rounded-full blur-[130px] pointer-events-none" />
 
-      {/* Cyber Grid & Ambient Radial Light Cones */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(30,58,138,0.35)_0%,rgba(4,8,18,0.92)_75%,rgba(2,4,10,0.98)_100%)]" />
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none animate-pulse [animation-delay:1.5s]" />
-
-      {/* Central Glassmorphism Card */}
-      <div className="relative z-10 max-w-lg w-[92%] sm:w-full mx-auto p-8 sm:p-10 rounded-3xl bg-slate-900/60 backdrop-blur-2xl border border-indigo-500/25 shadow-[0_0_80px_rgba(30,58,138,0.45)] text-center flex flex-col items-center">
+      {/* Central Premium Frosted Glassmorphism Card */}
+      <div className="relative z-10 max-w-md w-[92%] sm:w-full mx-auto p-9 sm:p-12 rounded-3xl bg-white/[0.12] backdrop-blur-2xl border border-white/25 shadow-[0_20px_70px_rgba(30,58,138,0.45)] text-center flex flex-col items-center">
         
-        {/* Orbital Futuristic Spinning Rings */}
-        <div className="relative w-28 h-28 sm:w-32 sm:h-32 mb-6 flex items-center justify-center">
-          {/* Outer glowing pulsed ring */}
-          <div className="absolute inset-0 rounded-full border border-indigo-500/20 animate-ping [animation-duration:3s]" />
-          
-          {/* Outer orbital dash ring */}
-          <div className="absolute inset-0 rounded-full border-2 border-indigo-500/40 border-t-indigo-400 border-r-transparent animate-spin [animation-duration:2.5s]" />
-          
-          {/* Middle counter-spinning ring */}
-          <div className="absolute inset-2 rounded-full border-2 border-cyan-400/40 border-b-cyan-300 border-l-transparent animate-spin [animation-duration:4s] [animation-direction:reverse]" />
-          
-          {/* Inner pulsating glow disc */}
-          <div className="absolute inset-5 rounded-full bg-gradient-to-tr from-indigo-600/40 to-cyan-500/30 blur-md animate-pulse" />
-          
-          {/* Core Logo / Security Shield */}
-          <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-950/90 border border-indigo-400/50 flex items-center justify-center shadow-inner shadow-indigo-500/40 group">
+        {/* Full-Way Rotating Ring & Logo Container */}
+        <div className="relative w-32 h-32 sm:w-36 sm:h-36 mb-8 flex items-center justify-center">
+          {/* Outer Full-Way Continuous Glowing Gradient Ring (rotates full 360°) */}
+          <div className="absolute inset-0 rounded-full p-[3px] bg-gradient-to-tr from-cyan-400 via-indigo-500 to-purple-500 animate-spin [animation-duration:3s] [animation-timing-function:linear] shadow-[0_0_30px_rgba(99,102,241,0.55)]">
+            <div className="w-full h-full rounded-full bg-slate-900/40 backdrop-blur-sm" />
+          </div>
+
+          {/* Full-Way 360° Orbital Satellite Beacon */}
+          <div className="absolute inset-0 rounded-full animate-spin [animation-duration:2.4s] [animation-timing-function:linear]">
+            <div className="w-4 h-4 rounded-full bg-cyan-300 shadow-[0_0_18px_#22d3ee] -top-2 left-1/2 -translate-x-1/2 absolute" />
+          </div>
+
+          {/* Inner Counter-Rotating Full-Way Ring */}
+          <div className="absolute inset-3 rounded-full p-[2.5px] bg-gradient-to-br from-purple-400 via-pink-400 to-cyan-400 animate-spin [animation-duration:4s] [animation-timing-function:linear] [animation-direction:reverse] opacity-85">
+            <div className="w-full h-full rounded-full bg-slate-900/25" />
+          </div>
+
+          {/* Pulsing Center Light Aura */}
+          <div className="absolute inset-5 rounded-full bg-gradient-to-tr from-indigo-500/35 to-cyan-400/35 blur-lg animate-pulse" />
+
+          {/* Core Crisp White Pedestal for Logo (blends logo seamlessly with no black box) */}
+          <div className="relative z-10 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white shadow-xl shadow-indigo-500/30 border border-white/90 flex items-center justify-center p-3 transition-transform duration-500 hover:scale-105">
             <img 
               src="/logo.png" 
-              alt="VMS Logo" 
-              className="w-10 h-10 sm:w-12 sm:h-12 object-contain drop-shadow-[0_0_12px_rgba(99,102,241,0.8)]"
+              alt="Visitor Management System Logo" 
+              className="w-full h-full object-contain drop-shadow-sm"
               onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'block';
+                if (!e.target.dataset.tried) {
+                  e.target.dataset.tried = '1';
+                  e.target.src = '/vms-logo.png';
+                }
               }}
             />
-            <ShieldCheck className="w-10 h-10 text-cyan-400 hidden drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
           </div>
         </div>
 
-        {/* Title & VMS Branding */}
-        <div className="space-y-2 mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-400/30 text-indigo-300 text-[11px] font-bold tracking-widest uppercase mb-1 shadow-sm">
-            <Sparkles className="w-3 h-3 text-cyan-400" />
-            <span>Enterprise Access Control</span>
-          </div>
-
-          <h1 className="text-xl sm:text-2xl font-black tracking-wide text-white flex items-center justify-center flex-wrap gap-2">
-            <span className="bg-gradient-to-r from-white via-indigo-100 to-cyan-300 bg-clip-text text-transparent drop-shadow-sm">
-              Visitor Management System
-            </span>
-            <span className="inline-block px-2.5 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-xs font-mono font-black tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-              (VMS)
-            </span>
-          </h1>
-
-          <p className="text-xs text-slate-400 font-medium tracking-wide">
-            Next-Gen Smart Security, Reception & Biometric Gateways
-          </p>
-        </div>
-
-        {/* Dynamic Progress Indicator */}
-        <div className="w-full max-w-xs space-y-2 mb-4">
-          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 font-semibold px-1">
-            <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
-              <Activity className="w-3.5 h-3.5 animate-pulse" />
-              <span>{message || STATUS_MESSAGES[msgIndex]}</span>
-            </span>
-            <span className="text-indigo-300 font-bold">{progress}%</span>
-          </div>
-
-          {/* Shimmer Bar */}
-          <div className="relative h-2 w-full bg-slate-950/80 rounded-full overflow-hidden border border-slate-800 p-0.5 shadow-inner">
-            <div 
-              className="h-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-indigo-400 rounded-full transition-all duration-300 relative overflow-hidden"
-              style={{ width: `${progress}%` }}
-            >
-              <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.7),transparent)] animate-[shimmer_1.5s_infinite]" />
-            </div>
-          </div>
-        </div>
-
-        {/* Cyber Telemetry Badges Footer */}
-        <div className="flex items-center justify-center gap-4 text-[10px] font-mono text-slate-500 tracking-wider uppercase pt-2 border-t border-slate-800/60 w-full">
-          <span className="flex items-center gap-1">
-            <Lock className="w-3 h-3 text-emerald-400" /> TLS 1.3 SECURE
+        {/* ONLY Allowed Text: Visitor Management System(VMS) */}
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center justify-center flex-wrap gap-2.5 mb-7">
+          <span className="bg-gradient-to-r from-white via-cyan-100 to-indigo-200 bg-clip-text text-transparent drop-shadow-md">
+            Visitor Management System
           </span>
-          <span>â€¢</span>
-          <span className="flex items-center gap-1">
-            <Cpu className="w-3 h-3 text-cyan-400" /> BIO-ACCELERATED
+          <span className="inline-block px-3 py-1 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white text-xs sm:text-sm font-black tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.5)] border border-cyan-300/40">
+            (VMS)
           </span>
-          <span>â€¢</span>
-          <span className="text-emerald-400 font-bold flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> ONLINE
-          </span>
+        </h1>
+
+        {/* Sleek Gradient Wave Loading Bar (Smooth Indeterminate Flow, NO extra text) */}
+        <div className="w-full max-w-[240px] h-2.5 bg-white/15 rounded-full overflow-hidden p-0.5 border border-white/20 shadow-inner relative">
+          <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 animate-[vmsBar_1.8s_ease-in-out_infinite] shadow-[0_0_15px_rgba(99,102,241,0.7)]" />
         </div>
+
       </div>
+
+      {/* Embedded CSS Keyframes for Smooth Loading Movement */}
+      <style>{`
+        @keyframes vmsBar {
+          0% {
+            transform: translateX(-100%);
+            width: 45%;
+          }
+          50% {
+            transform: translateX(100%);
+            width: 75%;
+          }
+          100% {
+            transform: translateX(250%);
+            width: 45%;
+          }
+        }
+      `}</style>
     </div>
   );
 }
