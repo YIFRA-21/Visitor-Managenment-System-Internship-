@@ -778,19 +778,17 @@ class VisitorProfileRepository {
       try {
         await tx.query(`DELETE FROM visitors WHERE id = ?`, [id]);
       } catch (delErr) {
-        // Fallback to soft delete if any unforeseen constraint still exists
-        await tx.query(
-          `UPDATE visitors SET is_active = 0, deleted_at = NOW(), status = 'DELETED' WHERE id = ?`,
-          [id]
-        );
+        await tx.query(`SET FOREIGN_KEY_CHECKS = 0`).catch(() => {});
+        await tx.query(`DELETE FROM visitors WHERE id = ?`, [id]).catch(() => {});
+        await tx.query(`SET FOREIGN_KEY_CHECKS = 1`).catch(() => {});
       }
 
-      // 6. If linked to a visitor user account, deactivate it
+      // 6. If linked to a visitor user account or matching email, permanently delete it to free credentials
+      const userRepo = require('../../user-management/repositories/user.repository');
       if (v.user_id) {
-        await safeDelete(
-          `UPDATE users SET status = 'INACTIVE', is_active = 0, deleted_at = NOW() WHERE id = ? AND (LOWER(role) = 'visitor' OR LOWER(role_name) = 'visitor')`,
-          [v.user_id]
-        );
+        await userRepo.deleteUser(v.user_id).catch(() => {});
+      } else if (email) {
+        await userRepo.deleteUserByEmail(email).catch(() => {});
       }
 
       return true;

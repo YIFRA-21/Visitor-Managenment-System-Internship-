@@ -280,85 +280,44 @@ class AuthService {
     // Check unique email in users table
     const existingUser = await userRepository.findByEmail(trimmedEmail);
     if (existingUser) {
-      // If the user already completed email verification, disallow duplicate registration
-      if (existingUser.email_verified === 1 || existingUser.email_verified === true) {
+      const isVerified = (existingUser.email_verified === 1 || existingUser.email_verified === true) &&
+        existingUser.deleted_at === null &&
+        !['ARCHIVED', 'DELETED'].includes(existingUser.account_status) &&
+        !['archived', 'deleted'].includes(existingUser.status);
+
+      if (isVerified) {
         const err = new AppError('This email address is already registered. Please use another email or sign in.', 409);
         err.field = 'email';
         throw err;
       }
 
-      // If user account exists but is unverified (e.g. from an interrupted or previous registration attempt),
-      // seamlessly refresh their credentials and send a fresh OTP so they can complete verification!
-      const passwordHash = await bcrypt.hash(password, 12);
-      await db.query(
-        `UPDATE users 
-         SET password_hash = ?, first_name = ?, middle_name = ?, last_name = ?, full_name = ?, phone = ?, phone_number = ?
-         WHERE id = ?`,
-        [passwordHash, firstName, middleName, lastName, fullName, userData.phone || null, userData.phone || null, existingUser.id]
-      ).catch(() => {});
-
-      let visitorProfileId = null;
-      try {
-        const visitorRepo = require('../../visitor-management/repositories/visitor.repository');
-        let vis = await visitorRepo.findByUserId(existingUser.id);
-        if (!vis) vis = await visitorRepo.findByEmail(trimmedEmail);
-        if (vis) {
-          visitorProfileId = vis.id;
-        } else {
-          visitorProfileId = await visitorRepo.create({
-            userId: existingUser.id,
-            firstName,
-            middleName,
-            lastName,
-            fullName,
-            email: trimmedEmail,
-            phone: userData.phone || '',
-            gender: userData.gender || null,
-            dateOfBirth: userData.dateOfBirth || null,
-            nationality: userData.nationality || null,
-            company: userData.company || null,
-            registrationStatus: 'APPROVED'
-          }).catch(() => null);
-        }
-      } catch (_) {}
-
-      let otpRes = null;
-      try {
-        otpRes = await emailService.sendOtp(trimmedEmail, existingUser.id);
-      } catch (e) {
-        console.warn('[AuthService] Resend OTP note for unverified user:', e.message);
-      }
-
-      return {
-        userId: existingUser.id,
-        profileId: visitorProfileId,
-        userCode: existingUser.user_code || `VIS-${existingUser.id}`,
-        isExistingUnverified: true,
-        deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
-        debugOtp: (process.env.NODE_ENV !== 'production' || !otpRes?.deliveredToInbox || process.env.ENABLE_DEBUG_OTP === 'true') ? otpRes?.otpCode : undefined
-      };
-    }
-
-    // Check unique email in visitors table
-    const visitorRepository = require('../../visitor-management/repositories/visitor.repository');
-    const existingVisitor = await visitorRepository.findByEmail(trimmedEmail);
-    if (existingVisitor && existingVisitor.user_id) {
-      const parentUser = await userRepository.findById(existingVisitor.user_id);
-      if (parentUser && (parentUser.email_verified === 1 || parentUser.email_verified === true)) {
-        const err = new AppError('This email address is already registered. Please use another email or sign in.', 409);
-        err.field = 'email';
-        throw err;
-      }
+      // If user was previously deleted, archived, or never completed OTP verification,
+      // COMPLETELY PURGE the old user record (ID, username, password, sessions, tokens, visitor records)
+      // so this registration creates a completely fresh, clean account!
+      await userRepository.deleteUser(existingUser.id);
+    } else {
+      // Ensure any legacy orphaned rows in visitors or users are purged for this email
+      await userRepository.deleteUserByEmail(trimmedEmail);
     }
 
     // Check unique username in users table
     if (userData.username) {
       const cleanUsername = String(userData.username).trim();
       const existingUsernameUser = await userRepository.findByUsername(cleanUsername);
-      if (existingUsernameUser && (existingUsernameUser.email_verified === 1 || existingUsernameUser.email_verified === true)) {
-        const err = new AppError('This username is already taken. Please choose another username.', 409);
-        err.field = 'username';
-        throw err;
+      if (existingUsernameUser) {
+        const isUsernameVerified = (existingUsernameUser.email_verified === 1 || existingUsernameUser.email_verified === true) &&
+          existingUsernameUser.deleted_at === null &&
+          !['ARCHIVED', 'DELETED'].includes(existingUsernameUser.account_status) &&
+          !['archived', 'deleted'].includes(existingUsernameUser.status);
+
+        if (isUsernameVerified) {
+          const err = new AppError('This username is already taken. Please choose another username.', 409);
+          err.field = 'username';
+          throw err;
+        } else {
+          // Purge stale/unverified user holding this username
+          await userRepository.deleteUser(existingUsernameUser.id);
+        }
       }
     }
 

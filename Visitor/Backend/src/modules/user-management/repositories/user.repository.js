@@ -506,37 +506,121 @@ class UserRepository {
   async deleteUser(userId, operatorId = 1) {
     if (!userId || userId === 1) return false;
 
+    // 1. Fetch user details to get email and username for complete purge
+    let userEmail = null;
+    let username = null;
+    try {
+      const rows = await db.query('SELECT email, username FROM users WHERE id = ?', [userId]);
+      if (rows && rows[0]) {
+        userEmail = rows[0].email;
+        username = rows[0].username;
+      }
+    } catch (e) {}
+
+    const cleanEmail = userEmail ? String(userEmail).trim().toLowerCase() : null;
+
     const safeExec = async (query, params = []) => {
       try {
         await db.query(query, params);
       } catch (e) {}
     };
 
-    // 1. Parallel cleanup of all child records & foreign-key references
+    // 2. Comprehensive cleanup of all child records & foreign-key references
     await Promise.allSettled([
       safeExec(`DELETE FROM user_sessions WHERE user_id = ?`, [userId]),
       safeExec(`DELETE FROM user_tokens WHERE user_id = ?`, [userId]),
       safeExec(`DELETE FROM user_roles WHERE user_id = ?`, [userId]),
       safeExec(`DELETE FROM user_permissions WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM user_otp WHERE user_id = ? OR (destination = ? AND destination IS NOT NULL)`, [userId, cleanEmail || '']),
       safeExec(`DELETE FROM user_activity_logs WHERE user_id = ?`, [userId]),
       safeExec(`DELETE FROM user_login_history WHERE user_id = ?`, [userId]),
       safeExec(`DELETE FROM notifications WHERE user_id = ?`, [userId]),
       safeExec(`DELETE FROM notification_recipients WHERE user_id = ?`, [userId]),
       safeExec(`DELETE FROM user_security_settings WHERE user_id = ?`, [userId]),
       safeExec(`DELETE FROM user_preferences WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM password_history WHERE user_id = ?`, [userId]),
+      safeExec(`DELETE FROM audit_logs WHERE user_id = ?`, [userId]),
       safeExec(`UPDATE employees SET user_id = NULL WHERE user_id = ?`, [userId]),
-      safeExec(`UPDATE visitors SET user_id = NULL WHERE user_id = ?`, [userId]),
       safeExec(`UPDATE manager_profiles SET user_id = NULL WHERE user_id = ?`, [userId]),
+      safeExec(`UPDATE departments SET manager_user_id = NULL WHERE manager_user_id = ?`, [userId]),
+      safeExec(`UPDATE appointments SET host_id = NULL WHERE host_id = ?`, [userId]),
     ]);
 
-    // 2. Perform direct permanent deletion from users table
+    // 3. Clean up any linked visitor records and all their associated child data
+    if (userId || cleanEmail) {
+      try {
+        const vParams = [];
+        let vWhere = '';
+        if (userId && cleanEmail) {
+          vWhere = 'user_id = ? OR LOWER(email) = LOWER(?)';
+          vParams.push(userId, cleanEmail);
+        } else if (userId) {
+          vWhere = 'user_id = ?';
+          vParams.push(userId);
+        } else {
+          vWhere = 'LOWER(email) = LOWER(?)';
+          vParams.push(cleanEmail);
+        }
+
+        const visRows = await db.query(`SELECT id FROM visitors WHERE ${vWhere}`, vParams).catch(() => []);
+        if (Array.isArray(visRows) && visRows.length > 0) {
+          for (const v of visRows) {
+            const vid = v.id;
+            await Promise.allSettled([
+              safeExec(`DELETE FROM visitor_document_verifications WHERE document_id IN (SELECT id FROM visitor_documents WHERE visitor_id = ?)`, [vid]),
+              safeExec(`DELETE FROM visitor_documents WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM visitor_histories WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM visitor_checkins WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM visitor_checkouts WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM checkins WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM appointments WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM appointment_participants WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM visitor_photos WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM visitor_passes WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM visitor_signatures WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM visitor_queues WHERE visitor_id = ?`, [vid]),
+              safeExec(`DELETE FROM identity_verifications WHERE visitor_id = ?`, [vid]),
+            ]);
+            await safeExec(`DELETE FROM visitors WHERE id = ?`, [vid]);
+          }
+        }
+        await safeExec(`DELETE FROM visitors WHERE ${vWhere}`, vParams);
+      } catch (vErr) {}
+    }
+
+    // 4. Perform direct, permanent deletion from users table with foreign key checks safety
     try {
+      await db.query(`SET FOREIGN_KEY_CHECKS = 0`).catch(() => {});
       const result = await db.query(`DELETE FROM users WHERE id = ?`, [userId]);
+      if (cleanEmail) {
+        await db.query(`DELETE FROM users WHERE LOWER(email) = LOWER(?)`, [cleanEmail]).catch(() => {});
+      }
+      await db.query(`SET FOREIGN_KEY_CHECKS = 1`).catch(() => {});
       return result?.affectedRows > 0;
     } catch (delErr) {
-      // If hard delete still hits an unforeseen constraint, archive the user
-      return this.archiveUser(userId, operatorId);
+      await db.query(`SET FOREIGN_KEY_CHECKS = 1`).catch(() => {});
+      console.error('[UserRepository] Error permanently deleting user:', delErr.message);
+      return false;
     }
+  }
+
+  async deleteUserByEmail(email) {
+    if (!email) return false;
+    const cleanEmail = String(email).trim().toLowerCase();
+    const rows = await db.query(`SELECT id FROM users WHERE LOWER(email) = LOWER(?)`, [cleanEmail]).catch(() => []);
+    if (rows && rows.length > 0) {
+      for (const r of rows) {
+        await this.deleteUser(r.id);
+      }
+      return true;
+    }
+    // Also ensure visitors table has no lingering record for this email
+    try {
+      await db.query(`SET FOREIGN_KEY_CHECKS = 0`).catch(() => {});
+      await db.query(`DELETE FROM visitors WHERE LOWER(email) = LOWER(?)`, [cleanEmail]).catch(() => {});
+      await db.query(`SET FOREIGN_KEY_CHECKS = 1`).catch(() => {});
+    } catch (e) {}
+    return true;
   }
 
   async restoreUser(userId, operatorId) {

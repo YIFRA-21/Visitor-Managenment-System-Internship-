@@ -32,7 +32,13 @@ class AuthController {
       const existingUser = await userRepository.findByEmail(trimmed);
       const existingVisitor = await visitorRepository.findByEmail(trimmed);
 
-      if (existingUser || existingVisitor) {
+      const isVerifiedUser = existingUser && 
+        (existingUser.email_verified === 1 || existingUser.email_verified === true) && 
+        existingUser.deleted_at === null && 
+        !['ARCHIVED', 'DELETED'].includes(existingUser.account_status) &&
+        !['archived', 'deleted'].includes(existingUser.status);
+
+      if (isVerifiedUser) {
         return res.status(409).json({
           success: false,
           field: 'email',
