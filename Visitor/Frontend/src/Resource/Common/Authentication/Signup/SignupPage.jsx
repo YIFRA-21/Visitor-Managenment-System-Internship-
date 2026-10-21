@@ -421,11 +421,6 @@ export default function SignupPage() {
             setSuccess('Account created! A 6-digit verification code has been sent to your email.');
             setOtpTimer(120);
             setOtpCode(['', '', '', '', '', '']);
-            setOtpStatus('idle');
-            const debugCode = res?.data?.debugOtp || res?.data?.data?.debugOtp;
-            if (debugCode && typeof debugCode === 'string' && debugCode.length === 6) {
-                sessionStorage.setItem('signup_debug_otp', debugCode);
-            }
             setCurrentStep(2); // Advance to Step 3: Email OTP Verification
         }
         catch (err) {
@@ -536,11 +531,6 @@ export default function SignupPage() {
         try {
             const res = await authApi.resendVerification(targetEmail);
             setResendSuccess(true);
-            setOtpTimer(120);
-            const debugCode = res?.data?.debugOtp;
-            if (debugCode && typeof debugCode === 'string' && debugCode.length === 6) {
-                sessionStorage.setItem('signup_debug_otp', debugCode);
-            }
             setTimeout(() => setResendSuccess(false), 4000);
         }
         catch (err) {
@@ -1261,25 +1251,7 @@ export default function SignupPage() {
                         : 'signup-field-input focus:border-blue-500'}`} value={digit} onChange={e => handleOtpChange(idx, e.target.value)} onKeyDown={e => handleOtpKeyDown(idx, e)}/>))}
                   </div>
 
-                  {/* AUTO-FILL HELPER FOR TESTING/FALLBACK */}
-                  {sessionStorage.getItem('signup_debug_otp') && (
-                    <div className="flex items-center justify-center my-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const code = sessionStorage.getItem('signup_debug_otp');
-                          if (code && code.length === 6) {
-                            setOtpCode(code.split(''));
-                            handleVerifyOtp(code);
-                          }
-                        }}
-                        className="px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-                      >
-                        <Key className="w-3.5 h-3.5 text-blue-400" />
-                        <span>Use Verification Code: <strong className="font-mono text-white tracking-widest">{sessionStorage.getItem('signup_debug_otp')}</strong></span>
-                      </button>
-                    </div>
-                  )}
+
 
                   {/* REAL-TIME DYNAMIC STATUS BADGE */}
                   {otpStatus === 'error' && (<div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 dark:text-rose-400 text-xs font-bold flex items-center justify-center gap-2 max-w-sm mx-auto shadow-sm animate-pulse">

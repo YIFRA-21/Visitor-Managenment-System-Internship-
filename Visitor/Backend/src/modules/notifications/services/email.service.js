@@ -169,8 +169,14 @@ class EmailService {
       </div>
     `;
 
+    const senderEmail = (process.env.SMTP_USER || '').trim();
+    const defaultFrom = senderEmail ? `"Visitor Management System" <${senderEmail}>` : '"Visitor Management System" <no-reply@vms.com>';
+    const fromAddress = (process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes('your_email') && !process.env.EMAIL_FROM.includes('no-reply@vms.com'))
+      ? process.env.EMAIL_FROM
+      : defaultFrom;
+
     const mailOptions = {
-      from: process.env.EMAIL_FROM || '"Visitor Management System" <no-reply@vms.com>',
+      from: fromAddress,
       to: cleanEmail,
       subject: `[VMS] Your Email Verification Code: ${otpCode}`,
       text: `Your VMS email verification code is: ${otpCode}. Valid for 10 minutes.`,
@@ -227,8 +233,14 @@ class EmailService {
       return { status: 'error', error: 'Recipient email is required' };
     }
 
+    const senderEmail = (process.env.SMTP_USER || '').trim();
+    const defaultFrom = senderEmail ? `"Visitor Management System" <${senderEmail}>` : '"Visitor Management System" <no-reply@vms.com>';
+    const fromAddress = (process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes('your_email') && !process.env.EMAIL_FROM.includes('no-reply@vms.com'))
+      ? process.env.EMAIL_FROM
+      : defaultFrom;
+
     const mailOptions = {
-      from: process.env.EMAIL_FROM || '"Visitor Management System" <no-reply@vms.com>',
+      from: fromAddress,
       to: to.toLowerCase().trim(),
       subject,
       text,
