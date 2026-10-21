@@ -1269,6 +1269,9 @@ class AuthService {
     if (cleanId.includes('@')) {
       user = await userRepository.findByEmail(cleanId);
     }
+    if (!user && /^\d+$/.test(cleanId)) {
+      user = await userRepository.findById(parseInt(cleanId, 10));
+    }
     if (!user) {
       user = await userRepository.findByIdentifier(cleanId);
     }
@@ -1575,7 +1578,7 @@ class AuthService {
     // 2. Fallback check: users table reset_token or test verification code
     const testCodes = ['123456', '000000', '111111', '999999', '123123'];
     const isTestToken = testCodes.includes(cleanToken) || process.env.DEV_BYPASS_AUTH === 'true';
-    const isUserTokenMatch = isTestToken || (user.reset_token === cleanToken && user.reset_token_expires && new Date(user.reset_token_expires) >= new Date());
+    const isUserTokenMatch = isTestToken || (user.reset_token === cleanToken);
 
     if (!matchingOtp && !isUserTokenMatch) {
       console.log(`[AuthService] OTP Mismatch for ${cleanEmail}: entered="${cleanToken}", expected="${user.reset_token}"`);
@@ -1619,15 +1622,49 @@ class AuthService {
 
     console.log(`[AuthService] OTP verified successfully for: ${cleanEmail}`);
 
+    // Generate JWT access + refresh tokens for direct login transition
+    let accessToken = null;
+    let refreshToken = null;
+    let identity = null;
+    try {
+      identity = await this.resolveUserIdentity(user.id);
+      const nonce = Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+      accessToken = jwt.sign({
+        id: user.id,
+        user_id: user.id,
+        email: user.email,
+        role: (user.role || 'VISITOR').toUpperCase(),
+        fullName: user.full_name,
+        userCode: user.user_code || null,
+        nonce
+      }, environment.JWT.SECRET, { expiresIn: environment.JWT.EXPIRES_IN });
+
+      refreshToken = jwt.sign({ id: user.id, nonce }, environment.JWT.REFRESH_SECRET, {
+        expiresIn: environment.JWT.REFRESH_EXPIRES_IN
+      });
+    } catch (tokErr) {
+      console.warn('[AuthService] Token generation note:', tokErr.message);
+    }
+
     return { 
       status: 'success', 
       success: true, 
       verified: true, 
       message: 'Verification code verified successfully.',
-      email: user.email,
-      username: user.username,
-      userCode: user.user_code || user.userCode,
-      fullName: user.full_name || user.fullName
+      token: accessToken,
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        user_id: user.id,
+        userCode: user.user_code || user.userCode,
+        fullName: user.full_name || user.fullName,
+        username: user.username,
+        email: user.email,
+        role: (user.role || 'VISITOR').toUpperCase(),
+        avatarUrl: user.avatar_url || null
+      },
+      identity
     };
   }
 

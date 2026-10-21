@@ -7,6 +7,7 @@ import { useEnterpriseForm } from '../../../../hooks/useEnterpriseForm';
 import { ValidationRules } from '../../../../services/validationService';
 import FieldError from '../../../../components/common/FieldError';
 import PasswordStrengthMeter from '../../../../components/common/PasswordStrengthMeter';
+import ThemeToggle from '../../../../components/ThemeToggle/ThemeToggle';
 import { getRoleLanding, ROUTES } from '../../../../config/routes';
 export default function ChangePasswordPage() {
     const { user, token, completePasswordChange, logout } = useAuth();
@@ -87,10 +88,13 @@ export default function ChangePasswordPage() {
             </span>
           </div>
 
-          <button type="button" onClick={handleLogout} className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-            <LogOut className="h-4 w-4"/>
-            Sign Out
-          </button>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <button type="button" onClick={handleLogout} className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer">
+              <LogOut className="h-4 w-4"/>
+              Sign Out
+            </button>
+          </div>
         </header>
 
         {/* Center Content */}

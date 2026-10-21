@@ -7,6 +7,7 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { useOrganization } from '../../../../contexts/OrganizationContext';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import LanguageDropdown from '../../../../components/common/LanguageDropdown';
+import ThemeToggle from '../../../../components/ThemeToggle/ThemeToggle';
 import CountryNationalitySelect from '../../../../components/common/CountryNationalitySelect';
 import CountryPhoneInput from '../../../../components/common/CountryPhoneInput';
 import { validateDateOfBirth, validatePhoneNumber } from '../../../../data/countriesData';
@@ -479,8 +480,18 @@ export default function SignupPage() {
                 setOtpVerified(true);
                 setOtpStatus('success');
                 setSuccess('Correct 6-digit verification code confirmed!');
+                
+                // If backend returned session tokens, save them immediately for seamless dashboard transition
+                if (res.data?.token && res.data?.user) {
+                    localStorage.setItem('token', res.data.token);
+                    localStorage.setItem('user', JSON.stringify(res.data.user));
+                    if (res.data.refreshToken) {
+                        localStorage.setItem('refreshToken', res.data.refreshToken);
+                    }
+                }
+                
                 try {
-                    if (login) {
+                    if (login && password) {
                         await login(targetEmail, password);
                     }
                 }
@@ -813,8 +824,9 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Language switcher + Back to Sign In Styled Button */}
+            {/* Theme switcher + Language switcher + Back to Sign In Styled Button */}
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <LanguageDropdown variant="dark"/>
               <Link to="/login" id="back-to-signin-btn" className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 bg-slate-100 hover:bg-slate-200 text-slate-800 hover:text-slate-900 border border-slate-300/80 shadow-sm hover:shadow dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:hover:text-white dark:border-slate-700 active:scale-95 cursor-pointer">
                 <ArrowLeft className="h-4 w-4 text-blue-600 dark:text-blue-400 transition-transform group-hover:-translate-x-1"/>
