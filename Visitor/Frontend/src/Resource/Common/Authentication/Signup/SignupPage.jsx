@@ -42,6 +42,13 @@ export default function SignupPage() {
         sessionStorage.setItem('signup_refCode', generated);
         return generated;
     });
+
+    useEffect(() => {
+        try {
+            sessionStorage.removeItem('signup_debug_otp');
+        } catch (_) {}
+    }, []);
+
     // Step 1: Personal Information (Starts Fresh and Empty for Each Visitor)
     const [firstName, setFirstName] = useState('');
     const [middleName, setMiddleName] = useState('');

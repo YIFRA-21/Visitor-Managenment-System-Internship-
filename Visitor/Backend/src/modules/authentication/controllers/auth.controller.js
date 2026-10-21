@@ -10,10 +10,12 @@ class AuthController {
       res.status(201).json({
         status: 'success',
         success: true,
-        message: 'Registration successful',
-        data: result,
-        debugOtp: result?.debugOtp || result?.otpCode,
-        otpCode: result?.otpCode || result?.debugOtp,
+        message: 'Registration successful. A 6-digit verification code has been sent to your email.',
+        data: {
+          userId: result.userId,
+          profileId: result.profileId,
+          userCode: result.userCode,
+        },
         deliveredToInbox: result?.deliveredToInbox,
       });
     } catch (err) {
@@ -440,8 +442,6 @@ class AuthController {
         email: result.email,
         maskedEmail: result.maskedEmail,
         deliveredToInbox: result.deliveredToInbox,
-        debugOtp: result.debugOtp || result.otpCode,
-        otpCode: result.otpCode || result.debugOtp
       });
     } catch (err) {
       return res.status(400).json({
