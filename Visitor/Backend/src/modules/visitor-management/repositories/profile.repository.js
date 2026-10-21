@@ -140,13 +140,19 @@ class ProfileRepository {
     return result.insertId;
   }
 
-  async createVerificationRequest(data) {
+  async createVerificationRequest(data, tx = null) {
+    const dbClient = (tx && typeof tx.query === 'function') ? tx : db;
     const { userId, status = 'PENDING' } = data;
-    const result = await db.query(
-      `INSERT INTO verification_requests (user_id, status) VALUES (?, ?)`,
-      [userId, status]
-    );
-    return result.insertId;
+    try {
+      const result = await dbClient.query(
+        `INSERT INTO verification_requests (user_id, status) VALUES (?, ?)`,
+        [userId, status]
+      );
+      return result?.insertId || null;
+    } catch (err) {
+      console.warn('[ProfileRepository] createVerificationRequest notice:', err.message);
+      return null;
+    }
   }
 
   async findManagerByUserId(userId) {

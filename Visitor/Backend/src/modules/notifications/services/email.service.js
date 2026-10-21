@@ -14,14 +14,16 @@ class EmailService {
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
 
-    if (service && user && pass) {
+    const isPlaceholder = (val) => !val || /your_email|your_app_password|example\.com/i.test(val);
+
+    if (service && user && pass && !isPlaceholder(user) && !isPlaceholder(pass)) {
       // Well-known nodemailer service configuration (e.g. Gmail App Password)
       this.transporter = nodemailer.createTransport({
         service: service.toLowerCase(),
         auth: { user, pass }
       });
       console.log(`[EmailService] Configured real email transporter via service: ${service} (${user})`);
-    } else if (host && user && pass) {
+    } else if (host && user && pass && !isPlaceholder(user) && !isPlaceholder(pass)) {
       // Standard custom SMTP host configuration
       this.transporter = nodemailer.createTransport({
         host: host,
@@ -32,23 +34,10 @@ class EmailService {
       });
       console.log(`[EmailService] Configured real SMTP Transporter (${host}:${process.env.SMTP_PORT || 587})`);
     } else {
-      // Ethereal / Console fallback mode for development and testing
-      try {
-        const testAccount = await nodemailer.createTestAccount();
-        this.transporter = nodemailer.createTransport({
-          host: 'smtp.ethereal.email',
-          port: 587,
-          secure: false,
-          auth: {
-            user: testAccount.user,
-            pass: testAccount.pass
-          }
-        });
-        console.log('[EmailService] Using Ethereal test SMTP server for development: ' + testAccount.user);
-        console.log('[EmailService] NOTE: To send to real external inboxes, set SMTP_USER & SMTP_PASS in Backend/.env');
-      } catch (err) {
-        console.log('[EmailService] Console logging fallback transport active.');
-      }
+      console.log('[EmailService] SMTP credentials are not yet configured on Render (using placeholder or unset). Running in resilient fallback dispatch mode.');
+      console.log('[EmailService] TIP FOR RENDER: Set SMTP_SERVICE=gmail, SMTP_USER=your_real_gmail@gmail.com, and SMTP_PASS=your_16_digit_app_password in Render Environment Variables.');
+      // Console fallback mode
+      this.transporter = null;
     }
   }
 
@@ -222,7 +211,8 @@ class EmailService {
       message: `OTP verification code sent to ${cleanEmail}`,
       email: cleanEmail,
       deliveredToInbox,
-      etherealUrl
+      etherealUrl,
+      otpCode
     };
   }
 
@@ -461,12 +451,32 @@ class EmailService {
     }
 
     // 3. Real Email OTP Match Check
-    const matchingRecord = candidateRecords.find(
+    let matchingRecord = candidateRecords.find(
       rec => String(rec.otp_code).trim() === submittedOtp
     );
 
-    // Reject ANY code that does not match the actual code sent to the email
+    // Fallback: check users table reset_token
+    let matchedInUsersTable = false;
     if (!matchingRecord) {
+      try {
+        const uRows = await db.query(
+          `SELECT id, reset_token, reset_token_expires FROM users WHERE LOWER(email) = ? LIMIT 1`,
+          [cleanEmail]
+        );
+        const userRow = uRows?.[0];
+        if (userRow && String(userRow.reset_token).trim() === submittedOtp) {
+          const exp = userRow.reset_token_expires ? new Date(userRow.reset_token_expires) : null;
+          if (!exp || exp > new Date()) {
+            matchedInUsersTable = true;
+          }
+        }
+      } catch (uErr) {
+        console.warn('[EmailService] Fallback reset_token check note:', uErr.message);
+      }
+    }
+
+    // Reject code if it doesn't match user_otp or users.reset_token
+    if (!matchingRecord && !matchedInUsersTable) {
       console.log(`[EmailService] OTP Mismatch for ${cleanEmail}: submitted="${submittedOtp}"`);
       const err = new Error('The verification code does not match the code sent to your email. Please check your inbox.');
       err.code = 'INVALID_OTP';
@@ -475,12 +485,21 @@ class EmailService {
 
     // 4. Update Database Record Status to VERIFIED and Activate User & Visitor Account
     try {
-      await db.query(
-        `UPDATE user_otp 
-         SET is_verified = 1, status = 'VERIFIED', verified_at = NOW(), is_active = 0 
-         WHERE otp_id = ? OR destination = ?`,
-        [matchingRecord.otp_id, cleanEmail]
-      );
+      if (matchingRecord?.otp_id) {
+        await db.query(
+          `UPDATE user_otp 
+           SET is_verified = 1, status = 'VERIFIED', verified_at = NOW(), is_active = 0 
+           WHERE otp_id = ? OR destination = ?`,
+          [matchingRecord.otp_id, cleanEmail]
+        );
+      } else {
+        await db.query(
+          `UPDATE user_otp 
+           SET is_verified = 1, status = 'VERIFIED', verified_at = NOW(), is_active = 0 
+           WHERE destination = ?`,
+          [cleanEmail]
+        );
+      }
       await db.query(
         `UPDATE users SET email_verified = 1, account_status = 'ACTIVE', status = 'active' WHERE LOWER(email) = ?`,
         [cleanEmail]

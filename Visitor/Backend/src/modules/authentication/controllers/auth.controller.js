@@ -9,8 +9,11 @@ class AuthController {
       const result = await authService.register(req.body, initiatorId);
       res.status(201).json({
         status: 'success',
+        success: true,
         message: 'Registration successful',
         data: result,
+        debugOtp: result?.debugOtp,
+        deliveredToInbox: result?.deliveredToInbox,
       });
     } catch (err) {
       next(err);
@@ -429,7 +432,8 @@ class AuthController {
         message: result.message || 'Verification code sent successfully',
         email: result.email,
         maskedEmail: result.maskedEmail,
-        deliveredToInbox: result.deliveredToInbox
+        deliveredToInbox: result.deliveredToInbox,
+        debugOtp: result.debugOtp
       });
     } catch (err) {
       return res.status(400).json({

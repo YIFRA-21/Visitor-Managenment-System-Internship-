@@ -174,7 +174,7 @@ class UserRepository {
   }
 
 
-  async generateUserCode(roleName) {
+  async generateUserCode(roleName, dbClient = db) {
     const rolePrefixes = {
       admin: 'ADM',
       administrator: 'ADM',
@@ -198,9 +198,9 @@ class UserRepository {
     let maxSeq = 0;
 
     const [userRows, empRows, mgrRows] = await Promise.all([
-      db.query(`SELECT user_code FROM users WHERE user_code LIKE ? OR user_code LIKE ?`, [`${fullPrefix}%`, `%${fullPrefix}%`]).catch(() => []),
-      db.query(`SELECT employee_number FROM employees WHERE employee_number LIKE ? OR employee_number LIKE ?`, [`${fullPrefix}%`, `%${fullPrefix}%`]).catch(() => []),
-      db.query(`SELECT manager_number FROM manager_profiles WHERE manager_number LIKE ? OR manager_number LIKE ?`, [`${fullPrefix}%`, `%${fullPrefix}%`]).catch(() => [])
+      dbClient.query(`SELECT user_code FROM users WHERE user_code LIKE ? OR user_code LIKE ?`, [`${fullPrefix}%`, `%${fullPrefix}%`]).catch(() => []),
+      dbClient.query(`SELECT employee_number FROM employees WHERE employee_number LIKE ? OR employee_number LIKE ?`, [`${fullPrefix}%`, `%${fullPrefix}%`]).catch(() => []),
+      dbClient.query(`SELECT manager_number FROM manager_profiles WHERE manager_number LIKE ? OR manager_number LIKE ?`, [`${fullPrefix}%`, `%${fullPrefix}%`]).catch(() => [])
     ]);
 
     for (const r of (userRows || [])) {
@@ -236,9 +236,9 @@ class UserRepository {
       const candidate6 = `${fullPrefix}${String(nextNum).padStart(6, '0')}`;
       const candidate = candidate6;
 
-      const [uMatch] = await db.query(`SELECT id FROM users WHERE user_code IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
-      const [eMatch] = await db.query(`SELECT id FROM employees WHERE employee_number IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
-      const [mMatch] = await db.query(`SELECT id FROM manager_profiles WHERE manager_number IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
+      const [uMatch] = await dbClient.query(`SELECT id FROM users WHERE user_code IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
+      const [eMatch] = await dbClient.query(`SELECT id FROM employees WHERE employee_number IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
+      const [mMatch] = await dbClient.query(`SELECT id FROM manager_profiles WHERE manager_number IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
 
       if (!uMatch && !eMatch && !mMatch) {
         return candidate;
@@ -265,7 +265,7 @@ class UserRepository {
       userCode: providedUserCode = null
     } = userData;
 
-    const userCode = providedUserCode || await this.generateUserCode(role);
+    const userCode = providedUserCode || await this.generateUserCode(role, dbClient);
 
     const result = await dbClient.query(
       `INSERT INTO users (

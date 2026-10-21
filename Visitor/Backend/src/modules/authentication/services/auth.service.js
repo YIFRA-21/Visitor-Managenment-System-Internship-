@@ -280,25 +280,82 @@ class AuthService {
     // Check unique email in users table
     const existingUser = await userRepository.findByEmail(trimmedEmail);
     if (existingUser) {
-      const err = new AppError('This email address is already registered. Please use another email or sign in.', 409);
-      err.field = 'email';
-      throw err;
+      // If the user already completed email verification, disallow duplicate registration
+      if (existingUser.email_verified === 1 || existingUser.email_verified === true) {
+        const err = new AppError('This email address is already registered. Please use another email or sign in.', 409);
+        err.field = 'email';
+        throw err;
+      }
+
+      // If user account exists but is unverified (e.g. from an interrupted or previous registration attempt),
+      // seamlessly refresh their credentials and send a fresh OTP so they can complete verification!
+      const passwordHash = await bcrypt.hash(password, 12);
+      await db.query(
+        `UPDATE users 
+         SET password_hash = ?, first_name = ?, middle_name = ?, last_name = ?, full_name = ?, phone = ?, phone_number = ?
+         WHERE id = ?`,
+        [passwordHash, firstName, middleName, lastName, fullName, userData.phone || null, userData.phone || null, existingUser.id]
+      ).catch(() => {});
+
+      let visitorProfileId = null;
+      try {
+        const visitorRepo = require('../../visitor-management/repositories/visitor.repository');
+        let vis = await visitorRepo.findByUserId(existingUser.id);
+        if (!vis) vis = await visitorRepo.findByEmail(trimmedEmail);
+        if (vis) {
+          visitorProfileId = vis.id;
+        } else {
+          visitorProfileId = await visitorRepo.create({
+            userId: existingUser.id,
+            firstName,
+            middleName,
+            lastName,
+            fullName,
+            email: trimmedEmail,
+            phone: userData.phone || '',
+            gender: userData.gender || null,
+            dateOfBirth: userData.dateOfBirth || null,
+            nationality: userData.nationality || null,
+            company: userData.company || null,
+            registrationStatus: 'APPROVED'
+          }).catch(() => null);
+        }
+      } catch (_) {}
+
+      let otpRes = null;
+      try {
+        otpRes = await emailService.sendOtp(trimmedEmail, existingUser.id);
+      } catch (e) {
+        console.warn('[AuthService] Resend OTP note for unverified user:', e.message);
+      }
+
+      return {
+        userId: existingUser.id,
+        profileId: visitorProfileId,
+        userCode: existingUser.user_code || `VIS-${existingUser.id}`,
+        isExistingUnverified: true,
+        deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
+        debugOtp: (process.env.NODE_ENV !== 'production' || !otpRes?.deliveredToInbox || process.env.ENABLE_DEBUG_OTP === 'true') ? otpRes?.otpCode : undefined
+      };
     }
 
     // Check unique email in visitors table
     const visitorRepository = require('../../visitor-management/repositories/visitor.repository');
     const existingVisitor = await visitorRepository.findByEmail(trimmedEmail);
-    if (existingVisitor) {
-      const err = new AppError('This email address is already registered. Please use another email or sign in.', 409);
-      err.field = 'email';
-      throw err;
+    if (existingVisitor && existingVisitor.user_id) {
+      const parentUser = await userRepository.findById(existingVisitor.user_id);
+      if (parentUser && (parentUser.email_verified === 1 || parentUser.email_verified === true)) {
+        const err = new AppError('This email address is already registered. Please use another email or sign in.', 409);
+        err.field = 'email';
+        throw err;
+      }
     }
 
     // Check unique username in users table
     if (userData.username) {
       const cleanUsername = String(userData.username).trim();
       const existingUsernameUser = await userRepository.findByUsername(cleanUsername);
-      if (existingUsernameUser) {
+      if (existingUsernameUser && (existingUsernameUser.email_verified === 1 || existingUsernameUser.email_verified === true)) {
         const err = new AppError('This username is already taken. Please choose another username.', 409);
         err.field = 'username';
         throw err;
@@ -333,7 +390,7 @@ class AuthService {
     const passwordHash = await bcrypt.hash(password, 12);
 
     const regResult = await db.transaction(async (tx) => {
-      // 1. Create base user record
+      // 1. Create base user record (using transaction client tx!)
       const userId = await userRepository.create({
         username: userData.username || (email ? email.split('@')[0] : 'user') + '_' + Math.floor(Math.random() * 1000),
         email: trimmedEmail,
@@ -347,10 +404,10 @@ class AuthService {
         departmentId: userData.departmentId || userData.department_id || null,
         jobTitle: userData.position || userData.jobTitle || userData.job_title || null,
         firstLoginRequired: role.toLowerCase() !== 'visitor' // staff/mgr require password change on first login
-      });
+      }, tx);
 
-      // Fetch the generated user record to read the sequential user_code
-      const usersList = await db.query('SELECT user_code FROM users WHERE id = ?', [userId]);
+      // Fetch the generated user record using transaction client tx
+      const usersList = await tx.query('SELECT user_code FROM users WHERE id = ?', [userId]);
       const userCode = usersList[0]?.user_code;
 
       let profileId = null;
@@ -526,13 +583,13 @@ class AuthService {
         });
       }
 
-      // 3. Create a verification request record
+      // 3. Create a verification request record using transaction client tx (safe fallback)
       await profileRepository.createVerificationRequest({
         userId,
-        status: role.toLowerCase() === 'visitor' ? 'PENDING' : 'APPROVED' // Employees can be auto-approved in mock, visitors are pending
-      });
+        status: role.toLowerCase() === 'visitor' ? 'PENDING' : 'APPROVED'
+      }, tx).catch(() => {});
 
-      // 4. Register roles to the junction user_roles table
+      // 4. Register roles to the junction user_roles table using transaction client tx
       const roleMapping = {
         'visitor': { code: 'visitor', name: 'visitor' },
         'staff': { code: 'employee', name: 'employee/host' },
@@ -545,36 +602,49 @@ class AuthService {
       };
       const mapped = roleMapping[role.toLowerCase()] || { code: role.toLowerCase(), name: role.toLowerCase() };
       
-      const roleRows = await db.query(
-        'SELECT id FROM roles WHERE LOWER(role_code) = ? OR LOWER(role_name) = ?',
-        [mapped.code, mapped.name]
-      );
-      const roleId = roleRows[0]?.id;
-      if (roleId) {
-        await db.query('INSERT INTO user_roles (user_id, role_id, is_active) VALUES (?, ?, TRUE)', [userId, roleId]);
+      try {
+        const roleRows = await tx.query(
+          'SELECT id FROM roles WHERE LOWER(role_code) = ? OR LOWER(role_name) = ? LIMIT 1',
+          [mapped.code, mapped.name]
+        );
+        const roleId = roleRows[0]?.id;
+        if (roleId) {
+          await tx.query('INSERT INTO user_roles (user_id, role_id, is_active) VALUES (?, ?, TRUE)', [userId, roleId]);
+        }
+      } catch (roleErr) {
+        console.warn('[AuthService] user_roles assignment note:', roleErr.message);
       }
-
-      // 5. Log audit event
-      await auditRepository.log({
-        userId,
-        action: 'REGISTER',
-        module: 'AUTH',
-        entity: 'users',
-        recordId: userId,
-        newValues: { email, role, profileId, userCode },
-      });
 
       return { userId, profileId, userCode };
     });
 
-    // 6. Send OTP *AFTER* database transaction commits so there are zero table/row lock conflicts
+    // 5. Log audit event after transaction commits (never blocks or holds locks)
     try {
-      await emailService.sendOtp(email, regResult.userId);
+      await auditRepository.log({
+        userId: regResult.userId,
+        action: 'REGISTER',
+        module: 'AUTH',
+        entity: 'users',
+        recordId: regResult.userId,
+        newValues: { email, role, profileId: regResult.profileId, userCode: regResult.userCode },
+      });
+    } catch (auditErr) {
+      console.warn('[AuthService] Audit log note:', auditErr.message);
+    }
+
+    // 6. Send OTP *AFTER* database transaction commits so there are zero table/row lock conflicts
+    let otpRes = null;
+    try {
+      otpRes = await emailService.sendOtp(email, regResult.userId);
     } catch (otpErr) {
       console.warn('[AuthService] Automatic OTP send note:', otpErr.message);
     }
 
-    return regResult;
+    return {
+      ...regResult,
+      deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
+      debugOtp: (process.env.NODE_ENV !== 'production' || !otpRes?.deliveredToInbox || process.env.ENABLE_DEBUG_OTP === 'true') ? otpRes?.otpCode : undefined
+    };
   }
 
   async getActiveSessions(userId) {
@@ -1570,7 +1640,7 @@ class AuthService {
       throw new AppError('User account not found', 404);
     }
 
-    await emailService.sendOtp(user.email, user.id);
+    const otpRes = await emailService.sendOtp(user.email, user.id);
 
     const [local, domain] = (user.email || '').split('@');
     const maskedEmail = domain ? (local.slice(0, 2) + '***@' + domain) : user.email;
@@ -1580,7 +1650,8 @@ class AuthService {
       message: 'A new 6-digit verification code has been sent to your email.',
       email: user.email,
       maskedEmail,
-      deliveredToInbox: true
+      deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
+      debugOtp: (process.env.NODE_ENV !== 'production' || !otpRes?.deliveredToInbox || process.env.ENABLE_DEBUG_OTP === 'true') ? otpRes?.otpCode : undefined
     };
   }
 

@@ -43,6 +43,24 @@ try {
 
   (async () => {
     try {
+      // Check if full schema migrations have already run to prevent repetitive ALTER TABLE metadata locks
+      try {
+        await originalQuery(`
+          CREATE TABLE IF NOT EXISTS _schema_migrations (
+            migration_key VARCHAR(100) PRIMARY KEY,
+            applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        const rows = await originalQuery(`SELECT migration_key FROM _schema_migrations WHERE migration_key = 'vms_full_schema_v2' LIMIT 1`);
+        const records = Array.isArray(rows) ? (Array.isArray(rows[0]) ? rows[0] : rows) : [];
+        if (records.length > 0) {
+          console.log('Database schema already migrated (vms_full_schema_v2). Skipping repetitive ALTER TABLE migrations.');
+          return;
+        }
+      } catch (checkErr) {
+        // proceed if table check had an issue
+      }
+
       const alterQueries = [
         `ALTER TABLE organization_branches ADD COLUMN branch_type VARCHAR(50) DEFAULT 'OFFICE'`,
         `ALTER TABLE organization_branches ADD COLUMN email VARCHAR(150) NULL`,
@@ -695,6 +713,9 @@ try {
       } catch (seedErr) {
         console.warn('DB User Seed warning:', seedErr.message);
       }
+      try {
+        await originalQuery("INSERT IGNORE INTO _schema_migrations (migration_key) VALUES ('vms_full_schema_v2')");
+      } catch (_) {}
     } catch (err) {
       console.warn('DB Migration warning:', err.message);
     }
