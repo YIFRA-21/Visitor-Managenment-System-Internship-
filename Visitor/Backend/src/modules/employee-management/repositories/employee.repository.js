@@ -115,6 +115,8 @@ class EmployeeRepository {
     const whereDeleted = includeDeleted ? '' : ' AND e.deleted_at IS NULL';
     const rows = await db.query(
       `SELECT e.*, 
+              COALESCE(NULLIF(e.photo_url, ''), u.avatar_url, u.profile_photo) as photo_url,
+              COALESCE(u.avatar_url, NULLIF(e.photo_url, ''), u.profile_photo) as avatar_url,
               COALESCE(NULLIF(e.full_name, ''), u.full_name, CONCAT_WS(' ', e.first_name, e.last_name)) as full_name,
               u.full_name as fullName, 
               COALESCE(NULLIF(e.email, ''), u.email) as email,
@@ -138,8 +140,12 @@ class EmployeeRepository {
 
   async findByUserId(userId) {
     const rows = await db.query(
-      `SELECT e.*, d.name as department_name, b.branch_name, r.name as default_room_name, m.full_name as manager_name
+      `SELECT e.*, 
+              COALESCE(NULLIF(e.photo_url, ''), u.avatar_url, u.profile_photo) as photo_url,
+              COALESCE(u.avatar_url, NULLIF(e.photo_url, ''), u.profile_photo) as avatar_url,
+              d.name as department_name, b.branch_name, r.name as default_room_name, m.full_name as manager_name
        FROM employees e
+       LEFT JOIN users u ON e.user_id = u.id
        LEFT JOIN departments d ON e.department_id = d.id
        LEFT JOIN organization_branches b ON e.branch_id = b.id
        LEFT JOIN rooms r ON e.default_room_id = r.id
@@ -345,6 +351,14 @@ class EmployeeRepository {
         now, id, id
       ]
     );
+
+    if (data.photo_url !== undefined) {
+      await db.query(
+        `UPDATE users SET avatar_url = ?, profile_photo = ? WHERE id = (SELECT user_id FROM employees WHERE (id = ? OR employee_id = ?) LIMIT 1)`,
+        [data.photo_url, data.photo_url, id, id]
+      ).catch(() => {});
+    }
+
     return this.findById(id);
   }
 

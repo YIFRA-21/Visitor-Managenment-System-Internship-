@@ -156,49 +156,62 @@ export default function DepartmentManagerProfileView() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const base64Url = evt.target?.result;
-      if (base64Url) {
-        setPhotoPreview(base64Url);
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Photo size must be less than 5MB.' });
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await authApi.uploadAvatar(formData);
+      const serverUrl = res.data?.avatarUrl;
+
+      if (serverUrl) {
+        setPhotoPreview(serverUrl);
         const userKey = `user_photo_${user?.id || 'manager'}`;
 
         try {
-          sessionStorage.setItem(userKey, base64Url);
-          localStorage.setItem(userKey, base64Url);
-          sessionStorage.setItem('manager_profile_photo', base64Url);
-          localStorage.setItem('manager_profile_photo', base64Url);
+          sessionStorage.setItem(userKey, serverUrl);
+          localStorage.setItem(userKey, serverUrl);
+          sessionStorage.setItem('manager_profile_photo', serverUrl);
+          localStorage.setItem('manager_profile_photo', serverUrl);
+        } catch (err) {}
 
-          if (updateUser) {
-            updateUser({ avatarUrl: base64Url });
-          }
-
-          // Real-time event dispatch for Navbar avatar
-          window.dispatchEvent(new Event('storage'));
-          window.dispatchEvent(new Event('user-profile-updated'));
-
-          // Persist to backend
-          await managerApi.updateProfile({ photoUrl: base64Url, avatarUrl: base64Url });
-          await authApi.updateProfile({ avatarUrl: base64Url }).catch(() => {});
-
-          setProfile((prev) => ({ ...prev, photo_url: base64Url }));
-          toSuccess({
-            type: RESPONSE_TYPES.PROFILE_UPDATED,
-            title: 'Photo Synchronized',
-            message: 'Executive management photo updated and synchronized across the enterprise.',
-            entityType: 'Executive Photo',
-            returnUrl: window.location.pathname + window.location.search,
-          });
-        } catch (err) {
-          toError(err, {
-            title: 'Failed to Update Photo',
-            entityType: 'Executive Photo',
-            returnUrl: window.location.pathname + window.location.search,
-          });
+        if (updateUser) {
+          updateUser({ avatarUrl: serverUrl, avatar: serverUrl, profile_photo: serverUrl });
         }
+
+        // Real-time event dispatch for Navbar avatar
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new Event('user-profile-updated'));
+
+        // Persist to backend role table
+        await managerApi.updateProfile({ photoUrl: serverUrl, avatarUrl: serverUrl }).catch(() => {});
+
+        setProfile((prev) => ({ ...prev, photo_url: serverUrl }));
+        toSuccess({
+          type: RESPONSE_TYPES.PROFILE_UPDATED,
+          title: 'Photo Synchronized',
+          message: 'Executive management photo updated and synchronized across the enterprise.',
+          entityType: 'Executive Photo',
+          returnUrl: window.location.pathname + window.location.search,
+        });
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      toError(err, {
+        title: 'Failed to Update Photo',
+        entityType: 'Executive Photo',
+        returnUrl: window.location.pathname + window.location.search,
+      });
+    } finally {
+      setSaving(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   // Remove Photo Handler
@@ -219,20 +232,21 @@ export default function DepartmentManagerProfileView() {
         setPhotoPreview(null);
         const userKey = `user_photo_${user?.id || 'manager'}`;
         try {
+          await authApi.deleteAvatar().catch(() => {});
+          await managerApi.updateProfile({ photoUrl: null, avatarUrl: '' }).catch(() => {});
+
           sessionStorage.removeItem(userKey);
           localStorage.removeItem(userKey);
           sessionStorage.removeItem('manager_profile_photo');
           localStorage.removeItem('manager_profile_photo');
 
           if (updateUser) {
-            updateUser({ avatarUrl: '' });
+            updateUser({ avatarUrl: '', avatar: '', profile_photo: '' });
           }
 
           window.dispatchEvent(new Event('storage'));
           window.dispatchEvent(new Event('user-profile-updated'));
 
-          await managerApi.updateProfile({ photoUrl: null, avatarUrl: '' });
-          await authApi.updateProfile({ avatarUrl: '' }).catch(() => {});
           setProfile((prev) => ({ ...prev, photo_url: null }));
         } catch (err) {
           console.error(err);

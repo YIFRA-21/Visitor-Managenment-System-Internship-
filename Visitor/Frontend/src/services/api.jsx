@@ -159,6 +159,10 @@ export const authApi = {
     getMyResources: () => api.get('/auth/me/resources'),
     getProfile: () => api.get('/auth/profile'),
     updateProfile: (data) => api.put('/auth/profile', data),
+    uploadAvatar: (formData) => api.post('/auth/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+    deleteAvatar: () => api.delete('/auth/avatar'),
 };
 export const departmentsApi = {
     list: () => api.get('/departments'),
@@ -702,5 +706,6 @@ export const profileApi = {
     uploadAvatar: (formData) => api.post('/auth/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
     }),
+    deleteAvatar: () => api.delete('/auth/avatar'),
     deleteAccount: () => api.delete('/auth/profile'),
 };

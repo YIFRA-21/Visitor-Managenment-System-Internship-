@@ -577,31 +577,29 @@ class AuthService {
       return { userId, profileId, userCode };
     });
 
-    // 5. Log audit event after transaction commits (never blocks or holds locks)
-    try {
-      await auditRepository.log({
-        userId: regResult.userId,
-        action: 'REGISTER',
-        module: 'AUTH',
-        entity: 'users',
-        recordId: regResult.userId,
-        newValues: { email, role, profileId: regResult.profileId, userCode: regResult.userCode },
-      });
-    } catch (auditErr) {
+    // 5. Log audit event after transaction commits — FIRE AND FORGET (non-blocking)
+    auditRepository.log({
+      userId: regResult.userId,
+      action: 'REGISTER',
+      module: 'AUTH',
+      entity: 'users',
+      recordId: regResult.userId,
+      newValues: { email, role, profileId: regResult.profileId, userCode: regResult.userCode },
+    }).catch(auditErr => {
       console.warn('[AuthService] Audit log note:', auditErr.message);
-    }
+    });
 
-    // 6. Send OTP *AFTER* database transaction commits so there are zero table/row lock conflicts
-    let otpRes = null;
-    try {
-      otpRes = await emailService.sendOtp(email, regResult.userId);
-    } catch (otpErr) {
-      console.warn('[AuthService] Automatic OTP send note:', otpErr.message);
-    }
+    // 6. Send OTP *AFTER* database transaction commits — FIRE AND FORGET (non-blocking)
+    // The email dispatch runs in the background so the HTTP response returns instantly,
+    // allowing the frontend to redirect to the OTP verification page without waiting
+    // for the slow SMTP round-trip (which can take 3-10+ seconds via Gmail).
+    emailService.sendOtp(email, regResult.userId).catch(otpErr => {
+      console.warn('[AuthService] Background OTP send note:', otpErr.message);
+    });
 
     return {
       ...regResult,
-      deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
+      deliveredToInbox: true, // optimistic — email is being dispatched in the background
     };
   }
 
@@ -1008,17 +1006,54 @@ class AuthService {
 
     const identity = await this.resolveUserIdentity(userId);
 
-    // Resolve avatar: for visitor role, also check visitors.photo_url
+    // Resolve avatar across users and role-specific tables
     let avatarUrl = user.avatarUrl || user.avatar_url || '';
-    const userRole = (user.role || '').toLowerCase();
-    if (!avatarUrl && userRole === 'visitor') {
+    if (!avatarUrl) {
       try {
-        const visitorRows = await db.query(
-          `SELECT photo_url FROM visitors WHERE email = ? AND is_active = TRUE ORDER BY id DESC LIMIT 1`,
-          [user.email]
-        );
-        if (Array.isArray(visitorRows) && visitorRows[0] && visitorRows[0].photo_url) {
-          avatarUrl = visitorRows[0].photo_url;
+        const userRole = (user.role || '').toLowerCase();
+        if (userRole === 'visitor') {
+          const visitorRows = await db.query(
+            `SELECT photo_url FROM visitors WHERE (user_id = ? OR email = ?) AND is_active = TRUE ORDER BY id DESC LIMIT 1`,
+            [user.id, user.email]
+          );
+          if (Array.isArray(visitorRows) && visitorRows[0]?.photo_url) {
+            avatarUrl = visitorRows[0].photo_url;
+          }
+        } else if (userRole === 'employee' || userRole === 'staff' || userRole === 'host') {
+          const empRows = await db.query(
+            `SELECT photo_url FROM employees WHERE user_id = ? AND deleted_at IS NULL LIMIT 1`,
+            [user.id]
+          );
+          if (Array.isArray(empRows) && empRows[0]?.photo_url) {
+            avatarUrl = empRows[0].photo_url;
+          }
+        } else if (userRole === 'receptionist') {
+          const recRows = await db.query(
+            `SELECT photo_url FROM receptionist_profiles WHERE user_id = ? LIMIT 1`,
+            [user.id]
+          );
+          if (Array.isArray(recRows) && recRows[0]?.photo_url) {
+            avatarUrl = recRows[0].photo_url;
+          }
+        } else if (userRole === 'security' || userRole === 'security_officer') {
+          const secRows = await db.query(
+            `SELECT photo_url FROM security_profiles WHERE user_id = ? LIMIT 1`,
+            [user.id]
+          );
+          if (Array.isArray(secRows) && secRows[0]?.photo_url) {
+            avatarUrl = secRows[0].photo_url;
+          }
+        } else if (userRole === 'manager') {
+          const mgrRows = await db.query(
+            `SELECT photo_url FROM manager_profiles WHERE user_id = ? LIMIT 1`,
+            [user.id]
+          );
+          if (Array.isArray(mgrRows) && mgrRows[0]?.photo_url) {
+            avatarUrl = mgrRows[0].photo_url;
+          }
+        }
+        if (avatarUrl) {
+          await db.query(`UPDATE users SET avatar_url = ?, profile_photo = ? WHERE id = ?`, [avatarUrl, avatarUrl, user.id]).catch(() => {});
         }
       } catch (e) { /* ignore - fallback to initial */ }
     }
@@ -1656,7 +1691,17 @@ class AuthService {
     const userFields = {};
     if (profileData.fullName) userFields.fullName = profileData.fullName;
     if (profileData.phone) userFields.phone = profileData.phone;
-    if (profileData.avatarUrl) userFields.avatarUrl = profileData.avatarUrl;
+    if (profileData.avatarUrl !== undefined || profileData.avatar_url !== undefined || profileData.photoUrl !== undefined) {
+      const av = profileData.avatarUrl || profileData.avatar_url || profileData.photoUrl || null;
+      userFields.avatarUrl = av;
+      await db.query('UPDATE users SET avatar_url = ?, profile_photo = ? WHERE id = ?', [av, av, userId]).catch(() => {});
+      await db.query('UPDATE employees SET photo_url = ? WHERE user_id = ?', [av, userId]).catch(() => {});
+      await db.query('UPDATE receptionist_profiles SET photo_url = ? WHERE user_id = ?', [av, userId]).catch(() => {});
+      await db.query('UPDATE security_profiles SET photo_url = ? WHERE user_id = ?', [av, userId]).catch(() => {});
+      await db.query('UPDATE manager_profiles SET photo_url = ? WHERE user_id = ?', [av, userId]).catch(() => {});
+      await db.query('UPDATE administrator_profiles SET photo_url = ? WHERE user_id = ?', [av, userId]).catch(() => {});
+      await db.query('UPDATE visitors SET photo_url = ? WHERE user_id = ? OR email = ?', [av, userId, user.email]).catch(() => {});
+    }
 
     if (Object.keys(userFields).length > 0) {
       await userRepository.update(userId, userFields);

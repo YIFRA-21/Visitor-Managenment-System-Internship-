@@ -85,19 +85,42 @@ router.patch('/users/:id', authenticate, authorize('admin'), authController.upda
 // Avatar Upload
 router.post('/avatar', authenticate, upload.single('avatar'), async (req, res, next) => {
   try {
+    let avatarUrl;
     if (!req.file) {
       if (req.body && (req.body.avatarUrl || req.body.avatar)) {
-        const avatarUrl = req.body.avatarUrl || req.body.avatar;
-        const db = require('../../../config/db');
-        await db.query('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl, req.user.id]);
-        return res.status(200).json({ message: 'Avatar updated successfully', avatarUrl });
+        avatarUrl = req.body.avatarUrl || req.body.avatar;
+      } else {
+        return res.status(400).json({ error: 'No file uploaded. Please upload an image file using multipart/form-data with field name "avatar" or pass "avatarUrl" in JSON.' });
       }
-      return res.status(400).json({ error: 'No file uploaded. Please upload an image file using multipart/form-data with field name "avatar" or pass "avatarUrl" in JSON.' });
+    } else {
+      avatarUrl = `/uploads/${req.file.filename}`;
     }
-    const avatarUrl = `/uploads/${req.file.filename}`;
     const db = require('../../../config/db');
-    await db.query('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl, req.user.id]);
+    await db.query('UPDATE users SET avatar_url = ?, profile_photo = ? WHERE id = ?', [avatarUrl, avatarUrl, req.user.id]);
+    await db.query('UPDATE employees SET photo_url = ? WHERE user_id = ?', [avatarUrl, req.user.id]).catch(() => {});
+    await db.query('UPDATE receptionist_profiles SET photo_url = ? WHERE user_id = ?', [avatarUrl, req.user.id]).catch(() => {});
+    await db.query('UPDATE security_profiles SET photo_url = ? WHERE user_id = ?', [avatarUrl, req.user.id]).catch(() => {});
+    await db.query('UPDATE manager_profiles SET photo_url = ? WHERE user_id = ?', [avatarUrl, req.user.id]).catch(() => {});
+    await db.query('UPDATE administrator_profiles SET photo_url = ? WHERE user_id = ?', [avatarUrl, req.user.id]).catch(() => {});
+    await db.query('UPDATE visitors SET photo_url = ? WHERE user_id = ? OR email = ?', [avatarUrl, req.user.id, req.user.email]).catch(() => {});
     res.status(200).json({ message: 'Avatar updated successfully', avatarUrl });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Avatar Remove
+router.delete('/avatar', authenticate, async (req, res, next) => {
+  try {
+    const db = require('../../../config/db');
+    await db.query('UPDATE users SET avatar_url = NULL, profile_photo = NULL WHERE id = ?', [req.user.id]);
+    await db.query('UPDATE employees SET photo_url = NULL WHERE user_id = ?', [req.user.id]).catch(() => {});
+    await db.query('UPDATE receptionist_profiles SET photo_url = NULL WHERE user_id = ?', [req.user.id]).catch(() => {});
+    await db.query('UPDATE security_profiles SET photo_url = NULL WHERE user_id = ?', [req.user.id]).catch(() => {});
+    await db.query('UPDATE manager_profiles SET photo_url = NULL WHERE user_id = ?', [req.user.id]).catch(() => {});
+    await db.query('UPDATE administrator_profiles SET photo_url = NULL WHERE user_id = ?', [req.user.id]).catch(() => {});
+    await db.query('UPDATE visitors SET photo_url = NULL WHERE user_id = ? OR email = ?', [req.user.id, req.user.email]).catch(() => {});
+    res.status(200).json({ message: 'Avatar removed successfully', avatarUrl: null });
   } catch (err) {
     next(err);
   }

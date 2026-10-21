@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, MapPin, Phone, Shield, FileText, Upload, Check, AlertCircle, Save } from 'lucide-react';
-import { visitorPortalApi } from '../../../services/api';
+import { visitorPortalApi, authApi } from '../../../services/api';
+import { resolvePhotoUrl } from '../../../utils/photoUtils';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import CountryPhoneInput from '../../../components/common/CountryPhoneInput';
 
@@ -57,9 +58,22 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
     }, [isOpen]);
     if (!isOpen)
         return null;
-    const handlePhotoUpload = (e) => {
+    const handlePhotoUpload = async (e) => {
         const file = e.target.files?.[0];
         if (file) {
+            try {
+                const formData = new FormData();
+                formData.append('avatar', file);
+                const res = await authApi.uploadAvatar(formData);
+                const serverUrl = res.data?.avatarUrl;
+                if (serverUrl) {
+                    setPhotoPreview(serverUrl);
+                    sessionStorage.setItem('visitor_uploaded_photo', serverUrl);
+                    localStorage.setItem('visitor_uploaded_photo', serverUrl);
+                    return;
+                }
+            } catch (err) {}
+
             const reader = new FileReader();
             reader.onloadend = () => {
                 const dataUrl = reader.result;
@@ -394,7 +408,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
               {/* Photo Upload Section */}
               <div className="border border-dashed border-slate-800 bg-slate-900/50 rounded-2xl p-4 flex flex-col md:flex-row items-center gap-4">
                 <div className="w-20 h-20 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
-                  {photoPreview ? (<img src={photoPreview} alt="Visitor Photo" className="w-full h-full object-cover"/>) : (<User className="h-8 w-8 text-slate-500"/>)}
+                  {photoPreview ? (<img src={resolvePhotoUrl(photoPreview)} alt="Visitor Photo" className="w-full h-full object-cover"/>) : (<User className="h-8 w-8 text-slate-500"/>)}
                 </div>
                 <div className="flex-1 text-center md:text-left space-y-2">
                   <h4 className="text-xs font-extrabold text-white">{t('form.photo', 'Upload Visitor Profile Photo')}</h4>

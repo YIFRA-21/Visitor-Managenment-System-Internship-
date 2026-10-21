@@ -3,7 +3,8 @@ import { User, Mail, Shield, QrCode, Key, Camera, Upload, Trash2, CheckCircle2, 
 import QRCode from 'qrcode';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import api from '../../services/api';
+import api, { profileApi } from '../../services/api';
+import { resolvePhotoUrl } from '../../utils/photoUtils';
 import BackButton from '../../components/common/BackButton';
 import CountryPhoneInput from '../../components/common/CountryPhoneInput';
 import FieldError from '../../components/common/FieldError';
@@ -21,6 +22,7 @@ export default function EmployeeProfileView() {
     const fileInputRef = useRef(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [profile, setProfile] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
     const [qrDataUrl, setQrDataUrl] = useState(null);
@@ -66,7 +68,7 @@ export default function EmployeeProfileView() {
         setLoading(true);
         const isAdmin = userAny?.role === 'admin';
         const userKey = `user_photo_${userAny?.id || 'admin'}`;
-        const savedPhoto = sessionStorage.getItem(userKey) || localStorage.getItem(userKey) || sessionStorage.getItem('admin_profile_photo') || localStorage.getItem('admin_profile_photo') || userAny?.avatarUrl || userAny?.avatar || null;
+        const savedPhoto = userAny?.avatarUrl || userAny?.avatar || userAny?.photo_url || userAny?.profile_photo || sessionStorage.getItem(userKey) || localStorage.getItem(userKey) || sessionStorage.getItem('admin_profile_photo') || localStorage.getItem('admin_profile_photo') || null;
         const fallbackProfile = {
             id: userAny?.id || 1,
             employee_code: userAny?.userCode || userAny?.employee_code || (isAdmin ? 'ADM000001' : 'EMP-10482'),
@@ -96,7 +98,7 @@ export default function EmployeeProfileView() {
                 email: data.email || fallbackProfile.email,
                 department: data.department || data.department_name || fallbackProfile.department,
                 designation: data.designation || data.job_title || fallbackProfile.designation,
-                photo_url: savedPhoto || data.photo_url || data.photo || fallbackProfile.photo_url,
+                photo_url: data.photo_url || data.photo || data.avatar_url || savedPhoto || fallbackProfile.photo_url,
             };
             setProfile(merged);
             setPhotoPreview(merged.photo_url);
@@ -144,35 +146,62 @@ export default function EmployeeProfileView() {
                 .catch(err => console.error('QR generation error:', err));
         }
     }, [profile]);
-    const handlePhotoUpload = (e) => {
+    const handlePhotoUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file)
             return;
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            const base64Url = evt.target?.result;
-            if (base64Url) {
-                setPhotoPreview(base64Url);
+
+        if (!file.type.match(/^image\/(jpeg|jpg|png|webp)$/i)) {
+            toError(new Error('Please select a valid image file (JPEG, PNG, WEBP).'), {
+                title: 'Invalid File Type',
+                entityType: 'Employee Photo'
+            });
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            toError(new Error('Profile photo size must be less than 5MB.'), {
+                title: 'File Too Large',
+                entityType: 'Employee Photo'
+            });
+            return;
+        }
+
+        try {
+            setUploadingPhoto(true);
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            const res = await profileApi.uploadAvatar(formData);
+            const newAvatarUrl = res.data?.avatarUrl;
+
+            if (newAvatarUrl) {
+                setPhotoPreview(newAvatarUrl);
+                setProfile(prev => prev ? ({ ...prev, photo_url: newAvatarUrl }) : null);
+
                 const userKey = `user_photo_${userAny?.id || 'admin'}`;
                 const roleLower = userAny?.role?.toLowerCase();
                 try {
-                    sessionStorage.setItem(userKey, base64Url);
-                    localStorage.setItem(userKey, base64Url);
+                    sessionStorage.setItem(userKey, newAvatarUrl);
+                    localStorage.setItem(userKey, newAvatarUrl);
                     if (roleLower === 'admin') {
-                        sessionStorage.setItem('admin_profile_photo', base64Url);
-                        localStorage.setItem('admin_profile_photo', base64Url);
+                        sessionStorage.setItem('admin_profile_photo', newAvatarUrl);
+                        localStorage.setItem('admin_profile_photo', newAvatarUrl);
                     }
                     else if (roleLower === 'employee' || roleLower === 'staff') {
-                        sessionStorage.setItem('employee_uploaded_photo', base64Url);
-                        localStorage.setItem('employee_uploaded_photo', base64Url);
+                        sessionStorage.setItem('employee_uploaded_photo', newAvatarUrl);
+                        localStorage.setItem('employee_uploaded_photo', newAvatarUrl);
                     }
-                    if (updateUser) {
-                        updateUser({ avatarUrl: base64Url });
-                    }
-                    window.dispatchEvent(new Event('storage'));
-                    window.dispatchEvent(new Event('user-profile-updated'));
                 }
                 catch (err) { }
+
+                if (updateUser) {
+                    updateUser({ avatarUrl: newAvatarUrl, avatar: newAvatarUrl, profile_photo: newAvatarUrl });
+                }
+
+                window.dispatchEvent(new Event('storage'));
+                window.dispatchEvent(new Event('user-profile-updated'));
+
                 toSuccess({
                     type: RESPONSE_TYPES.PROFILE_UPDATED,
                     title: 'Photo Synchronized',
@@ -181,8 +210,20 @@ export default function EmployeeProfileView() {
                     returnUrl: window.location.pathname + window.location.search,
                 });
             }
-        };
-        reader.readAsDataURL(file);
+        }
+        catch (err) {
+            toError(err, {
+                title: 'Failed to Upload Photo',
+                entityType: 'Employee Photo',
+                returnUrl: window.location.pathname + window.location.search,
+            });
+        }
+        finally {
+            setUploadingPhoto(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
     };
     const handleRemovePhoto = () => {
         toConfirmation({
@@ -197,28 +238,38 @@ export default function EmployeeProfileView() {
             confirmLabel: 'Remove Photo',
             confirmVariant: 'danger',
             returnUrl: window.location.pathname + window.location.search,
-            onConfirm: () => {
-                setPhotoPreview(null);
-                const userKey = `user_photo_${userAny?.id || 'admin'}`;
-                const roleLower = userAny?.role?.toLowerCase();
+            onConfirm: async () => {
                 try {
-                    sessionStorage.removeItem(userKey);
-                    localStorage.removeItem(userKey);
-                    if (roleLower === 'admin') {
-                        sessionStorage.removeItem('admin_profile_photo');
-                        localStorage.removeItem('admin_profile_photo');
+                    setUploadingPhoto(true);
+                    await profileApi.deleteAvatar().catch(() => {});
+                    setPhotoPreview(null);
+                    setProfile(prev => prev ? ({ ...prev, photo_url: null }) : null);
+
+                    const userKey = `user_photo_${userAny?.id || 'admin'}`;
+                    const roleLower = userAny?.role?.toLowerCase();
+                    try {
+                        sessionStorage.removeItem(userKey);
+                        localStorage.removeItem(userKey);
+                        if (roleLower === 'admin') {
+                            sessionStorage.removeItem('admin_profile_photo');
+                            localStorage.removeItem('admin_profile_photo');
+                        }
+                        else if (roleLower === 'employee' || roleLower === 'staff') {
+                            sessionStorage.removeItem('employee_uploaded_photo');
+                            localStorage.removeItem('employee_uploaded_photo');
+                        }
                     }
-                    else if (roleLower === 'employee' || roleLower === 'staff') {
-                        sessionStorage.removeItem('employee_uploaded_photo');
-                        localStorage.removeItem('employee_uploaded_photo');
-                    }
+                    catch (e) { }
+
                     if (updateUser) {
-                        updateUser({ avatarUrl: '' });
+                        updateUser({ avatarUrl: '', avatar: '', profile_photo: '' });
                     }
                     window.dispatchEvent(new Event('storage'));
                     window.dispatchEvent(new Event('user-profile-updated'));
                 }
-                catch (e) { }
+                finally {
+                    setUploadingPhoto(false);
+                }
             },
             successConfig: {
                 type: RESPONSE_TYPES.SUCCESS,
@@ -377,20 +428,31 @@ export default function EmployeeProfileView() {
           {/* Avatar Photo Box with Camera Icon */}
           <div className="relative group shrink-0">
             <div className="h-32 w-32 rounded-2xl bg-slate-950 border-2 border-indigo-500/40 p-1 overflow-hidden flex items-center justify-center shadow-2xl relative">
-              {photoPreview ? (<img src={photoPreview} alt={profile?.full_name} className="h-full w-full object-cover rounded-xl"/>) : (<div className="w-full h-full bg-gradient-to-br from-indigo-700 to-purple-900 flex items-center justify-center text-white font-black text-3xl">
+              {uploadingPhoto ? (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/90 text-indigo-400">
+                  <RefreshCw className="h-6 w-6 animate-spin mb-1" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Uploading...</span>
+                </div>
+              ) : photoPreview ? (
+                <img src={resolvePhotoUrl(photoPreview)} alt={profile?.full_name} className="h-full w-full object-cover rounded-xl"/>
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-indigo-700 to-purple-900 flex items-center justify-center text-white font-black text-3xl">
                   {profile?.full_name?.substring(0, 2)?.toUpperCase() || 'AD'}
-                </div>)}
+                </div>
+              )}
             </div>
 
-            <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/jpeg,image/png,image/jpg" className="hidden"/>
+            <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/jpeg,image/png,image/jpg,image/webp" className="hidden"/>
 
             <div className="absolute -bottom-2 -right-2 flex space-x-1">
-              <button type="button" onClick={() => fileInputRef.current?.click()} title="Upload Photo" className="p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg border border-indigo-400/30 transition-transform active:scale-95">
+              <button type="button" disabled={uploadingPhoto} onClick={() => fileInputRef.current?.click()} title="Upload Photo" className="p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg border border-indigo-400/30 transition-transform active:scale-95 disabled:opacity-50">
                 <Camera className="h-4 w-4"/>
               </button>
-              {photoPreview && (<button type="button" onClick={handleRemovePhoto} title="Remove Photo" className="p-2 bg-rose-600/80 hover:bg-rose-700 text-white rounded-xl shadow-lg border border-rose-400/30 transition-transform active:scale-95">
+              {photoPreview && (
+                <button type="button" disabled={uploadingPhoto} onClick={handleRemovePhoto} title="Remove Photo" className="p-2 bg-rose-600/80 hover:bg-rose-700 text-white rounded-xl shadow-lg border border-rose-400/30 transition-transform active:scale-95 disabled:opacity-50">
                   <Trash2 className="h-4 w-4"/>
-                </button>)}
+                </button>
+              )}
             </div>
           </div>
 
