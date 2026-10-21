@@ -169,8 +169,12 @@ class EmailService {
       </div>
     `;
 
+    const isPlaceholderVal = (val) => !val || /your_email|your_app_password|example\.com/i.test(val);
+    const senderEmail = (process.env.SMTP_USER && !isPlaceholderVal(process.env.SMTP_USER)) ? process.env.SMTP_USER.trim() : 'no-reply@vms.com';
+    const emailSender = (process.env.EMAIL_FROM && !isPlaceholderVal(process.env.EMAIL_FROM)) ? process.env.EMAIL_FROM : `"Visitor Management System" <${senderEmail}>`;
+
     const mailOptions = {
-      from: process.env.EMAIL_FROM || '"Visitor Management System" <no-reply@vms.com>',
+      from: emailSender,
       to: cleanEmail,
       subject: `[VMS] Your Email Verification Code: ${otpCode}`,
       text: `Your VMS email verification code is: ${otpCode}. Valid for 10 minutes.`,
@@ -227,8 +231,12 @@ class EmailService {
       return { status: 'error', error: 'Recipient email is required' };
     }
 
+    const isPlaceholderVal = (val) => !val || /your_email|your_app_password|example\.com/i.test(val);
+    const senderEmail = (process.env.SMTP_USER && !isPlaceholderVal(process.env.SMTP_USER)) ? process.env.SMTP_USER.trim() : 'no-reply@vms.com';
+    const emailSender = (process.env.EMAIL_FROM && !isPlaceholderVal(process.env.EMAIL_FROM)) ? process.env.EMAIL_FROM : `"Visitor Management System" <${senderEmail}>`;
+
     const mailOptions = {
-      from: process.env.EMAIL_FROM || '"Visitor Management System" <no-reply@vms.com>',
+      from: emailSender,
       to: to.toLowerCase().trim(),
       subject,
       text,
