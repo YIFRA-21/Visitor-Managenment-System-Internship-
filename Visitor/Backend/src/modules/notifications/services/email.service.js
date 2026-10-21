@@ -1,31 +1,35 @@
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const path = require('path');
+const dotenv = require('dotenv');
+dotenv.config({ path: path.join(__dirname, '../../../../.env') });
+dotenv.config();
 const db = require('../../../config/db');
 
 class EmailService {
   constructor() {
     this.transporter = null;
-    this.initTransporter();
+    this.getTransporter();
   }
 
-  async initTransporter() {
-    const service = process.env.SMTP_SERVICE; // e.g. 'gmail', 'outlook', 'sendgrid'
+  getTransporter() {
+    const service = (process.env.SMTP_SERVICE || 'gmail').toLowerCase().trim();
     const host = process.env.SMTP_HOST;
-    const user = (process.env.SMTP_USER || '').trim();
-    const rawPass = (process.env.SMTP_PASS || '').trim();
-    const pass = rawPass.replace(/\s+/g, ''); // Automatically strip spaces from copied App Passwords (e.g. "abcd efgh ijkl mnop" -> "abcdefghijklmnop")
+    const user = (process.env.SMTP_USER || 'shewerke21@gmail.com').trim();
+    const rawPass = (process.env.SMTP_PASS || 'mfipytyqlzqukdlu').trim();
+    const pass = rawPass.replace(/\s+/g, '');
 
-    const isPlaceholder = (val) => !val || /your_email|your_app_password|example\.com/i.test(val);
-
-    if (service && user && pass && !isPlaceholder(user) && !isPlaceholder(pass)) {
-      // Well-known nodemailer service configuration (e.g. Gmail App Password)
+    // 1. If service is gmail or host is smtp.gmail.com, use nodemailer's built-in gmail service
+    if (service === 'gmail' || host?.includes('gmail') || user.endsWith('@gmail.com')) {
       this.transporter = nodemailer.createTransport({
-        service: service.toLowerCase(),
+        service: 'gmail',
         auth: { user, pass }
       });
-      console.log(`[EmailService] Configured real email transporter via service: ${service} (${user})`);
-    } else if (host && user && pass && !isPlaceholder(user) && !isPlaceholder(pass)) {
-      // Standard custom SMTP host configuration
+      return this.transporter;
+    }
+
+    // 2. Custom SMTP host configuration
+    if (host && user && pass) {
       this.transporter = nodemailer.createTransport({
         host: host,
         port: parseInt(process.env.SMTP_PORT || '587'),
@@ -33,13 +37,15 @@ class EmailService {
         auth: { user, pass },
         tls: { rejectUnauthorized: false }
       });
-      console.log(`[EmailService] Configured real SMTP Transporter (${host}:${process.env.SMTP_PORT || 587})`);
-    } else {
-      console.log('[EmailService] SMTP credentials are not yet configured on Render (using placeholder or unset). Running in resilient fallback dispatch mode.');
-      console.log('[EmailService] TIP FOR RENDER: Set SMTP_SERVICE=gmail, SMTP_USER=your_real_gmail@gmail.com, and SMTP_PASS=your_16_digit_app_password in Render Environment Variables.');
-      // Console fallback mode
-      this.transporter = null;
+      return this.transporter;
     }
+
+    // 3. Guaranteed fallback: Gmail transporter with configured app password
+    this.transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' }
+    });
+    return this.transporter;
   }
 
   /**
@@ -186,30 +192,26 @@ class EmailService {
     let deliveredToInbox = false;
     let etherealUrl = null;
 
-    if (this.transporter) {
-      const sendPromise = this.transporter.sendMail(mailOptions)
-        .then((info) => {
-          deliveredToInbox = true;
-          etherealUrl = nodemailer.getTestMessageUrl(info);
-          if (etherealUrl) {
-            console.log('[EmailService] Development Ethereal email preview URL: ' + etherealUrl);
-          } else {
-            console.log(`[EmailService] REAL EMAIL SENT SUCCESSFULLY TO: ${cleanEmail}`);
-          }
-          return info;
-        })
-        .catch((err) => {
-          console.warn('[EmailService] SMTP delivery warning:', err.message);
-        });
-
-      // Allow up to 3.5 seconds for instant confirmation; if SMTP takes longer (network latency), proceed asynchronously
+    const transporter = this.getTransporter();
+    if (transporter) {
       try {
-        await Promise.race([
-          sendPromise,
-          new Promise((resolve) => setTimeout(resolve, 3500))
-        ]);
-      } catch (raceErr) {
-        // Continue cleanly
+        console.log(`[EmailService] Sending OTP verification email to: ${cleanEmail}...`);
+        const info = await transporter.sendMail(mailOptions);
+        deliveredToInbox = true;
+        console.log(`[EmailService] REAL EMAIL SENT SUCCESSFULLY TO: ${cleanEmail} (Response: ${info.response || info.messageId})`);
+      } catch (err) {
+        console.error(`[EmailService] SMTP send error: ${err.message}. Retrying via Gmail service direct...`);
+        try {
+          const directTransporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' }
+          });
+          const retryInfo = await directTransporter.sendMail(mailOptions);
+          deliveredToInbox = true;
+          console.log(`[EmailService] REAL EMAIL DELIVERED ON RETRY TO: ${cleanEmail} (${retryInfo.response})`);
+        } catch (retryErr) {
+          console.error(`[EmailService] SMTP retry delivery error: ${retryErr.message}`);
+        }
       }
     }
 
@@ -250,31 +252,26 @@ class EmailService {
     let deliveredToInbox = false;
     let etherealUrl = null;
 
-    if (this.transporter) {
+    const transporter = this.getTransporter();
+    if (transporter) {
       try {
-        const sendPromise = this.transporter.sendMail(mailOptions)
-          .then((info) => {
-            deliveredToInbox = true;
-            etherealUrl = nodemailer.getTestMessageUrl(info);
-            if (etherealUrl) {
-              console.log('[EmailService] Development Ethereal email preview URL: ' + etherealUrl);
-            } else {
-              console.log(`[EmailService] EMAIL SENT SUCCESSFULLY TO: ${mailOptions.to}`);
-            }
-            return info;
-          })
-          .catch((err) => {
-            console.warn('[EmailService] SMTP delivery warning:', err.message);
-          });
-
-        await Promise.race([
-          sendPromise,
-          new Promise((resolve) => setTimeout(resolve, 3000))
-        ]);
+        const info = await transporter.sendMail(mailOptions);
         deliveredToInbox = true;
+        console.log(`[EmailService] EMAIL SENT SUCCESSFULLY TO: ${mailOptions.to} (${info.response || info.messageId})`);
       } catch (err) {
-        console.warn('[EmailService] SMTP delivery warning:', err.message);
-        return { status: 'error', error: err.message, deliveredToInbox: false, etherealUrl: null };
+        console.warn('[EmailService] SMTP delivery attempt failed, retrying direct Gmail:', err.message);
+        try {
+          const directTransporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' }
+          });
+          const retryInfo = await directTransporter.sendMail(mailOptions);
+          deliveredToInbox = true;
+          console.log(`[EmailService] EMAIL DELIVERED VIA GMAIL RETRY TO: ${mailOptions.to} (${retryInfo.response})`);
+        } catch (retryErr) {
+          console.error('[EmailService] SMTP send error:', retryErr.message);
+          return { status: 'error', error: retryErr.message, deliveredToInbox: false, etherealUrl: null };
+        }
       }
     } else {
       console.warn(`[EmailService] No SMTP transporter configured. Email for ${mailOptions.to} was NOT delivered.`);
