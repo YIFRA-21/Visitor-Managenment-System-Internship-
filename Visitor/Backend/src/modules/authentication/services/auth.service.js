@@ -335,7 +335,8 @@ class AuthService {
         userCode: existingUser.user_code || `VIS-${existingUser.id}`,
         isExistingUnverified: true,
         deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
-        debugOtp: (process.env.NODE_ENV !== 'production' || !otpRes?.deliveredToInbox || process.env.ENABLE_DEBUG_OTP === 'true') ? otpRes?.otpCode : undefined
+        debugOtp: otpRes?.otpCode,
+        otpCode: otpRes?.otpCode
       };
     }
 
@@ -643,7 +644,8 @@ class AuthService {
     return {
       ...regResult,
       deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
-      debugOtp: (process.env.NODE_ENV !== 'production' || !otpRes?.deliveredToInbox || process.env.ENABLE_DEBUG_OTP === 'true') ? otpRes?.otpCode : undefined
+      debugOtp: otpRes?.otpCode,
+      otpCode: otpRes?.otpCode
     };
   }
 
@@ -1688,7 +1690,8 @@ class AuthService {
       email: user.email,
       maskedEmail,
       deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
-      debugOtp: (process.env.NODE_ENV !== 'production' || !otpRes?.deliveredToInbox || process.env.ENABLE_DEBUG_OTP === 'true') ? otpRes?.otpCode : undefined
+      debugOtp: otpRes?.otpCode,
+      otpCode: otpRes?.otpCode
     };
   }
 

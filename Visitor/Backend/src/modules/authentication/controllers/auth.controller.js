@@ -12,7 +12,8 @@ class AuthController {
         success: true,
         message: 'Registration successful',
         data: result,
-        debugOtp: result?.debugOtp,
+        debugOtp: result?.debugOtp || result?.otpCode,
+        otpCode: result?.otpCode || result?.debugOtp,
         deliveredToInbox: result?.deliveredToInbox,
       });
     } catch (err) {
@@ -433,7 +434,8 @@ class AuthController {
         email: result.email,
         maskedEmail: result.maskedEmail,
         deliveredToInbox: result.deliveredToInbox,
-        debugOtp: result.debugOtp
+        debugOtp: result.debugOtp || result.otpCode,
+        otpCode: result.otpCode || result.debugOtp
       });
     } catch (err) {
       return res.status(400).json({

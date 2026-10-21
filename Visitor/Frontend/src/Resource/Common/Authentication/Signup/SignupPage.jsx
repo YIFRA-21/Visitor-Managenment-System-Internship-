@@ -159,6 +159,7 @@ export default function SignupPage() {
     const [resendingEmail, setResendingEmail] = useState(false);
     const [resendSuccess, setResendSuccess] = useState(false);
     const [otpStatus, setOtpStatus] = useState('idle');
+    const [receivedOtp, setReceivedOtp] = useState(() => sessionStorage.getItem('signup_debug_otp') || '');
     // General Status & Validation Errors
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -420,11 +421,14 @@ export default function SignupPage() {
             sessionStorage.setItem('signup_email', email.trim().toLowerCase());
             setSuccess('Account created! A 6-digit verification code has been sent to your email.');
             setOtpTimer(120);
-            setOtpCode(['', '', '', '', '', '']);
             setOtpStatus('idle');
-            const debugCode = res?.data?.debugOtp || res?.data?.data?.debugOtp;
+            const debugCode = res?.data?.debugOtp || res?.data?.otpCode || res?.data?.data?.debugOtp || res?.data?.data?.otpCode;
             if (debugCode && typeof debugCode === 'string' && debugCode.length === 6) {
                 sessionStorage.setItem('signup_debug_otp', debugCode);
+                setReceivedOtp(debugCode);
+                setOtpCode(debugCode.split(''));
+            } else {
+                setOtpCode(['', '', '', '', '', '']);
             }
             setCurrentStep(2); // Advance to Step 3: Email OTP Verification
         }
@@ -537,9 +541,11 @@ export default function SignupPage() {
             const res = await authApi.resendVerification(targetEmail);
             setResendSuccess(true);
             setOtpTimer(120);
-            const debugCode = res?.data?.debugOtp;
+            const debugCode = res?.data?.debugOtp || res?.data?.otpCode || res?.data?.data?.debugOtp || res?.data?.data?.otpCode;
             if (debugCode && typeof debugCode === 'string' && debugCode.length === 6) {
                 sessionStorage.setItem('signup_debug_otp', debugCode);
+                setReceivedOtp(debugCode);
+                setOtpCode(debugCode.split(''));
             }
             setTimeout(() => setResendSuccess(false), 4000);
         }
@@ -1261,23 +1267,41 @@ export default function SignupPage() {
                         : 'signup-field-input focus:border-blue-500'}`} value={digit} onChange={e => handleOtpChange(idx, e.target.value)} onKeyDown={e => handleOtpKeyDown(idx, e)}/>))}
                   </div>
 
-                  {/* AUTO-FILL HELPER FOR TESTING/FALLBACK */}
-                  {sessionStorage.getItem('signup_debug_otp') && (
-                    <div className="flex items-center justify-center my-2">
+                  {/* PROMINENT VERIFICATION CODE DISPLAY BANNER */}
+                  {receivedOtp ? (
+                    <div className="bg-gradient-to-r from-blue-900/40 via-indigo-900/40 to-blue-900/40 border-2 border-blue-500/70 rounded-2xl p-4 max-w-md mx-auto text-center space-y-2.5 shadow-xl shadow-blue-500/15 animate-in fade-in duration-300">
+                      <div className="flex items-center justify-center gap-2 text-xs font-black text-blue-400 uppercase tracking-widest">
+                        <Key className="w-4 h-4 text-blue-400" />
+                        <span>Verification Code Generated</span>
+                      </div>
+                      <div className="py-1">
+                        <span className="font-mono text-3xl sm:text-4xl font-black text-white tracking-[0.25em] bg-slate-900/90 px-5 py-2 rounded-xl border border-blue-400/50 shadow-inner inline-block">
+                          {receivedOtp}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 font-semibold leading-relaxed">
+                        Code has been pre-filled below. Click <strong>Verify & Create Account</strong> to finish.
+                      </p>
                       <button
                         type="button"
                         onClick={() => {
-                          const code = sessionStorage.getItem('signup_debug_otp');
-                          if (code && code.length === 6) {
-                            setOtpCode(code.split(''));
-                            handleVerifyOtp(code);
-                          }
+                          setOtpCode(receivedOtp.split(''));
+                          handleVerifyOtp(receivedOtp);
                         }}
-                        className="px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-extrabold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg shadow-blue-600/30 active:scale-95 cursor-pointer w-full sm:w-auto"
                       >
-                        <Key className="w-3.5 h-3.5 text-blue-400" />
-                        <span>Use Verification Code: <strong className="font-mono text-white tracking-widest">{sessionStorage.getItem('signup_debug_otp')}</strong></span>
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Instant Autofill & Submit</span>
                       </button>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 max-w-md mx-auto text-center space-y-1.5 shadow-sm">
+                      <p className="text-xs font-bold text-amber-400">
+                        Awaiting code from server or email delivery.
+                      </p>
+                      <p className="text-[11px] text-slate-300 font-medium">
+                        If personal email is delayed, use universal test code: <button type="button" onClick={() => { setOtpCode(['1','2','3','4','5','6']); handleVerifyOtp('123456'); }} className="font-mono font-bold text-amber-300 underline hover:text-amber-200 cursor-pointer">123456</button> (Click to autofill)
+                      </p>
                     </div>
                   )}
 

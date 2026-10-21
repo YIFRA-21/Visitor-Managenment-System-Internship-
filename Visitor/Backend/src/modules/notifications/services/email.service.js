@@ -11,8 +11,9 @@ class EmailService {
   async initTransporter() {
     const service = process.env.SMTP_SERVICE; // e.g. 'gmail', 'outlook', 'sendgrid'
     const host = process.env.SMTP_HOST;
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
+    const user = (process.env.SMTP_USER || '').trim();
+    const rawPass = (process.env.SMTP_PASS || '').trim();
+    const pass = rawPass.replace(/\s+/g, ''); // Automatically strip spaces from copied App Passwords (e.g. "abcd efgh ijkl mnop" -> "abcdefghijklmnop")
 
     const isPlaceholder = (val) => !val || /your_email|your_app_password|example\.com/i.test(val);
 
