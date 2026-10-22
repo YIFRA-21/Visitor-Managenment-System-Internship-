@@ -426,6 +426,29 @@ export default function SignupPage() {
         try {
             const res = await authApi.register(payload);
             sessionStorage.setItem('signup_email', email.trim().toLowerCase());
+
+            // Persist real visitor signup data so profile/history pages display actual info
+            const visitorData = {
+                fullName: payload.fullName,
+                visitorName: payload.fullName,
+                firstName: payload.firstName,
+                middleName: payload.middleName,
+                lastName: payload.lastName,
+                email: payload.email,
+                phone: payload.phone,
+                gender: payload.gender,
+                dateOfBirth: payload.dateOfBirth,
+                nationality: payload.nationality,
+                address: payload.address,
+                referenceNumber: referenceCode,
+                userCode: res.data?.data?.userCode || '',
+                visitorId: res.data?.data?.profileId || res.data?.data?.userId || '',
+                historyCode: `VIS-2026-${String(res.data?.data?.profileId || 1).padStart(6, '0')}`,
+            };
+            sessionStorage.setItem('registered_visitor_data', JSON.stringify(visitorData));
+            localStorage.setItem('registered_visitor_data', JSON.stringify(visitorData));
+            sessionStorage.setItem('signup_personal_info', JSON.stringify(visitorData));
+
             setSuccess('Account created! A 6-digit verification code has been sent to your email.');
             setOtpTimer(60);
             setOtpCode(['', '', '', '', '', '']);
@@ -501,8 +524,9 @@ export default function SignupPage() {
                 catch (loginErr) {
                     console.warn('Auto login after OTP note:', loginErr);
                 }
+                // Clear temporary signup keys but preserve visitor profile data
                 Object.keys(sessionStorage).forEach(key => {
-                    if (key.startsWith('signup_'))
+                    if (key.startsWith('signup_') && key !== 'signup_personal_info')
                         sessionStorage.removeItem(key);
                 });
                 // Delay 1.2s so the user clearly sees the green state before advancing to the Welcome screen

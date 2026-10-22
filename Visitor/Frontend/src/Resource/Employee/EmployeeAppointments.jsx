@@ -702,8 +702,8 @@ export default function EmployeeAppointments() {
                       {/* VISITOR / GUEST */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div>
-                          <span className="font-extrabold text-white block text-xs">{apt.visitor_name || 'Guest Visitor'}</span>
-                          <div className="text-[10px] text-slate-400 font-semibold">{apt.visitor_company || 'IT Park'}</div>
+                          <span className="font-extrabold text-white block text-xs">{apt.visitor_name || '—'}</span>
+                          <div className="text-[10px] text-slate-400 font-semibold">{apt.visitor_company || apt.company || '—'}</div>
                           {apt.visitor_email && <div className="text-[10px] text-slate-500 font-mono mt-0.5">{apt.visitor_email}</div>}
                         </div>
                       </td>
@@ -712,10 +712,10 @@ export default function EmployeeAppointments() {
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div>
                           <span className="font-extrabold text-slate-200 block text-xs">
-                            {apt.host_name || 'Michael Johnson'}
+                            {apt.host_name || '—'}
                           </span>
                           <span className="px-2 py-0.5 rounded-full border border-slate-700 text-[9px] font-bold text-slate-400 bg-[#070b16] inline-block mt-0.5">
-                            {apt.department || 'IT Department'}
+                            {apt.department || apt.department_name || '—'}
                           </span>
                         </div>
                       </td>
@@ -724,10 +724,10 @@ export default function EmployeeAppointments() {
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div>
                           <span className="font-semibold text-slate-300 block text-xs">
-                            {apt.location || 'Main Office, Building A, 3rd Floor'}
+                            {apt.location || '—'}
                           </span>
                           <span className="text-[10px] text-slate-400 block mt-0.5">
-                            {apt.room_name || 'Meeting Room A-301'}
+                            {apt.room_name || '—'}
                           </span>
                         </div>
                       </td>

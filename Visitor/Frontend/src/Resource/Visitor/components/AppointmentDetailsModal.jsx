@@ -38,50 +38,44 @@ export default function AppointmentDetailsModal({ appointment, onClose, onResche
         }
         catch (e) { }
         return {
-            fullName: p.full_name || 'Minilik Ayele Yifra',
-            email: p.email || 'belayyifra@gmail.com',
-            phone: p.phone || '+251 92 110 9998',
-            company: p.company || 'IT Park',
-            visitorCode: p.visitor_code || 'VIS-2026-000001'
+            fullName: p.full_name || '',
+            email: p.email || '',
+            phone: p.phone || '',
+            company: p.company || '',
+            visitorCode: p.visitor_code || ''
         };
     };
     const vFallback = getVisitorFallback();
     const data = {
-        id: raw.appointmentNumber || raw.historyCode || raw.id || vFallback.visitorCode,
-        title: raw.purpose ? `Visit: ${raw.purpose}` : (raw.title || 'Visitor Appointment'),
-        status: raw.status || raw.visit_status || 'Approved',
-        month: raw.month || (raw.scheduled_start ? new Date(raw.scheduled_start).toLocaleDateString('en-US', { month: 'short' }).toUpperCase() : 'AUG'),
-        day: raw.day || (raw.scheduled_start ? new Date(raw.scheduled_start).getDate() : '03'),
-        weekDay: raw.weekDay || (raw.scheduled_start ? new Date(raw.scheduled_start).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase() : 'MON'),
-        time: raw.time || `${raw.checkInTime || raw.checkin_time || '10:00 AM'} - ${raw.checkOutTime || raw.checkout_time || '11:30 AM'}`,
-        bookedOn: raw.bookedOn || (raw.scheduled_start ? new Date(raw.scheduled_start).toLocaleDateString() : '8/3/2026'),
-        date: raw.date || raw.appointmentDate || (raw.scheduled_start ? new Date(raw.scheduled_start).toLocaleDateString() : '8/3/2026'),
-        purpose: raw.purpose || raw.purposeOfVisit || raw.visit_purpose || 'Business Meeting',
+        id: raw.appointmentNumber || raw.historyCode || raw.reference_code || raw.id || vFallback.visitorCode || '—',
+        title: raw.purpose ? `Visit: ${raw.purpose}` : (raw.title || 'Scheduled Visit'),
+        status: raw.status || raw.visit_status || 'Pending',
+        month: raw.month || (raw.scheduled_start ? new Date(raw.scheduled_start).toLocaleDateString('en-US', { month: 'short' }).toUpperCase() : ''),
+        day: raw.day || (raw.scheduled_start ? new Date(raw.scheduled_start).getDate() : ''),
+        weekDay: raw.weekDay || (raw.scheduled_start ? new Date(raw.scheduled_start).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase() : ''),
+        time: raw.time || (raw.scheduled_start ? new Date(raw.scheduled_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'),
+        bookedOn: raw.bookedOn || (raw.created_at ? new Date(raw.created_at).toLocaleDateString() : (raw.scheduled_start ? new Date(raw.scheduled_start).toLocaleDateString() : '—')),
+        date: raw.date || raw.appointmentDate || (raw.scheduled_start ? new Date(raw.scheduled_start).toLocaleDateString() : '—'),
+        purpose: raw.purpose || raw.purposeOfVisit || raw.visit_purpose || '—',
         meetingType: raw.meetingType || 'In-person Visit',
-        location: raw.location || raw.buildingLocation || raw.meeting_location || 'Main Office, Building A, 3rd Floor',
-        meetingRoom: raw.meetingRoom || 'Meeting Room A-301',
+        location: raw.location || raw.buildingLocation || raw.meeting_location || '—',
+        meetingRoom: raw.meetingRoom || raw.room_name || raw.room || '—',
         specialRequest: raw.specialRequest || raw.additionalNotes || 'None',
-        visitorName: (raw.visitorName && raw.visitorName !== 'N/A' && raw.visitorName !== 'A') ? raw.visitorName : (raw.fullName || raw.full_name || vFallback.fullName),
-        visitorEmail: (raw.email && raw.email !== 'N/A') ? raw.email : (raw.visitorEmail || raw.visitor_email || vFallback.email),
-        visitorPhone: (raw.phone && raw.phone !== 'N/A' && raw.phone !== 'A') ? raw.phone : (raw.visitorPhone || raw.visitor_phone || vFallback.phone),
-        visitorCompany: (() => {
-            const c = (raw.company && raw.company !== 'N/A') ? raw.company : (raw.visitorCompany || raw.visitor_company || vFallback.company);
-            if (!c || c === 'ABC Company Ltd' || c === '-' || ['information national', 'red cloud', 'africom', 'vms enterprise', 'biotech'].some(x => c.toLowerCase().includes(x))) {
-                return 'IT Park';
-            }
-            return c;
-        })(),
-        visitorIdType: raw.identityType || raw.idType || raw.visitorIdType || 'National ID',
-        visitorIdNumber: (raw.identityNumber && raw.identityNumber !== 'N/A') ? raw.identityNumber : (raw.idNumber || raw.visitorIdNumber || vFallback.visitorCode),
-        hostName: (raw.hostName && raw.hostName !== 'N/A') ? raw.hostName : (raw.host || 'Michael Johnson'),
-        hostTitle: raw.hostTitle || 'Host Employee',
-        hostDepartment: raw.department || raw.hostDepartment || raw.departmentName || raw.department_name || 'IT Department',
-        hostEmail: raw.hostEmail || 'michael.johnson@tech.com',
-        hostPhone: raw.hostPhone || '+251 11 987 6543',
+        visitorName: (raw.visitorName && raw.visitorName !== 'N/A' && raw.visitorName !== 'A') ? raw.visitorName : (raw.fullName || raw.full_name || vFallback.fullName || '—'),
+        visitorEmail: (raw.email && raw.email !== 'N/A') ? raw.email : (raw.visitorEmail || raw.visitor_email || vFallback.email || '—'),
+        visitorPhone: (raw.phone && raw.phone !== 'N/A' && raw.phone !== 'A') ? raw.phone : (raw.visitorPhone || raw.visitor_phone || vFallback.phone || '—'),
+        visitorCompany: (raw.company && raw.company !== 'N/A') ? raw.company : (raw.visitorCompany || raw.visitor_company || vFallback.company || ''),
+        visitorIdType: raw.identityType || raw.idType || raw.visitorIdType || '—',
+        visitorIdNumber: (raw.identityNumber && raw.identityNumber !== 'N/A') ? raw.identityNumber : (raw.idNumber || raw.visitorIdNumber || vFallback.visitorCode || '—'),
+        hostName: (raw.hostName && raw.hostName !== 'N/A') ? raw.hostName : (raw.host || '—'),
+        hostTitle: raw.hostTitle || 'Host',
+        hostDepartment: raw.department || raw.hostDepartment || raw.departmentName || raw.department_name || '—',
+        hostEmail: raw.hostEmail || '—',
+        hostPhone: raw.hostPhone || '—',
         timeline: raw.timeline || [
-            { label: 'Appointment Registered', date: raw.bookedOn || '8/3/2026', completed: true },
-            { label: 'Security Clearance', date: 'Approved', completed: true },
-            { label: 'Check-In Time', date: raw.time ? raw.time.split('-')[0] : '10:00 AM', completed: true }
+            { label: 'Appointment Registered', date: raw.bookedOn || '—', completed: true },
+            { label: 'Security Clearance', date: raw.status || 'Pending', completed: true },
+            { label: 'Check-In Time', date: raw.time ? raw.time.split('-')[0] : '—', completed: !!raw.checkInTime }
         ]
     };
     const content = (<div className="bg-[#0f172a] border border-slate-800 text-slate-100 rounded-2xl p-6 w-full shadow-2xl space-y-6 relative font-sans text-xs">
@@ -100,31 +94,31 @@ export default function AppointmentDetailsModal({ appointment, onClose, onResche
       <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start gap-4">
           <div className="w-16 h-16 rounded-xl bg-indigo-950 border border-indigo-700/50 flex flex-col items-center justify-center text-center">
-            <span className="text-[10px] font-bold uppercase text-indigo-400">{data.month || 'MAY'}</span>
-            <span className="text-xl font-black text-slate-100 leading-none">{data.day || '20'}</span>
-            <span className="text-[9px] text-slate-500">{data.weekDay || 'TUE'}</span>
+            <span className="text-[10px] font-bold uppercase text-indigo-400">{data.month || 'APT'}</span>
+            <span className="text-xl font-black text-slate-100 leading-none">{data.day || '—'}</span>
+            <span className="text-[9px] text-slate-500">{data.weekDay || '—'}</span>
           </div>
 
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-bold text-slate-100 mb-0">{data.title || 'Visit to Tech Solutions Inc.'}</h2>
+              <h2 className="text-lg font-bold text-slate-100 mb-0">{data.title || 'Scheduled Visit'}</h2>
               <span className="badge bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px]">
-                {data.status || 'Approved'}
+                {data.status || 'Pending'}
               </span>
             </div>
             <div className="text-slate-400 text-xs flex flex-wrap gap-x-4 gap-y-1">
-              <span><i className="bi bi-briefcase text-indigo-400 me-1"></i> {data.purpose || 'Business Meeting'}</span>
+              <span><i className="bi bi-briefcase text-indigo-400 me-1"></i> {data.purpose || '—'}</span>
               <span><i className="bi bi-[#3b82f6] text-blue-400 me-1"></i> {data.meetingType || 'In-person Meeting'}</span>
             </div>
             <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
-              <span><i className="bi bi-geo-alt me-1"></i> {data.location || 'Main Office, Building A, 3rd Floor'}</span>
+              <span><i className="bi bi-geo-alt me-1"></i> {data.location || '—'}</span>
             </div>
           </div>
         </div>
 
         <div className="text-right font-mono text-[11px] text-slate-400 space-y-1 border-t md:border-t-0 border-slate-800 pt-3 md:pt-0">
-          <div>Appointment ID: <span className="text-indigo-300 font-bold">{data.id || 'APT-2025-000125'}</span></div>
-          <div>Booked on: <span className="text-slate-300">{data.bookedOn || 'May 15, 2025 09:30 AM'}</span></div>
+          <div>Appointment ID: <span className="text-indigo-300 font-bold">{data.id || '—'}</span></div>
+          <div>Booked on: <span className="text-slate-300">{data.bookedOn || '—'}</span></div>
         </div>
       </div>
 
@@ -138,12 +132,12 @@ export default function AppointmentDetailsModal({ appointment, onClose, onResche
               <i className="bi bi-person-vcard text-indigo-400"></i> Visitor Information
             </h4>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div><span className="text-slate-500 block text-[10px]">Name:</span> <span className="text-slate-200 font-semibold">{data.visitorName || 'John Doe'}</span></div>
-              <div><span className="text-slate-500 block text-[10px]">Email:</span> <span className="text-slate-200 font-semibold">{data.visitorEmail || 'john.doe@email.com'}</span></div>
-              <div><span className="text-slate-500 block text-[10px]">Phone:</span> <span className="text-slate-200 font-semibold">{data.visitorPhone || '+251 11 123 4567'}</span></div>
-              <div><span className="text-slate-500 block text-[10px]">Company:</span> <span className="text-slate-200 font-semibold">{data.visitorCompany || 'IT Park'}</span></div>
-              <div><span className="text-slate-500 block text-[10px]">ID Type:</span> <span className="text-slate-200 font-semibold">{data.visitorIdType || 'Passport'}</span></div>
-              <div><span className="text-slate-500 block text-[10px]">ID Number:</span> <span className="text-slate-200 font-semibold">{data.visitorIdNumber || 'P1234567'}</span></div>
+              <div><span className="text-slate-500 block text-[10px]">Name:</span> <span className="text-slate-200 font-semibold">{data.visitorName || '—'}</span></div>
+              <div><span className="text-slate-500 block text-[10px]">Email:</span> <span className="text-slate-200 font-semibold">{data.visitorEmail || '—'}</span></div>
+              <div><span className="text-slate-500 block text-[10px]">Phone:</span> <span className="text-slate-200 font-semibold">{data.visitorPhone || '—'}</span></div>
+              <div><span className="text-slate-500 block text-[10px]">Company:</span> <span className="text-slate-200 font-semibold">{data.visitorCompany || '—'}</span></div>
+              <div><span className="text-slate-500 block text-[10px]">ID Type:</span> <span className="text-slate-200 font-semibold">{data.visitorIdType || '—'}</span></div>
+              <div><span className="text-slate-500 block text-[10px]">ID Number:</span> <span className="text-slate-200 font-semibold">{data.visitorIdNumber || '—'}</span></div>
             </div>
           </div>
 
@@ -154,19 +148,19 @@ export default function AppointmentDetailsModal({ appointment, onClose, onResche
             </h4>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-indigo-950 border border-indigo-700 text-indigo-300 font-bold flex items-center justify-center text-sm">
-                MJ
+                {(data.hostName && data.hostName !== '—') ? data.hostName.slice(0, 2).toUpperCase() : 'H'}
               </div>
               <div>
-                <div className="font-bold text-slate-100">{data.hostName || 'Michael Johnson'}</div>
-                <div className="text-[11px] text-slate-400">{data.hostTitle || 'IT Manager'}</div>
+                <div className="font-bold text-slate-100">{data.hostName || '—'}</div>
+                <div className="text-[11px] text-slate-400">{data.hostTitle || 'Host'}</div>
                 <span className="badge bg-indigo-950 text-indigo-300 border border-indigo-800 text-[9px] mt-1">
-                  {data.hostDepartment || 'IT Department'}
+                  {data.hostDepartment || '—'}
                 </span>
               </div>
             </div>
             <div className="pt-2 border-t border-slate-800/60 space-y-1 text-slate-300 text-xs">
-              <div><i className="bi bi-envelope text-slate-500 me-2"></i> {data.hostEmail || 'michael.johnson@tech.com'}</div>
-              <div><i className="bi bi-telephone text-slate-500 me-2"></i> {data.hostPhone || '+251 11 987 6543'}</div>
+              <div><i className="bi bi-envelope text-slate-500 me-2"></i> {data.hostEmail || '—'}</div>
+              <div><i className="bi bi-telephone text-slate-500 me-2"></i> {data.hostPhone || '—'}</div>
             </div>
           </div>
         </div>
@@ -179,12 +173,7 @@ export default function AppointmentDetailsModal({ appointment, onClose, onResche
               <i className="bi bi-check-circle-fill text-emerald-400"></i> Status Timeline
             </h4>
             <div className="space-y-3 relative pl-4 border-l-2 border-slate-800">
-              {(data.timeline || [
-            { label: 'Appointment Requested', date: 'May 15, 2025 09:30 AM', completed: true },
-            { label: 'Host Approved', date: 'May 16, 2025 10:15 AM', completed: true },
-            { label: 'Department Approved', date: 'May 18, 2025 02:45 PM', completed: true },
-            { label: 'Appointment Confirmed', date: 'May 19, 2025 09:10 AM', completed: true }
-        ]).map((stepItem, idx) => (<div key={idx} className="relative">
+              {(data.timeline || []).map((stepItem, idx) => (<div key={idx} className="relative">
                   <div className="absolute -left-[23px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center text-[8px] text-slate-950 font-bold">
                     ✓
                   </div>
@@ -200,11 +189,11 @@ export default function AppointmentDetailsModal({ appointment, onClose, onResche
               <i className="bi bi-info-circle text-indigo-400"></i> Appointment Information
             </h4>
             <div className="space-y-2 text-xs">
-              <div><span className="text-slate-500">Date:</span> <span className="text-slate-200 font-semibold">{data.date || 'May 20, 2025 (Tuesday)'}</span></div>
-              <div><span className="text-slate-500">Time:</span> <span className="text-slate-200 font-semibold font-mono">{data.time || '10:00 AM - 11:00 AM'}</span></div>
-              <div><span className="text-slate-500">Location:</span> <span className="text-slate-200 font-semibold">{data.location || 'Main Office, Building A, 3rd Floor'}</span></div>
-              <div><span className="text-slate-500">Meeting Room:</span> <span className="text-slate-200 font-semibold">{data.meetingRoom || 'Meeting Room A-301'}</span></div>
-              <div><span className="text-slate-500">Purpose:</span> <span className="text-slate-200 font-semibold">{data.purpose || 'Business Meeting'}</span></div>
+              <div><span className="text-slate-500">Date:</span> <span className="text-slate-200 font-semibold">{data.date || '—'}</span></div>
+              <div><span className="text-slate-500">Time:</span> <span className="text-slate-200 font-semibold font-mono">{data.time || '—'}</span></div>
+              <div><span className="text-slate-500">Location:</span> <span className="text-slate-200 font-semibold">{data.location || '—'}</span></div>
+              <div><span className="text-slate-500">Meeting Room:</span> <span className="text-slate-200 font-semibold">{data.meetingRoom || '—'}</span></div>
+              <div><span className="text-slate-500">Purpose:</span> <span className="text-slate-200 font-semibold">{data.purpose || '—'}</span></div>
               <div><span className="text-slate-500">Special Request:</span> <span className="text-slate-200 font-semibold">{data.specialRequest || 'None'}</span></div>
             </div>
           </div>

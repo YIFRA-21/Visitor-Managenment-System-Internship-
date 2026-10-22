@@ -253,6 +253,15 @@ class AppointmentService {
       const hostName = hostUser?.full_name || 'Host Representative';
       const nowFormatted = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
+      let meetingLoc = appointmentData.meeting_location || appointmentData.location || '';
+      if (!meetingLoc && roomId) {
+        try {
+          const roomRows = await queryExec('SELECT room_name FROM meeting_rooms WHERE id = ?', [roomId]);
+          if (roomRows && roomRows[0]?.room_name) meetingLoc = roomRows[0].room_name;
+        } catch (e) {}
+      }
+      if (!meetingLoc) meetingLoc = '—';
+
       const existingHist = await queryExec(
         'SELECT id FROM visitor_histories WHERE visitor_id = ? AND is_deleted = FALSE ORDER BY id DESC LIMIT 1',
         [visitorId]
@@ -266,6 +275,7 @@ class AppointmentService {
             host_employee_name = ?,
             department_name = ?,
             visit_purpose = ?,
+            meeting_location = ?,
             visit_duration_minutes = ?,
             visit_status = 'Pending',
             completed_date = ?,
@@ -277,6 +287,7 @@ class AppointmentService {
           hostName,
           deptName,
           purpose || 'Business Appointment',
+          meetingLoc,
           durMinutes,
           scheduledStart,
           nowFormatted,
@@ -300,21 +311,21 @@ class AppointmentService {
           visitor.full_name || visitorName || 'Visitor',
           visitor.email || visitorEmail || '',
           visitor.phone || '',
-          visitor.company || company || 'Enterprise Visitor',
-          'General Visitor',
+          visitor.company || company || '',
+          visitor.category || 'Visitor',
           hostName,
           deptName,
           referenceCode,
           purpose || 'Business Appointment',
-          'Main HQ',
+          meetingLoc,
           null,
           null,
           durMinutes,
           `VP-2026-${String(visitorId).padStart(4, '0')}`,
           'Pending',
-          visitor.id_type || idType || 'Government ID',
-          visitor.id_number || idNumber || 'VERIFIED',
-          'Verified',
+          visitor.id_type || idType || '—',
+          visitor.id_number || idNumber || '—',
+          'Pending Approval',
           scheduledStart
         ]);
       }

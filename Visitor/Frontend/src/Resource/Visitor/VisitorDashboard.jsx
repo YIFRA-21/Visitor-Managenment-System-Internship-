@@ -136,10 +136,10 @@ export default function VisitorDashboard() {
             fullName: authName,
             email: authEmail || p.email || '',
             phone: p.phone || user?.phone || '',
-            company: (!p.company || ['information national', 'red cloud', 'africom', 'vms enterprise', 'abc company'].some(x => p.company.toLowerCase().includes(x))) ? 'IT Park' : p.company,
+            company: p.company || user?.company || '',
             visitorCode: p.visitor_code || user?.visitorCode || `VIS-${user?.id || '2026-001'}`,
             referenceNumber: p.reference_number || user?.referenceNumber || `REF-${user?.id || 'REG-2026'}`,
-            department: p.department_name || 'Visitor Access Control',
+            department: p.department_name || p.department || '—',
         };
     }, [user]);
     // Visitor Digital Pass details
@@ -242,18 +242,18 @@ export default function VisitorDashboard() {
                     }
                     return {
                         id: a.id || a.appointment_code || a.reference_code,
-                        title: a.purpose || a.title || 'Business Meeting',
-                        host: a.hostName || a.host_name || a.host || 'Host',
-                        hostDepartment: a.hostDepartment || a.department_name || 'General',
+                        title: a.purpose || a.title || '—',
+                        host: a.hostName || a.host_name || a.host || '—',
+                        hostDepartment: a.hostDepartment || a.department_name || '—',
                         hostAvatar: '',
                         dateStr,
                         month,
                         day,
                         weekday,
-                        time: a.time || '10:00 AM - 11:30 AM',
-                        location: a.location || 'Main Office',
-                        room: a.roomName || a.room_name || a.room || 'Meeting Room',
-                        purpose: a.purpose || 'Business Meeting',
+                        time: a.time || (a.scheduled_start ? `${new Date(a.scheduled_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '—'),
+                        location: a.location || '—',
+                        room: a.roomName || a.room_name || a.room || '—',
+                        purpose: a.purpose || '—',
                         status,
                         rawStatus,
                         tabCategory: status === 'Completed' ? 'completed' : status === 'Cancelled' ? 'cancelled' : 'upcoming'
@@ -292,10 +292,10 @@ export default function VisitorDashboard() {
             .filter(a => a.status === 'Completed' || a.status === 'Approved')
             .map((a, idx) => ({
             id: idx + 1,
-            date: a.dateStr || a.date || 'Today',
-            host: `${a.host} (${a.hostDepartment || 'HR'})`,
-            location: a.location || 'Main HQ',
-            purpose: a.purpose || 'Business Visit',
+            date: a.dateStr || a.date || '—',
+            host: a.host ? `${a.host}${a.hostDepartment && a.hostDepartment !== '—' ? ` (${a.hostDepartment})` : ''}` : '—',
+            location: a.location || '—',
+            purpose: a.purpose || '—',
             status: a.status || 'Completed'
         }));
     }, [appointments]);

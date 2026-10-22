@@ -980,7 +980,7 @@ export const RegistrationWizard = ({ onSuccess, onCancel, initialDraftId, depart
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">{t('form.company', 'Company / Organization Name')}</label>
-                  <input type="text" data-invalid={errors.company ? 'true' : undefined} aria-invalid={errors.company ? 'true' : undefined} value={formData.company || ''} onChange={(e) => handleChange('company', e.target.value)} placeholder={t('placeholder.company', 'e.g. IT Park')} className={`w-full bg-slate-900/90 border rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none transition-all ${errors.company ? 'border-2 border-rose-500 bg-rose-950/20' : 'border-slate-800 focus:border-indigo-500'}`}/>
+                  <input type="text" data-invalid={errors.company ? 'true' : undefined} aria-invalid={errors.company ? 'true' : undefined} value={formData.company || ''} onChange={(e) => handleChange('company', e.target.value)} placeholder={t('placeholder.company', 'e.g. Acme Corp')} className={`w-full bg-slate-900/90 border rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none transition-all ${errors.company ? 'border-2 border-rose-500 bg-rose-950/20' : 'border-slate-800 focus:border-indigo-500'}`}/>
                   {errors.company && (
                     <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-semibold" role="alert">
                       <AlertCircle size={12} className="flex-shrink-0" />

@@ -87,9 +87,9 @@ export default function VisitHistory() {
         const authName = userFromStorage?.fullName || userFromStorage?.full_name || profileData?.full_name || registeredData?.visitorName || registeredData?.fullName || registeredData?.full_name || 'Visitor';
         const authEmail = currentEmail || registeredData?.email || '';
         const authPhone = userFromStorage?.phone || profileData?.phone || registeredData?.phone || registeredData?.visitor_phone || '-';
-        const authCompany = profileData?.company || registeredData?.company || registeredData?.visitor_company || 'IT Park';
-        const authIdType = profileData?.id_type || registeredData?.idType || registeredData?.identityType || registeredData?.id_type || 'National ID';
-        const authIdNum = profileData?.id_number || registeredData?.idNumber || registeredData?.identityNumber || registeredData?.id_number || 'Not provided';
+        const authCompany = profileData?.company || registeredData?.company || registeredData?.visitor_company || '';
+        const authIdType = profileData?.id_type || registeredData?.idType || registeredData?.identityType || registeredData?.id_type || '—';
+        const authIdNum = profileData?.id_number || registeredData?.idNumber || registeredData?.identityNumber || registeredData?.id_number || '—';
         const authPhoto = (() => {
             const explicit = sessionStorage.getItem('visitor_uploaded_photo') ||
                 localStorage.getItem('visitor_uploaded_photo') ||
@@ -118,7 +118,7 @@ export default function VisitHistory() {
         const authCategory = registeredData?.category || registeredData?.visitor_category || profileData?.category || '-';
         const authHost = registeredData?.hostName || registeredData?.host_employee_name || '-';
         const authDept = registeredData?.department || registeredData?.department_name || '-';
-        const authPurpose = registeredData?.purposeOfVisit || registeredData?.purpose || registeredData?.visit_purpose || 'Account Registration & Entry Verification';
+        const authPurpose = registeredData?.purposeOfVisit || registeredData?.purpose || registeredData?.visit_purpose || '—';
         const authLocation = registeredData?.buildingLocation || registeredData?.location || registeredData?.meeting_location || '-';
         const authDate = registeredData?.expectedDate || registeredData?.appointmentDate || new Date().toISOString().split('T')[0];
         const authVerification = registeredData?.verificationStatus || registeredData?.verification_status || registeredData?.id_verification_status || 'Pending Verification';
@@ -147,7 +147,7 @@ export default function VisitHistory() {
                     let email = item.visitor_email || item.email || authEmail;
                     let phone = item.visitor_phone || item.phone || authPhone;
                     const rawComp = item.visitor_company || item.company || authCompany;
-                    const company = (!rawComp || rawComp === '-' || ['information national', 'red cloud', 'africom', 'vms enterprise'].some(x => rawComp.toLowerCase().includes(x))) ? 'IT Park' : rawComp;
+                    const company = (!rawComp || rawComp === '-') ? (authCompany || '') : rawComp;
                     const category = item.visitor_category || item.category || authCategory;
                     const identityType = item.identity_type || item.identityType || authIdType;
                     const identityNumber = item.identity_number || item.identityNumber || authIdNum;
@@ -280,25 +280,25 @@ export default function VisitHistory() {
                     historyCode: h.historyCode || h.referenceCode || `VIS-2026-${String(userFromStorage?.id || 1).padStart(4, '0')}`,
                     referenceNumber: h.referenceNumber || h.referenceCode || `REF-REG-2026-${String(userFromStorage?.id || 1).padStart(3, '0')}`,
                     visitorName: h.visitorName || authName,
-                    company: (!h.company || h.company === '-' || ['information national', 'red cloud', 'africom', 'vms enterprise'].some(x => h.company.toLowerCase().includes(x))) ? (authCompany || 'IT Park') : h.company,
-                    identityNumber: h.identityNumber || authIdNum || 'Not provided',
-                    identityType: h.identityType || authIdType || 'National ID',
-                    category: h.category || 'Business Visitor',
-                    hostName: h.hostName || h.host || '-',
-                    department: h.department || h.hostDepartment || '-',
-                    appointmentNumber: h.appointmentNumber || h.id || '-',
-                    purpose: h.purpose || h.title || 'Business Visit',
-                    checkInTime: h.check_in_time || h.checkInTime || '-',
-                    checkOutTime: h.check_out_time || h.checkOutTime || '-',
+                    company: (!h.company || h.company === '-') ? (authCompany || '') : h.company,
+                    identityNumber: h.identityNumber || authIdNum || '—',
+                    identityType: h.identityType || authIdType || '—',
+                    category: h.category || authCategory || '—',
+                    hostName: h.hostName || h.host || '—',
+                    department: h.department || h.hostDepartment || '—',
+                    appointmentNumber: h.appointmentNumber || h.id || '—',
+                    purpose: h.purpose || h.title || '—',
+                    checkInTime: h.check_in_time || h.checkInTime || '—',
+                    checkOutTime: h.check_out_time || h.checkOutTime || '—',
                     duration: h.duration || 0,
                     status: (h.status || 'PENDING').toUpperCase(),
                     scheduled_start: h.scheduled_start || authDate,
                     email: h.email || authEmail,
-                    phone: h.phone || authPhone,
-                    location: h.location || '-',
-                    branch: h.branch || 'Main HQ',
+                    phone: h.phone || authPhone || '—',
+                    location: h.location || '—',
+                    branch: h.branch || '—',
                     passNumber: h.passNumber || `VP-2026-${String(userFromStorage?.id || 1).padStart(4, '0')}`,
-                    verificationStatus: h.verificationStatus || authVerification,
+                    verificationStatus: h.verificationStatus || authVerification || 'Pending Verification',
                     photoUrl: authPhoto,
                     documents: authDocs
                 }));
@@ -316,23 +316,23 @@ export default function VisitHistory() {
                     historyCode: registeredData?.historyCode || `VIS-2026-${String(currentUserId).padStart(4, '0')}`,
                     referenceNumber: registeredData?.referenceNumber || `REF-REG-2026-${String(currentUserId).padStart(3, '0')}`,
                     visitorName: authName,
-                    company: (!authCompany || authCompany === '-' || ['information national', 'red cloud', 'africom', 'vms enterprise'].some(x => authCompany.toLowerCase().includes(x))) ? 'IT Park' : authCompany,
-                    identityNumber: authIdNum || 'Not provided',
-                    identityType: authIdType || 'National ID',
-                    category: authCategory || 'General Visitor',
-                    hostName: registeredData?.hostName || '-',
-                    department: registeredData?.department || '-',
-                    appointmentNumber: '-',
-                    purpose: 'Account Registration & Entry Verification',
-                    checkInTime: '-',
-                    checkOutTime: '-',
+                    company: (!authCompany || authCompany === '-') ? '' : authCompany,
+                    identityNumber: authIdNum || '—',
+                    identityType: authIdType || '—',
+                    category: authCategory || '—',
+                    hostName: registeredData?.hostName || '—',
+                    department: registeredData?.department || '—',
+                    appointmentNumber: '—',
+                    purpose: '—',
+                    checkInTime: '—',
+                    checkOutTime: '—',
                     duration: 0,
                     status: 'PENDING',
                     scheduled_start: authDate,
                     email: authEmail,
-                    phone: authPhone || '-',
-                    location: '-',
-                    branch: 'Main HQ',
+                    phone: authPhone || '—',
+                    location: '—',
+                    branch: '—',
                     passNumber: `VP-2026-${String(currentUserId).padStart(4, '0')}`,
                     verificationStatus: authVerification || 'Pending Verification',
                     photoUrl: authPhoto,
