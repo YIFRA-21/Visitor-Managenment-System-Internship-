@@ -377,6 +377,7 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
   if (!phoneInput || !String(phoneInput).trim()) {
     return {
       valid: false,
+      isValid: false,
       error: 'Phone number is required.',
       cleanPhone: '',
       fullInternational: '',
@@ -384,12 +385,28 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
     };
   }
 
+  const rawStr = String(phoneInput).trim();
+  let effectiveDial = dialCode || '+251';
+  let effectiveCountryCode = countryCode || 'ET';
+
+  // Auto-detect dial code and country if input starts with '+' or '00'
+  if (rawStr.startsWith('+') || rawStr.startsWith('00')) {
+    const parsed = parseInternationalPhone(rawStr, effectiveDial, effectiveCountryCode);
+    if (parsed && parsed.dialCode) {
+      effectiveDial = parsed.dialCode;
+      if (parsed.country && parsed.country.code) {
+        effectiveCountryCode = parsed.country.code;
+      }
+    }
+  }
+
   // Strip spaces, dashes, parentheses
-  let digits = String(phoneInput).replace(/\D/g, '');
+  let digits = rawStr.replace(/\D/g, '');
 
   if (!digits) {
     return {
       valid: false,
+      isValid: false,
       error: 'Please enter a valid phone number with numbers only.',
       cleanPhone: '',
       fullInternational: '',
@@ -397,7 +414,7 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
     };
   }
 
-  const normalizedDial = dialCode.startsWith('+') ? dialCode : `+${dialCode}`;
+  const normalizedDial = effectiveDial.startsWith('+') ? effectiveDial : `+${effectiveDial}`;
   const dialDigits = normalizedDial.replace('+', '');
 
   // Strip dial code if user typed/pasted it with dial code included
@@ -406,19 +423,24 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
   }
 
   // Ethiopia (+251) Specific Rules
-  if (normalizedDial === '+251' || countryCode === 'ET') {
-    // If entered with leading 0 (e.g. 0911234567 or 0712345678)
-    if (digits.startsWith('0') && digits.length === 10) {
-      digits = digits.slice(1);
+  if (normalizedDial === '+251' || effectiveCountryCode === 'ET') {
+    // If entered including country code + leading zero e.g. 2510911234567 (13 digits)
+    if (digits.startsWith('2510') && digits.length === 13) {
+      digits = digits.slice(4);
     }
-    // If entered including country code 251911234567
-    if (digits.startsWith('251') && digits.length === 12) {
+    // If entered including country code e.g. 251911234567 (12 digits)
+    else if (digits.startsWith('251') && digits.length === 12) {
       digits = digits.slice(3);
+    }
+    // If entered with leading 0 (e.g. 0911234567 or 0712345678 - 10 digits)
+    else if (digits.startsWith('0') && digits.length === 10) {
+      digits = digits.slice(1);
     }
 
     if (digits.length < 9) {
       return {
         valid: false,
+        isValid: false,
         error: `Phone number is too short (${digits.length}/9 digits). Example: 911 234 567`,
         cleanPhone: digits,
         fullInternational: `${normalizedDial} ${digits}`,
@@ -429,6 +451,7 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
     if (digits.length > 9) {
       return {
         valid: false,
+        isValid: false,
         error: `Phone number is too long (${digits.length}/9 digits). Ethiopian mobile numbers have 9 digits.`,
         cleanPhone: digits,
         fullInternational: `${normalizedDial} ${digits}`,
@@ -436,10 +459,11 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
       };
     }
 
-    // Must start with 9 (Ethio Telecom) or 7 (Safaricom)
-    if (!digits.startsWith('9') && !digits.startsWith('7')) {
+    // Must start with 9 (Ethio Telecom) or 7 (Safaricom) or 1 (Landline)
+    if (!digits.startsWith('9') && !digits.startsWith('7') && !digits.startsWith('1')) {
       return {
         valid: false,
+        isValid: false,
         error: 'Ethiopian mobile numbers must start with 9 or 7 (e.g. 911 234 567).',
         cleanPhone: digits,
         fullInternational: `${normalizedDial} ${digits}`,
@@ -449,6 +473,7 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
 
     return {
       valid: true,
+      isValid: true,
       error: null,
       cleanPhone: digits,
       fullInternational: `${normalizedDial} ${digits}`,
@@ -465,6 +490,7 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
     if (digits.length !== 10) {
       return {
         valid: false,
+        isValid: false,
         error: `Phone number must be exactly 10 digits for North America (currently ${digits.length}).`,
         cleanPhone: digits,
         fullInternational: `${normalizedDial} ${digits}`,
@@ -474,6 +500,7 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
 
     return {
       valid: true,
+      isValid: true,
       error: null,
       cleanPhone: digits,
       fullInternational: `${normalizedDial} ${digits}`,
@@ -489,6 +516,7 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
   if (digits.length < 6) {
     return {
       valid: false,
+      isValid: false,
       error: 'Phone number is too short (minimum 6 digits).',
       cleanPhone: digits,
       fullInternational: `${normalizedDial} ${digits}`,
@@ -499,6 +527,7 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
   if (digits.length > 15) {
     return {
       valid: false,
+      isValid: false,
       error: 'Phone number cannot exceed 15 digits according to international standards.',
       cleanPhone: digits,
       fullInternational: `${normalizedDial} ${digits}`,
@@ -508,6 +537,7 @@ export function validatePhoneNumber(phoneInput, dialCode = '+251', countryCode =
 
   return {
     valid: true,
+    isValid: true,
     error: null,
     cleanPhone: digits,
     fullInternational: `${normalizedDial} ${digits}`,

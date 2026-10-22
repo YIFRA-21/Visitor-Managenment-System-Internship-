@@ -127,7 +127,11 @@ export default function BranchEdit() {
               id="branch-edit-phone"
               name="phone"
               value={formData.phone}
-              onChange={(val) => setFormData(prev => ({ ...prev, phone: val }))}
+              onChange={(val) => {
+                const phoneStr = typeof val === 'string' ? val
+                  : (val?.target?.value || val?.value || String(val || ''));
+                setFormData(prev => ({ ...prev, phone: phoneStr }));
+              }}
               showValidationHelper={false}
             />
           </div>

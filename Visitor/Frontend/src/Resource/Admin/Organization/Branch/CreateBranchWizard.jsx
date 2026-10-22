@@ -100,7 +100,7 @@ export default function CreateBranchWizard() {
             }
             if (formData.phone && formData.phone.trim()) {
                 const phoneCheck = validatePhoneNumber(formData.phone);
-                if (!phoneCheck.isValid) {
+                if (!phoneCheck.valid && !phoneCheck.isValid) {
                     errs.phone = isAm ? 'ትክክለኛ ስልክ ቁጥር ያስገቡ' : (phoneCheck.error || 'Invalid phone number');
                 }
             }
@@ -276,7 +276,6 @@ export default function CreateBranchWizard() {
                                     error={fieldErrors.phone}
                                     placeholder={isAm ? 'የስልክ ቁጥር ያስገቡ' : 'e.g. 0911234567'}
                                 />
-                                {renderFieldError('phone')}
                             </div>
                             <div className="col-12">
                                 <label className="form-label font-bold text-xxs uppercase text-slate-400">
