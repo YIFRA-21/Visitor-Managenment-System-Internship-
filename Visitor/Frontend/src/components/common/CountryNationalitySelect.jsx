@@ -383,8 +383,17 @@ export default function CountryNationalitySelect({
                   <button
                     key={c.code}
                     type="button"
-                    onClick={() => handleSelect(c)}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-600 dark:bg-slate-800 dark:hover:bg-blue-950 dark:hover:text-blue-300 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 transition-colors shrink-0"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSelect(c);
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSelect(c);
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 hover:bg-blue-600 hover:text-white dark:bg-slate-800 dark:hover:bg-blue-600 dark:hover:text-white text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 transition-all shrink-0 cursor-pointer"
                   >
                     <FlagImage code={c.code} flagEmoji={c.flag} className="w-3.5 h-2.5" />
                     <span>{returnMode === 'country' ? c.name : c.nationality}</span>
@@ -417,19 +426,29 @@ export default function CountryNationalitySelect({
                 const isActive = index === activeIndex;
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={country.code}
                     data-index={index}
                     role="option"
                     aria-selected={isSelected}
-                    onClick={() => handleSelect(country)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSelect(country);
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSelect(country);
+                    }}
                     onMouseEnter={() => setActiveIndex(index)}
-                    className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                    className={`w-full text-left flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold cursor-pointer transition-all outline-none border ${
                       isSelected
-                        ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold'
+                        ? 'bg-blue-600 text-white font-bold border-blue-500 shadow-md ring-2 ring-blue-400/40'
                         : isActive
-                        ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-white'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-transparent'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 border-transparent'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -441,10 +460,10 @@ export default function CountryNationalitySelect({
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="truncate">
+                          <span className={`truncate ${isSelected ? 'text-white font-extrabold' : ''}`}>
                             {returnMode === 'country' ? country.name : country.nationality}
                           </span>
-                          <span className="text-[10px] font-normal text-slate-400 dark:text-slate-500 truncate">
+                          <span className={`text-[10px] font-normal truncate ${isSelected ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}`}>
                             • {returnMode === 'country' ? country.nationality : country.name}
                           </span>
                         </div>
@@ -452,14 +471,21 @@ export default function CountryNationalitySelect({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                        isSelected 
+                          ? 'bg-blue-700 text-white border-blue-400' 
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                      }`}>
                         {country.code}
                       </span>
-                      {isSelected && (
-                        <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      )}
+                      {isSelected ? (
+                        <span className="flex items-center gap-1 text-[11px] font-bold text-white bg-white/20 px-2 py-0.5 rounded-full">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Selected</span>
+                        </span>
+                      ) : null}
                     </div>
-                  </div>
+                  </button>
                 );
               })
             )}
@@ -485,9 +511,46 @@ export default function CountryNationalitySelect({
         </p>
       )}
 
+      {/* Live Selection Status & Phone Detection Mechanism */}
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 animate-in fade-in duration-150">
+        {selectedCountry ? (
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
+            <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>Selected: {selectedCountry.name} ({selectedCountry.code})</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-400 bg-amber-950/40 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>No country selected</span>
+          </div>
+        )}
+
+        {/* Quick Apply Phone Detected Country */}
+        {phoneDetectedCountry && (!selectedCountry || selectedCountry.code !== phoneDetectedCountry.code) && (
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSelect(phoneDetectedCountry);
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSelect(phoneDetectedCountry);
+            }}
+            className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-300 bg-indigo-950/60 border border-indigo-500/40 hover:bg-indigo-900/60 hover:text-white px-2.5 py-1 rounded-lg cursor-pointer transition-all"
+            title={`Click to set country to ${phoneDetectedCountry.name} from phone number`}
+          >
+            <FlagImage code={phoneDetectedCountry.code} flagEmoji={phoneDetectedCountry.flag} className="w-3.5 h-2.5" />
+            <span>Use {phoneDetectedCountry.name} (from phone)</span>
+          </button>
+        )}
+      </div>
+
       {/* Phone Cross-Validation Notice */}
       {!error && phoneValidation && !phoneValidation.valid && (
-        <div className="mt-1 flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 animate-in fade-in duration-150">
+        <div className="mt-1.5 flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 animate-in fade-in duration-150">
           <span className="flex items-center gap-1.5">
             <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span>{phoneValidation.message}</span>
@@ -495,7 +558,16 @@ export default function CountryNationalitySelect({
           {phoneValidation.detectedCountry && (
             <button
               type="button"
-              onClick={() => handleSelect(phoneValidation.detectedCountry)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSelect(phoneValidation.detectedCountry);
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSelect(phoneValidation.detectedCountry);
+              }}
               className="shrink-0 px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-md cursor-pointer transition-all"
             >
               Select {phoneValidation.detectedCountry.name}
