@@ -775,7 +775,9 @@ export const RegistrationWizard = ({ onSuccess, onCancel, initialDraftId, depart
                     id="wizard-nationality"
                     label={t('form.nationality', 'Nationality')}
                     value={formData.nationality}
-                    onChange={(e) => handleChange('nationality', e.target.value)}
+                    phone={formData.phone ? `${formData.phonePrefix || '+251'} ${formData.phone}` : ''}
+                    autoDetectFromPhone={true}
+                    onChange={(e) => handleChange('nationality', e?.target?.value || e?.value || String(e || ''))}
                     error={errors.nationality}
                     placeholder={t('placeholder.searchNationality', 'Search country or nationality...')}
                   />

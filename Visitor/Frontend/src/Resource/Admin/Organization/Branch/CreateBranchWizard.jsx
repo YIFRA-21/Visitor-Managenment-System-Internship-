@@ -6,7 +6,7 @@ import OperatingHoursForm from './components/OperatingHoursForm';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import CountryNationalitySelect from '../../../../components/common/CountryNationalitySelect';
 import CountryPhoneInput from '../../../../components/common/CountryPhoneInput';
-import { validatePhoneNumber } from '../../../../data/countriesData';
+import { validatePhoneNumber, parseInternationalPhone } from '../../../../data/countriesData';
 
 export default function CreateBranchWizard() {
     const { t, language } = useLanguage();
@@ -58,6 +58,16 @@ export default function CreateBranchWizard() {
             });
     }, []);
 
+    // Automatically auto-populate country from phone number if country is not set yet
+    useEffect(() => {
+        if (!formData.country && formData.phone) {
+            const parsed = parseInternationalPhone(formData.phone);
+            if (parsed?.country?.name) {
+                setFormData(prev => ({ ...prev, country: parsed.country.name }));
+            }
+        }
+    }, [formData.phone]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -106,7 +116,21 @@ export default function CreateBranchWizard() {
             }
         }
         if (s === 3) {
-            if (!formData.country.trim()) errs.country = isAm ? 'ሀገር ያስፈልጋል' : 'Country is required';
+            let currentCountry = formData.country;
+            if (!currentCountry || !String(currentCountry).trim() || String(currentCountry).trim() === '[object Object]') {
+                if (formData.phone) {
+                    const parsed = parseInternationalPhone(formData.phone);
+                    if (parsed?.country?.name) {
+                        currentCountry = parsed.country.name;
+                        setFormData(prev => ({ ...prev, country: currentCountry }));
+                    }
+                }
+            }
+            const cleanCountry = typeof currentCountry === 'string' ? currentCountry.trim()
+                : (currentCountry?.target?.value || currentCountry?.name || String(currentCountry || '')).trim();
+            if (!cleanCountry || cleanCountry === '[object Object]') {
+                errs.country = isAm ? 'ሀገር ያስፈልጋል' : 'Country is required';
+            }
             if (!formData.region.trim()) errs.region = isAm ? 'ክልል ያስፈልጋል' : 'Region is required';
             if (!formData.city.trim()) errs.city = isAm ? 'ከተማ ያስፈልጋል' : 'City is required';
             if (!formData.address.trim()) errs.address = isAm ? 'የመንገድ ወይም የህንፃ አድራሻ ያስፈልጋል' : 'Address is required';
@@ -303,9 +327,13 @@ export default function CreateBranchWizard() {
                                     id="branch-country"
                                     name="country"
                                     value={formData.country}
+                                    phone={formData.phone}
+                                    autoDetectFromPhone={true}
                                     returnMode="country"
                                     onChange={(val) => {
-                                        setFormData(prev => ({ ...prev, country: val }));
+                                        const countryStr = typeof val === 'string' ? val
+                                          : (val?.target?.value || val?.value || val?.name || String(val || ''));
+                                        setFormData(prev => ({ ...prev, country: countryStr }));
                                         if (fieldErrors.country) {
                                             setFieldErrors(prev => { const n = { ...prev }; delete n.country; return n; });
                                         }
@@ -313,7 +341,6 @@ export default function CreateBranchWizard() {
                                     error={fieldErrors.country}
                                     placeholder={isAm ? 'ሀገር ይምረጡ...' : 'Select Country...'}
                                 />
-                                {renderFieldError('country')}
                             </div>
                             <div className="col-12 col-md-4">
                                 <label className="form-label font-bold text-xxs uppercase text-slate-400">

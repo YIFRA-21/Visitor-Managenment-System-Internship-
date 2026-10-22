@@ -368,6 +368,68 @@ export function parseInternationalPhone(input, preferredDial = '+251', preferred
 }
 
 /**
+ * Validate consistency between a country name/code and a phone number.
+ * Returns { valid: boolean, isValid: boolean, message: string|null, detectedCountry: Object|null, selectedCountry: Object|null }
+ */
+export function validateCountryWithPhone(countryInput, phoneInput) {
+  if (!countryInput && !phoneInput) {
+    return { valid: true, isValid: true, message: null, detectedCountry: null, selectedCountry: null };
+  }
+
+  const phoneInfo = phoneInput ? parseInternationalPhone(phoneInput) : null;
+  const detectedCountry = phoneInfo?.country || null;
+
+  if (!countryInput) {
+    return {
+      valid: true,
+      isValid: true,
+      message: null,
+      detectedCountry,
+      selectedCountry: null
+    };
+  }
+
+  const cLower = String(countryInput).trim().toLowerCase();
+  const countryObj = COUNTRIES_DATA.find(
+    c => c.name.toLowerCase() === cLower ||
+         c.nationality.toLowerCase() === cLower ||
+         c.code.toLowerCase() === cLower
+  );
+
+  if (!countryObj || !phoneInfo || !phoneInfo.country) {
+    return {
+      valid: true,
+      isValid: true,
+      message: null,
+      detectedCountry,
+      selectedCountry: countryObj || null
+    };
+  }
+
+  // Check if dial code matches (or if both are in North America +1)
+  const dialMatches = (countryObj.dialCode === phoneInfo.dialCode) ||
+                      (countryObj.dialCode === '+1' && phoneInfo.dialCode === '+1');
+
+  if (!dialMatches) {
+    return {
+      valid: false,
+      isValid: false,
+      message: `Phone number dial code (${phoneInfo.dialCode}) belongs to ${phoneInfo.country.name}, which doesn't match selected country (${countryObj.name}).`,
+      detectedCountry: phoneInfo.country,
+      selectedCountry: countryObj
+    };
+  }
+
+  return {
+    valid: true,
+    isValid: true,
+    message: null,
+    detectedCountry: phoneInfo.country,
+    selectedCountry: countryObj
+  };
+}
+
+/**
  * Validates international phone number based on selected country dial code.
  * Handles local leading zeros, length checks, and number format validity.
  * Normalizes to E.164 and international readable string.

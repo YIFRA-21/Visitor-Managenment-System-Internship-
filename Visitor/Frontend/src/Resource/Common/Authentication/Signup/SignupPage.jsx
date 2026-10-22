@@ -1047,6 +1047,8 @@ export default function SignupPage() {
                         label={t('signup.nationality')}
                         required
                         value={nationality}
+                        phone={phonePrefix ? `${phonePrefix} ${phone}` : phone}
+                        autoDetectFromPhone={true}
                         onChange={handleNationalityChange}
                         error={fieldErrors.nationality}
                         placeholder="Search & select nationality..."

@@ -832,8 +832,10 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                                                 id="walkin-nationality"
                                                 label="Nationality *"
                                                 value={form.nationality}
+                                                phone={form.phone}
+                                                autoDetectFromPhone={true}
                                                 error={errors.nationality}
-                                                onChange={(e) => handleFieldChange('nationality', e.target.value)}
+                                                onChange={(e) => handleFieldChange('nationality', e?.target?.value || e?.value || String(e || ''))}
                                                 placeholder={isAm ? "ዜግነት ይምረጡ..." : "Select nationality..."}
                                             />
                                         </div>

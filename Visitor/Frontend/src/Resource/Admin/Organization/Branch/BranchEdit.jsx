@@ -149,8 +149,13 @@ export default function BranchEdit() {
               id="branch-edit-country"
               name="country"
               value={formData.country}
+              phone={formData.phone}
               returnMode="country"
-              onChange={(val) => setFormData(prev => ({ ...prev, country: val }))}
+              onChange={(val) => {
+                const countryStr = typeof val === 'string' ? val
+                  : (val?.target?.value || val?.value || val?.name || String(val || ''));
+                setFormData(prev => ({ ...prev, country: countryStr }));
+              }}
               placeholder="Select Country..."
             />
           </div>

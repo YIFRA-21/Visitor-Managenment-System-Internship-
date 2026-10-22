@@ -702,7 +702,9 @@ export default function EmployeeRegistrationWizard({ employee, existingEmployees
                     label="Nationality"
                     required
                     value={formData.nationality}
-                    onChange={(e) => handleFieldChange('nationality', e.target.value)}
+                    phone={formData.phone}
+                    autoDetectFromPhone={true}
+                    onChange={(e) => handleFieldChange('nationality', e?.target?.value || e?.value || String(e || ''))}
                     error={touched.nationality && errors.nationality ? errors.nationality : ''}
                     placeholder="Select Nationality *"
                   />

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, ChevronDown, Check, X, Globe, AlertCircle } from 'lucide-react';
-import { COUNTRIES_DATA, getFlagUrl } from '../../data/countriesData';
+import { Search, ChevronDown, Check, X, Globe, AlertCircle, Phone } from 'lucide-react';
+import { COUNTRIES_DATA, getFlagUrl, parseInternationalPhone, validateCountryWithPhone } from '../../data/countriesData';
 
 export { COUNTRIES_DATA, getFlagUrl };
 
@@ -38,12 +38,14 @@ export const FlagImage = ({ code, flagEmoji, className = "w-5 h-3.5", alt = "" }
  * - Quick-pick section for priority countries
  * - Full keyboard navigation (Arrow Up/Down, Enter, Escape)
  * - Dark & light mode compatibility
- * - Seamless form validation error state support
+ * - Phone number cross-validation and auto-detection support
+ * - Handles both object/event and string values seamlessly
  */
 export default function CountryNationalitySelect({
   id = 'country-nationality-select',
   name = 'nationality',
   value = '',
+  phone = '',
   onChange,
   onBlur,
   error = '',
@@ -53,6 +55,7 @@ export default function CountryNationalitySelect({
   disabled = false,
   className = '',
   returnMode = 'nationality', // 'nationality' | 'country' | 'code' | 'object'
+  autoDetectFromPhone = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
@@ -76,22 +79,50 @@ export default function CountryNationalitySelect({
     }
   }, [isOpen]);
 
-  // Find currently selected country
+  // Country detected from phone number (if phone prop provided)
+  const phoneDetectedCountry = useMemo(() => {
+    if (!phone) return null;
+    const parsed = parseInternationalPhone(phone);
+    return parsed?.country || null;
+  }, [phone]);
+
+  // Find currently selected country - robustly handles objects, event objects, and strings
   const selectedCountry = useMemo(() => {
-    if (!value) return null;
-    const v = String(value).trim().toLowerCase();
+    let raw = value;
+    if (typeof value === 'object' && value !== null) {
+      raw = value.target?.value || value.value || value.name || value.country || value.nationality || value.code || '';
+    }
+    let v = String(raw || '').trim().toLowerCase();
+
+    // If empty or [object object], and autoDetectFromPhone is enabled and phone is provided
+    if ((!v || v === '[object object]') && phoneDetectedCountry && autoDetectFromPhone) {
+      return phoneDetectedCountry;
+    }
+
+    if (!v || v === '[object object]') return null;
     return COUNTRIES_DATA.find(
       c =>
         c.nationality.toLowerCase() === v ||
         c.name.toLowerCase() === v ||
         c.code.toLowerCase() === v
     ) || null;
-  }, [value]);
+  }, [value, phoneDetectedCountry, autoDetectFromPhone]);
+
+  // Phone cross-validation: verifies if selected country matches phone dial code
+  const phoneValidation = useMemo(() => {
+    if (!phone) return null;
+    return validateCountryWithPhone(selectedCountry?.name || value, phone);
+  }, [phone, selectedCountry, value]);
 
   // Separate priority / quick-pick countries and regular list
   const priorityCountries = useMemo(() => {
-    return COUNTRIES_DATA.filter(c => c.priority);
-  }, []);
+    const list = [...COUNTRIES_DATA.filter(c => c.priority)];
+    // Ensure phone detected country is first in quick-picks
+    if (phoneDetectedCountry && !list.some(c => c.code === phoneDetectedCountry.code)) {
+      list.unshift(phoneDetectedCountry);
+    }
+    return list;
+  }, [phoneDetectedCountry]);
 
   // Filtered countries based on search
   const filteredCountries = useMemo(() => {
@@ -143,7 +174,7 @@ export default function CountryNationalitySelect({
   }, [activeIndex, isOpen]);
 
   const handleSelect = (country) => {
-    if (disabled) return;
+    if (disabled || !country) return;
     setIsOpen(false);
 
     let output;
@@ -158,13 +189,19 @@ export default function CountryNationalitySelect({
     }
 
     if (onChange) {
-      onChange({
+      const syntheticEvent = {
         target: {
           name,
           value: output,
           country,
         },
-      }, country);
+        name,
+        value: output,
+        country,
+        toString: () => String(output),
+        valueOf: () => String(output),
+      };
+      onChange(syntheticEvent, country, output);
     }
   };
 
@@ -172,13 +209,19 @@ export default function CountryNationalitySelect({
     e.stopPropagation();
     if (disabled) return;
     if (onChange) {
-      onChange({
+      const syntheticEvent = {
         target: {
           name,
           value: '',
           country: null,
         },
-      }, null);
+        name,
+        value: '',
+        country: null,
+        toString: () => '',
+        valueOf: () => '',
+      };
+      onChange(syntheticEvent, null, '');
     }
   };
 
@@ -344,7 +387,7 @@ export default function CountryNationalitySelect({
                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-600 dark:bg-slate-800 dark:hover:bg-blue-950 dark:hover:text-blue-300 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 transition-colors shrink-0"
                   >
                     <FlagImage code={c.code} flagEmoji={c.flag} className="w-3.5 h-2.5" />
-                    <span>{c.nationality}</span>
+                    <span>{returnMode === 'country' ? c.name : c.nationality}</span>
                   </button>
                 ))}
               </div>
@@ -399,10 +442,10 @@ export default function CountryNationalitySelect({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <span className="truncate">
-                            {country.nationality}
+                            {returnMode === 'country' ? country.name : country.nationality}
                           </span>
                           <span className="text-[10px] font-normal text-slate-400 dark:text-slate-500 truncate">
-                            • {country.name}
+                            • {returnMode === 'country' ? country.nationality : country.name}
                           </span>
                         </div>
                       </div>
@@ -440,6 +483,25 @@ export default function CountryNationalitySelect({
           <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
           <span>{error}</span>
         </p>
+      )}
+
+      {/* Phone Cross-Validation Notice */}
+      {!error && phoneValidation && !phoneValidation.valid && (
+        <div className="mt-1 flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 animate-in fade-in duration-150">
+          <span className="flex items-center gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>{phoneValidation.message}</span>
+          </span>
+          {phoneValidation.detectedCountry && (
+            <button
+              type="button"
+              onClick={() => handleSelect(phoneValidation.detectedCountry)}
+              className="shrink-0 px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-md cursor-pointer transition-all"
+            >
+              Select {phoneValidation.detectedCountry.name}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
