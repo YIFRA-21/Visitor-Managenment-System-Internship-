@@ -138,6 +138,13 @@ const pool = require('./config/db');
     try { await pool.query(`ALTER TABLE visitors ADD COLUMN visit_duration VARCHAR(50) NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE visitors ADD COLUMN street VARCHAR(255) NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE visitors ADD COLUMN house_number VARCHAR(50) NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE visitors ADD COLUMN department_name VARCHAR(150) NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE visitors ADD COLUMN alt_phone VARCHAR(50) NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE visitors ADD COLUMN emergency_relationship VARCHAR(50) NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE visitors ADD COLUMN escort_required VARCHAR(50) NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE visitors ADD COLUMN allowed_areas VARCHAR(255) NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE visitors ADD COLUMN allowed_days VARCHAR(100) NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE visitors ADD COLUMN visit_purpose VARCHAR(255) NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE visitors ADD COLUMN vehicle_plate_number VARCHAR(50) NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE visitors ADD COLUMN vehicle_type VARCHAR(50) NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE visitors ADD COLUMN parking_required TINYINT(1) DEFAULT 0`); } catch (e) {}

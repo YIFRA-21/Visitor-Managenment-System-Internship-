@@ -228,12 +228,14 @@ class VisitorProfileRepository {
 
       const {
         firstName, middleName, lastName, gender, dateOfBirth, nationality, maritalStatus, occupation,
+        departmentName, department, department_name,
         email, phone, altPhone, altEmail, company, category, preferredContactMethod,
         accessLevel, approvalRequirement, visitDuration,
+        escortRequired, escort_required, allowedAreas, allowed_areas, allowedDays, allowed_days, visitPurpose, visit_purpose,
         country, region, city, subCity, zone, woreda, street, houseNumber, postalCode, fullAddress, address,
         idType, idNumber, idIssueDate, idExpiryDate, idVerificationStatus,
         vehiclePlateNumber, vehicleType, vehicleBrand, vehicleModel, vehicleColor, parkingRequired,
-        emergencyContactName, emergencyContactPhone, photoUrl
+        emergencyContactName, emergencyContactPhone, emergencyRelationship, emergency_relationship, photoUrl
       } = data;
 
       const fullName = [firstName || existing.first_name, middleName || existing.middle_name, lastName || existing.last_name].filter(Boolean).join(' ');
@@ -272,6 +274,7 @@ class VisitorProfileRepository {
           nationality = COALESCE(?, nationality),
           marital_status = COALESCE(?, marital_status),
           occupation = COALESCE(?, occupation),
+          department_name = COALESCE(?, department_name),
           email = COALESCE(?, email),
           phone = COALESCE(?, phone),
           alt_phone = COALESCE(?, alt_phone),
@@ -282,10 +285,19 @@ class VisitorProfileRepository {
           access_level = COALESCE(?, access_level),
           approval_requirement = COALESCE(?, approval_requirement),
           visit_duration = COALESCE(?, visit_duration),
+          escort_required = COALESCE(?, escort_required),
+          allowed_areas = COALESCE(?, allowed_areas),
+          allowed_days = COALESCE(?, allowed_days),
+          visit_purpose = COALESCE(?, visit_purpose),
+          country = COALESCE(?, country),
+          region = COALESCE(?, region),
+          city = COALESCE(?, city),
+          sub_city = COALESCE(?, sub_city),
           street = COALESCE(?, street),
           house_number = COALESCE(?, house_number),
           woreda = COALESCE(?, woreda),
           address = COALESCE(?, address),
+          full_address = COALESCE(?, full_address),
           id_type = COALESCE(?, id_type),
           id_number = COALESCE(?, id_number),
           id_verification_status = COALESCE(?, id_verification_status),
@@ -294,6 +306,7 @@ class VisitorProfileRepository {
           parking_required = COALESCE(?, parking_required),
           emergency_contact_name = COALESCE(?, emergency_contact_name),
           emergency_contact_phone = COALESCE(?, emergency_contact_phone),
+          emergency_relationship = COALESCE(?, emergency_relationship),
           photo_url = COALESCE(?, photo_url),
           updated_by = ?,
           updated_at = CURRENT_TIMESTAMP
@@ -301,14 +314,17 @@ class VisitorProfileRepository {
         [
           firstName || null, middleName || null, lastName || null, fullName || null,
           gender || null, dateOfBirth || null, nationality || null, maritalStatus || null, occupation || null,
+          departmentName || department || department_name || null,
           email || null, phone || null, altPhone || null, altEmail || null,
           company || null, category || null, preferredContactMethod || null,
           accessLevel || null, approvalRequirement || null, visitDuration || null,
-          street || null, houseNumber || null, woreda || null, fullAddress || address || null,
+          escortRequired || escort_required || null, allowedAreas || allowed_areas || null, allowedDays || allowed_days || null, visitPurpose || visit_purpose || null,
+          country || null, region || null, city || null, subCity || null,
+          street || null, houseNumber || null, woreda || null, fullAddress || address || null, fullAddress || address || null,
           idType || null, idNumber || null, idVerificationStatus || null,
           vehiclePlateNumber || null, vehicleType || null,
           parkingRequired != null ? parkingRequired : null,
-          emergencyContactName || null, emergencyContactPhone || null, photoUrl || null,
+          emergencyContactName || null, emergencyContactPhone || null, emergencyRelationship || emergency_relationship || null, photoUrl || null,
           actorId, visitorId
         ]
       );

@@ -185,83 +185,76 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
     };
     const getContextualProfile = () => {
         let contextData = {};
-        // 1. Check active_visitor_profile
+        const currentEmail = (auth?.user?.email || '').toLowerCase().trim();
+
+        // 1. Check active_visitor_profile (only if matching current user)
         try {
             const stored = sessionStorage.getItem('active_visitor_profile') || localStorage.getItem('active_visitor_profile');
-            if (stored)
-                contextData = { ...contextData, ...JSON.parse(stored) };
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (!currentEmail || !parsed.email || parsed.email.toLowerCase().trim() === currentEmail) {
+                    contextData = { ...contextData, ...parsed };
+                }
+            }
         }
         catch (e) { }
-        // 2. Check registered_visitor_data
+
+        // 2. Check registered_visitor_data (only if matching current user)
         try {
             const reg = sessionStorage.getItem('registered_visitor_data') || localStorage.getItem('registered_visitor_data');
             if (reg) {
                 const parsed = JSON.parse(reg);
-                contextData = {
-                    ...contextData,
-                    full_name: parsed.visitorName || parsed.fullName || parsed.full_name || contextData.full_name,
-                    email: parsed.email || contextData.email,
-                    phone: parsed.phone || contextData.phone,
-                    company: parsed.company || contextData.company,
-                    department_name: parsed.department || parsed.departmentName || contextData.department_name,
-                    id_type: parsed.idType || parsed.identityType || contextData.id_type,
-                    id_number: parsed.idNumber || parsed.identityNumber || contextData.id_number,
-                    photo_url: parsed.photoUrl || parsed.photo_url || contextData.photo_url,
-                    visitor_code: parsed.historyCode || parsed.visitor_code || contextData.visitor_code,
-                    reference_number: parsed.referenceNumber || parsed.reference_number || contextData.reference_number
-                };
+                if (!currentEmail || !parsed.email || parsed.email.toLowerCase().trim() === currentEmail) {
+                    contextData = {
+                        ...contextData,
+                        full_name: parsed.visitorName || parsed.fullName || parsed.full_name || contextData.full_name,
+                        email: parsed.email || contextData.email,
+                        phone: parsed.phone || contextData.phone,
+                        company: parsed.company || contextData.company,
+                        department_name: parsed.department || parsed.departmentName || contextData.department_name,
+                        id_type: parsed.idType || parsed.identityType || contextData.id_type,
+                        id_number: parsed.idNumber || parsed.identityNumber || contextData.id_number,
+                        photo_url: parsed.photoUrl || parsed.photo_url || contextData.photo_url,
+                        visitor_code: parsed.historyCode || parsed.visitor_code || contextData.visitor_code,
+                        reference_number: parsed.referenceNumber || parsed.reference_number || contextData.reference_number
+                    };
+                }
             }
         }
         catch (e) { }
-        // 3. Check signup_personal_info
+
+        // 3. Check signup_personal_info (only if matching current user)
         try {
             const personal = sessionStorage.getItem('signup_personal_info') || localStorage.getItem('signup_personal_info');
             if (personal) {
                 const parsed = JSON.parse(personal);
-                const fullName = `${parsed.firstName || ''} ${parsed.middleName || ''} ${parsed.lastName || ''}`.trim();
-                contextData = {
-                    ...contextData,
-                    first_name: parsed.firstName || contextData.first_name,
-                    middle_name: parsed.middleName || contextData.middle_name,
-                    last_name: parsed.lastName || contextData.last_name,
-                    full_name: fullName || contextData.full_name,
-                    email: parsed.email || contextData.email,
-                    phone: parsed.phone || contextData.phone,
-                    company: parsed.company || contextData.company,
-                    gender: parsed.gender || contextData.gender,
-                    nationality: parsed.nationality || contextData.nationality,
-                    country: parsed.country || contextData.country,
-                    city: parsed.city || contextData.city,
-                    full_address: parsed.address || contextData.full_address
-                };
+                if (!currentEmail || !parsed.email || parsed.email.toLowerCase().trim() === currentEmail) {
+                    const fullName = `${parsed.firstName || ''} ${parsed.middleName || ''} ${parsed.lastName || ''}`.trim();
+                    contextData = {
+                        ...contextData,
+                        first_name: parsed.firstName || contextData.first_name,
+                        middle_name: parsed.middleName || contextData.middle_name,
+                        last_name: parsed.lastName || contextData.last_name,
+                        full_name: fullName || contextData.full_name,
+                        email: parsed.email || contextData.email,
+                        phone: parsed.phone || contextData.phone,
+                        company: parsed.company || contextData.company,
+                        gender: parsed.gender || contextData.gender,
+                        nationality: parsed.nationality || contextData.nationality,
+                        country: parsed.country || contextData.country,
+                        city: parsed.city || contextData.city,
+                        full_address: parsed.address || contextData.full_address
+                    };
+                }
             }
         }
         catch (e) { }
-        // 4. Check signup_security_info
-        try {
-            const sec = sessionStorage.getItem('signup_security_info') || localStorage.getItem('signup_security_info');
-            if (sec) {
-                const parsed = JSON.parse(sec);
-                contextData = {
-                    ...contextData,
-                    id_type: parsed.idType || contextData.id_type,
-                    id_number: parsed.idNumber || contextData.id_number
-                };
-            }
-        }
-        catch (e) { }
-        // 5. Check visitor_uploaded_photo
-        try {
-            const photo = sessionStorage.getItem('visitor_uploaded_photo') || localStorage.getItem('visitor_uploaded_photo');
-            if (photo)
-                contextData.photo_url = photo;
-        }
-        catch (e) { }
-        // 6. Check Auth User
+
+        // 4. Check Auth User
         if (auth?.user) {
-            if (!contextData.full_name || contextData.full_name === 'N/A')
+            if (!contextData.full_name)
                 contextData.full_name = auth.user.fullName || auth.user.full_name;
-            if (!contextData.email || contextData.email === 'N/A')
+            if (!contextData.email)
                 contextData.email = auth.user.email;
             if (!contextData.phone && (auth.user.phone || auth.user.phone_number))
                 contextData.phone = auth.user.phone || auth.user.phone_number;
@@ -270,6 +263,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
             if (!contextData.photo_url && (auth.user.avatarUrl || auth.user.avatar || auth.user.profile_photo))
                 contextData.photo_url = auth.user.avatarUrl || auth.user.avatar || auth.user.profile_photo;
         }
+
         const params = new URLSearchParams(window.location.search);
         if (params.get('name')) {
             const name = params.get('name');
@@ -301,38 +295,63 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
         const contextProfile = getContextualProfile();
         const buildRealProfile = (base) => {
             const ctx = contextProfile || {};
-            const photoUrl = ctx.photo_url || base?.photo_url || auth?.user?.avatarUrl || '';
+            const photoUrl = base?.photo_url || ctx.photo_url || auth?.user?.avatarUrl || '';
             const uploadedPhoto = sessionStorage.getItem('visitor_uploaded_photo') || '';
-            const fallbackName = auth?.user?.fullName && auth.user.fullName !== 'Developer' ? auth.user.fullName : 'Visitor';
-            const fallbackEmail = auth?.user?.email && auth.user.email !== 'developer@visitor.com' ? auth.user.email : '';
+            const fallbackName = auth?.user?.fullName || auth?.user?.full_name || '';
+            const fallbackEmail = auth?.user?.email || '';
+            const fullName = base?.full_name || ctx.full_name || fallbackName || '';
+            const nameParts = fullName ? fullName.split(' ') : [];
+            const firstName = base?.first_name || ctx.first_name || nameParts[0] || '';
+            const middleName = base?.middle_name || ctx.middle_name || (nameParts.length > 2 ? nameParts[1] : '');
+            const lastName = base?.last_name || ctx.last_name || (nameParts.length > 2 ? nameParts.slice(2).join(' ') : nameParts[1] || '');
+
             return {
                 ...base,
-                id: ctx.id || base?.id || 1,
-                visitor_code: ctx.visitor_code || base?.visitor_code || auth?.user?.userCode || auth?.user?.user_code || 'VIS-2026-0001',
-                reference_number: ctx.reference_number || base?.reference_number || 'REF-2026-0001',
-                first_name: ctx.first_name || (ctx.full_name ? ctx.full_name.split(' ')[0] : '') || base?.first_name || fallbackName.split(' ')[0] || '',
-                middle_name: ctx.middle_name || (ctx.full_name ? ctx.full_name.split(' ')[1] || '' : '') || base?.middle_name || '',
-                last_name: ctx.last_name || (ctx.full_name ? ctx.full_name.split(' ').slice(2).join(' ') : '') || base?.last_name || fallbackName.split(' ')[1] || '',
-                full_name: ctx.full_name || base?.full_name || fallbackName,
-                email: ctx.email || base?.email || fallbackEmail,
-                phone: ctx.phone || base?.phone || auth?.user?.phone || auth?.user?.phone_number || '',
-                company: ctx.company || base?.company || '',
-                category: ctx.category || base?.category || 'General Visitor',
-                status: ctx.status || base?.status || 'ACTIVE',
-                id_verification_status: ctx.id_verification_status || base?.id_verification_status || 'Verified',
+                id: base?.id || ctx.id || auth?.user?.visitorId || auth?.user?.id || 1,
+                visitor_code: base?.visitor_code || ctx.visitor_code || auth?.user?.userCode || auth?.user?.user_code || '',
+                reference_number: base?.reference_number || ctx.reference_number || '',
+                first_name: firstName,
+                middle_name: middleName,
+                last_name: lastName,
+                full_name: fullName,
+                email: base?.email || ctx.email || fallbackEmail,
+                phone: base?.phone || ctx.phone || auth?.user?.phone || auth?.user?.phone_number || '',
+                company: base?.company || ctx.company || '',
+                occupation: base?.occupation || ctx.occupation || '',
+                department_name: base?.department_name || base?.department || ctx.department_name || '',
+                host_name: base?.host_name || base?.host_employee_name || ctx.host_name || '',
+                created_by_name: base?.created_by_name || ctx.created_by_name || (isVisitorRole ? 'Self-Registered Visitor' : ''),
+                category: base?.category || ctx.category || (isVisitorRole ? 'Visitor' : ''),
+                access_level: base?.access_level || ctx.access_level || '',
+                approval_requirement: base?.approval_requirement || ctx.approval_requirement || '',
+                visit_duration: base?.visit_duration || ctx.visit_duration || '',
+                escort_required: base?.escort_required || ctx.escort_required || '',
+                allowed_areas: base?.allowed_areas || ctx.allowed_areas || '',
+                allowed_days: base?.allowed_days || ctx.allowed_days || '',
+                visit_purpose: base?.visit_purpose || ctx.visit_purpose || '',
+                alt_phone: base?.alt_phone || base?.alternative_phone || ctx.alt_phone || '',
+                preferred_contact_method: base?.preferred_contact_method || ctx.preferred_contact_method || '',
+                emergency_contact_name: base?.emergency_contact_name || ctx.emergency_contact_name || '',
+                emergency_contact_phone: base?.emergency_contact_phone || ctx.emergency_contact_phone || '',
+                emergency_relationship: base?.emergency_relationship || ctx.emergency_relationship || '',
+                country: base?.country || ctx.country || '',
+                region: base?.region || ctx.region || '',
+                city: base?.city || ctx.city || '',
+                woreda: base?.woreda || ctx.woreda || '',
+                street: base?.street || ctx.street || '',
+                house_number: base?.house_number || ctx.house_number || '',
+                full_address: base?.full_address || base?.address || ctx.full_address || '',
+                status: base?.status || ctx.status || 'ACTIVE',
+                id_verification_status: base?.id_verification_status || ctx.id_verification_status || 'UNVERIFIED',
                 photo_url: uploadedPhoto || photoUrl,
-                id_type: ctx.id_type || base?.id_type || 'National ID',
-                id_number: ctx.id_number || base?.id_number || '',
-                department_name: ctx.department_name || base?.department_name || '',
-                pass_number: ctx.pass_number || base?.pass_number || '',
-                created_at: ctx.created_at || base?.created_at || new Date().toISOString(),
-                last_visit_date: ctx.last_visit_date || base?.last_visit_date || new Date().toISOString(),
-                gender: ctx.gender || base?.gender || '',
-                nationality: ctx.nationality || base?.nationality || '',
-                country: ctx.country || base?.country || '',
-                city: ctx.city || base?.city || '',
-                full_address: ctx.full_address || base?.full_address || '',
-                documents: ctx.documents || base?.documents || [],
+                id_type: base?.id_type || ctx.id_type || '',
+                id_number: base?.id_number || ctx.id_number || '',
+                pass_number: base?.pass_number || ctx.pass_number || '',
+                created_at: base?.created_at || ctx.created_at || '',
+                last_visit_date: base?.last_visit_date || ctx.last_visit_date || null,
+                gender: base?.gender || ctx.gender || '',
+                nationality: base?.nationality || ctx.nationality || '',
+                documents: base?.documents || ctx.documents || [],
             };
         };
         try {
@@ -388,7 +407,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
         finally {
             setLoading(false);
         }
-    }, [visitorId]);
+    }, [visitorId, isVisitorRole, auth?.user]);
     useEffect(() => { loadProfile(); }, [loadProfile]);
     useEffect(() => {
         const handleVerificationComplete = () => {
@@ -411,15 +430,23 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                 nationality: profile.nationality || '',
                 occupation: profile.occupation || '',
                 company: profile.company || '',
+                departmentName: profile.department_name || '',
                 category: profile.category || '',
-                accessLevel: profile.access_level || 'STANDARD',
-                approvalRequirement: profile.approval_requirement || 'REQUIRED',
-                visitDuration: profile.visit_duration || '8 Hours',
+                accessLevel: profile.access_level || '',
+                approvalRequirement: profile.approval_requirement || '',
+                visitDuration: profile.visit_duration || '',
+                escortRequired: profile.escort_required || '',
+                allowedAreas: profile.allowed_areas || '',
+                allowedDays: profile.allowed_days || '',
+                visitPurpose: profile.visit_purpose || '',
                 email: profile.email || '',
                 phone: profile.phone || '',
                 altPhone: profile.alt_phone || '',
-                preferredContactMethod: profile.preferred_contact_method || 'Mobile',
-                country: profile.country || 'Ethiopia',
+                preferredContactMethod: profile.preferred_contact_method || '',
+                emergencyContactName: profile.emergency_contact_name || '',
+                emergencyContactPhone: profile.emergency_contact_phone || '',
+                emergencyRelationship: profile.emergency_relationship || '',
+                country: profile.country || '',
                 region: profile.region || '',
                 city: profile.city || '',
                 woreda: profile.woreda || '',
@@ -462,11 +489,55 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
         }
 
         setSaving(true);
+        const nextProfileState = profile ? {
+            ...profile,
+            first_name: editForm.firstName !== undefined ? editForm.firstName : profile.first_name,
+            middle_name: editForm.middleName !== undefined ? editForm.middleName : profile.middle_name,
+            last_name: editForm.lastName !== undefined ? editForm.lastName : profile.last_name,
+            full_name: [editForm.firstName || profile.first_name, editForm.middleName || profile.middle_name, editForm.lastName || profile.last_name].filter(Boolean).join(' ') || profile.full_name,
+            gender: editForm.gender !== undefined ? editForm.gender : profile.gender,
+            date_of_birth: editForm.dateOfBirth !== undefined ? editForm.dateOfBirth : profile.date_of_birth,
+            nationality: editForm.nationality !== undefined ? editForm.nationality : profile.nationality,
+            occupation: editForm.occupation !== undefined ? editForm.occupation : profile.occupation,
+            company: editForm.company !== undefined ? editForm.company : profile.company,
+            department_name: (editForm.departmentName !== undefined ? editForm.departmentName : editForm.department) || profile.department_name,
+            category: editForm.category !== undefined ? editForm.category : profile.category,
+            access_level: editForm.accessLevel !== undefined ? editForm.accessLevel : profile.access_level,
+            approval_requirement: editForm.approvalRequirement !== undefined ? editForm.approvalRequirement : profile.approval_requirement,
+            visit_duration: editForm.visitDuration !== undefined ? editForm.visitDuration : profile.visit_duration,
+            escort_required: editForm.escortRequired !== undefined ? editForm.escortRequired : profile.escort_required,
+            allowed_areas: editForm.allowedAreas !== undefined ? editForm.allowedAreas : profile.allowed_areas,
+            allowed_days: editForm.allowedDays !== undefined ? editForm.allowedDays : profile.allowed_days,
+            visit_purpose: editForm.visitPurpose !== undefined ? editForm.visitPurpose : profile.visit_purpose,
+            email: editForm.email !== undefined ? editForm.email : profile.email,
+            phone: editForm.phone !== undefined ? editForm.phone : profile.phone,
+            alt_phone: (editForm.altPhone !== undefined ? editForm.altPhone : editForm.alternativePhone) || profile.alt_phone,
+            preferred_contact_method: editForm.preferredContactMethod !== undefined ? editForm.preferredContactMethod : profile.preferred_contact_method,
+            emergency_contact_name: editForm.emergencyContactName !== undefined ? editForm.emergencyContactName : profile.emergency_contact_name,
+            emergency_contact_phone: editForm.emergencyContactPhone !== undefined ? editForm.emergencyContactPhone : profile.emergency_contact_phone,
+            emergency_relationship: editForm.emergencyRelationship !== undefined ? editForm.emergencyRelationship : profile.emergency_relationship,
+            country: editForm.country !== undefined ? editForm.country : profile.country,
+            region: editForm.region !== undefined ? editForm.region : profile.region,
+            city: editForm.city !== undefined ? editForm.city : profile.city,
+            sub_city: (editForm.subCity !== undefined ? editForm.subCity : editForm.subcity) || profile.sub_city,
+            woreda: editForm.woreda !== undefined ? editForm.woreda : profile.woreda,
+            street: editForm.street !== undefined ? editForm.street : profile.street,
+            house_number: editForm.houseNumber !== undefined ? editForm.houseNumber : profile.house_number,
+            full_address: editForm.fullAddress !== undefined ? editForm.fullAddress : profile.full_address,
+            id_type: editForm.idType !== undefined ? editForm.idType : profile.id_type,
+            id_number: editForm.idNumber !== undefined ? editForm.idNumber : profile.id_number,
+            id_issue_date: editForm.idIssueDate !== undefined ? editForm.idIssueDate : profile.id_issue_date,
+            id_expiry_date: editForm.idExpiryDate !== undefined ? editForm.idExpiryDate : profile.id_expiry_date,
+        } : null;
+
         try {
             if (isVisitorRole) {
                 await visitorPortalApi.updateProfile(editForm);
             } else {
                 await visitorProfileApi.updateProfile(visitorId, editForm);
+            }
+            if (nextProfileState) {
+                setProfile(nextProfileState);
             }
             setEditMode(false);
             setEditErrors({});
@@ -475,39 +546,8 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
         }
         catch (err) {
             console.error('Failed to save profile via API, applying changes locally:', err);
-            // Apply changes locally when API is unavailable
-            if (profile) {
-                const updatedProfile = {
-                    ...profile,
-                    first_name: editForm.firstName || profile.first_name,
-                    middle_name: editForm.middleName || profile.middle_name,
-                    last_name: editForm.lastName || profile.last_name,
-                    full_name: [editForm.firstName, editForm.middleName, editForm.lastName].filter(Boolean).join(' ') || profile.full_name,
-                    gender: editForm.gender || profile.gender,
-                    date_of_birth: editForm.dateOfBirth || profile.date_of_birth,
-                    nationality: editForm.nationality || profile.nationality,
-                    occupation: editForm.occupation || profile.occupation,
-                    company: editForm.company || profile.company,
-                    department_name: editForm.department || profile.department_name,
-                    email: editForm.email || profile.email,
-                    phone: editForm.phone || profile.phone,
-                    alt_phone: editForm.alternativePhone || profile.alt_phone,
-                    emergency_contact_name: editForm.emergencyContactName || profile.emergency_contact_name,
-                    emergency_contact_phone: editForm.emergencyContactPhone || profile.emergency_contact_phone,
-                    country: editForm.country || profile.country,
-                    region: editForm.region || profile.region,
-                    city: editForm.city || profile.city,
-                    sub_city: editForm.subCity || profile.sub_city,
-                    woreda: editForm.woreda || profile.woreda,
-                    street: editForm.street || profile.street,
-                    house_number: editForm.houseNumber || profile.house_number,
-                    full_address: editForm.fullAddress || profile.full_address,
-                    id_type: editForm.idType || profile.id_type,
-                    id_number: editForm.idNumber || profile.id_number,
-                    id_issue_date: editForm.idIssueDate || profile.id_issue_date,
-                    id_expiry_date: editForm.idExpiryDate || profile.id_expiry_date,
-                };
-                setProfile(updatedProfile);
+            if (nextProfileState) {
+                setProfile(nextProfileState);
             }
             setEditMode(false);
             showToast('Profile information saved locally!', 'success');
@@ -922,7 +962,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                     Reference No.: {profile.reference_number}
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    {profile.category || 'Business Visitor'}
+                    {profile.category || '—'}
                   </span>
                 </div>
               </div>
@@ -930,7 +970,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
               {/* Status Badges */}
               <div className="flex items-center gap-2">
                 <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
-                  {profile.status}
+                  {profile.status || 'ACTIVE'}
                 </span>
                 <span className="flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border" style={{ color: vBadge.color, borderColor: `${vBadge.color}40`, backgroundColor: `${vBadge.color}15` }}>
                   {vBadge.icon}
@@ -943,37 +983,39 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-3 border-t border-slate-800/60 text-xs">
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Company</span>
-                <span className="font-medium text-slate-200">{profile.company || profile.organization || 'IT Park'}</span>
+                <span className="font-medium text-slate-200">{profile.company || profile.organization || '—'}</span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Department</span>
-                <span className="font-medium text-slate-200">{profile.department_name || profile.department || 'IT Department'}</span>
+                <span className="font-medium text-slate-200">{profile.department_name || profile.department || '—'}</span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Phone</span>
-                <span className="font-medium text-slate-200">{profile.phone || '+251 911 123 456'}</span>
+                <span className="font-medium text-slate-200">{profile.phone || '—'}</span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Email</span>
-                <span className="font-medium text-slate-200 truncate block">{profile.email || 'michael.johnson@tech.com'}</span>
+                <span className="font-medium text-slate-200 truncate block">{profile.email || '—'}</span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Registration Date</span>
-                <span className="font-medium text-slate-200">{formatDate(profile.registration_date || profile.created_at)}</span>
+                <span className="font-medium text-slate-200">{profile.registration_date || profile.created_at ? formatDate(profile.registration_date || profile.created_at) : '—'}</span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Last Visit</span>
                 <span className="font-medium text-slate-200">
-                  {formatDate(profile.last_visit_date || profile.visitStatistics?.last_visit_date)}
+                  {profile.last_visit_date || profile.visitStatistics?.last_visit_date ? formatDate(profile.last_visit_date || profile.visitStatistics?.last_visit_date) : 'No visits recorded'}
                 </span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Identity Status</span>
-                <span className="font-bold text-emerald-400">Verified</span>
+                <span className={`font-bold ${profile.id_verification_status === 'VERIFIED' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {profile.id_verification_status || 'Unverified'}
+                </span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Profile Status</span>
-                <span className="font-bold text-emerald-400">Active</span>
+                <span className="font-bold text-emerald-400">{profile.status || 'Active'}</span>
               </div>
             </div>
           </div>
@@ -1131,7 +1173,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <User size={13} className="text-indigo-400"/> First Name
                   </span>
-                  <span className="font-bold text-white text-sm block">{profile.first_name || 'Michael'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.first_name || '—'}</span>
                 </div>
 
                 {/* Item 2: Middle Name */}
@@ -1139,7 +1181,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <User size={13} className="text-indigo-400"/> Middle Name
                   </span>
-                  <span className="font-bold text-white text-sm block">{profile.middle_name || 'John'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.middle_name || '—'}</span>
                 </div>
 
                 {/* Item 3: Last Name */}
@@ -1147,7 +1189,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <User size={13} className="text-indigo-400"/> Last Name
                   </span>
-                  <span className="font-bold text-white text-sm block">{profile.last_name || 'Doe'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.last_name || '—'}</span>
                 </div>
 
                 {/* Item 4: Gender */}
@@ -1157,7 +1199,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   </span>
                   <div>
                     <span className="px-2.5 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
-                      {profile.gender || 'Male'}
+                      {profile.gender || '—'}
                     </span>
                   </div>
                 </div>
@@ -1167,7 +1209,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <Calendar size={13} className="text-indigo-400"/> Date of Birth
                   </span>
-                  <span className="font-bold text-white text-sm block">{profile.date_of_birth || '15 Sep 1990'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.date_of_birth ? formatDate(profile.date_of_birth) : '—'}</span>
                 </div>
 
                 {/* Item 6: Nationality */}
@@ -1175,7 +1217,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <Globe size={13} className="text-emerald-400"/> Nationality
                   </span>
-                  <span className="font-bold text-white text-sm block">{profile.nationality || 'Ethiopian'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.nationality || '—'}</span>
                 </div>
 
                 {/* Item 7: Occupation */}
@@ -1183,7 +1225,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <Briefcase size={13} className="text-purple-400"/> Occupation
                   </span>
-                  <span className="font-bold text-white text-sm block">{profile.occupation || 'Software Engineer'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.occupation || '—'}</span>
                 </div>
 
                 {/* Item 8: Organization / Company */}
@@ -1191,7 +1233,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <Building size={13} className="text-indigo-400"/> Organization / Company
                   </span>
-                  <span className="font-bold text-white text-sm block">{profile.company || 'IT Park'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.company || '—'}</span>
                 </div>
 
                 {/* Item 9: Department */}
@@ -1199,7 +1241,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <Building2 size={13} className="text-indigo-400"/> Department
                   </span>
-                  <span className="font-bold text-white text-sm block">{profile.department_name || 'IT Department'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.department_name || '—'}</span>
                 </div>
 
                 {/* Item 10: Employee / Host */}
@@ -1207,7 +1249,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <UserCheck size={13} className="text-blue-400"/> Employee / Host
                   </span>
-                  <span className="font-bold text-blue-400 text-sm block">David Brown (EMP-2025-0012)</span>
+                  <span className="font-bold text-blue-400 text-sm block">{profile.host_name || profile.employee_host || '—'}</span>
                 </div>
 
                 {/* Item 11: Registration Date */}
@@ -1215,7 +1257,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <Clock size={13} className="text-slate-400"/> Registration Date
                   </span>
-                  <span className="font-bold text-slate-200 text-sm block">{formatDate(profile.registration_date || profile.created_at)}</span>
+                  <span className="font-bold text-slate-200 text-sm block">{profile.registration_date || profile.created_at ? formatDate(profile.registration_date || profile.created_at) : '—'}</span>
                 </div>
 
                 {/* Item 12: Created By */}
@@ -1223,7 +1265,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <ShieldCheck size={13} className="text-emerald-400"/> Created By
                   </span>
-                  <span className="font-bold text-slate-200 text-sm block">System Administrator</span>
+                  <span className="font-bold text-slate-200 text-sm block">{profile.created_by_name || (isVisitorRole ? 'Self-Registered Visitor' : '—')}</span>
                 </div>
               </div>)}
           </div>)}
@@ -1242,11 +1284,12 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
             {editMode ? (<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Category</label>
-                  <input type="text" value={editForm.category || ''} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none"/>
+                  <input type="text" value={editForm.category || ''} placeholder="e.g. Business Visitor, Contractor" onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none"/>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Access Level</label>
-                  <select value={editForm.accessLevel || 'STANDARD'} onChange={(e) => setEditForm({ ...editForm, accessLevel: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none">
+                  <select value={editForm.accessLevel || ''} onChange={(e) => setEditForm({ ...editForm, accessLevel: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none">
+                    <option value="">Select Access Level...</option>
                     <option value="STANDARD">STANDARD (Level 1)</option>
                     <option value="LEVEL_2">BUSINESS VISITOR (Level 2)</option>
                     <option value="RESTRICTED">RESTRICTED</option>
@@ -1256,7 +1299,8 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Approval Requirement</label>
-                  <select value={editForm.approvalRequirement || 'REQUIRED'} onChange={(e) => setEditForm({ ...editForm, approvalRequirement: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none">
+                  <select value={editForm.approvalRequirement || ''} onChange={(e) => setEditForm({ ...editForm, approvalRequirement: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none">
+                    <option value="">Select Requirement...</option>
                     <option value="REQUIRED">Department + Security</option>
                     <option value="PRE_APPROVED">Pre-Approved</option>
                     <option value="AUTOMATIC">Automatic</option>
@@ -1264,7 +1308,27 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Max Visit Duration</label>
-                  <input type="text" value={editForm.visitDuration || 'Up to 30 Days'} onChange={(e) => setEditForm({ ...editForm, visitDuration: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none"/>
+                  <input type="text" value={editForm.visitDuration || ''} placeholder="e.g. 1 Day, 8 Hours, Up to 30 Days" onChange={(e) => setEditForm({ ...editForm, visitDuration: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none"/>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Escort Required</label>
+                  <select value={editForm.escortRequired || ''} onChange={(e) => setEditForm({ ...editForm, escortRequired: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none">
+                    <option value="">Select...</option>
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Allowed Areas</label>
+                  <input type="text" value={editForm.allowedAreas || ''} placeholder="e.g. Reception, Main Building" onChange={(e) => setEditForm({ ...editForm, allowedAreas: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none"/>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Allowed Days</label>
+                  <input type="text" value={editForm.allowedDays || ''} placeholder="e.g. Mon, Tue, Wed" onChange={(e) => setEditForm({ ...editForm, allowedDays: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none"/>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Visit Purpose</label>
+                  <input type="text" value={editForm.visitPurpose || ''} placeholder="e.g. Business Meeting, Consultation" onChange={(e) => setEditForm({ ...editForm, visitPurpose: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none"/>
                 </div>
                 <div className="lg:col-span-4 flex justify-end gap-3 pt-3 border-t border-slate-800">
                   <button onClick={handleSaveProfile} disabled={saving} className="px-6 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-500 rounded-xl shadow-lg flex items-center gap-2">
@@ -1277,44 +1341,44 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><Briefcase size={13} className="text-purple-400"/> Category</span>
                   <div>
                     <span className="inline-block px-2.5 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full text-xs font-bold">
-                      {profile.category || 'Business Visitor'}
+                      {profile.category || '—'}
                     </span>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><ShieldCheck size={13} className="text-blue-400"/> Access Level</span>
-                  <span className="font-bold text-blue-400 text-sm block">{profile.access_level || 'Level 2'}</span>
+                  <span className="font-bold text-blue-400 text-sm block">{profile.access_level || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-400"/> Approval Requirement</span>
-                  <span className="font-bold text-white text-sm block">Department + Security</span>
+                  <span className="font-bold text-white text-sm block">{profile.approval_requirement || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><Clock size={13} className="text-indigo-400"/> Visit Duration</span>
-                  <span className="font-bold text-white text-sm block">Up to 30 Days</span>
+                  <span className="font-bold text-white text-sm block">{profile.visit_duration || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><UserCheck size={13} className="text-amber-400"/> Escort Required</span>
-                  <span className="font-bold text-white text-sm block">Yes</span>
+                  <span className="font-bold text-white text-sm block">{profile.escort_required || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><MapPin size={13} className="text-emerald-400"/> Allowed Areas</span>
-                  <span className="font-bold text-white text-sm block">General Offices, Meeting Rooms</span>
+                  <span className="font-bold text-white text-sm block">{profile.allowed_areas || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><Calendar size={13} className="text-blue-400"/> Allowed Days</span>
-                  <span className="font-bold text-white text-sm block">Mon, Tue, Wed, Thu, Fri</span>
+                  <span className="font-bold text-white text-sm block">{profile.allowed_days || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><FileText size={13} className="text-purple-400"/> Visit Purpose</span>
-                  <span className="font-bold text-white text-sm block">Business Meeting</span>
+                  <span className="font-bold text-white text-sm block">{profile.visit_purpose || '—'}</span>
                 </div>
               </div>)}
           </div>)}
@@ -1378,12 +1442,30 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Preferred Contact Method</label>
-                  <select value={editForm.preferredContactMethod || 'Mobile'} onChange={(e) => setEditForm({ ...editForm, preferredContactMethod: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-emerald-500 focus:outline-none">
+                  <select value={editForm.preferredContactMethod || ''} onChange={(e) => setEditForm({ ...editForm, preferredContactMethod: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-emerald-500 focus:outline-none">
+                    <option value="">Select Method...</option>
                     <option value="Mobile">Mobile Phone</option>
                     <option value="Secondary Phone">Secondary Phone</option>
                     <option value="Email">Email</option>
                     <option value="SMS">SMS Notification</option>
                   </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Emergency Contact Name</label>
+                  <input type="text" value={editForm.emergencyContactName || ''} placeholder="e.g. Abebe Kebede" onChange={(e) => setEditForm({ ...editForm, emergencyContactName: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-emerald-500 focus:outline-none"/>
+                </div>
+                <div>
+                  <CountryPhoneInput
+                    id="edit-profile-emergency-phone"
+                    label="Emergency Contact Phone"
+                    value={editForm.emergencyContactPhone || ''}
+                    onChange={(e) => setEditForm({ ...editForm, emergencyContactPhone: e.target.value })}
+                    placeholder="Emergency contact phone"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Emergency Relationship</label>
+                  <input type="text" value={editForm.emergencyRelationship || ''} placeholder="e.g. Spouse, Brother, Colleague" onChange={(e) => setEditForm({ ...editForm, emergencyRelationship: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-emerald-500 focus:outline-none"/>
                 </div>
                 <div className="md:col-span-3 flex justify-end gap-3 pt-3 border-t border-slate-800">
                   <button onClick={handleSaveProfile} disabled={saving} className="px-6 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-lg flex items-center gap-2">
@@ -1395,36 +1477,38 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><Phone size={13} className="text-emerald-400"/> Mobile Phone</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-white text-sm">{profile.phone || '+251 911 123 456'}</span>
-                    <span className="px-1.5 py-0.5 text-[9px] bg-emerald-500/20 text-emerald-400 rounded font-bold">Primary</span>
+                    <span className="font-bold text-white text-sm">{profile.phone || '—'}</span>
+                    {profile.phone && <span className="px-1.5 py-0.5 text-[9px] bg-emerald-500/20 text-emerald-400 rounded font-bold">Primary</span>}
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><Phone size={13} className="text-indigo-400"/> Secondary Phone</span>
-                  <span className="font-bold text-white text-sm block">+251 912 654 321</span>
+                  <span className="font-bold text-white text-sm block">{profile.alt_phone || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><Mail size={13} className="text-blue-400"/> Email Address</span>
-                  <span className="font-bold text-white text-sm block truncate">{profile.email || 'michael.johnson@tech.com'}</span>
+                  <span className="font-bold text-white text-sm block truncate">{profile.email || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><CheckCircle2 size={13} className="text-purple-400"/> Preferred Contact Method</span>
                   <div>
-                    <span className="px-2.5 py-0.5 bg-blue-500/20 text-blue-300 rounded-full text-xs font-bold">Email</span>
+                    <span className="px-2.5 py-0.5 bg-blue-500/20 text-blue-300 rounded-full text-xs font-bold">{profile.preferred_contact_method || '—'}</span>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><Phone size={13} className="text-amber-400"/> Emergency Contact</span>
-                  <span className="font-bold text-white text-sm block">+251 900 111 222</span>
+                  <span className="font-bold text-white text-sm block">
+                    {profile.emergency_contact_phone ? `${profile.emergency_contact_name ? `${profile.emergency_contact_name}: ` : ''}${profile.emergency_contact_phone}` : (profile.emergency_contact_name || '—')}
+                  </span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><User size={13} className="text-indigo-400"/> Emergency Relationship</span>
-                  <span className="font-bold text-white text-sm block">Brother</span>
+                  <span className="font-bold text-white text-sm block">{profile.emergency_relationship || '—'}</span>
                 </div>
               </div>)}
           </div>)}
@@ -1443,27 +1527,31 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
             {editMode ? (<div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Country</label>
-                  <input type="text" value={editForm.country || 'Ethiopia'} onChange={(e) => setEditForm({ ...editForm, country: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                  <input type="text" value={editForm.country || ''} placeholder="e.g. Ethiopia" onChange={(e) => setEditForm({ ...editForm, country: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Region / State</label>
-                  <input type="text" value={editForm.region || ''} onChange={(e) => setEditForm({ ...editForm, region: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                  <input type="text" value={editForm.region || ''} placeholder="e.g. Addis Ababa" onChange={(e) => setEditForm({ ...editForm, region: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">City</label>
-                  <input type="text" value={editForm.city || ''} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                  <input type="text" value={editForm.city || ''} placeholder="e.g. Addis Ababa" onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Woreda / Sub-City</label>
-                  <input type="text" value={editForm.woreda || ''} onChange={(e) => setEditForm({ ...editForm, woreda: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                  <input type="text" value={editForm.woreda || ''} placeholder="e.g. Bole" onChange={(e) => setEditForm({ ...editForm, woreda: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">Street Address</label>
-                  <input type="text" value={editForm.street || ''} onChange={(e) => setEditForm({ ...editForm, street: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                  <input type="text" value={editForm.street || ''} placeholder="e.g. Africa Avenue" onChange={(e) => setEditForm({ ...editForm, street: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400">House Number</label>
-                  <input type="text" value={editForm.houseNumber || ''} onChange={(e) => setEditForm({ ...editForm, houseNumber: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                  <input type="text" value={editForm.houseNumber || ''} placeholder="e.g. 123/45" onChange={(e) => setEditForm({ ...editForm, houseNumber: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
+                </div>
+                <div className="md:col-span-3">
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Full Address String</label>
+                  <input type="text" value={editForm.fullAddress || ''} placeholder="e.g. Africa Avenue, House 123/45, Bole, Addis Ababa, Ethiopia" onChange={(e) => setEditForm({ ...editForm, fullAddress: e.target.value })} className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 focus:outline-none"/>
                 </div>
                 <div className="md:col-span-3 flex justify-end gap-3 pt-3 border-t border-slate-800">
                   <button onClick={handleSaveProfile} disabled={saving} className="px-6 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg flex items-center gap-2">
@@ -1474,37 +1562,37 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
               </div>) : (<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5 text-xs pt-1">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><Globe size={13} className="text-indigo-400"/> Country</span>
-                  <span className="font-bold text-white text-sm block">{profile.country || 'Ethiopia'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.country || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><MapPin size={13} className="text-blue-400"/> Region / State</span>
-                  <span className="font-bold text-white text-sm block">{profile.region || 'Addis Ababa'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.region || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><Building size={13} className="text-emerald-400"/> City</span>
-                  <span className="font-bold text-white text-sm block">{profile.city || 'Addis Ababa'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.city || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><MapPin size={13} className="text-purple-400"/> Woreda</span>
-                  <span className="font-bold text-white text-sm block">{profile.woreda || 'Bole'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.woreda || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><MapPin size={13} className="text-amber-400"/> Street</span>
-                  <span className="font-bold text-white text-sm block">{profile.street || 'Bole Road'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.street || '—'}</span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><Building2 size={13} className="text-indigo-400"/> House Number</span>
-                  <span className="font-bold text-white text-sm block">{profile.house_number || '123/45'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.house_number || '—'}</span>
                 </div>
 
                 <div className="md:col-span-3 space-y-1 pt-2 border-t border-slate-800/60">
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5"><MapPin size={13} className="text-emerald-400"/> Full Address String</span>
-                  <span className="font-bold text-white text-sm block">{profile.full_address || 'Bole Road, House 123/45, Woreda Bole, Addis Ababa, Ethiopia'}</span>
+                  <span className="font-bold text-white text-sm block">{profile.full_address || '—'}</span>
                 </div>
               </div>)}
           </div>)}
