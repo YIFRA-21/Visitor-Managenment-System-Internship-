@@ -608,7 +608,6 @@ class AuthService {
     return {
       ...regResult,
       deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
-      otpCode: otpRes?.otpCode || null,
     };
   }
 
@@ -1399,7 +1398,7 @@ class AuthService {
     const [local, domain] = (user.email || '').split('@');
     const maskedEmail = domain ? (local.slice(0, 2) + '***@' + domain) : user.email;
 
-    console.log(`[AuthService] Real Password Reset OTP (${otpCode}) dispatched to: ${user.email} (User: ${user.username}, ID: ${user.id})`);
+    console.log(`[AuthService] Real Password Reset OTP dispatched to: ${user.email} (User: ${user.username}, ID: ${user.id})`);
 
     return { 
       status: 'success', 
@@ -1718,7 +1717,6 @@ class AuthService {
       email: user.email,
       maskedEmail,
       deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
-      otpCode: otpRes?.otpCode || null,
     };
   }
 

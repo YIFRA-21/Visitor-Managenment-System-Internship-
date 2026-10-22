@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
     const [codeExpiry, setCodeExpiry] = useState(900); // 15 minutes
     const [resendCooldown, setResendCooldown] = useState(45);
     const otpRefs = useRef([]);
-    const [demoToken, setDemoToken] = useState('');
+
     // Step 3 state
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -158,16 +158,7 @@ export default function ForgotPasswordPage() {
             if (res.data?.userCode) {
                 setAccountUserCode(res.data.userCode);
             }
-            const tokenToUse = res.data?.otpCode || res.data?.demoToken;
-            if (tokenToUse) {
-                setDemoToken(tokenToUse);
-                const digits = String(tokenToUse).padStart(6, '0').slice(0, 6).split('');
-                setOtpDigits(digits);
-            }
-            else {
-                setDemoToken('');
-                setOtpDigits(['', '', '', '', '', '']);
-            }
+            setOtpDigits(['', '', '', '', '', '']);
             setCodeExpiry(900);
             setResendCooldown(45);
             setStep(2);
@@ -295,16 +286,7 @@ export default function ForgotPasswordPage() {
             if (res.data?.maskedEmail) {
                 setMaskedEmailAddress(res.data.maskedEmail);
             }
-            const tokenToUse = res.data?.otpCode || res.data?.demoToken;
-            if (tokenToUse) {
-                setDemoToken(tokenToUse);
-                const digits = String(tokenToUse).padStart(6, '0').slice(0, 6).split('');
-                setOtpDigits(digits);
-            }
-            else {
-                setDemoToken('');
-                setOtpDigits(['', '', '', '', '', '']);
-            }
+            setOtpDigits(['', '', '', '', '', '']);
             setResendCooldown(45);
         }
         catch (err) {

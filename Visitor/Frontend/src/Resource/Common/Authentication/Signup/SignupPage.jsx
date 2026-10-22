@@ -166,7 +166,7 @@ export default function SignupPage() {
     const [resendingEmail, setResendingEmail] = useState(false);
     const [resendSuccess, setResendSuccess] = useState(false);
     const [otpStatus, setOtpStatus] = useState('idle');
-    const [devOtpCode, setDevOtpCode] = useState('');
+
     // General Status & Validation Errors
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -426,10 +426,6 @@ export default function SignupPage() {
         try {
             const res = await authApi.register(payload);
             sessionStorage.setItem('signup_email', email.trim().toLowerCase());
-            const returnedOtp = res.data?.otpCode || res.data?.data?.otpCode || res.otpCode;
-            if (returnedOtp) {
-                setDevOtpCode(returnedOtp);
-            }
             setSuccess('Account created! A 6-digit verification code has been sent to your email.');
             setOtpTimer(60);
             setOtpCode(['', '', '', '', '', '']);
@@ -544,10 +540,6 @@ export default function SignupPage() {
             const res = await authApi.resendVerification(targetEmail);
             setResendSuccess(true);
             setOtpTimer(45);
-            const returnedOtp = res.data?.otpCode || res.data?.data?.otpCode || res.otpCode;
-            if (returnedOtp) {
-                setDevOtpCode(returnedOtp);
-            }
             setTimeout(() => setResendSuccess(false), 5000);
         }
         catch (err) {
@@ -1288,26 +1280,7 @@ export default function SignupPage() {
                       <span>✓ Correct verification code! Creating account...</span>
                     </div>)}
 
-                  {/* DEV TEST ASSISTANT / AUTO-FILL HINT */}
-                  {devOtpCode && (
-                    <div className="bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl p-2.5 max-w-sm mx-auto flex items-center justify-between text-xs text-blue-700 dark:text-blue-300 shadow-sm">
-                      <span className="flex items-center gap-1.5 font-semibold">
-                        <Shield className="h-3.5 w-3.5 text-blue-500" />
-                        Code: <strong className="font-black text-sm tracking-widest text-blue-600 dark:text-blue-400">{devOtpCode}</strong>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const digits = String(devOtpCode).split('');
-                          setOtpCode(digits);
-                          handleVerifyOtp(devOtpCode);
-                        }}
-                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-black tracking-wide cursor-pointer shadow-sm transition-colors"
-                      >
-                        Auto-fill & Verify
-                      </button>
-                    </div>
-                  )}
+
 
                   {/* TIMER ROW */}
                   <div className="text-xs font-bold text-slate-500 dark:text-slate-400 space-y-1">

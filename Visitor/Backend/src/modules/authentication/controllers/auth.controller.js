@@ -15,9 +15,7 @@ class AuthController {
           userId: result.userId,
           profileId: result.profileId,
           userCode: result.userCode,
-          otpCode: result.otpCode,
         },
-        otpCode: result.otpCode,
         deliveredToInbox: result?.deliveredToInbox,
       });
     } catch (err) {
@@ -444,7 +442,6 @@ class AuthController {
         email: result.email,
         maskedEmail: result.maskedEmail,
         deliveredToInbox: result.deliveredToInbox,
-        otpCode: result.otpCode,
       });
     } catch (err) {
       return res.status(400).json({

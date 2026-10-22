@@ -123,7 +123,7 @@ class EmailService {
     console.log(`  [ENTERPRISE OTP EMAIL DISPATCH]`);
     console.log(`  Recipient Email: ${cleanEmail}`);
     console.log(`  User ID:         ${resolvedUserId || 'N/A'}`);
-    console.log(`  OTP Code:        ${otpCode}`);
+    console.log(`  OTP Code:        [DISPATCHED SECURELY VIA EMAIL]`);
     console.log(`  Expiry Time:     ${expiresAt.toLocaleTimeString()}`);
     console.log(`  Storage:         MySQL user_otp table & users table`);
     console.log(`=================================================\n`);
@@ -419,7 +419,7 @@ class EmailService {
       </div>
     `;
 
-    console.log(`[EmailService] Sending real Password Reset OTP to ${cleanEmail} (Code: ${otpCode})`);
+    console.log(`[EmailService] Sending real Password Reset OTP to ${cleanEmail}`);
 
     return this.sendMail({
       to: cleanEmail,
