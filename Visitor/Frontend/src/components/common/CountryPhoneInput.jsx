@@ -52,6 +52,16 @@ export default function CountryPhoneInput({
   const phoneInputRef = useRef(null);
   const listRef = useRef(null);
 
+  // Normalize incoming value to string in case caller passed an event or object
+  const normalizedValue = useMemo(() => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+      return value.target?.value || value.value || value.fullPhone || '';
+    }
+    return String(value);
+  }, [value]);
+
   // Determine effective dial code and country
   const effectiveCountry = useMemo(() => {
     // If external onDialCodeChange is used, dialCode prop is the primary source of truth
@@ -65,8 +75,8 @@ export default function CountryPhoneInput({
     }
 
     // Single-field mode: check if value starts with '+'
-    if (value && (String(value).trim().startsWith('+') || String(value).trim().startsWith('00'))) {
-      const parsed = parseInternationalPhone(value, internalDialCode, internalCountryCode);
+    if (normalizedValue && (String(normalizedValue).trim().startsWith('+') || String(normalizedValue).trim().startsWith('00'))) {
+      const parsed = parseInternationalPhone(normalizedValue, internalDialCode, internalCountryCode);
       if (parsed.country) return parsed.country;
     }
 
@@ -77,19 +87,19 @@ export default function CountryPhoneInput({
 
     const cleanDial = internalDialCode.startsWith('+') ? internalDialCode : `+${internalDialCode}`;
     return COUNTRIES_DATA.find(c => c.dialCode === cleanDial) || COUNTRIES_DATA[0];
-  }, [onDialCodeChange, dialCode, countryCode, value, internalDialCode, internalCountryCode]);
+  }, [onDialCodeChange, dialCode, countryCode, normalizedValue, internalDialCode, internalCountryCode]);
 
   // Determine what to display inside the text input
   const displayLocalValue = useMemo(() => {
-    if (!value) return '';
-    const str = String(value).trim();
+    if (!normalizedValue) return '';
+    const str = String(normalizedValue).trim();
     // If in single-field mode and value contains the dial code, extract local number for display
     if (!onDialCodeChange && (str.startsWith('+') || str.startsWith('00'))) {
       const parsed = parseInternationalPhone(str, effectiveCountry.dialCode, effectiveCountry.code);
       return parsed.localNumber;
     }
-    return value;
-  }, [value, onDialCodeChange, effectiveCountry]);
+    return normalizedValue;
+  }, [normalizedValue, onDialCodeChange, effectiveCountry]);
 
   // List of countries ordered: Selected country at top, followed by all countries alphabetically
   const displayCountries = useMemo(() => {
@@ -234,7 +244,7 @@ export default function CountryPhoneInput({
         const outValue = onDialCodeChange
           ? filteredLocal
           : `${parsed.dialCode} ${filteredLocal}`.trim();
-        onChange({
+        const syntheticEvent = {
           target: {
             name,
             value: outValue,
@@ -242,7 +252,12 @@ export default function CountryPhoneInput({
             dialCode: parsed.dialCode,
             fullPhone: `${parsed.dialCode} ${filteredLocal}`.trim(),
           },
-        });
+          name,
+          value: outValue,
+          toString: () => outValue,
+          valueOf: () => outValue,
+        };
+        onChange(syntheticEvent);
       }
       return;
     }
@@ -253,7 +268,7 @@ export default function CountryPhoneInput({
       const outValue = onDialCodeChange
         ? filteredVal
         : `${effectiveCountry.dialCode} ${filteredVal}`.trim();
-      onChange({
+      const syntheticEvent = {
         target: {
           name,
           value: outValue,
@@ -261,7 +276,12 @@ export default function CountryPhoneInput({
           dialCode: effectiveCountry.dialCode,
           fullPhone: `${effectiveCountry.dialCode} ${filteredVal}`.trim(),
         },
-      });
+        name,
+        value: outValue,
+        toString: () => outValue,
+        valueOf: () => outValue,
+      };
+      onChange(syntheticEvent);
     }
   };
 

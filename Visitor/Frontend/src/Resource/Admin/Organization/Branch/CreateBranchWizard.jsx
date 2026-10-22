@@ -265,7 +265,10 @@ export default function CreateBranchWizard() {
                                     name="phone"
                                     value={formData.phone}
                                     onChange={(val) => {
-                                        setFormData(prev => ({ ...prev, phone: val }));
+                                        // Extract string from synthetic event object
+                                        const phoneStr = typeof val === 'string' ? val
+                                          : (val?.target?.value || val?.value || String(val || ''));
+                                        setFormData(prev => ({ ...prev, phone: phoneStr }));
                                         if (fieldErrors.phone) {
                                             setFieldErrors(prev => { const n = { ...prev }; delete n.phone; return n; });
                                         }

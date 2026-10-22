@@ -69,7 +69,10 @@ export default function CreateDepartmentWizard() {
         }
     }, [formData.organizationId]);
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        let { name, value } = e.target;
+        if (name === 'departmentCode') {
+            value = (value || '').toUpperCase();
+        }
         setFormData(prev => ({ ...prev, [name]: value }));
         if (fieldErrors[name])
             setFieldErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
@@ -86,14 +89,15 @@ export default function CreateDepartmentWizard() {
         }
     };
     const checkCodeUniqueness = async (code) => {
-        if (!code || code.length < 3)
+        const cleanCode = (code || '').trim().toUpperCase();
+        if (!cleanCode || cleanCode.length < 2)
             return;
         setCodeStatus('checking');
         try {
-            const res = await api.get(`/departments/check-code?code=${encodeURIComponent(code)}`);
+            const res = await api.get(`/departments/check-code?code=${encodeURIComponent(cleanCode)}`);
             setCodeStatus(res.data.taken ? 'taken' : 'available');
             if (res.data.taken) {
-                setFieldErrors(prev => ({ ...prev, departmentCode: `Code '${code}' is already in use.` }));
+                setFieldErrors(prev => ({ ...prev, departmentCode: isAm ? `የሥራ ክፍል መለያ ኮድ '${cleanCode}' አስቀድሞ ተይዟል።` : `Code '${cleanCode}' is already in use.` }));
             }
             else {
                 setFieldErrors(prev => { const n = { ...prev }; delete n.departmentCode; return n; });
@@ -106,18 +110,21 @@ export default function CreateDepartmentWizard() {
     const validateStep = (s) => {
         const errors = {};
         if (s === 1) {
-            if (!formData.departmentName || formData.departmentName.trim().length < 3) {
-                errors.departmentName = 'Department Name is required (min 3 characters).';
+            if (!formData.departmentName || formData.departmentName.trim().length < 2) {
+                errors.departmentName = isAm ? 'የሥራ ክፍል ስም ያስፈልጋል (ቢያንስ 2 ፊደላት)።' : 'Department Name is required (min 2 characters).';
             }
-            if (!formData.departmentCode || !/^[A-Z0-9-]{3,15}$/.test(formData.departmentCode)) {
-                errors.departmentCode = 'Code must be uppercase alphanumeric/dashes, 3–15 chars.';
+            const cleanCode = (formData.departmentCode || '').trim().toUpperCase();
+            if (!cleanCode || !/^[A-Z0-9_-]{2,20}$/i.test(cleanCode)) {
+                errors.departmentCode = isAm ? 'የሥራ ክፍል መለያ ኮድ ፊደላት፣ ቁጥሮች ወይም ሰረዞች (2–20 ፊደላት) መሆን አለበት።' : 'Code must be alphanumeric/dashes (e.g. TE-9998), 2–20 chars.';
+            } else {
+                formData.departmentCode = cleanCode;
             }
             if (!formData.organizationId)
-                errors.organizationId = 'Organization is required.';
+                errors.organizationId = isAm ? 'ድርጅት መመረጥ አለበት።' : 'Organization is required.';
             if (!formData.branchId)
-                errors.branchId = 'Branch is required.';
+                errors.branchId = isAm ? 'ቅርንጫፍ መመረጥ አለበት።' : 'Branch is required.';
             if (codeStatus === 'taken')
-                errors.departmentCode = `Code '${formData.departmentCode}' is already in use.`;
+                errors.departmentCode = isAm ? `የሥራ ክፍል መለያ ኮድ '${cleanCode}' አስቀድሞ ተይዟል።` : `Code '${cleanCode}' is already in use.`;
         }
         if (s === 2) {
             if (!formData.officeLocation || formData.officeLocation.trim().length < 2) {
@@ -284,12 +291,25 @@ export default function CreateDepartmentWizard() {
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">
                     Department Code <span className="text-rose-500">*</span>
                   </label>
-                  <div className="relative">
-                    <input type="text" name="departmentCode" value={formData.departmentCode} onChange={handleChange} onBlur={() => checkCodeUniqueness(formData.departmentCode)} placeholder="HR-001" className={`w-full bg-[#070c16] font-mono text-white rounded-xl px-3.5 py-2.5 text-xs uppercase focus:outline-none transition-all ${fieldErrors.departmentCode
-                ? 'border-2 border-rose-500 bg-rose-950/20'
-                : codeStatus === 'available'
-                    ? 'border-2 border-emerald-500 text-emerald-400'
-                    : 'border border-slate-700 focus:border-indigo-500'}`}/>
+                    <input 
+                      type="text" 
+                      name="departmentCode" 
+                      value={formData.departmentCode} 
+                      onChange={(e) => {
+                        const val = (e.target.value || '').toUpperCase();
+                        setFormData(prev => ({ ...prev, departmentCode: val }));
+                        if (fieldErrors.departmentCode) {
+                          setFieldErrors(prev => { const n = { ...prev }; delete n.departmentCode; return n; });
+                        }
+                      }} 
+                      onBlur={() => checkCodeUniqueness(formData.departmentCode)} 
+                      placeholder="e.g. TE-9998" 
+                      className={`w-full bg-[#070c16] font-mono text-white rounded-xl px-3.5 py-2.5 text-xs uppercase focus:outline-none transition-all ${fieldErrors.departmentCode
+                        ? 'border-2 border-rose-500 bg-rose-950/20'
+                        : codeStatus === 'available'
+                            ? 'border-2 border-emerald-500 text-emerald-400'
+                            : 'border border-slate-700 focus:border-indigo-500'}`}
+                    />
                     {codeStatus === 'checking' && (<span className="absolute right-3 top-2.5 text-xs text-indigo-400 animate-spin">⟳</span>)}
                   </div>
                   {renderFieldError('departmentCode')}
