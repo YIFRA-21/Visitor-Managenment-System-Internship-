@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { AnimatePresence } from 'framer-motion';
 import GlobalNotification from '../components/common/GlobalNotification';
@@ -11,19 +12,22 @@ let globalNotifyHandler = null;
 /**
  * Global Notification Provider
  *
- * Provides application-wide response and status notifications:
+ * Provides application-wide response and status notifications in ONE unified place:
  * - Slide-in from right to left
- * - 10-second default visible duration
+ * - 4.5-second default visible duration
  * - Pause countdown on hover, resume on mouse leave
  * - Downward drop & smooth fade-out exit animation (600ms)
  * - Manual dismissal via (×) button
  * - NO countdown numbers inside notifications
+ * - Strictly ONE notification displayed at a time (replaces previous to avoid stacking clutter)
+ * - Automatically clears stale notifications upon route navigation
  * - Strict type-based color scheme: error (red/pink), success (green), warning (yellow/orange), info (blue)
- * - Built-in deduplication within 1.5 seconds to prevent spam
+ * - Built-in deduplication within 2 seconds to prevent spam
  */
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const recentMessagesRef = useRef(new Map());
+  const location = useLocation();
 
   // Dismiss a notification by ID
   const dismissNotification = useCallback((id) => {
@@ -34,6 +38,11 @@ export function NotificationProvider({ children }) {
   const clearAllNotifications = useCallback(() => {
     setNotifications([]);
   }, []);
+
+  // Automatically clear transient notifications upon navigating to a new route
+  useEffect(() => {
+    setNotifications([]);
+  }, [location.pathname]);
 
   // Core show notification handler with message sanitization and deduplication
   const showNotification = useCallback((message, type = 'info', options = {}) => {
@@ -71,14 +80,15 @@ export function NotificationProvider({ children }) {
 
     // Determine normalized type
     const normalizedType = ['success', 'error', 'warning', 'info'].includes(type) ? type : 'info';
-    const duration = typeof options === 'number' ? options : (options?.duration || 10);
+    const duration = typeof options === 'number' ? options : (options?.duration || 4.5);
     const title = typeof options === 'object' ? options?.title : undefined;
 
-    // Deduplication check: Prevent identical messages within 1500ms
-    const dedupKey = `${normalizedType}:${cleanMessage}`;
+    // Normalized message key for deduplication (strip quotes and spaces)
+    const normMsg = cleanMessage.replace(/["']/g, '').replace(/\s+/g, ' ').toLowerCase();
+    const dedupKey = `${normalizedType}:${normMsg}`;
     const now = Date.now();
     const lastShown = recentMessagesRef.current.get(dedupKey);
-    if (lastShown && now - lastShown < 1500) {
+    if (lastShown && now - lastShown < 2000) {
       return null; // Suppress duplicate
     }
     recentMessagesRef.current.set(dedupKey, now);
@@ -101,11 +111,8 @@ export function NotificationProvider({ children }) {
       duration
     };
 
-    setNotifications((prev) => {
-      // Keep up to 4 concurrent notifications on screen to prevent viewport overflow
-      const current = prev.slice(-3);
-      return [...current, newNotification];
-    });
+    // Strictly ONE unified notification visible on screen at any time (replaces prior notification)
+    setNotifications([newNotification]);
 
     return id;
   }, []);
@@ -123,10 +130,10 @@ export function NotificationProvider({ children }) {
   // Convenient notification API
   const notify = useMemo(
     () => ({
-      success: (msg, duration = 10, title) => showNotification(msg, 'success', { duration, title }),
-      error: (msg, duration = 10, title) => showNotification(msg, 'error', { duration, title }),
-      warning: (msg, duration = 10, title) => showNotification(msg, 'warning', { duration, title }),
-      info: (msg, duration = 10, title) => showNotification(msg, 'info', { duration, title }),
+      success: (msg, duration = 4.5, title) => showNotification(msg, 'success', { duration, title }),
+      error: (msg, duration = 4.5, title) => showNotification(msg, 'error', { duration, title }),
+      warning: (msg, duration = 4.5, title) => showNotification(msg, 'warning', { duration, title }),
+      info: (msg, duration = 4.5, title) => showNotification(msg, 'info', { duration, title }),
       show: showNotification,
       dismiss: dismissNotification,
       clear: clearAllNotifications

@@ -156,10 +156,6 @@ export default function UserManagement({ departments = [], initialTab = 'users',
 
             const notifyFn = window.notify?.success || ((msg) => console.log(msg));
             notifyFn(`User "${target.full_name || target.email}" was deleted successfully.`);
-            setAlert({ 
-                type: 'success', 
-                message: `User account ${target.full_name || target.email} deleted successfully.` 
-            });
 
             await api.delete(`/users/${target.id}`);
             if (typeof fetchStats === 'function') fetchStats();
@@ -173,7 +169,6 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 const notifyErr = window.notify?.error || ((msg) => console.error(msg));
                 const errMsg = err?.response?.data?.message || err?.message || 'Failed to delete user account.';
                 notifyErr(errMsg);
-                setAlert({ type: 'error', message: errMsg });
             }
         }
     };
@@ -5060,12 +5055,9 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                       // 2. Optimistically remove user from directory table immediately
                       setUsersList(prev => prev.filter(u => u.id !== target.id));
                       setPagination(prev => ({ ...prev, total: Math.max(0, (prev.total || 1) - 1) }));
-                      
-                      // 3. Immediate instant confirmation banner
-                      setAlert({ 
-                        type: 'success', 
-                        message: `User account ${target.full_name || target.email} deleted successfully.` 
-                      });
+                      // 3. Immediate instant confirmation via unified notification system
+                      const notifyFn = window.notify?.success || ((msg) => console.log(msg));
+                      notifyFn(`User "${target.full_name || target.email}" was deleted successfully.`);
                       
                       // 4. Background deletion with silent fallback and rollback on error
                       try {
@@ -5080,10 +5072,8 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                         catch (fallbackErr) {
                           fetchUsers();
                           fetchStats();
-                          setAlert({ 
-                            type: 'error', 
-                            message: extractErrorMessage(err || fallbackErr, 'Failed to delete user account.') 
-                          });
+                          const notifyErr = window.notify?.error || ((msg) => console.error(msg));
+                          notifyErr(extractErrorMessage(err || fallbackErr, 'Failed to delete user account.'));
                         }
                       }
                     }} 

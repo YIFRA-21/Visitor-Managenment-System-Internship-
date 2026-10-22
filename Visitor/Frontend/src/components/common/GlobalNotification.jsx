@@ -21,7 +21,7 @@ import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react'
 export default function GlobalNotification({
   notification,
   onClose,
-  duration = 10,
+  duration = 4.5,
   className = ''
 }) {
   const totalMs = (notification?.duration || duration) * 1000;
