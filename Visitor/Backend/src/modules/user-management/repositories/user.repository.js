@@ -262,10 +262,19 @@ class UserRepository {
       jobTitle = null,
       firstLoginRequired = false,
       employeeId = null,
-      userCode: providedUserCode = null
+      userCode: providedUserCode = null,
+      emailVerified = false,
+      pendingVerification = false
     } = userData;
 
     const userCode = providedUserCode || await this.generateUserCode(role, dbClient);
+    const isEmailVerified = Boolean(emailVerified || userData.email_verified);
+
+    // Visitor accounts created via public signup start as PENDING_VERIFICATION
+    // until email OTP is confirmed. Staff/admin accounts created by admins start ACTIVE.
+    const accountStatus = pendingVerification ? 'PENDING_VERIFICATION' : 'ACTIVE';
+    const accountStatusLower = pendingVerification ? 'pending_verification' : 'active';
+    const verificationStatus = pendingVerification ? 'PENDING' : 'VERIFIED';
 
     const result = await dbClient.query(
       `INSERT INTO users (
@@ -273,7 +282,7 @@ class UserRepository {
         full_name, phone, phone_number, role, department_id, job_title, 
         account_status, status, email_verified, phone_verified, failed_login_attempts,
         user_code, first_login_required, verification_status, employee_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', 'active', FALSE, FALSE, 0, ?, ?, 'VERIFIED', ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, 0, ?, ?, ?, ?)`,
       [
         username || email.split('@')[0] + Math.floor(Math.random() * 1000),
         email,
@@ -287,8 +296,12 @@ class UserRepository {
         role,
         departmentId,
         jobTitle,
+        accountStatus,
+        accountStatusLower,
+        isEmailVerified ? 1 : 0,
         userCode,
         firstLoginRequired ? 1 : 0,
+        verificationStatus,
         employeeId
       ]
     );
@@ -297,6 +310,7 @@ class UserRepository {
   }
 
   async update(id, updateData) {
+    if (!updateData || Object.keys(updateData).length === 0) return true;
     const fields = [];
     const values = [];
 
@@ -304,32 +318,55 @@ class UserRepository {
       role: 'role',
       status: 'status',
       accountStatus: 'account_status',
+      account_status: 'account_status',
       departmentId: 'department_id',
+      department_id: 'department_id',
       jobTitle: 'job_title',
+      job_title: 'job_title',
       fullName: 'full_name',
+      full_name: 'full_name',
       firstName: 'first_name',
+      first_name: 'first_name',
       lastName: 'last_name',
+      last_name: 'last_name',
       phone: 'phone',
+      phoneNumber: 'phone_number',
+      phone_number: 'phone_number',
+      isActive: 'is_active',
+      is_active: 'is_active',
       avatarUrl: 'avatar_url',
+      avatar_url: 'avatar_url',
       resetToken: 'reset_token',
+      reset_token: 'reset_token',
       resetTokenExpires: 'reset_token_expires',
+      reset_token_expires: 'reset_token_expires',
       failedLoginAttempts: 'failed_login_attempts',
+      failed_login_attempts: 'failed_login_attempts',
       accountLockedUntil: 'account_locked_until',
+      account_locked_until: 'account_locked_until',
       passwordHash: 'password_hash',
+      password_hash: 'password_hash',
       userCode: 'user_code',
+      user_code: 'user_code',
       verificationStatus: 'verification_status',
+      verification_status: 'verification_status',
       emailVerified: 'email_verified',
+      email_verified: 'email_verified',
       firstLoginRequired: 'first_login_required',
+      first_login_required: 'first_login_required',
     };
 
-    for (const [key, columnName] of Object.entries(mappings)) {
-      if (updateData[key] !== undefined) {
-        fields.push(`${columnName} = ?`);
-        values.push(updateData[key]);
+    const addedCols = new Set();
+    for (const [key, val] of Object.entries(updateData)) {
+      const col = mappings[key];
+      if (col && !addedCols.has(col)) {
+        fields.push(`${col} = ?`);
+        values.push(val);
+        addedCols.add(col);
       }
     }
 
-    if (fields.length === 0) return false;
+    if (fields.length === 0) return true;
 
     values.push(id);
     const result = await db.query(
@@ -634,26 +671,6 @@ class UserRepository {
     return result.affectedRows > 0;
   }
 
-  async update(id, data) {
-    if (!data || Object.keys(data).length === 0) return true;
-    const allowedFields = ['full_name', 'phone', 'phone_number', 'status', 'account_status', 'role', 'department_id', 'job_title', 'is_active'];
-    const updates = [];
-    const values = [];
-    for (const [key, val] of Object.entries(data)) {
-      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-      if (allowedFields.includes(snakeKey)) {
-        updates.push(`${snakeKey} = ?`);
-        values.push(val);
-      }
-    }
-    if (updates.length === 0) return true;
-    values.push(id);
-    const result = await db.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
-      values
-    );
-    return true;
-  }
 
   async findAll() {
     return db.query(

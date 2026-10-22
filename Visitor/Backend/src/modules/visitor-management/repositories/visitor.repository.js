@@ -86,6 +86,12 @@ class VisitorRepository {
     const formattedCode = visitorData.visitorCode || `VISIT${String(nextNum).padStart(6, '0')}`;
     const formattedRefNum = referenceNum || `VMS-${new Date().getFullYear()}-${String(nextNum).padStart(6, '0')}`;
 
+    // Determine initial status based on registrationStatus
+    // PENDING registrations (from public signup) start INACTIVE and inactive until email is verified
+    const isPending = registrationStatus === 'PENDING';
+    const initialStatus = isPending ? 'INACTIVE' : 'ACTIVE';
+    const initialIsActive = isPending ? 'FALSE' : 'TRUE';
+
     const result = await dbClient.query(
       `INSERT INTO visitors (
         visitor_code, visitor_id, reference_number, organization_id, user_id, visitor_type_id, visitor_company_id,
@@ -93,7 +99,7 @@ class VisitorRepository {
         gender, date_of_birth, nationality, company, category,
         photo_url, id_type, id_number, emergency_contact_name, emergency_contact_phone,
         status, registration_status, is_blacklisted, is_active
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, FALSE, TRUE)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ${initialIsActive})`,
       [
         formattedCode,
         nextNum,
@@ -118,6 +124,7 @@ class VisitorRepository {
         idNumber,
         emergencyContactName,
         emergencyContactPhone,
+        initialStatus,
         registrationStatus,
       ]
     );

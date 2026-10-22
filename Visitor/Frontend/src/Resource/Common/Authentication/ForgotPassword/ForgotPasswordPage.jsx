@@ -158,10 +158,10 @@ export default function ForgotPasswordPage() {
             if (res.data?.userCode) {
                 setAccountUserCode(res.data.userCode);
             }
-            // If backend returns a demo token (mock mode only), pre-fill; otherwise clear for real email input
-            if (res.data?.demoToken) {
-                setDemoToken(res.data.demoToken);
-                const digits = String(res.data.demoToken).padStart(6, '0').slice(0, 6).split('');
+            const tokenToUse = res.data?.otpCode || res.data?.demoToken;
+            if (tokenToUse) {
+                setDemoToken(tokenToUse);
+                const digits = String(tokenToUse).padStart(6, '0').slice(0, 6).split('');
                 setOtpDigits(digits);
             }
             else {
@@ -295,9 +295,10 @@ export default function ForgotPasswordPage() {
             if (res.data?.maskedEmail) {
                 setMaskedEmailAddress(res.data.maskedEmail);
             }
-            if (res.data?.demoToken) {
-                setDemoToken(res.data.demoToken);
-                const digits = String(res.data.demoToken).padStart(6, '0').slice(0, 6).split('');
+            const tokenToUse = res.data?.otpCode || res.data?.demoToken;
+            if (tokenToUse) {
+                setDemoToken(tokenToUse);
+                const digits = String(tokenToUse).padStart(6, '0').slice(0, 6).split('');
                 setOtpDigits(digits);
             }
             else {

@@ -1405,8 +1405,7 @@ async function query(sql, params = []) {
     }
     const fatalConnErrors = ['ECONNREFUSED', 'ENOTFOUND', 'ER_ACCESS_DENIED_ERROR', 'ER_BAD_DB_ERROR'];
     if (fatalConnErrors.includes(err.code)) {
-      console.warn(`Database connection failed (${err.code}). Falling back to mock database.`);
-      useMock = true;
+      console.warn(`Database connection warning (${err.code}). Falling back to mock database for this request.`);
       return handleMockQuery(sql, sanitizedParams);
     }
     if (err.code === 'ETIMEDOUT' || err.code === 'PROTOCOL_CONNECTION_LOST') {

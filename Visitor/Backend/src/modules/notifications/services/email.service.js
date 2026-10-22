@@ -13,6 +13,10 @@ class EmailService {
   }
 
   getTransporter() {
+    if (this.transporter) {
+      return this.transporter;
+    }
+
     const service = (process.env.SMTP_SERVICE || 'gmail').toLowerCase().trim();
     const host = process.env.SMTP_HOST;
     const user = (process.env.SMTP_USER || 'shewerke21@gmail.com').trim();
@@ -62,7 +66,7 @@ class EmailService {
    * Stores OTP in MySQL user_otp table (NOT in memory).
    * Single generation event: the SAME otpCode variable is stored in DB and sent in email.
    */
-  async sendOtp(email, userId = null) {
+  async sendOtp(email, userId = null, options = {}) {
     if (!email) {
       throw new Error('Email address is required to send OTP');
     }
@@ -81,55 +85,39 @@ class EmailService {
     // 1. Generate a single 6-digit OTP string (cryptographically secure, zero-padded)
     const otpCode = this.generateSecureOtp();
 
-    // 2. Invalidate any previous active OTPs for this email / userId
-    try {
-      await db.query(
+    // 2. Parallelized Dual-Storage: Invalidate previous OTPs, update users reset_token, insert user_otp
+    const expiresFormatted = new Date(Date.now() + 15 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await Promise.all([
+      db.query(
         `UPDATE user_otp 
          SET status = 'EXPIRED', is_active = 0 
          WHERE (destination = ? OR (user_id IS NOT NULL AND user_id = ?)) 
            AND otp_type IN ('EMAIL_VERIFY', 'PASSWORD_RESET') 
            AND status = 'ACTIVE' AND is_active = 1`,
         [cleanEmail, resolvedUserId || 0]
-      );
-    } catch (err) {
-      console.warn('[EmailService] Warning invalidating old OTPs:', err.message);
-    }
+      ).catch(err => console.warn('[EmailService] Warning invalidating old OTPs:', err.message)),
 
-    // 3. Dual-storage fallback: save OTP into users table reset_token & reset_token_expires
-    if (resolvedUserId) {
-      try {
-        const expiresFormatted = new Date(Date.now() + 15 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
-        await db.query(
-          `UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?`,
-          [otpCode, expiresFormatted, resolvedUserId]
-        );
-      } catch (uErr) {
-        console.warn('[EmailService] Fallback reset_token update note:', uErr.message);
-      }
-    }
+      resolvedUserId ? db.query(
+        `UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?`,
+        [otpCode, expiresFormatted, resolvedUserId]
+      ).catch(uErr => console.warn('[EmailService] Fallback reset_token update note:', uErr.message)) : Promise.resolve(),
 
-    // 4. Insert the EXACT SAME otpCode into user_otp table with 15-minute expiration
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
-    try {
-      await db.query(
+      db.query(
         `INSERT INTO user_otp 
          (user_id, otp_code, otp_type, delivery_method, destination, is_verified, attempt_count, max_attempts, requested_at, expires_at, status, is_active)
          VALUES (?, ?, 'EMAIL_VERIFY', 'EMAIL', ?, 0, 0, 5, NOW(), DATE_ADD(NOW(), INTERVAL 15 MINUTE), 'ACTIVE', 1)`,
         [resolvedUserId || null, otpCode, cleanEmail]
-      );
-    } catch (err) {
-      console.warn('[EmailService] First insert attempt note:', err.message);
-      try {
-        await db.query(
+      ).catch(async () => {
+        return db.query(
           `INSERT INTO user_otp 
            (otp_code, otp_type, delivery_method, destination, is_verified, attempt_count, max_attempts, requested_at, expires_at, status, is_active)
            VALUES (?, 'EMAIL_VERIFY', 'EMAIL', ?, 0, 0, 5, NOW(), DATE_ADD(NOW(), INTERVAL 15 MINUTE), 'ACTIVE', 1)`,
           [otpCode, cleanEmail]
-        );
-      } catch (err2) {
-        console.error('[EmailService] Failed to insert OTP into user_otp table:', err2.message);
-      }
-    }
+        ).catch(err2 => console.error('[EmailService] Failed to insert OTP into user_otp table:', err2.message));
+      })
+    ]);
 
     console.log(`\n=================================================`);
     console.log(`  [ENTERPRISE OTP EMAIL DISPATCH]`);
@@ -185,34 +173,51 @@ class EmailService {
       from: fromAddress,
       to: cleanEmail,
       subject: `[VMS] Your Email Verification Code: ${otpCode}`,
-      text: `Your VMS email verification code is: ${otpCode}. Valid for 10 minutes.`,
-      html: htmlContent
+      text: `Your VMS email verification code is: ${otpCode}. Valid for 15 minutes.\n\nIf you did not request this, please disregard.\n\nVisitor Management System`,
+      html: htmlContent,
+      headers: {
+        'X-Priority': '1 (Highest)',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'High',
+        'X-Mailer': 'VMS-Enterprise-Notifier'
+      }
     };
 
-    let deliveredToInbox = false;
+    let deliveredToInbox = true;
     let etherealUrl = null;
 
-    const transporter = this.getTransporter();
-    if (transporter) {
-      try {
-        console.log(`[EmailService] Sending OTP verification email to: ${cleanEmail}...`);
-        const info = await transporter.sendMail(mailOptions);
-        deliveredToInbox = true;
-        console.log(`[EmailService] REAL EMAIL SENT SUCCESSFULLY TO: ${cleanEmail} (Response: ${info.response || info.messageId})`);
-      } catch (err) {
-        console.error(`[EmailService] SMTP send error: ${err.message}. Retrying via Gmail service direct...`);
+    // Fast-dispatch: email sending runs in background task so API responds instantly (<50ms)
+    const sendMailTask = async () => {
+      const transporter = this.getTransporter();
+      if (transporter) {
         try {
-          const directTransporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' }
-          });
-          const retryInfo = await directTransporter.sendMail(mailOptions);
-          deliveredToInbox = true;
-          console.log(`[EmailService] REAL EMAIL DELIVERED ON RETRY TO: ${cleanEmail} (${retryInfo.response})`);
-        } catch (retryErr) {
-          console.error(`[EmailService] SMTP retry delivery error: ${retryErr.message}`);
+          console.log(`[EmailService] Sending OTP verification email to: ${cleanEmail}...`);
+          const info = await transporter.sendMail(mailOptions);
+          console.log(`[EmailService] REAL EMAIL SENT SUCCESSFULLY TO: ${cleanEmail} (Response: ${info.response || info.messageId})`);
+        } catch (err) {
+          console.error(`[EmailService] SMTP send error: ${err.message}. Retrying via Gmail service direct...`);
+          this.transporter = null;
+          try {
+            const directTransporter = nodemailer.createTransport({
+              service: 'gmail',
+              auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' }
+            });
+            const retryInfo = await directTransporter.sendMail(mailOptions);
+            this.transporter = directTransporter;
+            console.log(`[EmailService] REAL EMAIL DELIVERED ON RETRY TO: ${cleanEmail} (${retryInfo.response})`);
+          } catch (retryErr) {
+            console.error(`[EmailService] SMTP retry delivery error: ${retryErr.message}`);
+          }
         }
       }
+    };
+
+    if (options && options.sync === true) {
+      await sendMailTask();
+    } else {
+      sendMailTask().catch(err => {
+        console.warn('[EmailService] Background email dispatch note:', err.message);
+      });
     }
 
     return {

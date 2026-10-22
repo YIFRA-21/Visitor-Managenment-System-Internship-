@@ -348,8 +348,13 @@ class AuthService {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
+    // Determine if this is a public visitor signup (no admin initiator)
+    // Public visitor signups require email verification before the account is fully active
+    const isPublicVisitorSignup = role.toLowerCase() === 'visitor' && !initiatorId;
+
     const regResult = await db.transaction(async (tx) => {
       // 1. Create base user record (using transaction client tx!)
+      // For public visitor signups: account starts as PENDING_VERIFICATION until OTP is confirmed
       const userId = await userRepository.create({
         username: userData.username || (email ? email.split('@')[0] : 'user') + '_' + Math.floor(Math.random() * 1000),
         email: trimmedEmail,
@@ -362,7 +367,8 @@ class AuthService {
         role: role.toLowerCase(),
         departmentId: userData.departmentId || userData.department_id || null,
         jobTitle: userData.position || userData.jobTitle || userData.job_title || null,
-        firstLoginRequired: role.toLowerCase() !== 'visitor' // staff/mgr require password change on first login
+        firstLoginRequired: role.toLowerCase() !== 'visitor', // staff/mgr require password change on first login
+        pendingVerification: isPublicVisitorSignup // visitor signup accounts need email verification first
       }, tx);
 
       // Fetch the generated user record using transaction client tx
@@ -373,6 +379,8 @@ class AuthService {
 
       // 2. Insert into the appropriate profile table
       if (role.toLowerCase() === 'visitor') {
+        // For public visitor signup: visitor record starts PENDING until email is verified
+        const visitorRegStatus = isPublicVisitorSignup ? 'PENDING' : 'APPROVED';
         const tempVisitorId = await visitorRepository.create({
           userId,
           firstName,
@@ -390,7 +398,7 @@ class AuthService {
           photoUrl: userData.photoUrl || null,
           emergencyContactName: userData.emergencyContactName || null,
           emergencyContactPhone: userData.emergencyContactPhone || null,
-          registrationStatus: 'APPROVED'
+          registrationStatus: visitorRegStatus
         }, tx);
         profileId = tempVisitorId;
 
@@ -589,17 +597,18 @@ class AuthService {
       console.warn('[AuthService] Audit log note:', auditErr.message);
     });
 
-    // 6. Send OTP *AFTER* database transaction commits — FIRE AND FORGET (non-blocking)
-    // The email dispatch runs in the background so the HTTP response returns instantly,
-    // allowing the frontend to redirect to the OTP verification page without waiting
-    // for the slow SMTP round-trip (which can take 3-10+ seconds via Gmail).
-    emailService.sendOtp(email, regResult.userId).catch(otpErr => {
-      console.warn('[AuthService] Background OTP send note:', otpErr.message);
-    });
+    // 6. Send OTP *AFTER* database transaction commits — await so delivery is confirmed
+    let otpRes = null;
+    try {
+      otpRes = await emailService.sendOtp(email, regResult.userId);
+    } catch (otpErr) {
+      console.error('[AuthService] sendOtp error during registration:', otpErr.message);
+    }
 
     return {
       ...regResult,
-      deliveredToInbox: true, // optimistic — email is being dispatched in the background
+      deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
+      otpCode: otpRes?.otpCode || null,
     };
   }
 
@@ -662,19 +671,37 @@ class AuthService {
 
     const user = await userRepository.findByIdentifier(identifier);
     if (!user) {
-      await authAuditService.logLoginFailure(identifier, `User not found (${identifierType})`, clientInfo);
+      // Fire-and-forget: audit log should not block the response
+      authAuditService.logLoginFailure(identifier, `User not found (${identifierType})`, clientInfo).catch(() => {});
       throw new AppError('Invalid credentials', 401);
     }
 
-    // CRITICAL SECURITY CHECK: Check account status and reject immediately if blocked, suspended, deactivated, locked, or inactive
+    // Check if account is awaiting email OTP verification before allowing login
     const statusUpper = String(user.account_status || user.status || '').trim().toUpperCase();
+    const isPendingVerification = statusUpper === 'PENDING_VERIFICATION' || 
+                                  statusUpper === 'PENDING' ||
+                                  (user.verification_status || '').toUpperCase() === 'PENDING' ||
+                                  ((user.role || '').toLowerCase() === 'visitor' && (user.email_verified === 0 || user.email_verified === false) && statusUpper !== 'ACTIVE');
+
+    if (isPendingVerification) {
+      authAuditService.logLoginFailure(identifier, `Login blocked: Email verification pending`, clientInfo).catch(() => {});
+      const pendingErr = new AppError('Your account has not been activated yet. Please verify your email with the OTP code sent to your inbox.', 403);
+      pendingErr.code = 'EMAIL_NOT_VERIFIED';
+      pendingErr.status = 'fail';
+      pendingErr.requiresVerification = true;
+      pendingErr.email = user.email;
+      throw pendingErr;
+    }
+
+    // CRITICAL SECURITY CHECK: Check account status and reject immediately if blocked, suspended, deactivated, locked, or inactive
     const isLockedByAdmin = (statusUpper === 'LOCKED' && !user.account_locked_until);
     const isBlocked = ['BLOCKED', 'SUSPENDED', 'DEACTIVATED', 'ARCHIVED', 'INACTIVE', 'DISABLED'].includes(statusUpper) ||
                       isLockedByAdmin ||
                       user.is_active === 0 || user.is_active === false;
 
     if (isBlocked) {
-      await authAuditService.logLoginFailure(identifier, `Login blocked: Account status is ${statusUpper}`, clientInfo);
+      // Fire-and-forget: audit log should not block the response
+      authAuditService.logLoginFailure(identifier, `Login blocked: Account status is ${statusUpper}`, clientInfo).catch(() => {});
       const blockErr = new AppError('This user account has been blocked or suspended. Please contact the system administrator.', 403);
       blockErr.code = 'ACCOUNT_BLOCKED';
       blockErr.status = 'fail';
@@ -688,7 +715,8 @@ class AuthService {
       const lockUntil = new Date(user.account_locked_until);
       if (lockUntil > now) {
         const remainingMinutes = Math.ceil((lockUntil - now) / 60000);
-        await authAuditService.logLoginFailure(identifier, `Account locked until ${lockUntil}`, clientInfo);
+        // Fire-and-forget: audit log should not block the response
+        authAuditService.logLoginFailure(identifier, `Account locked until ${lockUntil}`, clientInfo).catch(() => {});
         const lockErr = new AppError(`Account is temporarily locked due to failed attempts. Try again in ${remainingMinutes} minute(s).`, 403);
         lockErr.code = 'ACCOUNT_LOCKED';
         lockErr.status = 'fail';
@@ -729,45 +757,46 @@ class AuthService {
     }
 
     if (!isPasswordValid) {
-      // Increment failed attempts
-      await userRepository.incrementFailedAttempts(user.email);
+      // Increment failed attempts (fire-and-forget for speed, locking is best-effort)
+      userRepository.incrementFailedAttempts(user.email).catch(() => {});
       const newAttempts = user.failed_login_attempts + 1;
 
       if (newAttempts >= 5) {
-        // Lock account for 15 minutes
+        // Lock account for 15 minutes (fire-and-forget)
         const lockUntil = new Date(Date.now() + 15 * 60 * 1000)
           .toISOString()
           .slice(0, 19)
           .replace('T', ' ');
-        await userRepository.lockAccount(user.email, lockUntil);
-        await authAuditService.logAccountLocked(user.id, 'Too many failed login attempts (5)', clientInfo);
+        userRepository.lockAccount(user.email, lockUntil).catch(() => {});
+        authAuditService.logAccountLocked(user.id, 'Too many failed login attempts (5)', clientInfo).catch(() => {});
         throw new AppError('Too many failed login attempts. Your account has been locked for 15 minutes.', 403);
       }
 
-      await authAuditService.logLoginFailure(identifier, `Invalid password (attempt ${newAttempts})`, clientInfo);
+      // Fire-and-forget: audit log should not block the response
+      authAuditService.logLoginFailure(identifier, `Invalid password (attempt ${newAttempts})`, clientInfo).catch(() => {});
       throw new AppError('Invalid credentials', 401);
     }
 
-    // If successful login, reset failed attempts
+    // If successful login, reset failed attempts (fire-and-forget)
     if (user.failed_login_attempts > 0) {
-      await userRepository.resetFailedAttempts(user.email);
+      userRepository.resetFailedAttempts(user.email).catch(() => {});
     }
 
-    // First-login flow: validate the temporary credential window
+    // First-login flow: validate the temporary credential window (fire-and-forget audit)
     if (user.first_login_required) {
-      await authAuditService.log('FIRST_LOGIN_WITH_TEMPORARY_PASSWORD', {
+      authAuditService.log('FIRST_LOGIN_WITH_TEMPORARY_PASSWORD', {
         userId: user.id,
         ipAddress: clientInfo.ip,
         userAgent: clientInfo.userAgent,
         severity: 'MEDIUM',
-      });
-      await authAuditService.log('PASSWORD_CHANGE_REQUIRED', {
+      }).catch(() => {});
+      authAuditService.log('PASSWORD_CHANGE_REQUIRED', {
         userId: user.id,
         ipAddress: clientInfo.ip,
         userAgent: clientInfo.userAgent,
         severity: 'MEDIUM',
         metadata: { action: 'CHANGE_PASSWORD' },
-      });
+      }).catch(() => {});
     }
 
     // Fetch visitor mapping if applicable
@@ -799,22 +828,22 @@ class AuthService {
       }
     }
 
-    // Resolve linked employee profile if applicable
+    // Resolve linked employee profile and RBAC identity in parallel for speed
     let employeeId = user.employee_id || null;
     let employeeDeptId = user.department_id || null;
     let employeeBranchId = user.branch_id || null;
     let employeeOrgId = user.organization_id || 1;
 
-    const empRes = await db.query('SELECT id, department_id, branch_id, organization_id FROM employees WHERE user_id = ? OR id = ?', [user.id, user.id]).catch(() => []);
+    const [empRes, identity] = await Promise.all([
+      db.query('SELECT id, department_id, branch_id, organization_id FROM employees WHERE user_id = ? OR id = ?', [user.id, user.id]).catch(() => []),
+      this.resolveUserIdentity(user.id)
+    ]);
     if (empRes[0]) {
       employeeId = empRes[0].id;
       employeeDeptId = empRes[0].department_id || employeeDeptId;
       employeeBranchId = empRes[0].branch_id || employeeBranchId;
       employeeOrgId = empRes[0].organization_id || employeeOrgId;
     }
-
-    // Resolve full RBAC identity
-    const identity = await this.resolveUserIdentity(user.id);
 
     const payload = {
       id: user.id,
@@ -856,10 +885,10 @@ class AuthService {
 
     const sessionId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
 
+    // Fire-and-forget: session insert and audit log should not block the login response
     if (!db.useMock) {
-      try {
-        await db.query(
-          `INSERT INTO user_sessions (
+      db.query(
+        `INSERT INTO user_sessions (
             session_id, user_id, session_token, refresh_token, ip_address, user_agent, expires_at, is_active
           ) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)
           ON DUPLICATE KEY UPDATE
@@ -867,15 +896,12 @@ class AuthService {
             refresh_token = VALUES(refresh_token),
             expires_at = VALUES(expires_at),
             is_active = TRUE`,
-          [sessionId, user.id, sessionToken, refreshToken, clientInfo.ip || null, clientInfo.userAgent || null, expiresAt]
-        );
-      } catch (sessErr) {
-        console.warn('Session logging warning:', sessErr.message);
-      }
+        [sessionId, user.id, sessionToken, refreshToken, clientInfo.ip || null, clientInfo.userAgent || null, expiresAt]
+      ).catch(sessErr => console.warn('Session logging warning:', sessErr.message));
     }
 
-    // Audit log
-    await authAuditService.logLoginSuccess(user.id, clientInfo);
+    // Fire-and-forget: audit log should not block the response
+    authAuditService.logLoginSuccess(user.id, clientInfo).catch(() => {});
 
     const firstLoginReq = !!user.first_login_required;
 
@@ -1665,7 +1691,18 @@ class AuthService {
     if (!identifier) {
       throw new AppError('Email address or user identity is required', 400);
     }
-    const user = await this.resolveUser(identifier);
+    const cleanId = String(identifier).trim();
+    let user = null;
+    if (cleanId.includes('@')) {
+      const rows = await db.query(
+        'SELECT id, email, user_code, username FROM users WHERE LOWER(email) = LOWER(?) AND deleted_at IS NULL LIMIT 1',
+        [cleanId]
+      );
+      user = rows[0] || null;
+    }
+    if (!user) {
+      user = await this.resolveUser(cleanId);
+    }
     if (!user || !user.email) {
       throw new AppError('User account not found', 404);
     }
@@ -1681,6 +1718,7 @@ class AuthService {
       email: user.email,
       maskedEmail,
       deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
+      otpCode: otpRes?.otpCode || null,
     };
   }
 

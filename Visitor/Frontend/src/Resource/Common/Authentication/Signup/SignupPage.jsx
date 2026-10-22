@@ -166,6 +166,7 @@ export default function SignupPage() {
     const [resendingEmail, setResendingEmail] = useState(false);
     const [resendSuccess, setResendSuccess] = useState(false);
     const [otpStatus, setOtpStatus] = useState('idle');
+    const [devOtpCode, setDevOtpCode] = useState('');
     // General Status & Validation Errors
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -425,8 +426,12 @@ export default function SignupPage() {
         try {
             const res = await authApi.register(payload);
             sessionStorage.setItem('signup_email', email.trim().toLowerCase());
+            const returnedOtp = res.data?.otpCode || res.data?.data?.otpCode || res.otpCode;
+            if (returnedOtp) {
+                setDevOtpCode(returnedOtp);
+            }
             setSuccess('Account created! A 6-digit verification code has been sent to your email.');
-            setOtpTimer(120);
+            setOtpTimer(60);
             setOtpCode(['', '', '', '', '', '']);
             setCurrentStep(2); // Advance to Step 3: Email OTP Verification
         }
@@ -538,7 +543,12 @@ export default function SignupPage() {
         try {
             const res = await authApi.resendVerification(targetEmail);
             setResendSuccess(true);
-            setTimeout(() => setResendSuccess(false), 4000);
+            setOtpTimer(45);
+            const returnedOtp = res.data?.otpCode || res.data?.data?.otpCode || res.otpCode;
+            if (returnedOtp) {
+                setDevOtpCode(returnedOtp);
+            }
+            setTimeout(() => setResendSuccess(false), 5000);
         }
         catch (err) {
             setError(getErrorMessage(err) || 'Failed to resend verification code.');
@@ -1261,6 +1271,13 @@ export default function SignupPage() {
 
 
                   {/* REAL-TIME DYNAMIC STATUS BADGE */}
+                  {resendSuccess && (
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-center gap-2 max-w-sm mx-auto shadow-sm animate-pulse">
+                      <CheckCircle className="h-4 w-4 shrink-0" />
+                      <span>New 6-digit verification code sent to your email!</span>
+                    </div>
+                  )}
+
                   {otpStatus === 'error' && (<div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 dark:text-rose-400 text-xs font-bold flex items-center justify-center gap-2 max-w-sm mx-auto shadow-sm animate-pulse">
                       <AlertCircle className="h-4 w-4 shrink-0"/>
                       <span>{error || 'Invalid 6-digit code. Please enter the code sent to your email.'}</span>
@@ -1271,16 +1288,62 @@ export default function SignupPage() {
                       <span>✓ Correct verification code! Creating account...</span>
                     </div>)}
 
+                  {/* DEV TEST ASSISTANT / AUTO-FILL HINT */}
+                  {devOtpCode && (
+                    <div className="bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl p-2.5 max-w-sm mx-auto flex items-center justify-between text-xs text-blue-700 dark:text-blue-300 shadow-sm">
+                      <span className="flex items-center gap-1.5 font-semibold">
+                        <Shield className="h-3.5 w-3.5 text-blue-500" />
+                        Code: <strong className="font-black text-sm tracking-widest text-blue-600 dark:text-blue-400">{devOtpCode}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const digits = String(devOtpCode).split('');
+                          setOtpCode(digits);
+                          handleVerifyOtp(devOtpCode);
+                        }}
+                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-black tracking-wide cursor-pointer shadow-sm transition-colors"
+                      >
+                        Auto-fill & Verify
+                      </button>
+                    </div>
+                  )}
+
                   {/* TIMER ROW */}
-                  <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                    {t('signup.otpExpires')} <strong className="text-blue-600 dark:text-blue-400 font-black">{Math.floor(otpTimer / 60)}:{String(otpTimer % 60).padStart(2, '0')}</strong>
+                  <div className="text-xs font-bold text-slate-500 dark:text-slate-400 space-y-1">
+                    <div>
+                      {t('signup.otpExpires')} <strong className="text-blue-600 dark:text-blue-400 font-black">{Math.floor(otpTimer / 60)}:{String(otpTimer % 60).padStart(2, '0')}</strong>
+                    </div>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">
+                      Didn't see the email? Please check your <strong>Spam</strong>, <strong>Updates</strong>, or <strong>Promotions</strong> folder.
+                    </p>
                   </div>
 
                   {/* RESEND LINK */}
                   <div>
-                    <button type="button" onClick={handleResendOtp} disabled={resendingEmail || otpTimer > 0} className={`text-xs font-extrabold flex items-center justify-center gap-1.5 mx-auto ${otpTimer > 0 ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed' : 'text-blue-600 dark:text-blue-400 hover:underline cursor-pointer'}`}>
-                      {resendingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <RefreshCw className="h-3.5 w-3.5"/>}
-                      {t('signup.resendOTP')}
+                    <button 
+                      type="button" 
+                      onClick={handleResendOtp} 
+                      disabled={resendingEmail || otpTimer > 0} 
+                      className={`text-xs font-extrabold flex items-center justify-center gap-1.5 mx-auto transition-all ${
+                        otpTimer > 0 
+                          ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed' 
+                          : resendingEmail
+                            ? 'text-blue-500 cursor-wait'
+                            : 'text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline cursor-pointer active:scale-95'
+                      }`}
+                    >
+                      {resendingEmail ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600"/>
+                          <span>Sending code...</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-3.5 w-3.5"/>
+                          <span>{t('signup.resendOTP')}</span>
+                        </>
+                      )}
                     </button>
                   </div>
 
