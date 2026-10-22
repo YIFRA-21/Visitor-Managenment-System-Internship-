@@ -291,6 +291,7 @@ export default function CreateDepartmentWizard() {
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">
                     Department Code <span className="text-rose-500">*</span>
                   </label>
+                  <div className="relative">
                     <input 
                       type="text" 
                       name="departmentCode" 
