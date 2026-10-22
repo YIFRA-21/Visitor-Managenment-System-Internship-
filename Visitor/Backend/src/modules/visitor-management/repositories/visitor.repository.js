@@ -220,7 +220,22 @@ class VisitorRepository {
       allowedDays: 'allowed_days',
       allowed_days: 'allowed_days',
       visitPurpose: 'visit_purpose',
-      visit_purpose: 'visit_purpose'
+      visit_purpose: 'visit_purpose',
+      purpose: 'visit_purpose',
+      purposeOfVisit: 'visit_purpose',
+      hostName: 'host_employee_name',
+      host_name: 'host_employee_name',
+      host_employee_name: 'host_employee_name',
+      host: 'host_employee_name',
+      branchName: 'branch_name',
+      branch_name: 'branch_name',
+      branch: 'branch_name',
+      meetingLocation: 'meeting_location',
+      meeting_location: 'meeting_location',
+      location: 'meeting_location',
+      duration: 'visit_duration',
+      visitorCategory: 'category',
+      visitor_category: 'category'
     };
 
     const fields = [];
@@ -252,6 +267,39 @@ class VisitorRepository {
       } catch (syncErr) {
         console.warn('Failed to sync profile photo to user account:', syncErr.message);
       }
+    }
+
+    // Also sync visitor profile fields to visitor_histories
+    try {
+      const vhUpdates = [];
+      const vhVals = [];
+      if (data.company !== undefined) { vhUpdates.push('visitor_company = ?'); vhVals.push(data.company); }
+      if (data.category !== undefined) { vhUpdates.push('visitor_category = ?'); vhVals.push(data.category); }
+      if (data.fullName || data.full_name) { vhUpdates.push('visitor_name = ?'); vhVals.push(data.fullName || data.full_name); }
+      if (data.phone) { vhUpdates.push('visitor_phone = ?'); vhVals.push(data.phone); }
+      if (data.email) { vhUpdates.push('visitor_email = ?'); vhVals.push(data.email); }
+      const host = data.hostName || data.host_employee_name || data.host;
+      if (host) { vhUpdates.push('host_employee_name = ?'); vhVals.push(host); }
+      const dept = data.departmentName || data.department_name || data.department;
+      if (dept) { vhUpdates.push('department_name = ?'); vhVals.push(dept); }
+      const br = data.branch || data.branch_name || data.branchName;
+      if (br) { vhUpdates.push('branch_name = ?'); vhVals.push(br); }
+      const loc = data.location || data.meeting_location || data.meetingLocation;
+      if (loc) { vhUpdates.push('meeting_location = ?'); vhVals.push(loc); }
+      const purp = data.visitPurpose || data.visit_purpose || data.purpose;
+      if (purp) { vhUpdates.push('visit_purpose = ?'); vhVals.push(purp); }
+      const dur = data.visitDuration || data.visit_duration || data.duration;
+      if (dur) { vhUpdates.push('visit_duration_minutes = ?'); vhVals.push(dur); }
+      const idT = data.idType || data.id_type || data.identityType;
+      if (idT) { vhUpdates.push('identity_type = ?'); vhVals.push(idT); }
+      const idN = data.idNumber || data.id_number || data.identityNumber;
+      if (idN) { vhUpdates.push('identity_number = ?'); vhVals.push(idN); }
+      if (vhUpdates.length > 0) {
+        vhVals.push(visitorId);
+        await db.query(`UPDATE visitor_histories SET ${vhUpdates.join(', ')} WHERE visitor_id = ?`, vhVals);
+      }
+    } catch (vhErr) {
+      console.warn('Sync to visitor_histories note:', vhErr.message);
     }
 
     if (fields.length === 0) return true;

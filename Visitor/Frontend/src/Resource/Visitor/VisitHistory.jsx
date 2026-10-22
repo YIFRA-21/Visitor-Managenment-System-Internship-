@@ -40,6 +40,7 @@ export default function VisitHistory() {
     const [selectedAppt, setSelectedAppt] = useState(null);
     const [editingAppt, setEditingAppt] = useState(null);
     const [isAddInfoModalOpen, setIsAddInfoModalOpen] = useState(false);
+    const [profileModalData, setProfileModalData] = useState(null);
     const [deleteItem, setDeleteItem] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [toast, setToast] = useState(null);
@@ -537,12 +538,31 @@ export default function VisitHistory() {
             }}/>)}
 
       {/* Extended Profile Info Modal */}
-      <AddOtherVisitorInfoModal isOpen={isAddInfoModalOpen} initialData={{
+      <AddOtherVisitorInfoModal 
+        isOpen={isAddInfoModalOpen} 
+        initialData={profileModalData || {
             photoUrl: history[0]?.photoUrl,
             photo_url: history[0]?.photoUrl,
             identityType: history[0]?.identityType,
-            identityNumber: history[0]?.identityNumber
-        }} onClose={() => setIsAddInfoModalOpen(false)} onSuccess={() => fetchHistory()}/>
+            identityNumber: history[0]?.identityNumber,
+            category: history[0]?.category,
+            company: history[0]?.company,
+            hostName: history[0]?.hostName,
+            department: history[0]?.department,
+            branch: history[0]?.branch,
+            location: history[0]?.location,
+            purpose: history[0]?.purpose,
+            duration: history[0]?.duration,
+            fullName: history[0]?.visitorName,
+            phone: history[0]?.phone,
+            email: history[0]?.email
+        }} 
+        onClose={() => {
+            setIsAddInfoModalOpen(false);
+            setProfileModalData(null);
+        }} 
+        onSuccess={() => fetchHistory()}
+      />
 
       {/* Header — Visitor's Personal History Bar */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
@@ -558,7 +578,10 @@ export default function VisitHistory() {
           </div>
         </div>
         <div className="d-flex flex-wrap gap-2">
-          <button onClick={() => setIsAddInfoModalOpen(true)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all cursor-pointer no-print">
+          <button onClick={() => {
+            setProfileModalData(history[0] || null);
+            setIsAddInfoModalOpen(true);
+          }} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all cursor-pointer no-print">
             <Plus className="h-4 w-4"/> {t('visitHistory.addUpdateProfile')}
           </button>
           <button onClick={fetchHistory} className="btn btn-outline-secondary d-flex align-items-center gap-1.5 text-xs font-bold px-3 py-2 no-print">
@@ -748,9 +771,9 @@ export default function VisitHistory() {
                         <User className="h-3.5 w-3.5"/>
                       </button>
                       <button onClick={() => {
-                setSelectedAppt(null);
-                setEditingAppt(item);
-            }} className="btn btn-sm btn-outline-secondary p-1.5" title={t('visitHistory.editRecord')}>
+                        setProfileModalData(item);
+                        setIsAddInfoModalOpen(true);
+                      }} className="btn btn-sm btn-outline-primary p-1.5" title={t('visitHistory.addUpdateProfile')}>
                         <Edit3 className="h-3.5 w-3.5"/>
                       </button>
                       <button onClick={() => handleViewPass(item)} className="btn btn-sm btn-outline-secondary p-1.5" title={t('visitHistory.viewDigitalPass')}>
