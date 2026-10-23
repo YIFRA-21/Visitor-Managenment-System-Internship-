@@ -670,18 +670,16 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                 const isActive = activeSection === s.key;
                 const isPast = s.num < currentStepNum;
                 return (
-                  <button
+                  <div
                     key={s.num}
-                    type="button"
-                    onClick={() => setActiveSection(s.key)}
-                    className="flex flex-col items-center z-10 cursor-pointer group bg-transparent border-0 p-0 focus:outline-none"
+                    className="flex flex-col items-center z-10 select-none"
                   >
                     <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all ${
                       isActive 
                         ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/50 ring-4 ring-blue-500/25 scale-110' 
                         : isPast 
-                          ? 'bg-blue-950 border border-blue-500/50 text-blue-400 group-hover:bg-blue-900' 
-                          : 'bg-slate-800/90 border border-slate-700/80 text-slate-400 group-hover:border-slate-500 group-hover:text-slate-300'
+                          ? 'bg-blue-950 border border-blue-500/50 text-blue-400' 
+                          : 'bg-slate-800/90 border border-slate-700/80 text-slate-400'
                     }`}>
                       {isPast ? <Check className="h-4 w-4" /> : s.num}
                     </div>
@@ -693,7 +691,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                     <span className="hidden md:block text-[10px] font-semibold text-slate-400/80 mt-0.5">
                       {s.subtitle}
                     </span>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -978,51 +976,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                 )}
               </div>
 
-              {/* Appointment Details (Auto-fetched from Appointment Form) */}
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 shadow-lg space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800/60 flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <Building size={16} className="text-blue-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                      Appointment Details (Auto-fetched from Appointment Form)
-                    </span>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    Auto-Synchronized
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                  <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/60">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block mb-0.5">Company Name</span>
-                    <span className="font-semibold text-slate-200 block truncate">{company || '—'}</span>
-                  </div>
-                  <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/60">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block mb-0.5">Host / Employee Name</span>
-                    <span className="font-semibold text-slate-200 block truncate">{hostName || '—'}</span>
-                  </div>
-                  <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/60">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block mb-0.5">Department</span>
-                    <span className="font-semibold text-slate-200 block truncate">{department || '—'}</span>
-                  </div>
-                  <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/60">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block mb-0.5">Branch / Campus</span>
-                    <span className="font-semibold text-slate-200 block truncate">{branch || '—'}</span>
-                  </div>
-                  <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/60">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block mb-0.5">Meeting Location</span>
-                    <span className="font-semibold text-slate-200 block truncate">{location || '—'}</span>
-                  </div>
-                  <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/60">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block mb-0.5">Expected Duration</span>
-                    <span className="font-semibold text-slate-200 block truncate">{duration ? `${duration} minutes` : '—'}</span>
-                  </div>
-                  <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/60 sm:col-span-2">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block mb-0.5">Purpose of Visit</span>
-                    <span className="font-semibold text-slate-200 block truncate">{purpose || '—'}</span>
-                  </div>
-                </div>
-              </div>
+
             </div>
           )}
 
