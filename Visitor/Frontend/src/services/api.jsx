@@ -526,6 +526,8 @@ export const visitorPortalApi = {
     // Settings
     getSettings: () => api.get('/visitor/settings'),
     updateSettings: (data) => api.put('/visitor/settings', data),
+    // Categories
+    getCategories: (params) => api.get('/visitor-categories', { params }),
 };
 export const visitorDashboardApi = {
     getOverview: (params) => api.get('/visitor/dashboard', { params }),
