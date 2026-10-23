@@ -514,7 +514,7 @@ class ReportService {
     if (filters.search) {
       sql += ` AND (v.full_name LIKE ? OR v.email LIKE ? OR u.full_name LIKE ?)`;
       const s = `%${filters.search}%`;
-      params.push(s, s, s, s);
+      params.push(s, s, s);
     }
 
     if (filters.startDate) {

@@ -139,25 +139,37 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
         const finalPhoto = resolvePhotoUrl(resolvedPhoto);
         const activeAppt = liveAppt || p;
         const rawStatus = (activeAppt.approval_status || activeAppt.appointment_status || activeAppt.status || p.status || 'PENDING').toString().toUpperCase();
-        const rawCheckOut = (activeAppt.checkout_time || p.checkOutTime || p.checkout_time || '');
-        const hasCheckedOut = Boolean((rawCheckOut && rawCheckOut !== '-' && rawCheckOut !== 'null') || rawStatus === 'COMPLETED' || rawStatus.includes('CHECKED_OUT') || rawStatus.includes('CHECKED OUT'));
+
+        // Strict timestamp validation — reject dashes, em-dashes, 'null', empty strings
+        const isValidTime = (val) => {
+            if (!val) return false;
+            const s = String(val).trim();
+            return s !== '' && s !== '-' && s !== '—' && s !== 'null' && s !== 'undefined';
+        };
+
+        const rawCheckIn = (activeAppt.checkin_time || activeAppt.entry_time || p.checkInTime || p.checkin_time || '');
+        const rawCheckOut = (activeAppt.checkout_time || activeAppt.exit_time || p.checkOutTime || p.checkout_time || '');
+        const hasRealCheckin = isValidTime(rawCheckIn);
+        const hasRealCheckout = isValidTime(rawCheckOut) && String(rawCheckOut) !== String(rawCheckIn);
 
         let normalizedStatus = 'PENDING';
         if (rawStatus.includes('CANCEL')) {
             normalizedStatus = 'CANCELLED';
-        } else if (rawStatus.includes('REJECT')) {
+        } else if (rawStatus.includes('REJECT') || rawStatus.includes('DECLIN')) {
             normalizedStatus = 'REJECTED';
         } else if (rawStatus.includes('RESCHED')) {
             normalizedStatus = 'RESCHEDULED';
-        } else if (rawStatus === 'COMPLETED' || hasCheckedOut) {
+        } else if (rawStatus === 'COMPLETED' || rawStatus.includes('CHECKED_OUT') || rawStatus.includes('CHECKED OUT') || (hasRealCheckin && hasRealCheckout)) {
             normalizedStatus = 'COMPLETED';
-        } else if (rawStatus.includes('CHECKED_IN') || rawStatus.includes('CHECKED IN') || rawStatus === 'ACTIVE' || rawStatus === 'IN_PROGRESS') {
+        } else if (rawStatus.includes('CHECKED_IN') || rawStatus.includes('CHECKED IN') || rawStatus === 'ACTIVE' || rawStatus === 'IN_PROGRESS' || (hasRealCheckin && !hasRealCheckout && !['PENDING', 'APPROVED', 'CONFIRMED'].includes(rawStatus))) {
             normalizedStatus = 'CHECKED IN';
         } else if (rawStatus.includes('APPROV') || rawStatus === 'CONFIRMED') {
             normalizedStatus = 'APPROVED';
         } else {
             normalizedStatus = 'PENDING';
         }
+
+        const hasCheckedOut = normalizedStatus === 'COMPLETED';
 
         const isApproved = normalizedStatus === 'APPROVED' || normalizedStatus === 'CHECKED IN' || normalizedStatus === 'COMPLETED';
         const verificationStatus = 
@@ -200,11 +212,16 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
             photoUrl: finalPhoto,
             photo: finalPhoto,
             avatar: finalPhoto,
-            checkOutTime: rawCheckOut || '—',
+            checkInTime: (normalizedStatus === 'CHECKED IN' || normalizedStatus === 'COMPLETED') && hasRealCheckin
+                ? (!isNaN(Date.parse(rawCheckIn)) ? new Date(rawCheckIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : String(rawCheckIn))
+                : '—',
+            checkOutTime: normalizedStatus === 'COMPLETED' && hasRealCheckout
+                ? (!isNaN(Date.parse(rawCheckOut)) ? new Date(rawCheckOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : String(rawCheckOut))
+                : '—',
             checkedOut: hasCheckedOut,
             checked_out: hasCheckedOut,
             is_checked_out: hasCheckedOut,
-            checkout_time: rawCheckOut || '-',
+            checkout_time: hasCheckedOut ? rawCheckOut : '-',
             registeredOn: p.registeredOn || new Date().toLocaleDateString(),
             verificationStatus: verificationStatus
         };

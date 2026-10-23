@@ -158,14 +158,18 @@ export default function VisitHistory() {
                     const department = item.departmentName || item.department_name || item.department || authDept;
                     const purpose = item.purpose || item.visit_purpose || authPurpose;
                     const location = item.roomName || item.meeting_location || item.location || authLocation;
-                    const verificationStatus = item.verificationStatus || item.verification_status || authVerification;
-                    // Determine whether an actual checkout has occurred
+                    let rawVerification = item.verificationStatus || item.verification_status || authVerification;
+                    const isValidTimeStr = (val) => {
+                        if (!val) return false;
+                        const s = String(val).trim();
+                        return s !== '' && s !== '-' && s !== '—' && s !== 'null' && s !== 'undefined';
+                    };
+
                     const rawCheckOut = item.exitTime || item.checkout_time || item.checkOutTime;
                     const rawCheckIn = item.entryTime || item.checkin_time || item.checkInTime;
-                    const hasCheckedOut = !!rawCheckOut &&
-                        rawCheckOut !== '-' &&
-                        String(rawCheckOut).trim() !== '' &&
-                        String(rawCheckOut) !== String(rawCheckIn);
+                    const hasCheckedIn = isValidTimeStr(rawCheckIn);
+                    const hasCheckedOut = isValidTimeStr(rawCheckOut) && String(rawCheckOut) !== String(rawCheckIn);
+
                     const rawStat = (item.approval_status || item.appointment_status || item.appointmentStatus || item.visit_status || item.status || 'PENDING').toString().toUpperCase();
                     let status = 'PENDING';
                     if (rawStat.includes('CANCEL')) {
@@ -177,34 +181,35 @@ export default function VisitHistory() {
                     else if (rawStat.includes('REJECT') || rawStat.includes('DECLIN')) {
                         status = 'REJECTED';
                     }
-                    else if (hasCheckedOut || ['COMPLETED', 'CHECKED_OUT', 'CHECKOUT'].some(s => rawStat.includes(s))) {
+                    else if (['COMPLETED', 'CHECKED_OUT', 'CHECKOUT'].some(s => rawStat.includes(s)) || (hasCheckedIn && hasCheckedOut)) {
                         status = 'COMPLETED';
                     }
-                    else if (rawStat.includes('CHECKED_IN') || rawStat.includes('CHECKIN') || rawStat === 'IN_PROGRESS') {
+                    else if (rawStat.includes('CHECKED_IN') || rawStat.includes('CHECKIN') || rawStat === 'IN_PROGRESS' || (hasCheckedIn && !hasCheckedOut && !['PENDING', 'APPROVED', 'CANCELLED', 'RESCHEDULED', 'REJECTED'].includes(rawStat))) {
                         status = 'CHECKED IN';
                     }
-                    else if (['APPROVED', 'CONFIRMED'].includes(rawStat)) {
+                    else if (['APPROVED', 'CONFIRMED'].some(s => rawStat.includes(s))) {
                         status = 'APPROVED';
                     }
                     else {
                         status = 'PENDING';
                     }
-                    const checkInTime = rawCheckIn && rawCheckIn !== '-'
+
+                    const checkInTime = (status === 'CHECKED IN' || status === 'COMPLETED') && hasCheckedIn
                         ? (!isNaN(Date.parse(rawCheckIn)) ? new Date(rawCheckIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : String(rawCheckIn))
-                        : (registeredData?.checkInTime && registeredData?.checkInTime !== '-' ? registeredData.checkInTime : '-');
-                    const checkOutTime = hasCheckedOut
+                        : '-';
+                    const checkOutTime = (status === 'COMPLETED') && hasCheckedOut
                         ? (!isNaN(Date.parse(rawCheckOut)) ? new Date(rawCheckOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : String(rawCheckOut))
                         : '-';
 
-                    // Compute real duration from check-in/out timestamps or requested appointment duration
+                    // Compute real duration: ONLY active elapsed time when status === 'CHECKED IN', delta when 'COMPLETED', scheduled duration otherwise
                     let realDuration = 0;
-                    if (rawCheckIn && rawCheckOut && rawCheckIn !== '-' && rawCheckOut !== '-' && String(rawCheckIn).trim() !== String(rawCheckOut).trim()) {
+                    if (status === 'COMPLETED' && hasCheckedIn && hasCheckedOut) {
                         const dIn = new Date(rawCheckIn);
                         const dOut = new Date(rawCheckOut);
                         if (!isNaN(dIn.getTime()) && !isNaN(dOut.getTime()) && dOut >= dIn) {
                             realDuration = Math.max(1, Math.round((dOut.getTime() - dIn.getTime()) / 60000));
                         }
-                    } else if (rawCheckIn && rawCheckIn !== '-' && (!rawCheckOut || rawCheckOut === '-')) {
+                    } else if (status === 'CHECKED IN' && hasCheckedIn) {
                         const dIn = new Date(rawCheckIn);
                         if (!isNaN(dIn.getTime())) {
                             realDuration = Math.max(1, Math.round((Date.now() - dIn.getTime()) / 60000));
@@ -224,6 +229,21 @@ export default function VisitHistory() {
                     if (!reqDuration) reqDuration = 60;
 
                     const duration = realDuration > 0 ? realDuration : reqDuration;
+
+                    // Verification status alignment
+                    let verificationStatus = rawVerification;
+                    if (status === 'APPROVED' || status === 'CHECKED IN' || status === 'COMPLETED') {
+                        verificationStatus = 'Verified';
+                    } else if (status === 'CANCELLED') {
+                        verificationStatus = 'Cancelled';
+                    } else if (status === 'REJECTED') {
+                        verificationStatus = 'Rejected';
+                    } else if (status === 'RESCHEDULED') {
+                        verificationStatus = 'Rescheduled';
+                    } else {
+                        verificationStatus = 'Pending Verification';
+                    }
+
                     return {
                         id: String(item.id || item.appointmentId || `VIS-${idx + 100}`),
                         historyCode: item.history_code || item.historyCode || `VIS-2026-${String(idx + 1).padStart(6, '0')}`,

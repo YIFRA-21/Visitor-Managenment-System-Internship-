@@ -893,23 +893,70 @@ class VisitorRepository {
     if (apptRows.length > 0 && vhRows.length > 0) {
       const latestAppt = apptRows[apptRows.length - 1];
 
-      // Calculate real visit duration from check-in & check-out if available, otherwise appointment requested duration
+      const isValidTimeVal = (val) => {
+        if (!val) return false;
+        const s = String(val).trim();
+        return s !== '' && s !== '-' && s !== '—' && s !== 'null' && s !== 'undefined';
+      };
+
+      // Determine accurate synced status strictly from appointment and real physical checkin/out logs
+      const rawApptStat = (latestAppt.appointmentStatus || latestAppt.approvalStatus || latestAppt.status || 'PENDING').toString().toUpperCase();
+      const hasRealCheckin = isValidTimeVal(latestAppt.entryTime);
+      const hasRealCheckout = isValidTimeVal(latestAppt.exitTime);
+
+      let syncStatus = 'PENDING';
+      let realIn = null;
+      let realOut = null;
+
+      if (rawApptStat.includes('CANCEL')) {
+        syncStatus = 'CANCELLED';
+      } else if (rawApptStat.includes('RESCHED')) {
+        syncStatus = 'RESCHEDULED';
+      } else if (rawApptStat.includes('REJECT') || rawApptStat.includes('DECLIN')) {
+        syncStatus = 'REJECTED';
+      } else if (rawApptStat.includes('CHECKED_OUT') || rawApptStat === 'COMPLETED' || (hasRealCheckin && hasRealCheckout)) {
+        syncStatus = 'COMPLETED';
+        realIn = latestAppt.entryTime || null;
+        realOut = latestAppt.exitTime || null;
+      } else if (rawApptStat.includes('CHECKED_IN') || rawApptStat === 'IN_PROGRESS' || (hasRealCheckin && !hasRealCheckout)) {
+        syncStatus = 'CHECKED_IN';
+        realIn = latestAppt.entryTime || null;
+        realOut = null;
+      } else if (rawApptStat.includes('APPROV') || rawApptStat.includes('CONFIRM')) {
+        syncStatus = 'APPROVED';
+      } else {
+        syncStatus = 'PENDING';
+      }
+
+      // Verification status mapping
+      let syncVerification = 'Pending Verification';
+      if (syncStatus === 'APPROVED' || syncStatus === 'CHECKED_IN' || syncStatus === 'COMPLETED') {
+        syncVerification = 'Verified';
+      } else if (syncStatus === 'CANCELLED') {
+        syncVerification = 'Cancelled';
+      } else if (syncStatus === 'REJECTED') {
+        syncVerification = 'Rejected';
+      } else if (syncStatus === 'RESCHEDULED') {
+        syncVerification = 'Rescheduled';
+      } else {
+        syncVerification = 'Pending Verification';
+      }
+
+      // Calculate visit duration: active elapsed time ONLY when checked in, real delta when completed, scheduled duration otherwise
       let calcDuration = null;
-      const tIn = vhRows[0].entryTime || latestAppt.entryTime || vhRows[0].checkin_time;
-      const tOut = vhRows[0].exitTime || latestAppt.exitTime || vhRows[0].checkout_time;
-      if (tIn && tOut && tIn !== '-' && tOut !== '-' && String(tIn).trim() !== String(tOut).trim()) {
-        const d1 = new Date(tIn);
-        const d2 = new Date(tOut);
+      if (syncStatus === 'COMPLETED' && realIn && realOut) {
+        const d1 = new Date(realIn);
+        const d2 = new Date(realOut);
         if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d2 >= d1) {
           calcDuration = Math.max(1, Math.round((d2.getTime() - d1.getTime()) / 60000));
         }
-      }
-      if (!calcDuration && tIn && (!tOut || tOut === '-')) {
-        const d1 = new Date(tIn);
+      } else if (syncStatus === 'CHECKED_IN' && realIn) {
+        const d1 = new Date(realIn);
         if (!isNaN(d1.getTime())) {
           calcDuration = Math.max(1, Math.round((Date.now() - d1.getTime()) / 60000));
         }
       }
+
       if (!calcDuration) {
         calcDuration = latestAppt.expectedDurationMinutes || latestAppt.expected_duration_minutes;
         if (!calcDuration && latestAppt.scheduledStart && latestAppt.scheduledEnd) {
@@ -922,25 +969,6 @@ class VisitorRepository {
         if (!calcDuration) calcDuration = latestAppt.durationMinutes || 60;
       }
 
-      // Determine accurate synced status from appointment
-      const rawApptStat = (latestAppt.appointmentStatus || latestAppt.approvalStatus || latestAppt.status || 'PENDING').toString().toUpperCase();
-      let syncStatus = 'PENDING';
-      if (rawApptStat.includes('CANCEL')) {
-        syncStatus = 'CANCELLED';
-      } else if (rawApptStat.includes('RESCHED')) {
-        syncStatus = 'RESCHEDULED';
-      } else if (rawApptStat.includes('REJECT') || rawApptStat.includes('DECLIN')) {
-        syncStatus = 'REJECTED';
-      } else if (rawApptStat.includes('CHECKED_OUT') || rawApptStat === 'COMPLETED' || (tOut && tOut !== '-')) {
-        syncStatus = 'COMPLETED';
-      } else if (rawApptStat.includes('CHECKED_IN') || (tIn && (!tOut || tOut === '-'))) {
-        syncStatus = 'CHECKED_IN';
-      } else if (rawApptStat.includes('APPROV') || rawApptStat.includes('CONFIRM')) {
-        syncStatus = 'APPROVED';
-      } else {
-        syncStatus = 'PENDING';
-      }
-
       try {
         await db.query(`
           UPDATE visitor_histories SET
@@ -951,6 +979,9 @@ class VisitorRepository {
             visit_purpose = ?,
             visit_duration_minutes = ?,
             visit_status = ?,
+            checkin_time = ?,
+            checkout_time = ?,
+            verification_status = ?,
             completed_date = ?
           WHERE id = ?
         `, [
@@ -961,6 +992,9 @@ class VisitorRepository {
           latestAppt.purpose || vhRows[0].purpose,
           calcDuration,
           syncStatus,
+          realIn,
+          realOut,
+          syncVerification,
           latestAppt.scheduledStart || null,
           vhRows[0].id
         ]);
@@ -972,6 +1006,12 @@ class VisitorRepository {
         vhRows[0].purpose = latestAppt.purpose || vhRows[0].purpose;
         vhRows[0].durationMinutes = calcDuration;
         vhRows[0].status = syncStatus;
+        vhRows[0].entryTime = realIn;
+        vhRows[0].checkin_time = realIn;
+        vhRows[0].exitTime = realOut;
+        vhRows[0].checkout_time = realOut;
+        vhRows[0].verificationStatus = syncVerification;
+        vhRows[0].verification_status = syncVerification;
         vhRows[0].scheduledStart = latestAppt.scheduledStart || vhRows[0].scheduledStart;
         vhRows[0].photo_url = vhRows[0].photo_url || latestAppt.photo_url;
         vhRows[0].photoUrl = vhRows[0].photoUrl || latestAppt.photoUrl || vhRows[0].photo_url;
@@ -983,6 +1023,21 @@ class VisitorRepository {
       // Return ONLY the single unified history record
       combined = [vhRows[0]];
     } else if (vhRows.length > 0) {
+      vhRows = vhRows.map(r => {
+        const st = (r.status || 'PENDING').toString().toUpperCase();
+        if (['PENDING', 'APPROVED', 'CANCELLED', 'RESCHEDULED', 'REJECTED'].some(s => st.includes(s))) {
+          return {
+            ...r,
+            entryTime: null,
+            checkin_time: null,
+            exitTime: null,
+            checkout_time: null,
+            durationMinutes: r.durationMinutes || 60,
+            verificationStatus: st.includes('APPROV') ? 'Verified' : (st.includes('PENDING') ? 'Pending Verification' : r.verificationStatus)
+          };
+        }
+        return r;
+      });
       combined = vhRows;
     } else if (apptRows.length > 0) {
       combined = apptRows;
@@ -1015,7 +1070,7 @@ class VisitorRepository {
             appointment_number: visitorCode,
             visit_purpose: visitor.visit_purpose || visitor.purpose_of_visit || 'Initial Visitor Registration',
             meeting_location: visitor.location || '—',
-            checkin_time: nowStr,
+            checkin_time: null,
             checkout_time: null,
             visit_duration_minutes: 0,
             pass_number: `VP-2026-${String(visitor.id).padStart(4, '0')}`,
@@ -1060,7 +1115,7 @@ class VisitorRepository {
               visitorCode,
               visitor.visit_purpose || visitor.purpose_of_visit || 'Initial Visitor Registration',
               visitor.location || '—',
-              nowStr,
+              null,
               null,
               0,
               `VP-2026-${String(visitor.id).padStart(4, '0')}`,

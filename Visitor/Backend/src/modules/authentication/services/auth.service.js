@@ -435,7 +435,7 @@ class AuthService {
             formattedVisitorCode,
             userData.purposeOfVisit || userData.visit_purpose || 'Initial Visitor Registration',
             userData.location || '—',
-            nowStr,
+            null,
             null,
             0,
             `VP-2026-${String(tempVisitorId).padStart(4, '0')}`,
