@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { 
   X, User, MapPin, Phone, Shield, FileText, Upload, Check, AlertCircle, Save, 
   Briefcase, Building, Clock, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Edit3, CheckCircle,
-  ShieldCheck, UserCheck
+  ShieldCheck, UserCheck, RotateCcw
 } from 'lucide-react';
 import { visitorPortalApi, authApi } from '../../../services/api';
 import { resolvePhotoUrl } from '../../../utils/photoUtils';
@@ -69,15 +69,16 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
   const currentStepIndex = STEPS.findIndex(s => s.key === activeSection);
   const currentStepNum = currentStepIndex >= 0 ? currentStepIndex + 1 : 1;
 
-  const handleNextStep = () => {
-    if (currentStepIndex < STEPS.length - 1) {
-      setActiveSection(STEPS[currentStepIndex + 1].key);
-    }
-  };
+  // Field validation errors
+  const [fieldErrors, setFieldErrors] = useState({});
 
-  const handlePrevStep = () => {
-    if (currentStepIndex > 0) {
-      setActiveSection(STEPS[currentStepIndex - 1].key);
+  const clearFieldError = (fieldName) => {
+    if (fieldErrors[fieldName]) {
+      setFieldErrors(prev => {
+        const next = { ...prev };
+        delete next[fieldName];
+        return next;
+      });
     }
   };
 
@@ -88,21 +89,133 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
   const [approvalRequirement, setApprovalRequirement] = useState('Host Approval Required');
   const [categoryDuration, setCategoryDuration] = useState('2 Hours');
   const [escortRequired, setEscortRequired] = useState('No');
-  const [allowedAreas, setAllowedAreas] = useState('Main Lobby & Reception');
-  const [allowedDays, setAllowedDays] = useState('Monday – Friday');
-  const [categoryPurpose, setCategoryPurpose] = useState('General Visit');
+  const [allowedAreas, setAllowedAreas] = useState('');
+  const [allowedDays, setAllowedDays] = useState('');
+  const [categoryPurpose, setCategoryPurpose] = useState('');
 
-  // Check if all Step 1 category fields are filled
-  const isStep1Complete = Boolean(
-    category && String(category).trim() !== '' &&
-    accessLevel && String(accessLevel).trim() !== '' &&
-    approvalRequirement && String(approvalRequirement).trim() !== '' &&
-    categoryDuration && String(categoryDuration).trim() !== '' &&
-    escortRequired && String(escortRequired).trim() !== '' &&
-    allowedAreas && String(allowedAreas).trim() !== '' &&
-    allowedDays && String(allowedDays).trim() !== '' &&
-    categoryPurpose && String(categoryPurpose).trim() !== ''
-  );
+  // Validate fields for the active step
+  const validateCurrentStep = () => {
+    const errs = {};
+
+    if (activeSection === 'category') {
+      if (!category || !String(category).trim()) {
+        errs.category = 'Please select a visitor category';
+      }
+      if (!accessLevel || !String(accessLevel).trim()) {
+        errs.accessLevel = 'Please select an access level';
+      }
+      if (!approvalRequirement || !String(approvalRequirement).trim()) {
+        errs.approvalRequirement = 'Please select an approval requirement';
+      }
+      if (!escortRequired || !String(escortRequired).trim()) {
+        errs.escortRequired = 'Please specify if escort is required';
+      }
+    } else if (activeSection === 'personal') {
+      if (!firstName || !String(firstName).trim()) {
+        errs.firstName = 'First name is required';
+      }
+      if (!lastName || !String(lastName).trim()) {
+        errs.lastName = 'Last name is required';
+      }
+      if (!phone || !String(phone).trim()) {
+        errs.phone = 'Primary phone number is required';
+      }
+      if (!email || !String(email).trim()) {
+        errs.email = 'Email address is required';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+        errs.email = 'Please enter a valid email format';
+      }
+      if (workEmail && String(workEmail).trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(workEmail).trim())) {
+        errs.workEmail = 'Please enter a valid work email format';
+      }
+    } else if (activeSection === 'address') {
+      if (!streetAddress || !String(streetAddress).trim()) {
+        errs.streetAddress = 'Street address is required';
+      }
+      if (!city || !String(city).trim()) {
+        errs.city = 'City / Town is required';
+      }
+      if (!country || !String(country).trim()) {
+        errs.country = 'Country is required';
+      }
+    } else if (activeSection === 'identity') {
+      if (!identityType || !String(identityType).trim()) {
+        errs.identityType = 'Document type is required';
+      }
+      if (!identityNumber || !String(identityNumber).trim()) {
+        errs.identityNumber = 'Document number is required';
+      }
+    } else if (activeSection === 'emergency') {
+      if (!emergencyName || !String(emergencyName).trim()) {
+        errs.emergencyName = 'Emergency contact name is required';
+      }
+      if (!emergencyPhone || !String(emergencyPhone).trim()) {
+        errs.emergencyPhone = 'Primary emergency phone is required';
+      }
+    }
+
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  // Clear data from the current step's form fields
+  const handleClearCurrentStep = () => {
+    setFieldErrors({});
+    setErrorMsg('');
+    if (activeSection === 'category') {
+      setCategory('');
+      setAccessLevel('Level 1 (General)');
+      setApprovalRequirement('Host Approval Required');
+      setEscortRequired('No');
+      setAllowedAreas('');
+      setAllowedDays('');
+    } else if (activeSection === 'personal') {
+      setFirstName('');
+      setMiddleName('');
+      setLastName('');
+      setPhone('');
+      setEmail('');
+      setWorkEmail('');
+      setAltPhone('');
+      setPreferredContact('Email');
+    } else if (activeSection === 'address') {
+      setStreetAddress('');
+      setCity('');
+      setSubcity('');
+      setStateProvince('');
+      setPostalCode('');
+    } else if (activeSection === 'identity') {
+      setIdentityType('National ID');
+      setIdentityNumber('');
+      setIdIssueDate('');
+      setIdExpiryDate('');
+      setPhotoPreview(null);
+    } else if (activeSection === 'emergency') {
+      setEmergencyName('');
+      setEmergencyRelation('Spouse');
+      setEmergencyPhone('');
+      setSecondaryEmergencyPhone('');
+    }
+  };
+
+  const handleNextStep = () => {
+    setErrorMsg('');
+    if (!validateCurrentStep()) {
+      return;
+    }
+    setFieldErrors({});
+    if (currentStepIndex < STEPS.length - 1) {
+      setActiveSection(STEPS[currentStepIndex + 1].key);
+    }
+  };
+
+  const handlePrevStep = () => {
+    setFieldErrors({});
+    setErrorMsg('');
+    if (currentStepIndex > 0) {
+      setActiveSection(STEPS[currentStepIndex - 1].key);
+    }
+  };
 
   // Appointment details (Auto-fetched from appointment form / initialData)
   const [company, setCompany] = useState('');
@@ -272,9 +385,9 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
     setApprovalRequirement(getVal('approval_requirement', 'approvalRequirement') || 'Host Approval Required');
     setCategoryDuration(getVal('category_duration', 'categoryDuration', 'default_visit_duration', 'visitDuration') || '2 Hours');
     setEscortRequired(getVal('escort_required', 'escortRequired') ? 'Yes' : 'No');
-    setAllowedAreas(getVal('allowed_areas', 'allowedAreas') || 'Main Lobby & Reception');
-    setAllowedDays(getVal('allowed_days', 'allowedDays') || 'Monday – Friday');
-    setCategoryPurpose(getVal('category_purpose', 'categoryPurpose') || 'General Visit');
+    setAllowedAreas(getVal('allowed_areas', 'allowedAreas') || '');
+    setAllowedDays(getVal('allowed_days', 'allowedDays') || '');
+    setCategoryPurpose(getVal('category_purpose', 'categoryPurpose') || '');
 
     // Appointment details (Auto-fetched from appointment form / initialData)
     setCompany(getVal('company', 'visitor_company', 'visitorCompany') || '');
@@ -389,6 +502,9 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
   // Submit & Save All Profile Information
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateCurrentStep()) {
+      return;
+    }
     setSaving(true);
     setErrorMsg('');
     setSuccessMsg('');
@@ -750,13 +866,23 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                   <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
                     <Briefcase size={18} className="text-purple-400" /> VISITOR CATEGORY &amp; ACCESS PRIVILEGES
                   </h3>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                    Step 1 of 5
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                      Step 1 of 5
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={handleClearCurrentStep}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold text-slate-400 hover:text-rose-300 bg-slate-900 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 transition-all cursor-pointer"
+                      title="Clear all fields in this step"
+                    >
+                      <RotateCcw size={12} /> Clear Step
+                    </button>
+                  </div>
                 </div>
 
-                {/* Form Mode: Only Visitor Category features, with category dropdown fetched from database */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                {/* Form Mode: 6 Category Attributes (Visit Duration and Visit Purpose removed) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {/* 1. Category Dropdown (Fetched from DB) */}
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
@@ -764,10 +890,15 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                     </label>
                     <select 
                       value={category} 
-                      onChange={(e) => handleCategoryChange(e.target.value)}
-                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-purple-500/50 rounded-xl text-white font-bold focus:border-purple-400 focus:outline-none transition-colors"
-                      required
+                      onChange={(e) => {
+                        handleCategoryChange(e.target.value);
+                        clearFieldError('category');
+                      }}
+                      className={`w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border ${
+                        fieldErrors.category ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-purple-500/50 focus:border-purple-400'
+                      } rounded-xl text-white font-bold focus:outline-none transition-colors`}
                     >
+                      <option value="">-- Select Category --</option>
                       {dbCategories.length > 0 ? (
                         dbCategories.map(cat => {
                           const name = cat.category_name || cat.name;
@@ -789,6 +920,11 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                         </>
                       )}
                     </select>
+                    {fieldErrors.category && (
+                      <p className="text-[10px] text-rose-400 font-bold mt-1.5 flex items-center gap-1">
+                        <AlertCircle size={11} /> {fieldErrors.category}
+                      </p>
+                    )}
                   </div>
 
                   {/* 2. Access Level */}
@@ -798,9 +934,15 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                     </label>
                     <select 
                       value={accessLevel} 
-                      onChange={(e) => setAccessLevel(e.target.value)} 
-                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
+                      onChange={(e) => {
+                        setAccessLevel(e.target.value);
+                        clearFieldError('accessLevel');
+                      }} 
+                      className={`w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border ${
+                        fieldErrors.accessLevel ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-purple-500'
+                      } rounded-xl text-white focus:outline-none transition-colors`}
                     >
+                      <option value="">-- Select Access Level --</option>
                       <option value="Level 1 (General)">Level 1 (General)</option>
                       <option value="Level 2 (Business)">Level 2 (Business)</option>
                       <option value="Level 3 (Restricted)">Level 3 (Restricted)</option>
@@ -808,6 +950,11 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                       <option value="VIP">VIP</option>
                       <option value="ESCORT_REQUIRED">ESCORT REQUIRED</option>
                     </select>
+                    {fieldErrors.accessLevel && (
+                      <p className="text-[10px] text-rose-400 font-bold mt-1.5 flex items-center gap-1">
+                        <AlertCircle size={11} /> {fieldErrors.accessLevel}
+                      </p>
+                    )}
                   </div>
 
                   {/* 3. Approval Requirement */}
@@ -817,88 +964,83 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                     </label>
                     <select 
                       value={approvalRequirement} 
-                      onChange={(e) => setApprovalRequirement(e.target.value)} 
-                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
+                      onChange={(e) => {
+                        setApprovalRequirement(e.target.value);
+                        clearFieldError('approvalRequirement');
+                      }} 
+                      className={`w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border ${
+                        fieldErrors.approvalRequirement ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-purple-500'
+                      } rounded-xl text-white focus:outline-none transition-colors`}
                     >
+                      <option value="">-- Select Approval Requirement --</option>
                       <option value="Host Approval Required">Host Approval Required</option>
                       <option value="Department + Security">Department + Security</option>
                       <option value="Pre-Approved">Pre-Approved</option>
                       <option value="Automatic">Automatic</option>
                     </select>
+                    {fieldErrors.approvalRequirement && (
+                      <p className="text-[10px] text-rose-400 font-bold mt-1.5 flex items-center gap-1">
+                        <AlertCircle size={11} /> {fieldErrors.approvalRequirement}
+                      </p>
+                    )}
                   </div>
 
-                  {/* 4. Visit Duration */}
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                      <Clock size={12} className="text-indigo-400" /> Visit Duration *
-                    </label>
-                    <input 
-                      type="text" 
-                      value={categoryDuration} 
-                      placeholder="e.g. 2 Hours, 1 Day, 8 Hours" 
-                      onChange={(e) => setCategoryDuration(e.target.value)} 
-                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      required
-                    />
-                  </div>
-
-                  {/* 5. Escort Required */}
+                  {/* 4. Escort Required */}
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
                       <UserCheck size={12} className="text-amber-400" /> Escort Required *
                     </label>
                     <select 
                       value={escortRequired} 
-                      onChange={(e) => setEscortRequired(e.target.value)} 
-                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
+                      onChange={(e) => {
+                        setEscortRequired(e.target.value);
+                        clearFieldError('escortRequired');
+                      }} 
+                      className={`w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border ${
+                        fieldErrors.escortRequired ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-purple-500'
+                      } rounded-xl text-white focus:outline-none transition-colors`}
                     >
                       <option value="No">No</option>
                       <option value="Yes">Yes</option>
                     </select>
+                    {fieldErrors.escortRequired && (
+                      <p className="text-[10px] text-rose-400 font-bold mt-1.5 flex items-center gap-1">
+                        <AlertCircle size={11} /> {fieldErrors.escortRequired}
+                      </p>
+                    )}
                   </div>
 
-                  {/* 6. Allowed Areas */}
+                  {/* 5. Allowed Areas */}
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                      <MapPin size={12} className="text-emerald-400" /> Allowed Areas *
+                      <MapPin size={12} className="text-emerald-400" /> Allowed Areas
                     </label>
                     <input 
                       type="text" 
                       value={allowedAreas} 
                       placeholder="e.g. Main Lobby & Reception" 
-                      onChange={(e) => setAllowedAreas(e.target.value)} 
+                      onChange={(e) => {
+                        setAllowedAreas(e.target.value);
+                        clearFieldError('allowedAreas');
+                      }} 
                       className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      required
                     />
                   </div>
 
-                  {/* 7. Allowed Days */}
+                  {/* 6. Allowed Days */}
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                      <Calendar size={12} className="text-blue-400" /> Allowed Days *
+                      <Calendar size={12} className="text-blue-400" /> Allowed Days
                     </label>
                     <input 
                       type="text" 
                       value={allowedDays} 
                       placeholder="e.g. Monday – Friday" 
-                      onChange={(e) => setAllowedDays(e.target.value)} 
+                      onChange={(e) => {
+                        setAllowedDays(e.target.value);
+                        clearFieldError('allowedDays');
+                      }} 
                       className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      required
-                    />
-                  </div>
-
-                  {/* 8. Visit Purpose */}
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                      <FileText size={12} className="text-purple-400" /> Visit Purpose *
-                    </label>
-                    <input 
-                      type="text" 
-                      value={categoryPurpose} 
-                      placeholder="e.g. General Visit, Business Consultation" 
-                      onChange={(e) => setCategoryPurpose(e.target.value)} 
-                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      required
                     />
                   </div>
                 </div>
@@ -909,38 +1051,68 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
           {/* ══════════════ SECTION 2: ADDRESS INFORMATION ══════════════ */}
           {activeSection === 'address' && (
             <div className="space-y-4">
-              <div className="p-3 bg-blue-950/30 border border-blue-800/40 rounded-xl text-xs text-blue-200">
-                <span className="font-black block mb-0.5 text-blue-300">Residential & Official Address</span>
-                Fill in your current residential or official physical address details for identity validation.
+              <div className="p-3 bg-blue-950/30 border border-blue-800/40 rounded-xl text-xs text-blue-200 flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <span className="font-black block mb-0.5 text-blue-300">Residential & Official Address</span>
+                  Fill in your current residential or official physical address details for identity validation.
+                </div>
+                <button 
+                  type="button" 
+                  onClick={handleClearCurrentStep}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold text-slate-400 hover:text-rose-300 bg-slate-900 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 transition-all cursor-pointer"
+                  title="Clear all address fields"
+                >
+                  <RotateCcw size={12} /> Clear Step
+                </button>
               </div>
 
               {/* Street Address */}
               <div>
                 <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">
-                  {t('form.address', 'Street Address / House Number')}
+                  {t('form.address', 'Street Address / House Number')} *
                 </label>
                 <input 
                   type="text" 
                   placeholder="e.g. Bole Road, House #402 / Main Ave" 
-                  className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500 transition-colors"
+                  className={`w-full bg-slate-900 border ${
+                    fieldErrors.streetAddress ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-blue-500'
+                  } text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-colors`}
                   value={streetAddress} 
-                  onChange={e => setStreetAddress(e.target.value)}
+                  onChange={e => {
+                    setStreetAddress(e.target.value);
+                    clearFieldError('streetAddress');
+                  }}
                 />
+                {fieldErrors.streetAddress && (
+                  <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                    <AlertCircle size={10} /> {fieldErrors.streetAddress}
+                  </p>
+                )}
               </div>
 
               {/* City & Subcity */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">
-                    {t('form.city', 'City / Town')}
+                    {t('form.city', 'City / Town')} *
                   </label>
                   <input 
                     type="text" 
                     placeholder="e.g. Addis Ababa" 
-                    className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500 transition-colors"
+                    className={`w-full bg-slate-900 border ${
+                      fieldErrors.city ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-blue-500'
+                    } text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-colors`}
                     value={city} 
-                    onChange={e => setCity(e.target.value)}
+                    onChange={e => {
+                      setCity(e.target.value);
+                      clearFieldError('city');
+                    }}
                   />
+                  {fieldErrors.city && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.city}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -976,14 +1148,20 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                   <CountryNationalitySelect
                     id="visitor-address-country"
                     name="address_country"
-                    label={t('form.country', 'Country')}
+                    label={t('form.country', 'Country') + ' *'}
                     value={country}
                     returnMode="country"
                     onChange={val => {
                       const cName = typeof val === 'object' ? (val.target?.value || val.name || val.country) : val;
                       setCountry(cName || 'Ethiopia');
+                      clearFieldError('country');
                     }}
                   />
+                  {fieldErrors.country && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.country}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1005,9 +1183,19 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
           {/* ══════════════ SECTION 3: PERSONAL & CONTACT DETAILS ══════════════ */}
           {activeSection === 'personal' && (
             <div className="space-y-4">
-              <div className="p-3 bg-blue-950/30 border border-blue-800/40 rounded-xl text-xs text-blue-200">
-                <span className="font-black block mb-0.5 text-blue-300">Personal & Primary Contact</span>
-                Update your legal full name, primary phone number, and official correspondence channels.
+              <div className="p-3 bg-blue-950/30 border border-blue-800/40 rounded-xl text-xs text-blue-200 flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <span className="font-black block mb-0.5 text-blue-300">Personal & Primary Contact</span>
+                  Update your legal full name, primary phone number, and official correspondence channels.
+                </div>
+                <button 
+                  type="button" 
+                  onClick={handleClearCurrentStep}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold text-slate-400 hover:text-rose-300 bg-slate-900 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 transition-all cursor-pointer"
+                  title="Clear all contact fields"
+                >
+                  <RotateCcw size={12} /> Clear Step
+                </button>
               </div>
 
               {/* Three-part Name Fields */}
@@ -1019,11 +1207,21 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                   <input 
                     type="text" 
                     placeholder="First Name" 
-                    className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500 transition-colors"
+                    className={`w-full bg-slate-900 border ${
+                      fieldErrors.firstName ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-blue-500'
+                    } text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-colors`}
                     value={firstName} 
-                    onChange={e => setFirstName(e.target.value)}
+                    onChange={e => {
+                      setFirstName(e.target.value);
+                      clearFieldError('firstName');
+                    }}
                     required
                   />
+                  {fieldErrors.firstName && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.firstName}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1041,15 +1239,25 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
 
                 <div>
                   <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">
-                    {t('form.lastName', 'Last / Grandfather Name')}
+                    {t('form.lastName', 'Last / Grandfather Name')} *
                   </label>
                   <input 
                     type="text" 
                     placeholder="Last Name" 
-                    className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500 transition-colors"
+                    className={`w-full bg-slate-900 border ${
+                      fieldErrors.lastName ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-blue-500'
+                    } text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-colors`}
                     value={lastName} 
-                    onChange={e => setLastName(e.target.value)}
+                    onChange={e => {
+                      setLastName(e.target.value);
+                      clearFieldError('lastName');
+                    }}
                   />
+                  {fieldErrors.lastName && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.lastName}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1058,12 +1266,20 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                 <div>
                   <CountryPhoneInput
                     id="visitor-profile-phone"
-                    label={t('form.phone', 'Primary Phone Number')}
+                    label={t('form.phone', 'Primary Phone Number') + ' *'}
                     value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                    onChange={e => {
+                      setPhone(e.target.value);
+                      clearFieldError('phone');
+                    }}
                     placeholder="+251 9... or Phone"
                     required
                   />
+                  {fieldErrors.phone && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.phone}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1073,11 +1289,21 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                   <input 
                     type="email" 
                     placeholder="visitor.email@example.com" 
-                    className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500 transition-colors"
+                    className={`w-full bg-slate-900 border ${
+                      fieldErrors.email ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-blue-500'
+                    } text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-colors`}
                     value={email} 
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={e => {
+                      setEmail(e.target.value);
+                      clearFieldError('email');
+                    }}
                     required
                   />
+                  {fieldErrors.email && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.email}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1090,10 +1316,20 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                   <input 
                     type="email" 
                     placeholder="work.email@corp.com" 
-                    className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500 transition-colors"
+                    className={`w-full bg-slate-900 border ${
+                      fieldErrors.workEmail ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-blue-500'
+                    } text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-colors`}
                     value={workEmail} 
-                    onChange={e => setWorkEmail(e.target.value)}
+                    onChange={e => {
+                      setWorkEmail(e.target.value);
+                      clearFieldError('workEmail');
+                    }}
                   />
+                  {fieldErrors.workEmail && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.workEmail}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1127,9 +1363,19 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
           {/* ══════════════ SECTION 4: IDENTIFICATION & PHOTO ══════════════ */}
           {activeSection === 'identity' && (
             <div className="space-y-4">
-              <div className="p-3 bg-blue-950/30 border border-blue-800/40 rounded-xl text-xs text-blue-200">
-                <span className="font-black block mb-0.5 text-blue-300">Identity Clearance & Profile Photo</span>
-                Ensure your official identification number and profile photo are up-to-date for fast-track security entry.
+              <div className="p-3 bg-blue-950/30 border border-blue-800/40 rounded-xl text-xs text-blue-200 flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <span className="font-black block mb-0.5 text-blue-300">Identity Clearance & Profile Photo</span>
+                  Ensure your official identification number and profile photo are up-to-date for fast-track security entry.
+                </div>
+                <button 
+                  type="button" 
+                  onClick={handleClearCurrentStep}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold text-slate-400 hover:text-rose-300 bg-slate-900 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 transition-all cursor-pointer"
+                  title="Clear identity fields"
+                >
+                  <RotateCcw size={12} /> Clear Step
+                </button>
               </div>
 
               {/* ID Type & ID Number */}
@@ -1139,9 +1385,14 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                     {t('form.documentType', 'Identity Document Type')} *
                   </label>
                   <select 
-                    className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500 transition-colors"
+                    className={`w-full bg-slate-900 border ${
+                      fieldErrors.identityType ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-blue-500'
+                    } text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-colors`}
                     value={identityType} 
-                    onChange={e => setIdentityType(e.target.value)}
+                    onChange={e => {
+                      setIdentityType(e.target.value);
+                      clearFieldError('identityType');
+                    }}
                   >
                     <option value="National ID">National ID (Kebele / Fayda)</option>
                     <option value="Passport">International Passport</option>
@@ -1150,6 +1401,11 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                     <option value="Student ID">Student ID</option>
                     <option value="Other">Other Official Document</option>
                   </select>
+                  {fieldErrors.identityType && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.identityType}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1159,10 +1415,20 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                   <input 
                     type="text" 
                     placeholder="e.g. ETH-928192-2026 / P1234567" 
-                    className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500 transition-colors"
+                    className={`w-full bg-slate-900 border ${
+                      fieldErrors.identityNumber ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-blue-500'
+                    } text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-colors`}
                     value={identityNumber} 
-                    onChange={e => setIdentityNumber(e.target.value)}
+                    onChange={e => {
+                      setIdentityNumber(e.target.value);
+                      clearFieldError('identityNumber');
+                    }}
                   />
+                  {fieldErrors.identityNumber && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.identityNumber}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1227,24 +1493,44 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
           {/* ══════════════ SECTION 5: EMERGENCY CONTACT DETAILS ══════════════ */}
           {activeSection === 'emergency' && (
             <div className="space-y-4">
-              <div className="p-3 bg-blue-950/30 border border-blue-800/40 rounded-xl text-xs text-blue-200">
-                <span className="font-black block mb-0.5 text-blue-300">Safety & Emergency Contact</span>
-                Provide emergency contact personnel details to reach out to in case of urgent security or safety incidents.
+              <div className="p-3 bg-blue-950/30 border border-blue-800/40 rounded-xl text-xs text-blue-200 flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <span className="font-black block mb-0.5 text-blue-300">Safety & Emergency Contact</span>
+                  Provide emergency contact personnel details to reach out to in case of urgent security or safety incidents.
+                </div>
+                <button 
+                  type="button" 
+                  onClick={handleClearCurrentStep}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold text-slate-400 hover:text-rose-300 bg-slate-900 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 transition-all cursor-pointer"
+                  title="Clear emergency fields"
+                >
+                  <RotateCcw size={12} /> Clear Step
+                </button>
               </div>
 
               {/* Name & Relationship */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">
-                    {t('form.emergencyContactName', 'Emergency Contact Full Name')}
+                    {t('form.emergencyContactName', 'Emergency Contact Full Name')} *
                   </label>
                   <input 
                     type="text" 
                     placeholder="e.g. Almaz Bekele" 
-                    className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-blue-500 transition-colors"
+                    className={`w-full bg-slate-900 border ${
+                      fieldErrors.emergencyName ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-blue-500'
+                    } text-white rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-colors`}
                     value={emergencyName} 
-                    onChange={e => setEmergencyName(e.target.value)}
+                    onChange={e => {
+                      setEmergencyName(e.target.value);
+                      clearFieldError('emergencyName');
+                    }}
                   />
+                  {fieldErrors.emergencyName && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.emergencyName}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1272,11 +1558,19 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                 <div>
                   <CountryPhoneInput
                     id="visitor-emergency-phone"
-                    label={t('form.emergencyContactPhone', 'Primary Emergency Phone')}
+                    label={t('form.emergencyContactPhone', 'Primary Emergency Phone') + ' *'}
                     value={emergencyPhone}
-                    onChange={e => setEmergencyPhone(e.target.value)}
+                    onChange={e => {
+                      setEmergencyPhone(e.target.value);
+                      clearFieldError('emergencyPhone');
+                    }}
                     placeholder="+251 9... or Phone"
                   />
+                  {fieldErrors.emergencyPhone && (
+                    <p className="text-[10px] text-rose-400 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> {fieldErrors.emergencyPhone}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1308,15 +1602,15 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                   {/* Tile 1: General & Visit */}
                   <div className="p-3.5 bg-slate-950/70 border border-slate-800/80 rounded-xl space-y-1.5">
                     <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-blue-400">
-                      <span>1. General</span>
+                      <span>1. Category</span>
                       <button type="button" onClick={() => setActiveSection('category')} className="hover:underline flex items-center gap-1 text-slate-400 hover:text-white cursor-pointer">
                         <Edit3 className="h-3 w-3" /> Edit
                       </button>
                     </div>
-                    <div className="text-xs font-bold text-white truncate">{category}</div>
-                    <div className="text-[11px] text-slate-400 truncate">Company: <span className="text-slate-200">{company || 'Independent'}</span></div>
-                    <div className="text-[11px] text-slate-400 truncate">Host: <span className="text-slate-200">{hostName || 'Staff'}</span></div>
-                    <div className="text-[11px] text-slate-400 truncate">Duration: <span className="text-slate-200">{duration} min</span></div>
+                    <div className="text-xs font-bold text-white truncate">{category || '—'}</div>
+                    <div className="text-[11px] text-slate-400 truncate">Access: <span className="text-slate-200">{accessLevel}</span></div>
+                    <div className="text-[11px] text-slate-400 truncate">Approval: <span className="text-slate-200">{approvalRequirement}</span></div>
+                    <div className="text-[11px] text-slate-400 truncate">Escort: <span className="text-slate-200">{escortRequired}</span></div>
                   </div>
 
                   {/* Tile 2: Personal & Contact */}
@@ -1384,11 +1678,11 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
           <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-4 mt-auto">
             <div className="text-xs text-slate-400 font-semibold hidden md:flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              <span>{category}</span>
+              <span>{category || 'No Category Selected'}</span>
               <span>•</span>
               <span>{company || 'Independent Visitor'}</span>
               <span>•</span>
-              <span>{city}, {country}</span>
+              <span>{city || 'No City'}, {country || 'No Country'}</span>
             </div>
 
             <div className="flex items-center gap-3 ml-auto flex-wrap">
@@ -1398,6 +1692,17 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                 className="px-4 sm:px-5 py-2.5 border border-slate-700 text-slate-300 hover:bg-slate-800 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
               >
                 {t('btn.cancel', 'Cancel')}
+              </button>
+
+              {/* Clear Step Button */}
+              <button 
+                type="button" 
+                onClick={handleClearCurrentStep} 
+                className="px-3.5 sm:px-4 py-2.5 border border-slate-700/80 hover:border-rose-500/50 text-slate-400 hover:text-rose-300 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Clear current step fields"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Clear Step</span>
               </button>
 
               {/* Back Button: displayed on Step 2, 3, 4, 5 */}
@@ -1412,26 +1717,8 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                 </button>
               )}
 
-              {/* Step 1 Next Button: appears when all Step 1 data is filled */}
-              {currentStepNum === 1 && (
-                isStep1Complete ? (
-                  <button 
-                    type="button" 
-                    onClick={handleNextStep}
-                    className="px-5 sm:px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
-                  >
-                    <span>Next</span>
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <span className="text-[11px] text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-3.5 py-2 rounded-xl">
-                    Fill all category fields to proceed
-                  </span>
-                )
-              )}
-
-              {/* Intermediate Steps (Step 2, 3, 4): Next Button */}
-              {currentStepNum > 1 && currentStepNum < STEPS.length && (
+              {/* Next Button for Steps 1 to 4 */}
+              {currentStepNum < STEPS.length && (
                 <button 
                   type="button" 
                   onClick={handleNextStep}
