@@ -81,9 +81,8 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
     }
   };
 
-  // 1. VISITOR CATEGORY & ACCESS PRIVILEGES (Image 3)
+  // 1. VISITOR CATEGORY & ACCESS PRIVILEGES
   const [dbCategories, setDbCategories] = useState([]);
-  const [editCategoryMode, setEditCategoryMode] = useState(false);
   const [category, setCategory] = useState('General Visitor');
   const [accessLevel, setAccessLevel] = useState('Level 1 (General)');
   const [approvalRequirement, setApprovalRequirement] = useState('Host Approval Required');
@@ -92,6 +91,18 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
   const [allowedAreas, setAllowedAreas] = useState('Main Lobby & Reception');
   const [allowedDays, setAllowedDays] = useState('Monday – Friday');
   const [categoryPurpose, setCategoryPurpose] = useState('General Visit');
+
+  // Check if all Step 1 category fields are filled
+  const isStep1Complete = Boolean(
+    category && String(category).trim() !== '' &&
+    accessLevel && String(accessLevel).trim() !== '' &&
+    approvalRequirement && String(approvalRequirement).trim() !== '' &&
+    categoryDuration && String(categoryDuration).trim() !== '' &&
+    escortRequired && String(escortRequired).trim() !== '' &&
+    allowedAreas && String(allowedAreas).trim() !== '' &&
+    allowedDays && String(allowedDays).trim() !== '' &&
+    categoryPurpose && String(categoryPurpose).trim() !== ''
+  );
 
   // Appointment details (Auto-fetched from appointment form / initialData)
   const [company, setCompany] = useState('');
@@ -713,270 +724,185 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
         )}
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 sm:px-10 py-6 space-y-6 flex flex-col justify-between">
+        <form 
+          onSubmit={(e) => {
+            if (currentStepNum < STEPS.length) {
+              e.preventDefault();
+              if (currentStepNum === 1 && isStep1Complete) {
+                handleNextStep();
+              } else if (currentStepNum > 1) {
+                handleNextStep();
+              }
+              return;
+            }
+            handleSubmit(e);
+          }} 
+          className="flex-1 overflow-y-auto px-6 sm:px-10 py-6 space-y-6 flex flex-col justify-between"
+        >
           <div className="space-y-6">
 
           {/* ══════════════ SECTION 1: VISITOR CATEGORY & ACCESS PRIVILEGES ══════════════ */}
           {activeSection === 'category' && (
             <div className="space-y-5">
-              {/* Visitor Category & Access Privileges Card (Image 3 design) */}
+              {/* Visitor Category & Access Privileges Form */}
               <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
                 <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
                     <Briefcase size={18} className="text-purple-400" /> VISITOR CATEGORY &amp; ACCESS PRIVILEGES
                   </h3>
-                  <button 
-                    type="button" 
-                    onClick={() => setEditCategoryMode(!editCategoryMode)} 
-                    className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white px-3 py-1.5 bg-slate-900 rounded-xl border border-slate-800 transition-all hover:border-slate-700 cursor-pointer"
-                  >
-                    <Edit3 size={13} /> {editCategoryMode ? 'Cancel Edit' : 'Edit Category'}
-                  </button>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                    Step 1 of 5
+                  </span>
                 </div>
 
-                {editCategoryMode ? (
-                  /* Form mode: Only Visitor Category features, with category dropdown fetched from database */
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                    {/* 1. Category Dropdown (Fetched from DB) */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                        <Briefcase size={12} className="text-purple-400" /> Category
-                      </label>
-                      <select 
-                        value={category} 
-                        onChange={(e) => handleCategoryChange(e.target.value)}
-                        className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-purple-500/50 rounded-xl text-white font-bold focus:border-purple-400 focus:outline-none transition-colors"
-                        required
-                      >
-                        {dbCategories.length > 0 ? (
-                          dbCategories.map(cat => {
-                            const name = cat.category_name || cat.name;
-                            return <option key={cat.id || name} value={name}>{name}</option>;
-                          })
-                        ) : (
-                          <>
-                            <option value="General Visitor">General Visitor</option>
-                            <option value="Business Visitor">Business Visitor</option>
-                            <option value="Contractor">Contractor</option>
-                            <option value="VIP / Executive">VIP / Executive</option>
-                            <option value="Vendor / Supplier">Vendor / Supplier</option>
-                            <option value="Government Official">Government Official</option>
-                            <option value="Job Applicant / Interviewee">Job Applicant / Interviewee</option>
-                            <option value="Client / Customer">Client / Customer</option>
-                            <option value="Guest">Guest</option>
-                            <option value="Student / Intern">Student / Intern</option>
-                            <option value="Other">Other</option>
-                          </>
-                        )}
-                      </select>
-                    </div>
-
-                    {/* 2. Access Level */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                        <ShieldCheck size={12} className="text-blue-400" /> Access Level
-                      </label>
-                      <select 
-                        value={accessLevel} 
-                        onChange={(e) => setAccessLevel(e.target.value)} 
-                        className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      >
-                        <option value="Level 1 (General)">Level 1 (General)</option>
-                        <option value="Level 2 (Business)">Level 2 (Business)</option>
-                        <option value="Level 3 (Restricted)">Level 3 (Restricted)</option>
-                        <option value="STANDARD">STANDARD</option>
-                        <option value="VIP">VIP</option>
-                        <option value="ESCORT_REQUIRED">ESCORT REQUIRED</option>
-                      </select>
-                    </div>
-
-                    {/* 3. Approval Requirement */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                        <CheckCircle2 size={12} className="text-emerald-400" /> Approval Requirement
-                      </label>
-                      <select 
-                        value={approvalRequirement} 
-                        onChange={(e) => setApprovalRequirement(e.target.value)} 
-                        className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      >
-                        <option value="Host Approval Required">Host Approval Required</option>
-                        <option value="Department + Security">Department + Security</option>
-                        <option value="Pre-Approved">Pre-Approved</option>
-                        <option value="Automatic">Automatic</option>
-                      </select>
-                    </div>
-
-                    {/* 4. Visit Duration */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                        <Clock size={12} className="text-indigo-400" /> Visit Duration
-                      </label>
-                      <input 
-                        type="text" 
-                        value={categoryDuration} 
-                        placeholder="e.g. 2 Hours, 1 Day, 8 Hours" 
-                        onChange={(e) => setCategoryDuration(e.target.value)} 
-                        className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      />
-                    </div>
-
-                    {/* 5. Escort Required */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                        <UserCheck size={12} className="text-amber-400" /> Escort Required
-                      </label>
-                      <select 
-                        value={escortRequired} 
-                        onChange={(e) => setEscortRequired(e.target.value)} 
-                        className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      >
-                        <option value="No">No</option>
-                        <option value="Yes">Yes</option>
-                      </select>
-                    </div>
-
-                    {/* 6. Allowed Areas */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                        <MapPin size={12} className="text-emerald-400" /> Allowed Areas
-                      </label>
-                      <input 
-                        type="text" 
-                        value={allowedAreas} 
-                        placeholder="e.g. Main Lobby &amp; Reception" 
-                        onChange={(e) => setAllowedAreas(e.target.value)} 
-                        className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      />
-                    </div>
-
-                    {/* 7. Allowed Days */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                        <Calendar size={12} className="text-blue-400" /> Allowed Days
-                      </label>
-                      <input 
-                        type="text" 
-                        value={allowedDays} 
-                        placeholder="e.g. Monday – Friday" 
-                        onChange={(e) => setAllowedDays(e.target.value)} 
-                        className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      />
-                    </div>
-
-                    {/* 8. Visit Purpose */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                        <FileText size={12} className="text-purple-400" /> Visit Purpose
-                      </label>
-                      <input 
-                        type="text" 
-                        value={categoryPurpose} 
-                        placeholder="e.g. General Visit, Business Consultation" 
-                        onChange={(e) => setCategoryPurpose(e.target.value)} 
-                        className="w-full mt-1 px-3.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                      />
-                    </div>
-
-                    <div className="lg:col-span-4 flex justify-end gap-3 pt-3 border-t border-slate-800">
-                      <button 
-                        type="button" 
-                        onClick={() => setEditCategoryMode(false)} 
-                        className="px-5 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-500 rounded-xl shadow-lg transition-colors cursor-pointer"
-                      >
-                        Done Editing
-                      </button>
-                    </div>
+                {/* Form Mode: Only Visitor Category features, with category dropdown fetched from database */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                  {/* 1. Category Dropdown (Fetched from DB) */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
+                      <Briefcase size={12} className="text-purple-400" /> Category *
+                    </label>
+                    <select 
+                      value={category} 
+                      onChange={(e) => handleCategoryChange(e.target.value)}
+                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-purple-500/50 rounded-xl text-white font-bold focus:border-purple-400 focus:outline-none transition-colors"
+                      required
+                    >
+                      {dbCategories.length > 0 ? (
+                        dbCategories.map(cat => {
+                          const name = cat.category_name || cat.name;
+                          return <option key={cat.id || name} value={name}>{name}</option>;
+                        })
+                      ) : (
+                        <>
+                          <option value="General Visitor">General Visitor</option>
+                          <option value="Business Visitor">Business Visitor</option>
+                          <option value="Contractor">Contractor</option>
+                          <option value="VIP / Executive">VIP / Executive</option>
+                          <option value="Vendor / Supplier">Vendor / Supplier</option>
+                          <option value="Government Official">Government Official</option>
+                          <option value="Job Applicant / Interviewee">Job Applicant / Interviewee</option>
+                          <option value="Client / Customer">Client / Customer</option>
+                          <option value="Guest">Guest</option>
+                          <option value="Student / Intern">Student / Intern</option>
+                          <option value="Other">Other</option>
+                        </>
+                      )}
+                    </select>
                   </div>
-                ) : (
-                  /* View mode: Exact matching tiles from Image 3 */
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5 text-xs pt-1">
-                    {/* Tile 1: Category */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                        <Briefcase size={13} className="text-purple-400" /> Category
-                      </span>
-                      <div>
-                        <span className="inline-block px-2.5 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full text-xs font-bold">
-                          {category || '—'}
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Tile 2: Access Level */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                        <ShieldCheck size={13} className="text-blue-400" /> Access Level
-                      </span>
-                      <span className="font-bold text-blue-400 text-sm block">
-                        {accessLevel || '—'}
-                      </span>
-                    </div>
-
-                    {/* Tile 3: Approval Requirement */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                        <CheckCircle2 size={13} className="text-emerald-400" /> Approval Requirement
-                      </span>
-                      <span className="font-bold text-white text-sm block">
-                        {approvalRequirement || '—'}
-                      </span>
-                    </div>
-
-                    {/* Tile 4: Visit Duration */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                        <Clock size={13} className="text-indigo-400" /> Visit Duration
-                      </span>
-                      <span className="font-bold text-white text-sm block">
-                        {categoryDuration || '—'}
-                      </span>
-                    </div>
-
-                    {/* Tile 5: Escort Required */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                        <UserCheck size={13} className="text-amber-400" /> Escort Required
-                      </span>
-                      <span className="font-bold text-white text-sm block">
-                        {escortRequired || '—'}
-                      </span>
-                    </div>
-
-                    {/* Tile 6: Allowed Areas */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                        <MapPin size={13} className="text-emerald-400" /> Allowed Areas
-                      </span>
-                      <span className="font-bold text-white text-sm block">
-                        {allowedAreas || '—'}
-                      </span>
-                    </div>
-
-                    {/* Tile 7: Allowed Days */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                        <Calendar size={13} className="text-blue-400" /> Allowed Days
-                      </span>
-                      <span className="font-bold text-white text-sm block">
-                        {allowedDays || '—'}
-                      </span>
-                    </div>
-
-                    {/* Tile 8: Visit Purpose */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                        <FileText size={13} className="text-purple-400" /> Visit Purpose
-                      </span>
-                      <span className="font-bold text-white text-sm block">
-                        {categoryPurpose || '—'}
-                      </span>
-                    </div>
+                  {/* 2. Access Level */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
+                      <ShieldCheck size={12} className="text-blue-400" /> Access Level *
+                    </label>
+                    <select 
+                      value={accessLevel} 
+                      onChange={(e) => setAccessLevel(e.target.value)} 
+                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
+                    >
+                      <option value="Level 1 (General)">Level 1 (General)</option>
+                      <option value="Level 2 (Business)">Level 2 (Business)</option>
+                      <option value="Level 3 (Restricted)">Level 3 (Restricted)</option>
+                      <option value="STANDARD">STANDARD</option>
+                      <option value="VIP">VIP</option>
+                      <option value="ESCORT_REQUIRED">ESCORT REQUIRED</option>
+                    </select>
                   </div>
-                )}
+
+                  {/* 3. Approval Requirement */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
+                      <CheckCircle2 size={12} className="text-emerald-400" /> Approval Requirement *
+                    </label>
+                    <select 
+                      value={approvalRequirement} 
+                      onChange={(e) => setApprovalRequirement(e.target.value)} 
+                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
+                    >
+                      <option value="Host Approval Required">Host Approval Required</option>
+                      <option value="Department + Security">Department + Security</option>
+                      <option value="Pre-Approved">Pre-Approved</option>
+                      <option value="Automatic">Automatic</option>
+                    </select>
+                  </div>
+
+                  {/* 4. Visit Duration */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
+                      <Clock size={12} className="text-indigo-400" /> Visit Duration *
+                    </label>
+                    <input 
+                      type="text" 
+                      value={categoryDuration} 
+                      placeholder="e.g. 2 Hours, 1 Day, 8 Hours" 
+                      onChange={(e) => setCategoryDuration(e.target.value)} 
+                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
+                      required
+                    />
+                  </div>
+
+                  {/* 5. Escort Required */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
+                      <UserCheck size={12} className="text-amber-400" /> Escort Required *
+                    </label>
+                    <select 
+                      value={escortRequired} 
+                      onChange={(e) => setEscortRequired(e.target.value)} 
+                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
+                    >
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                  </div>
+
+                  {/* 6. Allowed Areas */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
+                      <MapPin size={12} className="text-emerald-400" /> Allowed Areas *
+                    </label>
+                    <input 
+                      type="text" 
+                      value={allowedAreas} 
+                      placeholder="e.g. Main Lobby & Reception" 
+                      onChange={(e) => setAllowedAreas(e.target.value)} 
+                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
+                      required
+                    />
+                  </div>
+
+                  {/* 7. Allowed Days */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
+                      <Calendar size={12} className="text-blue-400" /> Allowed Days *
+                    </label>
+                    <input 
+                      type="text" 
+                      value={allowedDays} 
+                      placeholder="e.g. Monday – Friday" 
+                      onChange={(e) => setAllowedDays(e.target.value)} 
+                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
+                      required
+                    />
+                  </div>
+
+                  {/* 8. Visit Purpose */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
+                      <FileText size={12} className="text-purple-400" /> Visit Purpose *
+                    </label>
+                    <input 
+                      type="text" 
+                      value={categoryPurpose} 
+                      placeholder="e.g. General Visit, Business Consultation" 
+                      onChange={(e) => setCategoryPurpose(e.target.value)} 
+                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
-
-
             </div>
           )}
 
@@ -1474,44 +1400,67 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                 {t('btn.cancel', 'Cancel')}
               </button>
 
+              {/* Back Button: displayed on Step 2, 3, 4, 5 */}
               {currentStepNum > 1 && (
                 <button 
                   type="button" 
                   onClick={handlePrevStep}
-                  className="px-4 sm:px-5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-4 sm:px-5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  <span>Previous</span>
+                  <span>Back</span>
                 </button>
               )}
 
-              {currentStepNum < STEPS.length && (
+              {/* Step 1 Next Button: appears when all Step 1 data is filled */}
+              {currentStepNum === 1 && (
+                isStep1Complete ? (
+                  <button 
+                    type="button" 
+                    onClick={handleNextStep}
+                    className="px-5 sm:px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <span className="text-[11px] text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-3.5 py-2 rounded-xl">
+                    Fill all category fields to proceed
+                  </span>
+                )
+              )}
+
+              {/* Intermediate Steps (Step 2, 3, 4): Next Button */}
+              {currentStepNum > 1 && currentStepNum < STEPS.length && (
                 <button 
                   type="button" 
                   onClick={handleNextStep}
-                  className="px-5 sm:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+                  className="px-5 sm:px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
                 >
-                  <span>Next Step</span>
+                  <span>Next</span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
               )}
 
-              <button 
-                type="submit" 
-                disabled={saving} 
-                className="px-6 sm:px-7 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-xl shadow-blue-600/30 transition-all cursor-pointer"
-              >
-                {saving ? (
-                  <span className="flex items-center gap-1.5">
-                    <span className="animate-spin">⏳</span> Saving Profile...
-                  </span>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    <span>{currentStepNum === 5 ? t('btn.save', 'Save Changes') : 'Save Profile'}</span>
-                  </>
-                )}
-              </button>
+              {/* Step 5 (End of Step): Back and Save Button ONLY */}
+              {currentStepNum === STEPS.length && (
+                <button 
+                  type="submit" 
+                  disabled={saving} 
+                  className="px-6 sm:px-7 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-xl shadow-emerald-600/30 transition-all cursor-pointer"
+                >
+                  {saving ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="animate-spin">⏳</span> Saving Profile...
+                    </span>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span>Save</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </form>
