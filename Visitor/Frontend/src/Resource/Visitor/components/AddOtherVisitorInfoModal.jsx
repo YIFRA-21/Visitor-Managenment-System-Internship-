@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, User, MapPin, Phone, Shield, FileText, Upload, Check, AlertCircle, Save, 
   Briefcase, Building, Clock, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Edit3, CheckCircle,
@@ -14,6 +15,41 @@ import CountryNationalitySelect from '../../../components/common/CountryNational
 export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, initialData = {} }) {
   const { t } = useLanguage();
   const { user } = useAuth();
+
+  // Offset overlay to position modal in right display area (not hidden behind sidebar)
+  const [sidebarOffset, setSidebarOffset] = useState({ left: '0px', width: '100vw' });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const calculateOffset = () => {
+      if (window.innerWidth < 992) {
+        setSidebarOffset({ left: '0px', width: '100vw' });
+        return;
+      }
+      const sidebarEl = document.querySelector('.vms-sidebar');
+      const wrapperEl = document.querySelector('.vms-main-wrapper');
+      const isCollapsed = wrapperEl?.classList.contains('sidebar-collapsed');
+      const leftWidth = sidebarEl ? sidebarEl.getBoundingClientRect().width : (isCollapsed ? 70 : 260);
+      setSidebarOffset({ 
+        left: `${leftWidth}px`,
+        width: `calc(100vw - ${leftWidth}px)`
+      });
+    };
+
+    calculateOffset();
+    window.addEventListener('resize', calculateOffset);
+
+    const observer = new MutationObserver(calculateOffset);
+    const wrapper = document.querySelector('.vms-main-wrapper');
+    if (wrapper) {
+      observer.observe(wrapper, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    return () => {
+      window.removeEventListener('resize', calculateOffset);
+      observer.disconnect();
+    };
+  }, [isOpen]);
 
   // Wizard Stepper Definition (Image 2 style)
   const STEPS = [
@@ -577,9 +613,14 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/90 backdrop-blur-md overflow-y-auto">
-      <div className="bg-[#0b1220] border border-slate-800 text-white rounded-3xl w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl h-[92vh] max-h-[960px] flex flex-col overflow-hidden shadow-2xl shadow-blue-950/50 my-auto animate-fadeIn">
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div 
+      className="fixed top-0 bottom-0 right-0 z-[99999] flex items-center justify-center p-3 sm:p-5 lg:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto transition-[left,width] duration-300"
+      style={{ left: sidebarOffset.left, width: sidebarOffset.width }}
+    >
+      <div className="bg-[#0b1220] border border-slate-800 text-white rounded-3xl w-full max-w-5xl xl:max-w-6xl h-[92vh] max-h-[920px] flex flex-col overflow-hidden shadow-2xl shadow-blue-950/50 my-auto animate-fadeIn">
         
         {/* Modal Header */}
         <div className="px-6 sm:px-8 py-4 sm:py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 shrink-0">
@@ -1521,6 +1562,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
