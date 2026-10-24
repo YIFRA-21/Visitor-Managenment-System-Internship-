@@ -1,36 +1,51 @@
 import React from 'react';
-import { ArrowUpDown, Eye, Edit, Trash2, Users, Package, Wrench, UserCheck, GraduationCap, Heart, Truck, User, Building, Lock, RotateCcw } from 'lucide-react';
+import { 
+  ArrowUpDown, Eye, Edit, Trash2, Users, Package, Wrench, UserCheck, 
+  GraduationCap, Heart, Truck, User, Building, Lock, RotateCcw,
+  Briefcase, Award, HelpCircle, ShieldAlert
+} from 'lucide-react';
 import CategoryStatusBadge from './CategoryStatusBadge';
 import { useLanguage } from '../../../../../contexts/LanguageContext';
-export const getCategoryIcon = (categoryName, categoryCode) => {
-    const name = categoryName.toLowerCase();
-    const code = categoryCode.toLowerCase();
+
+export const getCategoryIcon = (categoryName = '', categoryCode = '') => {
+    const name = String(categoryName).toLowerCase();
+    const code = String(categoryCode).toLowerCase();
+
+    if (name.includes('vip') || code.includes('vip')) {
+        return { icon: <Award className="h-4 w-4 text-amber-400"/>, bg: 'bg-amber-500/10 border-amber-500/20' };
+    }
     if (name.includes('business') || code.includes('bus')) {
-        return { icon: <Users className="h-4 w-4 text-blue-500"/>, bg: 'bg-blue-500/10 border-blue-500/20' };
+        return { icon: <Briefcase className="h-4 w-4 text-blue-400"/>, bg: 'bg-blue-500/10 border-blue-500/20' };
+    }
+    if (name.includes('contractor') || name.includes('maintenance') || code.includes('cont') || code.includes('tech')) {
+        return { icon: <Wrench className="h-4 w-4 text-purple-400"/>, bg: 'bg-purple-500/10 border-purple-500/20' };
     }
     if (name.includes('vendor') || name.includes('supplier') || code.includes('ven') || code.includes('sup')) {
-        return { icon: <Package className="h-4 w-4 text-emerald-500"/>, bg: 'bg-emerald-500/10 border-emerald-500/20' };
-    }
-    if (name.includes('contractor') || code.includes('con')) {
-        return { icon: <Wrench className="h-4 w-4 text-purple-500"/>, bg: 'bg-purple-500/10 border-purple-500/20' };
-    }
-    if (name.includes('guest') || code.includes('gst')) {
-        return { icon: <UserCheck className="h-4 w-4 text-amber-500"/>, bg: 'bg-amber-500/10 border-amber-500/20' };
-    }
-    if (name.includes('student') || code.includes('stu')) {
-        return { icon: <GraduationCap className="h-4 w-4 text-teal-500"/>, bg: 'bg-teal-500/10 border-teal-500/20' };
-    }
-    if (name.includes('health') || name.includes('medical') || code.includes('hc')) {
-        return { icon: <Heart className="h-4 w-4 text-rose-500"/>, bg: 'bg-rose-500/10 border-rose-500/20' };
-    }
-    if (name.includes('delivery') || code.includes('del')) {
-        return { icon: <Truck className="h-4 w-4 text-red-500"/>, bg: 'bg-red-500/10 border-red-500/20' };
-    }
-    if (name.includes('interview') || code.includes('int') || code.includes('can')) {
-        return { icon: <User className="h-4 w-4 text-slate-400"/>, bg: 'bg-slate-500/10 border-slate-500/20' };
+        return { icon: <Package className="h-4 w-4 text-emerald-400"/>, bg: 'bg-emerald-500/10 border-emerald-500/20' };
     }
     if (name.includes('gov') || name.includes('official') || code.includes('gov')) {
-        return { icon: <Building className="h-4 w-4 text-cyan-500"/>, bg: 'bg-cyan-500/10 border-cyan-500/20' };
+        return { icon: <Building className="h-4 w-4 text-cyan-400"/>, bg: 'bg-cyan-500/10 border-cyan-500/20' };
+    }
+    if (name.includes('interview') || name.includes('candidate') || code.includes('hr') || code.includes('int')) {
+        return { icon: <UserCheck className="h-4 w-4 text-violet-400"/>, bg: 'bg-violet-500/10 border-violet-500/20' };
+    }
+    if (name.includes('client') || name.includes('customer') || code.includes('cli') || code.includes('cust')) {
+        return { icon: <Users className="h-4 w-4 text-indigo-400"/>, bg: 'bg-indigo-500/10 border-indigo-500/20' };
+    }
+    if (name.includes('student') || name.includes('intern') || code.includes('stu')) {
+        return { icon: <GraduationCap className="h-4 w-4 text-teal-400"/>, bg: 'bg-teal-500/10 border-teal-500/20' };
+    }
+    if (name.includes('guest') || code.includes('gst')) {
+        return { icon: <Heart className="h-4 w-4 text-rose-400"/>, bg: 'bg-rose-500/10 border-rose-500/20' };
+    }
+    if (name.includes('delivery') || code.includes('del')) {
+        return { icon: <Truck className="h-4 w-4 text-amber-500"/>, bg: 'bg-amber-500/10 border-amber-500/20' };
+    }
+    if (name.includes('general') || code.includes('gen')) {
+        return { icon: <User className="h-4 w-4 text-sky-400"/>, bg: 'bg-sky-500/10 border-sky-500/20' };
+    }
+    if (name.includes('other') || code.includes('oth')) {
+        return { icon: <HelpCircle className="h-4 w-4 text-slate-400"/>, bg: 'bg-slate-500/10 border-slate-500/20' };
     }
     return { icon: <Users className="h-4 w-4 text-indigo-500"/>, bg: 'bg-indigo-500/10 border-indigo-500/20' };
 };

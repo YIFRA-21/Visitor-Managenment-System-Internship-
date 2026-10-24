@@ -118,10 +118,51 @@ const getFreshEmptyForm = (displayOrder = 1) => ({
 const EMPTY_FORM = getFreshEmptyForm(1);
 const CATEGORY_PRESETS = [
     {
+        name: 'General Visitor',
+        code: 'CAT-GEN',
+        description: 'Standard walk-in or general inquiry visitor seeking assistance or public access.',
+        tag: 'General',
+        color: 'from-blue-600 to-sky-600',
+        preset: {
+            category_name: 'General Visitor',
+            category_code: 'CAT-GEN',
+            description: 'Standard walk-in or general inquiry visitor seeking assistance or public access.',
+            default_visit_duration: '2 Hours',
+            default_duration_minutes: 120,
+            max_visit_duration: '1 Day',
+            max_duration_minutes: 1440,
+            access_level: 'Level 1 (General)',
+            status: 'Active',
+            approval_required: true,
+            allow_walkin_visitor: true,
+            allow_repeat_visit: true,
+            appointment_required: false,
+            host_approval_required: true,
+            department_approval_required: false,
+            security_approval_required: false,
+            visitor_pass_required: true,
+            identity_verification_required: true,
+            face_verification_required: false,
+            document_verification_required: true,
+            escort_required: false,
+            vehicle_registration_required: false,
+            emergency_contact_required: false,
+            documents: [
+                { document_type: 'National ID', is_mandatory: true, description: 'Government Issued Photo ID' }
+            ],
+            workflows: [
+                { step_order: 1, step_name: 'Reception Check-In', approver_role: 'Receptionist', is_auto_approved: true }
+            ],
+            access_levels: [
+                { location_name: 'Reception', is_granted: true }
+            ]
+        }
+    },
+    {
         name: 'Business Visitor',
         code: 'BUS-VIS',
         description: 'Corporate meetings, client consults, and commercial partners.',
-        tag: 'Standard',
+        tag: 'Corporate',
         color: 'from-blue-600 to-indigo-600',
         preset: {
             category_name: 'Business Visitor',
@@ -158,6 +199,53 @@ const CATEGORY_PRESETS = [
                 { location_name: 'Reception', is_granted: true },
                 { location_name: 'Meeting Room', is_granted: true },
                 { location_name: 'Cafeteria', is_granted: true }
+            ]
+        }
+    },
+    {
+        name: 'Contractor & Maintenance',
+        code: 'CONT-TECH',
+        description: 'Technical equipment service, facility builders, and facility vendors.',
+        tag: 'Technical',
+        color: 'from-emerald-600 to-teal-600',
+        preset: {
+            category_name: 'Contractor & Maintenance',
+            category_code: 'CONT-TECH',
+            description: 'Technical equipment service, facility builders, and facility vendors.',
+            default_visit_duration: '8 Hours',
+            default_duration_minutes: 480,
+            max_visit_duration: '7 Days',
+            max_duration_minutes: 10080,
+            access_level: 'Level 2 (Restricted)',
+            status: 'Active',
+            approval_required: true,
+            allow_walkin_visitor: false,
+            allow_repeat_visit: true,
+            appointment_required: true,
+            host_approval_required: true,
+            department_approval_required: true,
+            security_approval_required: true,
+            visitor_pass_required: true,
+            identity_verification_required: true,
+            face_verification_required: false,
+            document_verification_required: true,
+            escort_required: true,
+            vehicle_registration_required: true,
+            emergency_contact_required: true,
+            documents: [
+                { document_type: 'National ID', is_mandatory: true, description: 'National Identification / Work License' },
+                { document_type: 'Work Permit', is_mandatory: true, description: 'Contractor Work Order / Safety Clearance' },
+                { document_type: 'Insurance Certificate', is_mandatory: false, description: 'Third Party Liability Insurance' }
+            ],
+            workflows: [
+                { step_order: 1, step_name: 'Facility Supervisor Check', approver_role: 'Host', is_auto_approved: false },
+                { step_order: 2, step_name: 'Safety & Security Verification', approver_role: 'Security Officer', is_auto_approved: false }
+            ],
+            access_levels: [
+                { location_name: 'Reception', is_granted: true },
+                { location_name: 'Loading Bay', is_granted: true },
+                { location_name: 'Warehouse', is_granted: true },
+                { location_name: 'Laboratory', is_granted: true }
             ]
         }
     },
@@ -208,20 +296,62 @@ const CATEGORY_PRESETS = [
         }
     },
     {
-        name: 'Contractor & Maintenance',
-        code: 'CONT-TECH',
-        description: 'Technical equipment service, facility builders, and facility vendors.',
-        tag: 'Technical',
-        color: 'from-emerald-600 to-teal-600',
+        name: 'Vendor / Supplier',
+        code: 'VEN-SUPP',
+        description: 'Material suppliers, logistics delivery operators, merchandise drop-offs, and supply vendors.',
+        tag: 'Logistics',
+        color: 'from-emerald-600 to-green-600',
         preset: {
-            category_name: 'Contractor & Maintenance',
-            category_code: 'CONT-TECH',
-            description: 'Technical equipment service, facility builders, and facility vendors.',
-            default_visit_duration: '8 Hours',
-            default_duration_minutes: 480,
-            max_visit_duration: '7 Days',
-            max_duration_minutes: 10080,
-            access_level: 'Level 2 (Restricted)',
+            category_name: 'Vendor / Supplier',
+            category_code: 'VEN-SUPP',
+            description: 'Material suppliers, logistics delivery operators, merchandise drop-offs, and supply vendors.',
+            default_visit_duration: '1 Hour',
+            default_duration_minutes: 60,
+            max_visit_duration: '4 Hours',
+            max_duration_minutes: 240,
+            access_level: 'Level 1 (General)',
+            status: 'Active',
+            approval_required: true,
+            allow_walkin_visitor: true,
+            allow_repeat_visit: true,
+            appointment_required: false,
+            host_approval_required: true,
+            department_approval_required: false,
+            security_approval_required: false,
+            visitor_pass_required: true,
+            identity_verification_required: true,
+            face_verification_required: false,
+            document_verification_required: true,
+            escort_required: false,
+            vehicle_registration_required: true,
+            emergency_contact_required: false,
+            documents: [
+                { document_type: 'Driving License', is_mandatory: true, description: 'Driver / Courier Operator ID' }
+            ],
+            workflows: [
+                { step_order: 1, step_name: 'Warehouse Receiving Check', approver_role: 'Receptionist', is_auto_approved: true }
+            ],
+            access_levels: [
+                { location_name: 'Reception', is_granted: true },
+                { location_name: 'Loading Bay', is_granted: true }
+            ]
+        }
+    },
+    {
+        name: 'Government Official',
+        code: 'GOV-OFF',
+        description: 'Regulatory compliance inspectors, tax and audit representatives, and official dignitaries.',
+        tag: 'Government',
+        color: 'from-cyan-600 to-blue-700',
+        preset: {
+            category_name: 'Government Official',
+            category_code: 'GOV-OFF',
+            description: 'Regulatory compliance inspectors, tax and audit representatives, and official dignitaries.',
+            default_visit_duration: '4 Hours',
+            default_duration_minutes: 240,
+            max_visit_duration: '2 Days',
+            max_duration_minutes: 2880,
+            access_level: 'Level 3 (Restricted)',
             status: 'Active',
             approval_required: true,
             allow_walkin_visitor: false,
@@ -238,20 +368,15 @@ const CATEGORY_PRESETS = [
             vehicle_registration_required: true,
             emergency_contact_required: true,
             documents: [
-                { document_type: 'National ID', is_mandatory: true, description: 'National Identification / Work License' },
-                { document_type: 'Work Permit', is_mandatory: true, description: 'Contractor Work Order / Safety Clearance' },
-                { document_type: 'Insurance Certificate', is_mandatory: false, description: 'Third Party Liability Insurance' }
+                { document_type: 'National ID', is_mandatory: true, description: 'Official Government Badge' }
             ],
             workflows: [
-                { step_order: 1, step_name: 'Facility Supervisor Check', approver_role: 'Host', is_auto_approved: false },
-                { step_order: 2, step_name: 'Safety & Security Verification', approver_role: 'Security Officer', is_auto_approved: false }
+                { step_order: 1, step_name: 'Protocol Verification', approver_role: 'Security Officer', is_auto_approved: false }
             ],
             access_levels: [
                 { location_name: 'Reception', is_granted: true },
-                { location_name: 'Loading Bay', is_granted: true },
-                { location_name: 'Warehouse', is_granted: true },
-                { location_name: 'Laboratory', is_granted: true },
-                { location_name: 'Server Room', is_granted: false }
+                { location_name: 'Meeting Room', is_granted: true },
+                { location_name: 'Executive Floor', is_granted: true }
             ]
         }
     },
@@ -299,26 +424,68 @@ const CATEGORY_PRESETS = [
         }
     },
     {
-        name: 'Courier & Delivery',
-        code: 'DEL-COUR',
-        description: 'Parcel delivery, freight drivers, and quick document drop-offs.',
-        tag: 'Logistics',
-        color: 'from-cyan-600 to-blue-600',
+        name: 'Client / Customer',
+        code: 'CLI-CUST',
+        description: 'Direct clients, retail and corporate account holders, product demonstrations, and consults.',
+        tag: 'Client',
+        color: 'from-indigo-600 to-blue-600',
         preset: {
-            category_name: 'Courier & Delivery',
-            category_code: 'DEL-COUR',
-            description: 'Parcel delivery, freight drivers, and quick document drop-offs.',
-            default_visit_duration: '30 Mins',
-            default_duration_minutes: 30,
-            max_visit_duration: '2 Hours',
-            max_duration_minutes: 120,
+            category_name: 'Client / Customer',
+            category_code: 'CLI-CUST',
+            description: 'Direct clients, retail and corporate account holders, product demonstrations, and consults.',
+            default_visit_duration: '2 Hours',
+            default_duration_minutes: 120,
+            max_visit_duration: '1 Day',
+            max_duration_minutes: 1440,
             access_level: 'Level 1 (General)',
             status: 'Active',
-            approval_required: false,
+            approval_required: true,
+            allow_walkin_visitor: true,
+            allow_repeat_visit: true,
+            appointment_required: true,
+            host_approval_required: true,
+            department_approval_required: false,
+            security_approval_required: false,
+            visitor_pass_required: true,
+            identity_verification_required: true,
+            face_verification_required: false,
+            document_verification_required: true,
+            escort_required: false,
+            vehicle_registration_required: false,
+            emergency_contact_required: false,
+            documents: [
+                { document_type: 'National ID', is_mandatory: true, description: 'Government Issued Photo ID' }
+            ],
+            workflows: [
+                { step_order: 1, step_name: 'Account Rep Clearance', approver_role: 'Host', is_auto_approved: false }
+            ],
+            access_levels: [
+                { location_name: 'Reception', is_granted: true },
+                { location_name: 'Meeting Room', is_granted: true }
+            ]
+        }
+    },
+    {
+        name: 'Guest',
+        code: 'GST-VIS',
+        description: 'Personal guest of staff members, social visits, and informal acquaintances.',
+        tag: 'Guest',
+        color: 'from-rose-500 to-pink-600',
+        preset: {
+            category_name: 'Guest',
+            category_code: 'GST-VIS',
+            description: 'Personal guest of staff members, social visits, and informal acquaintances.',
+            default_visit_duration: '1 Hour',
+            default_duration_minutes: 60,
+            max_visit_duration: '3 Hours',
+            max_duration_minutes: 180,
+            access_level: 'Level 1 (General)',
+            status: 'Active',
+            approval_required: true,
             allow_walkin_visitor: true,
             allow_repeat_visit: true,
             appointment_required: false,
-            host_approval_required: false,
+            host_approval_required: true,
             department_approval_required: false,
             security_approval_required: false,
             visitor_pass_required: true,
@@ -326,17 +493,100 @@ const CATEGORY_PRESETS = [
             face_verification_required: false,
             document_verification_required: false,
             escort_required: false,
-            vehicle_registration_required: true,
+            vehicle_registration_required: false,
             emergency_contact_required: false,
             documents: [
-                { document_type: 'Driving License', is_mandatory: true, description: 'Driver / Courier Operator ID' }
+                { document_type: 'National ID', is_mandatory: true, description: 'Government Issued Photo ID' }
             ],
             workflows: [
-                { step_order: 1, step_name: 'Front Desk Quick Log', approver_role: 'Receptionist', is_auto_approved: true }
+                { step_order: 1, step_name: 'Staff Host Sign-In', approver_role: 'Host', is_auto_approved: false }
             ],
             access_levels: [
                 { location_name: 'Reception', is_granted: true },
-                { location_name: 'Loading Bay', is_granted: true }
+                { location_name: 'Cafeteria', is_granted: true }
+            ]
+        }
+    },
+    {
+        name: 'Student / Intern',
+        code: 'STU-INT',
+        description: 'Academic student tours, internships, university researchers, and educational visitors.',
+        tag: 'Academic',
+        color: 'from-teal-600 to-cyan-600',
+        preset: {
+            category_name: 'Student / Intern',
+            category_code: 'STU-INT',
+            description: 'Academic student tours, internships, university researchers, and educational visitors.',
+            default_visit_duration: '4 Hours',
+            default_duration_minutes: 240,
+            max_visit_duration: '1 Day',
+            max_duration_minutes: 1440,
+            access_level: 'Level 1 (General)',
+            status: 'Active',
+            approval_required: true,
+            allow_walkin_visitor: false,
+            allow_repeat_visit: true,
+            appointment_required: true,
+            host_approval_required: true,
+            department_approval_required: false,
+            security_approval_required: false,
+            visitor_pass_required: true,
+            identity_verification_required: true,
+            face_verification_required: false,
+            document_verification_required: true,
+            escort_required: false,
+            vehicle_registration_required: false,
+            emergency_contact_required: false,
+            documents: [
+                { document_type: 'National ID', is_mandatory: true, description: 'Student ID or Passport' }
+            ],
+            workflows: [
+                { step_order: 1, step_name: 'Academic Coordinator Clearance', approver_role: 'Host', is_auto_approved: false }
+            ],
+            access_levels: [
+                { location_name: 'Reception', is_granted: true },
+                { location_name: 'Meeting Room', is_granted: true }
+            ]
+        }
+    },
+    {
+        name: 'Other',
+        code: 'OTH-VIS',
+        description: 'General purpose or custom visitor categorization not covered by standard classifications.',
+        tag: 'Other',
+        color: 'from-slate-600 to-zinc-700',
+        preset: {
+            category_name: 'Other',
+            category_code: 'OTH-VIS',
+            description: 'General purpose or custom visitor categorization not covered by standard classifications.',
+            default_visit_duration: '1 Hour',
+            default_duration_minutes: 60,
+            max_visit_duration: '4 Hours',
+            max_duration_minutes: 240,
+            access_level: 'Level 1 (General)',
+            status: 'Active',
+            approval_required: true,
+            allow_walkin_visitor: true,
+            allow_repeat_visit: true,
+            appointment_required: false,
+            host_approval_required: true,
+            department_approval_required: false,
+            security_approval_required: false,
+            visitor_pass_required: true,
+            identity_verification_required: true,
+            face_verification_required: false,
+            document_verification_required: false,
+            escort_required: false,
+            vehicle_registration_required: false,
+            emergency_contact_required: false,
+            documents: [
+                { document_type: 'National ID', is_mandatory: true, description: 'Government Issued Photo ID' }
+            ],
+            workflows: [
+                { step_order: 1, step_name: 'General Clearance', approver_role: 'Receptionist', is_auto_approved: true }
+            ],
+            access_levels: [
+                { location_name: 'Reception', is_granted: true }
             ]
         }
     }
