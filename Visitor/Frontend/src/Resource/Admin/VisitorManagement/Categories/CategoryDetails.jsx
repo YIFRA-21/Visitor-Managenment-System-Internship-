@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Layers, Edit, ShieldAlert, Clock, Users, ShieldCheck, FileCheck, Key, CheckCircle, XCircle } from 'lucide-react';
 import { visitorCategoryApi } from '../../../../modules/visitor-management/api/visitorCategoryApi';
+import { getLocalCategories, INITIAL_OFFICIAL_CATEGORIES } from './VisitorCategoryManagement';
 import CategoryStatusBadge from './components/CategoryStatusBadge';
 import BackButton from '../../../../components/common/BackButton';
 export default function CategoryDetails() {
@@ -11,9 +12,25 @@ export default function CategoryDetails() {
     const categoryId = urlParams.get('categoryId') || '1';
     useEffect(() => {
         setLoading(true);
+        const fallbackCategory = () => {
+            const list = getLocalCategories() || INITIAL_OFFICIAL_CATEGORIES;
+            const found = list.find(c => String(c.id) === String(categoryId) || String(c.category_name).toLowerCase() === String(categoryId).toLowerCase());
+            if (found) {
+                setCategory(found);
+            }
+        };
+
         visitorCategoryApi.getById(Number(categoryId))
-            .then(res => setCategory(res.data))
-            .catch(console.error)
+            .then(res => {
+                if (res?.data) {
+                    setCategory(res.data);
+                } else {
+                    fallbackCategory();
+                }
+            })
+            .catch(() => {
+                fallbackCategory();
+            })
             .finally(() => setLoading(false));
     }, [categoryId]);
     const handleBack = () => {
@@ -35,14 +52,29 @@ export default function CategoryDetails() {
             return;
         setTogglingStatus(true);
         try {
-            if (category.status === 'Archived' || category.is_archived) {
-                await visitorCategoryApi.restore(category.id);
+            const isArchived = category.status === 'Archived' || category.is_archived;
+            try {
+                if (isArchived) {
+                    await visitorCategoryApi.restore(category.id);
+                }
+                else {
+                    await visitorCategoryApi.archive(category.id);
+                }
+                const updated = await visitorCategoryApi.getById(category.id);
+                if (updated?.data) {
+                    setCategory(updated.data);
+                }
             }
-            else {
-                await visitorCategoryApi.archive(category.id);
+            catch (apiErr) {
+                console.warn('API error in toggle status, updating locally:', apiErr);
             }
-            const updated = await visitorCategoryApi.getById(category.id);
-            setCategory(updated.data);
+            const nextStatus = isArchived ? 'Active' : 'Archived';
+            setCategory(prev => ({ ...prev, status: nextStatus, is_archived: !isArchived }));
+            const stored = getLocalCategories();
+            const updatedList = stored.map(c => c.id === category.id ? { ...c, status: nextStatus, is_archived: !isArchived } : c);
+            try {
+                localStorage.setItem('admin_visitor_categories', JSON.stringify(updatedList));
+            } catch {}
         }
         catch (err) {
             console.error(err);
