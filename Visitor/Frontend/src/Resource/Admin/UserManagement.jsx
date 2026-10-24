@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Users, User, UserCheck, UserX, Lock, Unlock, ShieldAlert, Clock, CheckCircle2, AlertTriangle, UserPlus, RefreshCw, Search, Download, Upload, Eye, Edit, Key, Shield, Smartphone, Laptop, Activity, ChevronLeft, ChevronRight, Mail, Phone, Building, Briefcase, X, FileSpreadsheet, Trash2, Sparkles, SlidersHorizontal, Check, ShieldCheck, History, Save, Layers, ArrowRight, User as UserIcon, Plus, Loader2, Copy } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 import FieldError from '../../components/common/FieldError';
@@ -143,6 +143,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     const { t } = useLanguage();
     // Navigation Sub-Views & History
     const navigate = useNavigate();
+    const location = useLocation();
     const { toConfirmation, toSuccess, toError } = useResponseNavigation();
 
     const handleDeleteUserWithConfirmation = async (target) => {
@@ -364,6 +365,19 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [roleFilter, setRoleFilter] = useState(defaultRoleFilter || 'ALL');
     const isRoleScoped = Boolean(defaultRoleFilter && defaultRoleFilter !== 'ALL');
+
+    useEffect(() => {
+        try {
+            const params = new URLSearchParams(location.search);
+            const roleParam = params.get('role') || params.get('roleFilter');
+            if (roleParam) {
+                setRoleFilter(roleParam);
+                setActiveSubView('users');
+            }
+        } catch (e) {
+            // ignore
+        }
+    }, [location.search]);
     const handleOpenAddUser = () => {
         if (isRoleScoped) {
             const targetRole = defaultRoleFilter;
@@ -388,25 +402,29 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         handleSubViewChange('create');
         setCreateStep(1);
     };
+    const effectiveRoleFilter = isRoleScoped ? defaultRoleFilter : roleFilter;
     const displayedUsers = useMemo(() => {
-        if (!isRoleScoped)
+        if (!effectiveRoleFilter || effectiveRoleFilter === 'ALL')
             return usersList;
+        const rf = effectiveRoleFilter.toLowerCase();
         return usersList.filter(u => {
             const r = (u.role || u.userType || '').toLowerCase();
             const c = (u.userCode || u.user_code || '').toUpperCase();
-            if (defaultRoleFilter === 'employee')
+            if (rf === 'employee')
                 return r === 'employee' || r === 'staff' || c.startsWith('EMP');
-            if (defaultRoleFilter === 'visitor')
+            if (rf === 'visitor')
                 return r === 'visitor' || c.startsWith('VIS');
-            if (defaultRoleFilter === 'manager')
+            if (rf === 'manager')
                 return r.includes('manager') || c.startsWith('MGR');
-            if (defaultRoleFilter === 'security_officer')
+            if (rf === 'security_officer' || rf === 'security')
                 return r.includes('security') || c.startsWith('SEC');
-            if (defaultRoleFilter === 'receptionist')
+            if (rf === 'receptionist')
                 return r.includes('reception') || c.startsWith('REC');
-            return r === defaultRoleFilter?.toLowerCase();
+            if (rf === 'admin')
+                return r.includes('admin') || c.startsWith('ADM');
+            return r === rf;
         });
-    }, [usersList, defaultRoleFilter, isRoleScoped]);
+    }, [usersList, effectiveRoleFilter]);
     // Derived Role Distribution & Percentages
     const roleMetrics = useMemo(() => {
         let emp = 0, vis = 0, mgr = 0, sec = 0, rec = 0, adm = 0;
@@ -436,12 +454,14 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             adm: { count: adm, pct: Math.round((adm / total) * 100) },
         };
     }, [usersList]);
-    const totalAccountsCount = isRoleScoped ? displayedUsers.length : pagination.total;
-    const totalPagesCount = isRoleScoped
-        ? Math.max(1, Math.ceil(displayedUsers.length / pagination.limit))
-        : pagination.totalPages;
+    const totalAccountsCount = displayedUsers.length;
+    const totalPagesCount = Math.max(1, Math.ceil(displayedUsers.length / pagination.limit));
     useEffect(() => {
-        if (defaultRoleFilter) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRole = urlParams.get('role');
+        if (urlRole) {
+            setRoleFilter(urlRole);
+        } else if (defaultRoleFilter) {
             setRoleFilter(defaultRoleFilter);
         }
     }, [defaultRoleFilter]);
