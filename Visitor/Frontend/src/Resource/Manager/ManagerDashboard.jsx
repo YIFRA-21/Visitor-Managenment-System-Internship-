@@ -31,6 +31,7 @@ import BackButton from '../../components/common/BackButton';
 import CountdownAlert from '../../components/common/CountdownAlert';
 import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { HostReassignmentModal } from './components/HostReassignmentModal';
+import { RequestDetailsModal } from './components/RequestDetailsModal';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AnimatedCounter } from './components/ExecutiveMetricCard';
 // ─────────────────────────────────────────────────────────────────────────────
@@ -117,8 +118,8 @@ const containerVariants = dashboardContainerVariants;
 const itemVariants = dashboardItemVariants;
 function MetricCard({ title, value, subtitle, icon, theme, onClick, badge }) {
     const [hovered, setHovered] = useState(false);
-    const styles = USER_DASHBOARD_THEMES[theme];
-    return (<motion.div variants={dashboardItemVariants} whileHover={{ y: -4, scale: 1.015 }} whileTap={{ scale: 0.985 }} onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} className={`border rounded-2xl p-4 sm:p-5 pl-5 sm:pl-6 min-h-[155px] flex flex-col justify-between transition-all duration-300 relative overflow-hidden group bg-[#0a0f1d] border-slate-800/90 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] ${onClick ? 'cursor-pointer' : ''} ${hovered ? 'shadow-2xl border-slate-700' : ''}`}>
+    const styles = USER_DASHBOARD_THEMES[theme] || USER_DASHBOARD_THEMES.blue;
+    return (<motion.div variants={dashboardItemVariants} whileHover={{ y: -4, scale: 1.015 }} whileTap={{ scale: 0.985 }} onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} className={`border rounded-2xl p-4 sm:p-5 pl-5 sm:pl-6 min-h-[155px] flex flex-col justify-between transition-all duration-300 relative overflow-hidden group bg-white dark:bg-[#0a0f1d] border-slate-200 dark:border-slate-800/90 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] ${onClick ? 'cursor-pointer' : ''} ${hovered ? 'shadow-2xl border-slate-300 dark:border-slate-700' : ''}`}>
       {/* Dark Hover Fill Overlay */}
       <div style={{
             background: styles.darkHoverBg,
@@ -132,19 +133,26 @@ function MetricCard({ title, value, subtitle, icon, theme, onClick, badge }) {
         }} className="absolute left-0 top-0 bottom-0 w-[6px] rounded-l-2xl transition-all duration-300 group-hover:w-[10px] z-10"/>
 
       <div className="flex items-start justify-between relative z-10 gap-2">
-        <span className="text-[11px] xl:text-xs font-black uppercase tracking-wider text-slate-300 group-hover:text-white transition-colors leading-tight min-w-0 pr-1">
+        <span className="text-[11px] xl:text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-tight min-w-0 pr-1">
           {title}
         </span>
 
-        {/* Sleek Vertical Oval Pill Icon Capsule Container */}
-        <div className="w-8 h-10 sm:w-9 sm:h-11 rounded-full border border-slate-700/80 bg-slate-800/90 flex items-center justify-center text-slate-200 group-hover:scale-110 transition-all shadow-sm shrink-0">
+        {/* Sleek Themed Icon Capsule Container (adaptive & vivid) */}
+        <div 
+          style={{
+            backgroundColor: `${styles.barColor}1a`,
+            borderColor: `${styles.barColor}40`,
+            color: styles.barColor
+          }}
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center group-hover:scale-110 transition-all shadow-sm shrink-0"
+        >
           {icon}
         </div>
       </div>
 
       <div className="mt-2.5 relative z-10">
         <div className="flex items-baseline space-x-2">
-          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             <AnimatedCounter value={value} />
           </h2>
           {badge && (<span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${styles.badgeBg}`}>
@@ -376,7 +384,7 @@ export default function ManagerDashboard({ onNavigate }) {
         }
     };
     if (loading && !data) {
-        return (<div className="p-6 space-y-6 bg-[#080d16] min-h-screen text-slate-100 font-sans">
+        return (<div className="p-6 space-y-6 text-slate-900 dark:text-slate-100 font-sans transition-colors">
         <div className="flex items-center gap-4">
           <BackButton />
           <div className="animate-pulse h-8 w-48 bg-slate-800 rounded-xl"/>
@@ -421,12 +429,12 @@ export default function ManagerDashboard({ onNavigate }) {
         { day: 'Sat', visits: Math.max(0, kpi.upcomingAppointments - 1) },
         { day: 'Sun', visits: kpi.todaysVisitors }
     ];
-    return (<motion.div variants={containerVariants} initial="hidden" animate="visible" className="p-6 space-y-6 bg-[#080d16] min-h-screen text-slate-100 font-sans">
+    return (<motion.div variants={containerVariants} initial="hidden" animate="visible" className="p-6 space-y-6 text-slate-900 dark:text-slate-100 font-sans transition-colors">
       {/* Top Header */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-slate-800/80">
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800/80">
         <div className="flex items-center space-x-4">
           <BackButton />
-          <h1 className="text-2xl font-black text-white tracking-tight">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
             {t('sidebar.dashboard', 'Dashboard')}
           </h1>
         </div>
