@@ -6,6 +6,7 @@ import {
   ShieldCheck, UserCheck, RotateCcw
 } from 'lucide-react';
 import { visitorPortalApi, authApi } from '../../../services/api';
+import { visitorCategoryApi } from '../../../modules/visitor-management/api/visitorCategoryApi';
 import { resolvePhotoUrl } from '../../../utils/photoUtils';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -82,6 +83,58 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
     }
   };
 
+  // ══════════════════════════════════════════════════════════════
+  // SANITIZATION HELPERS
+  // ══════════════════════════════════════════════════════════════
+  const sanitizeText = (val) => {
+    if (typeof val !== 'string') return '';
+    return val.replace(/<[^>]*>/g, '').replace(/[<>'"]/g, '').trim();
+  };
+
+  const sanitizeEmail = (val) => {
+    if (typeof val !== 'string') return '';
+    return val.trim().toLowerCase().replace(/[^a-z0-9@._+-]/g, '');
+  };
+
+  const sanitizePhone = (val) => {
+    if (typeof val !== 'string') return '';
+    return val.trim().replace(/[^\d+()\s-]/g, '');
+  };
+
+  const sanitizeId = (val) => {
+    if (typeof val !== 'string') return '';
+    return val.trim().replace(/[^a-zA-Z0-9\-_/]/g, '').toUpperCase();
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // DROPDOWN CONSTANTS (MATCHING ADMIN VISITOR CATEGORIES & ACCESS)
+  // ══════════════════════════════════════════════════════════════
+  const ADMIN_DEFAULT_LOCATIONS = [
+    'Reception',
+    'Meeting Room',
+    'Office Area',
+    'Laboratory',
+    'Warehouse',
+    'Parking Area',
+    'Server Room',
+    'Executive Floor',
+    'Restricted Area',
+    'Cafeteria',
+    'Loading Bay',
+    'Clinic Area',
+    'All Standard Visitor Zones',
+    'Full Facility Access'
+  ];
+
+  const ADMIN_DEFAULT_DAYS = [
+    'Monday – Friday',
+    'Monday – Saturday',
+    'All Days (24/7)',
+    'Weekend Only',
+    'Single Day Visit Only',
+    'Custom Schedule'
+  ];
+
   // 1. VISITOR CATEGORY & ACCESS PRIVILEGES
   const [dbCategories, setDbCategories] = useState([]);
   const [category, setCategory] = useState('General Visitor');
@@ -89,86 +142,180 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
   const [approvalRequirement, setApprovalRequirement] = useState('Host Approval Required');
   const [categoryDuration, setCategoryDuration] = useState('2 Hours');
   const [escortRequired, setEscortRequired] = useState('No');
-  const [allowedAreas, setAllowedAreas] = useState('');
-  const [allowedDays, setAllowedDays] = useState('');
+  const [allowedAreas, setAllowedAreas] = useState('Reception');
+  const [allowedDays, setAllowedDays] = useState('Monday – Friday');
   const [categoryPurpose, setCategoryPurpose] = useState('');
 
-  // Validate fields for the active step
-  const validateCurrentStep = () => {
+  // Dynamically compute Allowed Areas dropdown options based on DB categories + Admin defaults
+  const allowedAreaOptions = React.useMemo(() => {
+    const set = new Set(ADMIN_DEFAULT_LOCATIONS);
+    if (allowedAreas && allowedAreas.trim()) {
+      set.add(allowedAreas.trim());
+    }
+    dbCategories.forEach(c => {
+      if (c.allowed_areas) set.add(c.allowed_areas);
+      if (Array.isArray(c.access_levels)) {
+        c.access_levels.forEach(a => {
+          if (a.location_name) set.add(a.location_name);
+        });
+      }
+    });
+    return Array.from(set);
+  }, [dbCategories, allowedAreas]);
+
+  // Dynamically compute Allowed Days dropdown options based on DB categories + Admin defaults
+  const allowedDaysOptions = React.useMemo(() => {
+    const set = new Set(ADMIN_DEFAULT_DAYS);
+    if (allowedDays && allowedDays.trim()) {
+      set.add(allowedDays.trim());
+    }
+    dbCategories.forEach(c => {
+      if (c.allowed_days) set.add(c.allowed_days);
+    });
+    return Array.from(set);
+  }, [dbCategories, allowedDays]);
+
+  // ══════════════════════════════════════════════════════════════
+  // STRICT STEP-LEVEL VALIDATION
+  // ══════════════════════════════════════════════════════════════
+  const getStepValidationErrors = (stepKey) => {
     const errs = {};
 
-    if (activeSection === 'category') {
+    if (stepKey === 'category') {
       if (!category || !String(category).trim()) {
-        errs.category = 'Please select a visitor category';
+        errs.category = 'Please select a visitor category from database';
       }
       if (!accessLevel || !String(accessLevel).trim()) {
-        errs.accessLevel = 'Please select an access level';
+        errs.accessLevel = 'Please select an access privilege level';
       }
       if (!approvalRequirement || !String(approvalRequirement).trim()) {
         errs.approvalRequirement = 'Please select an approval requirement';
       }
       if (!escortRequired || !String(escortRequired).trim()) {
-        errs.escortRequired = 'Please specify if escort is required';
+        errs.escortRequired = 'Please specify if an escort is required';
       }
-    } else if (activeSection === 'personal') {
-      if (!firstName || !String(firstName).trim()) {
+      if (!allowedAreas || !String(allowedAreas).trim()) {
+        errs.allowedAreas = 'Please select an allowed facility area';
+      }
+      if (!allowedDays || !String(allowedDays).trim()) {
+        errs.allowedDays = 'Please select allowed visiting days';
+      }
+    } else if (stepKey === 'personal') {
+      const cleanFirst = sanitizeText(firstName);
+      const cleanLast = sanitizeText(lastName);
+      const cleanPhone = sanitizePhone(phone);
+      const cleanEmail = sanitizeEmail(email);
+
+      if (!cleanFirst) {
         errs.firstName = 'First name is required';
+      } else if (cleanFirst.length < 2) {
+        errs.firstName = 'First name must be at least 2 characters';
       }
-      if (!lastName || !String(lastName).trim()) {
+
+      if (!cleanLast) {
         errs.lastName = 'Last name is required';
+      } else if (cleanLast.length < 2) {
+        errs.lastName = 'Last name must be at least 2 characters';
       }
-      if (!phone || !String(phone).trim()) {
+
+      if (!cleanPhone) {
         errs.phone = 'Primary phone number is required';
+      } else if (cleanPhone.replace(/\D/g, '').length < 7) {
+        errs.phone = 'Please enter a valid phone number (at least 7 digits)';
       }
-      if (!email || !String(email).trim()) {
+
+      if (!cleanEmail) {
         errs.email = 'Email address is required';
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
-        errs.email = 'Please enter a valid email format';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        errs.email = 'Please enter a valid email format (e.g. name@domain.com)';
       }
-      if (workEmail && String(workEmail).trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(workEmail).trim())) {
+
+      if (workEmail && sanitizeEmail(workEmail) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizeEmail(workEmail))) {
         errs.workEmail = 'Please enter a valid work email format';
       }
-    } else if (activeSection === 'address') {
-      if (!streetAddress || !String(streetAddress).trim()) {
-        errs.streetAddress = 'Street address is required';
+    } else if (stepKey === 'address') {
+      const cleanStreet = sanitizeText(streetAddress);
+      const cleanCity = sanitizeText(city);
+      const cleanCountry = sanitizeText(country);
+
+      if (!cleanStreet) {
+        errs.streetAddress = 'Street address / house number is required';
       }
-      if (!city || !String(city).trim()) {
+      if (!cleanCity) {
         errs.city = 'City / Town is required';
       }
-      if (!country || !String(country).trim()) {
+      if (!cleanCountry) {
         errs.country = 'Country is required';
       }
-    } else if (activeSection === 'identity') {
-      if (!identityType || !String(identityType).trim()) {
-        errs.identityType = 'Document type is required';
+    } else if (stepKey === 'identity') {
+      const cleanType = sanitizeText(identityType);
+      const cleanNumber = sanitizeId(identityNumber);
+
+      if (!cleanType) {
+        errs.identityType = 'Identification document type is required';
       }
-      if (!identityNumber || !String(identityNumber).trim()) {
-        errs.identityNumber = 'Document number is required';
+      if (!cleanNumber) {
+        errs.identityNumber = 'Identity document number is required';
+      } else if (cleanNumber.length < 3) {
+        errs.identityNumber = 'Document number must be at least 3 characters';
       }
-    } else if (activeSection === 'emergency') {
-      if (!emergencyName || !String(emergencyName).trim()) {
-        errs.emergencyName = 'Emergency contact name is required';
+    } else if (stepKey === 'emergency') {
+      const cleanEmName = sanitizeText(emergencyName);
+      const cleanEmPhone = sanitizePhone(emergencyPhone);
+
+      if (!cleanEmName) {
+        errs.emergencyName = 'Emergency contact full name is required';
+      } else if (cleanEmName.length < 2) {
+        errs.emergencyName = 'Contact name must be at least 2 characters';
       }
-      if (!emergencyPhone || !String(emergencyPhone).trim()) {
+      if (!cleanEmPhone) {
         errs.emergencyPhone = 'Primary emergency phone is required';
+      } else if (cleanEmPhone.replace(/\D/g, '').length < 7) {
+        errs.emergencyPhone = 'Please enter a valid emergency phone number';
       }
     }
 
-    setFieldErrors(errs);
-    return Object.keys(errs).length === 0;
+    return errs;
   };
 
-  // Clear data from the current step's form fields
+  // Validate fields for the active step
+  const validateCurrentStep = () => {
+    const errs = getStepValidationErrors(activeSection);
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      setErrorMsg('Please complete and validate all required fields for this step before continuing.');
+      return false;
+    }
+    setErrorMsg('');
+    return true;
+  };
+
+  // Validate all steps before final submission
+  const validateAllSteps = () => {
+    for (const s of STEPS) {
+      const errs = getStepValidationErrors(s.key);
+      if (Object.keys(errs).length > 0) {
+        setActiveSection(s.key);
+        setFieldErrors(errs);
+        setErrorMsg(`Please complete all required fields in Step ${s.num} (${s.label}) before saving.`);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Clear data from the current step's form fields completely so data does not leak
   const handleClearCurrentStep = () => {
     setFieldErrors({});
     setErrorMsg('');
     if (activeSection === 'category') {
       setCategory('');
-      setAccessLevel('Level 1 (General)');
-      setApprovalRequirement('Host Approval Required');
-      setEscortRequired('No');
+      setAccessLevel('');
+      setApprovalRequirement('');
+      setEscortRequired('');
       setAllowedAreas('');
       setAllowedDays('');
+      setCategoryPurpose('');
     } else if (activeSection === 'personal') {
       setFirstName('');
       setMiddleName('');
@@ -177,22 +324,23 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
       setEmail('');
       setWorkEmail('');
       setAltPhone('');
-      setPreferredContact('Email');
+      setPreferredContact('');
     } else if (activeSection === 'address') {
       setStreetAddress('');
       setCity('');
       setSubcity('');
       setStateProvince('');
+      setCountry('');
       setPostalCode('');
     } else if (activeSection === 'identity') {
-      setIdentityType('National ID');
+      setIdentityType('');
       setIdentityNumber('');
       setIdIssueDate('');
       setIdExpiryDate('');
       setPhotoPreview(null);
     } else if (activeSection === 'emergency') {
       setEmergencyName('');
-      setEmergencyRelation('Spouse');
+      setEmergencyRelation('');
       setEmergencyPhone('');
       setSecondaryEmergencyPhone('');
     }
@@ -226,54 +374,107 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
   const [duration, setDuration] = useState('60');
   const [purpose, setPurpose] = useState('');
 
-  // Helper to apply database category features
+  // Helper to apply database category features and match admin privileges
   const applyCategoryFeatures = (catObj) => {
     if (!catObj) return;
-    if (catObj.category_name || catObj.name) setCategory(catObj.category_name || catObj.name);
-    if (catObj.access_level) setAccessLevel(catObj.access_level);
-    if (catObj.approval_required !== undefined || catObj.host_approval_required !== undefined) {
-      setApprovalRequirement(
-        catObj.department_approval_required && catObj.security_approval_required
-          ? 'Department + Security'
-          : catObj.approval_required || catObj.host_approval_required
-          ? 'Host Approval Required'
-          : 'Automatic'
-      );
+    const catName = catObj.category_name || catObj.name || '';
+    if (catName) {
+      setCategory(catName);
+      clearFieldError('category');
     }
+
+    // Access Level
+    if (catObj.access_level) {
+      setAccessLevel(catObj.access_level);
+      clearFieldError('accessLevel');
+    }
+
+    // Approval Requirement
+    if (catObj.department_approval_required && catObj.security_approval_required) {
+      setApprovalRequirement('Department + Security');
+      clearFieldError('approvalRequirement');
+    } else if (catObj.approval_required || catObj.host_approval_required) {
+      setApprovalRequirement('Host Approval Required');
+      clearFieldError('approvalRequirement');
+    } else if (catObj.approval_requirement) {
+      setApprovalRequirement(catObj.approval_requirement);
+      clearFieldError('approvalRequirement');
+    } else if (catObj.approval_required === false && catObj.host_approval_required === false) {
+      setApprovalRequirement('Automatic');
+      clearFieldError('approvalRequirement');
+    }
+
+    // Duration
     if (catObj.default_visit_duration || catObj.max_visit_duration) {
       setCategoryDuration(catObj.default_visit_duration || catObj.max_visit_duration);
     }
+
+    // Escort Required
     if (catObj.escort_required !== undefined) {
       setEscortRequired(catObj.escort_required ? 'Yes' : 'No');
+      clearFieldError('escortRequired');
     }
-    if (catObj.allowed_areas) setAllowedAreas(catObj.allowed_areas);
-    if (catObj.allowed_days) setAllowedDays(catObj.allowed_days);
-    if (catObj.description) setCategoryPurpose(catObj.description);
+
+    // Match Allowed Areas from access_levels array or allowed_areas string
+    let matchedArea = '';
+    if (Array.isArray(catObj.access_levels) && catObj.access_levels.length > 0) {
+      const granted = catObj.access_levels
+        .filter(a => a.is_granted !== false)
+        .map(a => a.location_name);
+      if (granted.length > 0) {
+        matchedArea = granted[0];
+      }
+    }
+    if (!matchedArea && catObj.allowed_areas) {
+      matchedArea = catObj.allowed_areas;
+    }
+    if (!matchedArea && catObj.location) {
+      matchedArea = catObj.location;
+    }
+    if (matchedArea) {
+      setAllowedAreas(matchedArea);
+      clearFieldError('allowedAreas');
+    }
+
+    // Match Allowed Days
+    if (catObj.allowed_days) {
+      setAllowedDays(catObj.allowed_days);
+      clearFieldError('allowedDays');
+    }
+
+    if (catObj.description) {
+      setCategoryPurpose(catObj.description);
+    }
   };
 
   const handleCategoryChange = (newCatName) => {
     setCategory(newCatName);
+    clearFieldError('category');
     const found = dbCategories.find(c => (c.category_name || c.name) === newCatName);
     if (found) {
       applyCategoryFeatures(found);
     }
   };
 
-  // Fetch visitor categories stored in database
+  // Fetch visitor categories stored in database matching Admin page
   useEffect(() => {
     let isMounted = true;
     const fetchCategoriesFromDb = async () => {
       try {
-        const res = await (visitorPortalApi.getCategories ? visitorPortalApi.getCategories({ limit: 100 }) : fetch('/api/visitor-categories', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`
+        let list = [];
+        try {
+          const res = await visitorCategoryApi.getAll({ limit: 100 });
+          const responseData = res?.data !== undefined ? res.data : res;
+          list = Array.isArray(responseData) 
+            ? responseData 
+            : (responseData?.data || responseData?.categories || []);
+        } catch (apiErr) {
+          if (visitorPortalApi.getCategories) {
+            const fallbackRes = await visitorPortalApi.getCategories({ limit: 100 });
+            const fData = fallbackRes?.data !== undefined ? fallbackRes.data : fallbackRes;
+            list = Array.isArray(fData) ? fData : (fData?.data || fData?.categories || []);
           }
-        }).then(r => r.json()));
-
-        const responseData = res?.data !== undefined ? res.data : res;
-        const list = Array.isArray(responseData) 
-          ? responseData 
-          : (responseData?.data || responseData?.categories || []);
+        }
 
         if (isMounted && list && list.length > 0) {
           setDbCategories(list);
@@ -502,38 +703,65 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
   // Submit & Save All Profile Information
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateCurrentStep()) {
+    if (!validateAllSteps()) {
       return;
     }
     setSaving(true);
     setErrorMsg('');
     setSuccessMsg('');
 
-    const resolvedFullName = `${firstName || ''} ${middleName || ''} ${lastName || ''}`.replace(/\s+/g, ' ').trim() || (user?.fullName || user?.full_name || 'Visitor');
-    const fullAddress = `${streetAddress}${subcity ? ', ' + subcity : ''}, ${city}, ${country}`.replace(/^,\s*/, '');
+    // Sanitize all inputs before saving
+    const cleanFirstName = sanitizeText(firstName);
+    const cleanMiddleName = sanitizeText(middleName);
+    const cleanLastName = sanitizeText(lastName);
+    const cleanCompany = sanitizeText(company);
+    const cleanStreetAddress = sanitizeText(streetAddress);
+    const cleanCity = sanitizeText(city);
+    const cleanSubcity = sanitizeText(subcity);
+    const cleanStateProvince = sanitizeText(stateProvince);
+    const cleanCountry = sanitizeText(country);
+    const cleanPostalCode = sanitizeText(postalCode);
+    const cleanEmail = sanitizeEmail(email);
+    const cleanWorkEmail = sanitizeEmail(workEmail);
+    const cleanPhone = sanitizePhone(phone);
+    const cleanAltPhone = sanitizePhone(altPhone);
+    const cleanIdType = sanitizeText(identityType);
+    const cleanIdNumber = sanitizeId(identityNumber);
+    const cleanEmergencyName = sanitizeText(emergencyName);
+    const cleanEmergencyRelation = sanitizeText(emergencyRelation);
+    const cleanEmergencyPhone = sanitizePhone(emergencyPhone);
+    const cleanSecEmergencyPhone = sanitizePhone(secondaryEmergencyPhone);
+    const cleanCategory = sanitizeText(category);
+    const cleanAccessLevel = sanitizeText(accessLevel);
+    const cleanApprovalReq = sanitizeText(approvalRequirement);
+    const cleanAllowedAreas = sanitizeText(allowedAreas);
+    const cleanAllowedDays = sanitizeText(allowedDays);
+
+    const resolvedFullName = `${cleanFirstName} ${cleanMiddleName} ${cleanLastName}`.replace(/\s+/g, ' ').trim() || (user?.fullName || user?.full_name || 'Visitor');
+    const fullAddress = `${cleanStreetAddress}${cleanSubcity ? ', ' + cleanSubcity : ''}, ${cleanCity}, ${cleanCountry}`.replace(/^,\s*/, '');
 
     const payload = {
       // 1. Visitor Category & Privileges (Image 3)
-      category,
-      visitor_category: category,
-      visitorCategory: category,
-      access_level: accessLevel,
-      accessLevel,
-      approval_requirement: approvalRequirement,
-      approvalRequirement,
+      category: cleanCategory,
+      visitor_category: cleanCategory,
+      visitorCategory: cleanCategory,
+      access_level: cleanAccessLevel,
+      accessLevel: cleanAccessLevel,
+      approval_requirement: cleanApprovalReq,
+      approvalRequirement: cleanApprovalReq,
       category_duration: categoryDuration,
       visit_duration_text: categoryDuration,
       escort_required: escortRequired === 'Yes',
       escortRequired,
-      allowed_areas: allowedAreas,
-      allowedAreas,
-      allowed_days: allowedDays,
-      allowedDays,
+      allowed_areas: cleanAllowedAreas,
+      allowedAreas: cleanAllowedAreas,
+      allowed_days: cleanAllowedDays,
+      allowedDays: cleanAllowedDays,
       category_purpose: categoryPurpose,
       categoryPurpose,
-      company,
-      visitor_company: company,
-      visitorCompany: company,
+      company: cleanCompany,
+      visitor_company: cleanCompany,
+      visitorCompany: cleanCompany,
       host_employee_name: hostName,
       hostName,
       host_name: hostName,
@@ -556,45 +784,45 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
 
       // 2. Address Details
       address: fullAddress,
-      street_address: streetAddress,
-      streetAddress,
-      city,
-      subcity,
-      sub_city: subcity,
-      state_province: stateProvince,
-      region: stateProvince,
-      country,
-      postal_code: postalCode,
-      postalCode,
+      street_address: cleanStreetAddress,
+      streetAddress: cleanStreetAddress,
+      city: cleanCity,
+      subcity: cleanSubcity,
+      sub_city: cleanSubcity,
+      state_province: cleanStateProvince,
+      region: cleanStateProvince,
+      country: cleanCountry,
+      postal_code: cleanPostalCode,
+      postalCode: cleanPostalCode,
 
       // 3. Personal & Contact
-      first_name: firstName,
-      firstName,
-      middle_name: middleName,
-      middleName,
-      last_name: lastName,
-      lastName,
+      first_name: cleanFirstName,
+      firstName: cleanFirstName,
+      middle_name: cleanMiddleName,
+      middleName: cleanMiddleName,
+      last_name: cleanLastName,
+      lastName: cleanLastName,
       full_name: resolvedFullName,
       fullName: resolvedFullName,
       visitorName: resolvedFullName,
-      phone,
-      email,
-      work_email: workEmail,
-      workEmail,
-      alternative_phone: altPhone,
-      altPhone,
+      phone: cleanPhone,
+      email: cleanEmail,
+      work_email: cleanWorkEmail,
+      workEmail: cleanWorkEmail,
+      alternative_phone: cleanAltPhone,
+      altPhone: cleanAltPhone,
       preferred_contact_method: preferredContact,
       preferredContact,
 
       // 4. Identification & Photo
-      id_type: identityType,
-      idType: identityType,
-      identity_type: identityType,
-      identityType,
-      id_number: identityNumber,
-      idNumber: identityNumber,
-      identity_number: identityNumber,
-      identityNumber,
+      id_type: cleanIdType,
+      idType: cleanIdType,
+      identity_type: cleanIdType,
+      identityType: cleanIdType,
+      id_number: cleanIdNumber,
+      idNumber: cleanIdNumber,
+      identity_number: cleanIdNumber,
+      identityNumber: cleanIdNumber,
       id_issue_date: idIssueDate,
       idIssueDate,
       id_expiry_date: idExpiryDate,
@@ -605,17 +833,17 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
       profile_photo: photoPreview,
 
       // 5. Emergency Contact
-      emergency_contact_name: emergencyName,
-      emergencyContactName: emergencyName,
-      emergencyName,
-      emergency_relationship: emergencyRelation,
-      emergencyRelationship: emergencyRelation,
-      emergencyRelation,
-      emergency_phone: emergencyPhone,
-      emergencyContactPhone: emergencyPhone,
-      emergencyPhone,
-      secondary_emergency_phone: secondaryEmergencyPhone,
-      secondaryEmergencyPhone
+      emergency_contact_name: cleanEmergencyName,
+      emergencyContactName: cleanEmergencyName,
+      emergencyName: cleanEmergencyName,
+      emergency_relationship: cleanEmergencyRelation,
+      emergencyRelationship: cleanEmergencyRelation,
+      emergencyRelation: cleanEmergencyRelation,
+      emergency_phone: cleanEmergencyPhone,
+      emergencyContactPhone: cleanEmergencyPhone,
+      emergencyPhone: cleanEmergencyPhone,
+      secondary_emergency_phone: cleanSecEmergencyPhone,
+      secondaryEmergencyPhone: cleanSecEmergencyPhone
     };
 
     // 1. Call Backend API
@@ -844,11 +1072,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
           onSubmit={(e) => {
             if (currentStepNum < STEPS.length) {
               e.preventDefault();
-              if (currentStepNum === 1 && isStep1Complete) {
-                handleNextStep();
-              } else if (currentStepNum > 1) {
-                handleNextStep();
-              }
+              handleNextStep();
               return;
             }
             handleSubmit(e);
@@ -881,7 +1105,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                   </div>
                 </div>
 
-                {/* Form Mode: 6 Category Attributes (Visit Duration and Visit Purpose removed) */}
+                {/* Form Mode: 6 Category Attributes (All Dropdowns) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {/* 1. Category Dropdown (Fetched from DB) */}
                   <div>
@@ -898,7 +1122,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                         fieldErrors.category ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-purple-500/50 focus:border-purple-400'
                       } rounded-xl text-white font-bold focus:outline-none transition-colors`}
                     >
-                      <option value="">-- Select Category --</option>
+                      <option value="">-- Select Category from DB --</option>
                       {dbCategories.length > 0 ? (
                         dbCategories.map(cat => {
                           const name = cat.category_name || cat.name;
@@ -908,11 +1132,11 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                         <>
                           <option value="General Visitor">General Visitor</option>
                           <option value="Business Visitor">Business Visitor</option>
-                          <option value="Contractor">Contractor</option>
-                          <option value="VIP / Executive">VIP / Executive</option>
+                          <option value="Contractor & Maintenance">Contractor & Maintenance</option>
+                          <option value="VIP Guest & Delegate">VIP Guest & Delegate</option>
                           <option value="Vendor / Supplier">Vendor / Supplier</option>
                           <option value="Government Official">Government Official</option>
-                          <option value="Job Applicant / Interviewee">Job Applicant / Interviewee</option>
+                          <option value="Interview Candidate">Interview Candidate</option>
                           <option value="Client / Customer">Client / Customer</option>
                           <option value="Guest">Guest</option>
                           <option value="Student / Intern">Student / Intern</option>
@@ -927,7 +1151,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                     )}
                   </div>
 
-                  {/* 2. Access Level */}
+                  {/* 2. Access Level (Dropdown) */}
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
                       <ShieldCheck size={12} className="text-blue-400" /> Access Level *
@@ -945,6 +1169,8 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                       <option value="">-- Select Access Level --</option>
                       <option value="Level 1 (General)">Level 1 (General)</option>
                       <option value="Level 2 (Business)">Level 2 (Business)</option>
+                      <option value="Level 2 (Restricted)">Level 2 (Restricted)</option>
+                      <option value="Level 3 (Limited)">Level 3 (Limited)</option>
                       <option value="Level 3 (Restricted)">Level 3 (Restricted)</option>
                       <option value="STANDARD">STANDARD</option>
                       <option value="VIP">VIP</option>
@@ -957,7 +1183,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                     )}
                   </div>
 
-                  {/* 3. Approval Requirement */}
+                  {/* 3. Approval Requirement (Dropdown) */}
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
                       <CheckCircle2 size={12} className="text-emerald-400" /> Approval Requirement *
@@ -977,6 +1203,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                       <option value="Department + Security">Department + Security</option>
                       <option value="Pre-Approved">Pre-Approved</option>
                       <option value="Automatic">Automatic</option>
+                      <option value="None / Open Access">None / Open Access</option>
                     </select>
                     {fieldErrors.approvalRequirement && (
                       <p className="text-[10px] text-rose-400 font-bold mt-1.5 flex items-center gap-1">
@@ -985,7 +1212,7 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                     )}
                   </div>
 
-                  {/* 4. Escort Required */}
+                  {/* 4. Escort Required (Dropdown) */}
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
                       <UserCheck size={12} className="text-amber-400" /> Escort Required *
@@ -1000,8 +1227,9 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                         fieldErrors.escortRequired ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-purple-500'
                       } rounded-xl text-white focus:outline-none transition-colors`}
                     >
-                      <option value="No">No</option>
-                      <option value="Yes">Yes</option>
+                      <option value="">-- Select Escort Requirement --</option>
+                      <option value="No">No (Unescorted Access)</option>
+                      <option value="Yes">Yes (Staff Escort Mandatory)</option>
                     </select>
                     {fieldErrors.escortRequired && (
                       <p className="text-[10px] text-rose-400 font-bold mt-1.5 flex items-center gap-1">
@@ -1010,38 +1238,58 @@ export default function AddOtherVisitorInfoModal({ isOpen, onClose, onSuccess, i
                     )}
                   </div>
 
-                  {/* 5. Allowed Areas */}
+                  {/* 5. Allowed Areas (Dropdown Matching Admin Locations) */}
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                      <MapPin size={12} className="text-emerald-400" /> Allowed Areas
+                      <MapPin size={12} className="text-emerald-400" /> Allowed Areas *
                     </label>
-                    <input 
-                      type="text" 
+                    <select 
                       value={allowedAreas} 
-                      placeholder="e.g. Main Lobby & Reception" 
                       onChange={(e) => {
                         setAllowedAreas(e.target.value);
                         clearFieldError('allowedAreas');
                       }} 
-                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                    />
+                      className={`w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border ${
+                        fieldErrors.allowedAreas ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-purple-500'
+                      } rounded-xl text-white focus:outline-none transition-colors`}
+                    >
+                      <option value="">-- Select Allowed Area --</option>
+                      {allowedAreaOptions.map(area => (
+                        <option key={area} value={area}>{area}</option>
+                      ))}
+                    </select>
+                    {fieldErrors.allowedAreas && (
+                      <p className="text-[10px] text-rose-400 font-bold mt-1.5 flex items-center gap-1">
+                        <AlertCircle size={11} /> {fieldErrors.allowedAreas}
+                      </p>
+                    )}
                   </div>
 
-                  {/* 6. Allowed Days */}
+                  {/* 6. Allowed Days (Dropdown Matching Admin Schedule) */}
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1.5 mb-1">
-                      <Calendar size={12} className="text-blue-400" /> Allowed Days
+                      <Calendar size={12} className="text-blue-400" /> Allowed Days *
                     </label>
-                    <input 
-                      type="text" 
+                    <select 
                       value={allowedDays} 
-                      placeholder="e.g. Monday – Friday" 
                       onChange={(e) => {
                         setAllowedDays(e.target.value);
                         clearFieldError('allowedDays');
                       }} 
-                      className="w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-purple-500 focus:outline-none transition-colors"
-                    />
+                      className={`w-full mt-1 px-3.5 py-2.5 text-xs bg-slate-950 border ${
+                        fieldErrors.allowedDays ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-800 focus:border-purple-500'
+                      } rounded-xl text-white focus:outline-none transition-colors`}
+                    >
+                      <option value="">-- Select Allowed Days --</option>
+                      {allowedDaysOptions.map(day => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                    {fieldErrors.allowedDays && (
+                      <p className="text-[10px] text-rose-400 font-bold mt-1.5 flex items-center gap-1">
+                        <AlertCircle size={11} /> {fieldErrors.allowedDays}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
