@@ -16,6 +16,28 @@ import BackButton from '../../../components/common/BackButton';
 import useResponseNavigation from '../../response/useResponseNavigation';
 import { RESPONSE_TYPES } from '../../response/responseConfig';
 
+// Security Redaction: Never display User ID, Temporary Passwords, or raw credentials in any notification view
+export const sanitizeNotificationContent = (msg) => {
+  if (!msg || typeof msg !== 'string') return msg || '';
+  return msg
+    .replace(
+      /Your account has been created\.\s*(?:User ID:\s*[^.]+\.?\s*)?(?:Temporary Password:\s*[^\s,.;]+)?/gi,
+      'Your account has been created successfully. Login credentials and instructions have been securely sent to your registered email.'
+    )
+    .replace(
+      /(?:temporary\s+password|temp\s+pass(?:word)?)(?:\s*(?:is|:|=))\s*([^\s,.;\n]+)/gi,
+      'Temporary password has been sent to your registered email'
+    )
+    .replace(
+      /User ID:\s*([A-Za-z0-9_-]+)(?=[.,\s]+(?:Temporary|Password|Credentials))/gi,
+      'User Credentials: [Sent via Email]'
+    )
+    .replace(
+      /(\b(?:temporary\s+)?password\s*(?:is|:|=)\s*)([A-Za-z0-9@#$%^&*!_+=-]{6,})/gi,
+      '$1[Sent via secure email]'
+    );
+};
+
 export default function UnifiedNotificationCenter({ initialTab = 'messages', onNavigate }) {
   const [searchParams] = useSearchParams();
   const notifIdFromUrl = searchParams.get('notifId');
@@ -894,7 +916,12 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
     try {
       setLoadingNotifications(true);
       const res = await notificationsApi.list();
-      const list = Array.isArray(res.data) ? res.data : res.data?.notifications || [];
+      const rawList = Array.isArray(res.data) ? res.data : res.data?.notifications || [];
+      const list = rawList.map((n) => ({
+        ...n,
+        title: sanitizeNotificationContent(n.title),
+        message: sanitizeNotificationContent(n.message),
+      }));
       setNotificationsList(list);
     } catch (err) {
       console.error('Failed to load notifications:', err);
@@ -2631,7 +2658,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                       </div>
 
                       <p className="text-xs text-slate-300 mt-1 line-clamp-2 leading-relaxed">
-                        {notif.message}
+                        {sanitizeNotificationContent(notif.message)}
                       </p>
 
                       {/* Bottom action row */}
@@ -3225,7 +3252,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                   Message Body
                 </span>
                 <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 leading-relaxed whitespace-pre-wrap font-sans">
-                  {selectedNotifForView.message}
+                  {sanitizeNotificationContent(selectedNotifForView.message)}
                 </div>
               </div>
             </div>
@@ -3318,7 +3345,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Subject Preview</p>
                 <p className="text-xs font-bold text-white truncate">{forwardNotifModal.notif.title}</p>
                 <p className="text-[11px] text-slate-400 line-clamp-2 mt-1">
-                  {forwardNotifModal.notif.message}
+                  {sanitizeNotificationContent(forwardNotifModal.notif.message)}
                 </p>
               </div>
 

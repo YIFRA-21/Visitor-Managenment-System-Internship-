@@ -610,14 +610,31 @@ class UserManagementService {
         newValues: { userCode, email: emailNorm, role: data.role, accountStatus: data.accountStatus },
       });
 
-      // Trigger Welcome / Temporary Credentials Notification
+      // Dispatch Registration Credentials securely via Email (never expose in in-app notification logs)
+      if (emailNorm && isTempPassword) {
+        try {
+          await emailService.sendRegistrationCredentials({
+            to: emailNorm,
+            fullName,
+            userCode,
+            temporaryPassword: rawPassword,
+            role: data.role || 'employee',
+            accountType: data.role || 'employee',
+            loginUrl: (process.env.CLIENT_URL || 'http://localhost:5173') + '/login',
+          });
+        } catch (mailErr) {
+          console.warn('[UserManagement] Welcome credentials email failed:', mailErr.message);
+        }
+      }
+
+      // Trigger Welcome In-App Notification (strictly sanitized, no User ID or Temporary Password)
       try {
         await notificationService.sendNotification({
           userId,
           title: 'Account Created',
-          message: `Your account has been created. User ID: ${userCode}. Temporary Password: ${rawPassword}`,
+          message: 'Your account has been created successfully. Welcome to the Visitor Management System. Your login credentials and instructions have been securely sent to your registered email.',
           type: 'USER_CREATED',
-          channels: ['EMAIL', 'IN_APP'],
+          channels: ['IN_APP'],
         });
       } catch (err) {
         console.warn('[UserManagement] Notification failed:', err.message);

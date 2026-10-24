@@ -4,6 +4,42 @@ const SmsService = require('./sms.service');
 
 class NotificationService {
   /**
+   * Security Redaction: Never expose User ID, Temporary Passwords, or raw credentials in
+   * in-app notifications, logs, audit trails, socket feeds, or API endpoints.
+   * Credentials must only be dispatched securely to the user's verified email.
+   */
+  sanitizeNotificationText(text) {
+    if (!text || typeof text !== 'string') return text;
+    let sanitized = text;
+
+    // Pattern 1: Complete account creation credentials string
+    sanitized = sanitized.replace(
+      /Your account has been created\.\s*(?:User ID:\s*[^.]+\.?\s*)?(?:Temporary Password:\s*[^\s,.;]+)?/gi,
+      'Your account has been created successfully. Login credentials and instructions have been securely sent to your registered email.'
+    );
+
+    // Pattern 2: Temporary password patterns with values
+    sanitized = sanitized.replace(
+      /(?:temporary\s+password|temp\s+pass(?:word)?)(?:\s*(?:is|:|=))\s*([^\s,.;\n]+)/gi,
+      'Temporary password has been sent to your registered email'
+    );
+
+    // Pattern 3: User ID combined with password or credentials
+    sanitized = sanitized.replace(
+      /User ID:\s*([A-Za-z0-9_-]+)(?=[.,\s]+(?:Temporary|Password|Credentials))/gi,
+      'User Credentials: [Sent via Email]'
+    );
+
+    // Pattern 4: Raw password labels with values
+    sanitized = sanitized.replace(
+      /(\b(?:temporary\s+)?password\s*(?:is|:|=)\s*)([A-Za-z0-9@#$%^&*!_+=-]{6,})/gi,
+      '$1[Sent via secure email]'
+    );
+
+    return sanitized;
+  }
+
+  /**
    * Core Engine: Dispatch notification for any business event
    */
   async dispatchBusinessNotification(eventKey, recipientUserId, data = {}, visitorEmail = null) {
@@ -32,6 +68,10 @@ class NotificationService {
           if (actionUrl) actionUrl = actionUrl.replace(reg, val);
         });
       }
+
+      // Security Sanitization: Never save or emit User ID or Temporary Password
+      title = this.sanitizeNotificationText(title);
+      message = this.sanitizeNotificationText(message);
 
       // 3. Check User Preferences (if user_id present)
       let allowInApp = true;
@@ -315,8 +355,14 @@ class NotificationService {
         visitor_arrivals: 0, security_alerts: 0, meeting_reminders: 0, system_notices: 0
       };
 
+      const sanitizedRows = (Array.isArray(rows) ? rows : []).map(r => ({
+        ...r,
+        message: this.sanitizeNotificationText(r.message),
+        title: this.sanitizeNotificationText(r.title),
+      }));
+
       return {
-        notifications: Array.isArray(rows) ? rows : [],
+        notifications: sanitizedRows,
         counts: {
           total: Number(counts.total || 0),
           unread: Number(counts.unread || 0),
@@ -595,6 +641,8 @@ class NotificationService {
 
       return {
         ...notif,
+        message: this.sanitizeNotificationText(notif.message),
+        title: this.sanitizeNotificationText(notif.title),
         delivery_history: Array.isArray(delivery) ? delivery : [],
         audit_history: Array.isArray(audits) ? audits : []
       };

@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppSelector, useAppDispatch } from '../../store/store';
 import { fetchNotifications, markAsRead, markAllAsRead } from '../../store/slices/notificationSlice';
+import { sanitizeNotificationContent } from '../../modules/notifications/components/UnifiedNotificationCenter';
 export default function NotificationBell() {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -213,7 +214,7 @@ export default function NotificationBell() {
                             {notif.priority}
                           </span>)}
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{notif.message}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{sanitizeNotificationContent(notif.message)}</p>
                       <p className="text-[9px] text-slate-600 mt-1">{formatTime(notif.created_at || notif.sent_at)}</p>
                     </div>
 

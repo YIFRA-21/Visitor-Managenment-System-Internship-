@@ -1488,10 +1488,9 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             const res = await api.post(`/users/${user.id}/send-credentials`);
             const credData = res.data?.data;
             const baseMsg = res.data?.message || `Account credentials sent to ${user.email}.`;
-            const tempPassNote = credData?.temporaryPassword ? ` (Temporary Password: ${credData.temporaryPassword})` : '';
             setAlert({
                 type: 'success',
-                message: `${baseMsg}${tempPassNote}`,
+                message: `${baseMsg} Login instructions and temporary credentials have been securely sent via email.`,
             });
             fetchUsers();
         }
@@ -5157,10 +5156,10 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                   <button onClick={async () => {
                     try {
                         await api.post(`/users/${actionModalUser.id}/reset-password`, { newPassword: newAdminPassword });
-                        setAlert({ type: 'success', message: `Password reset successfully for ${actionModalUser.full_name || actionModalUser.email}. Temporary Password: ${newAdminPassword}` });
+                        setAlert({ type: 'success', message: `Password reset successfully for ${actionModalUser.full_name || actionModalUser.email}. New temporary credentials have been sent via email.` });
                     }
                     catch (err) {
-                        setAlert({ type: 'success', message: `Password reset sent for ${actionModalUser.full_name || actionModalUser.email}. Temporary Password: ${newAdminPassword}` });
+                        setAlert({ type: 'success', message: `Password reset instructions sent for ${actionModalUser.full_name || actionModalUser.email} to their email.` });
                     }
                     finally {
                         setActionModalUser(null);

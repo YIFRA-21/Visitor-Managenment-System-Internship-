@@ -4,6 +4,7 @@ import { employeeNotificationApi } from '../../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { sanitizeNotificationContent } from '../../modules/notifications/components/UnifiedNotificationCenter';
 // Initial Stored Chat Messages History for Each Unique Channel
 const INITIAL_CHAT_HISTORIES = {
     201: [
@@ -627,7 +628,7 @@ export default function EmployeeNotifications({ initialTab }) {
               </div>
               <h2 className="text-xl font-black text-white">{selectedNotif.title}</h2>
               <div className="p-6 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-slate-300 leading-relaxed">
-                {selectedNotif.message}
+                {sanitizeNotificationContent(selectedNotif.message)}
               </div>
             </div>)}
         </div>)}
