@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { authApi } from '../services/api';
+import { normalizeRole, isAdminRole } from '../config/routes';
 const AuthContext = createContext(null);
 // JWT decode helper (payload only, no verification)
 function decodeJwtPayload(token) {
@@ -296,44 +297,54 @@ export function AuthProvider({ children }) {
             return true;
         if (!user)
             return false;
-        if (user.role?.toLowerCase() === 'admin')
+        const userRole = normalizeRole(user);
+        if (isAdminRole(userRole))
             return true;
         if (!user.identity?.permissions)
             return false;
-        return user.identity.permissions.some((p) => p.code.toLowerCase() === permissionCode.toLowerCase());
+        const targetPerm = String(permissionCode || '').toLowerCase().trim();
+        return user.identity.permissions.some((p) => {
+            const pCode = String(p.code || '').toLowerCase().trim();
+            return pCode === '*' || pCode === targetPerm;
+        });
     };
     const hasRole = (roleCode) => {
         if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true')
             return true;
         if (!user)
             return false;
-        const userRole = user.role?.toLowerCase();
-        const reqRole = roleCode.toLowerCase();
-        if (reqRole === 'visitor') {
-            return userRole === 'visitor';
-        }
-        if (reqRole === 'admin') {
-            return userRole === 'admin';
-        }
-        if (reqRole === 'employee' || reqRole === 'staff') {
-            return userRole === 'employee' || userRole === 'staff' || userRole === 'admin';
-        }
-        if (reqRole === 'manager' || reqRole === 'department_manager') {
-            return userRole === 'manager' || userRole === 'department_manager' || userRole?.includes('manager') || userRole === 'admin';
-        }
-        if (reqRole === 'receptionist' || reqRole === 'reception') {
-            return userRole === 'receptionist' || userRole === 'admin';
-        }
-        if (reqRole === 'security' || reqRole === 'security_officer') {
-            return userRole === 'security_officer' || userRole === 'security' || userRole === 'admin';
-        }
-        if (userRole === 'admin')
+        const userRole = normalizeRole(user);
+        const reqRole = String(roleCode || '').toLowerCase().trim();
+
+        // 1. Any administrator role possesses global clearance across all sub-systems
+        if (isAdminRole(userRole))
             return true;
+
+        // 2. Canonical role check
+        if (reqRole === 'visitor')
+            return userRole === 'visitor';
+        if (reqRole === 'admin')
+            return isAdminRole(userRole);
+        if (reqRole === 'employee' || reqRole === 'staff')
+            return userRole === 'employee';
+        if (reqRole === 'manager' || reqRole === 'department_manager')
+            return userRole === 'manager';
+        if (reqRole === 'receptionist' || reqRole === 'reception')
+            return userRole === 'receptionist';
+        if (reqRole === 'security' || reqRole === 'security_officer')
+            return userRole === 'security';
+
         if (userRole === reqRole)
             return true;
-        if (!user.identity?.roles)
-            return false;
-        return user.identity.roles.some((r) => r.code.toLowerCase() === reqRole);
+
+        // 3. User identity junction roles check
+        if (Array.isArray(user.identity?.roles)) {
+            return user.identity.roles.some((r) => {
+                const c = String(r.code || r.role_code || r.name || '').toLowerCase().trim();
+                return c === reqRole || (reqRole === 'admin' && isAdminRole(c));
+            });
+        }
+        return false;
     };
     const sessionExpiresAt = useMemo(() => {
         if (!token)
@@ -346,11 +357,13 @@ export function AuthProvider({ children }) {
             return true;
         if (!user)
             return false;
-        if (user.role === 'admin')
+        const userRole = normalizeRole(user);
+        if (isAdminRole(userRole))
             return true;
         if (!user.identity?.resources)
             return false;
-        return user.identity.resources.some((r) => r.routeUrl.toLowerCase() === routeUrl.toLowerCase());
+        const targetRoute = String(routeUrl || '').toLowerCase().trim();
+        return user.identity.resources.some((r) => String(r.routeUrl || '').toLowerCase().trim() === targetRoute);
     };
     const getMenuItems = () => {
         if (!user?.identity?.resources)

@@ -105,65 +105,152 @@ export const ROUTES = {
 };
 export const ADMIN_ROUTES = ROUTES.ADMIN;
 export const ADMIN_ROLES = ['admin', 'administrator', 'system_admin', 'super_admin', 'org_admin', 'developer', 'sysadmin'];
+
+/**
+ * Normalizes any user object, role string, or credentials object into a canonical role:
+ * 'admin' | 'employee' | 'manager' | 'receptionist' | 'security' | 'visitor'
+ */
+export function normalizeRole(userOrRole) {
+    if (!userOrRole) return 'visitor';
+    
+    // If passed a string directly:
+    if (typeof userOrRole === 'string') {
+        const raw = userOrRole.toLowerCase().trim();
+        if (isAdminRole(raw)) return 'admin';
+        if (raw === 'manager' || raw === 'department_manager' || raw.includes('manager')) return 'manager';
+        if (raw === 'receptionist' || raw === 'reception' || raw.includes('reception')) return 'receptionist';
+        if (raw === 'security_officer' || raw === 'security' || raw.includes('security')) return 'security';
+        if (raw === 'staff' || raw === 'employee' || raw === 'host' || raw === 'employee_host' || raw.includes('employee') || raw.includes('staff') || raw.includes('host')) return 'employee';
+        if (raw === 'visitor' || raw.includes('visitor')) return 'visitor';
+        return raw;
+    }
+
+    // If passed a user object:
+    const userObject = userOrRole;
+    const rawRole = String(
+        userObject?.role ||
+        userObject?.role_name ||
+        userObject?.roleName ||
+        userObject?.userRole ||
+        userObject?.identity?.primaryRole ||
+        userObject?.identity?.roles?.[0]?.code ||
+        userObject?.identity?.roles?.[0]?.role_code ||
+        userObject?.identity?.roles?.[0]?.name ||
+        userObject?.roles?.[0]?.code ||
+        userObject?.roles?.[0] ||
+        ''
+    ).toLowerCase().trim();
+
+    const userCode = String(
+        userObject?.userCode ||
+        userObject?.user_code ||
+        userObject?.user_id ||
+        userObject?.username ||
+        ''
+    ).toUpperCase().trim();
+
+    // 1. User code or identity prefix indicators
+    if (userCode.startsWith('DEV') || userCode.startsWith('ADM') || userCode === 'ADMIN') {
+        return 'admin';
+    }
+    if (userCode.startsWith('MGR')) {
+        return 'manager';
+    }
+    if (userCode.startsWith('REC')) {
+        return 'receptionist';
+    }
+    if (userCode.startsWith('SEC')) {
+        return 'security';
+    }
+    if (userCode.startsWith('EMP')) {
+        return 'employee';
+    }
+    if (userCode.startsWith('VIS')) {
+        return 'visitor';
+    }
+
+    // 2. Admin verification
+    if (isAdminRole(rawRole)) {
+        return 'admin';
+    }
+
+    // 3. Manager verification
+    if (rawRole === 'manager' || rawRole === 'department_manager' || rawRole.includes('manager')) {
+        return 'manager';
+    }
+
+    // 4. Receptionist verification
+    if (rawRole === 'receptionist' || rawRole === 'reception' || rawRole.includes('reception')) {
+        return 'receptionist';
+    }
+
+    // 5. Security verification
+    if (rawRole === 'security_officer' || rawRole === 'security' || rawRole.includes('security')) {
+        return 'security';
+    }
+
+    // 6. Employee / Staff / Host verification
+    if (
+        rawRole === 'staff' ||
+        rawRole === 'employee' ||
+        rawRole === 'host' ||
+        rawRole === 'employee_host' ||
+        (rawRole.includes('employee') && !rawRole.includes('admin')) ||
+        rawRole.includes('staff') ||
+        rawRole.includes('host')
+    ) {
+        return 'employee';
+    }
+
+    // 7. Visitor fallback
+    return 'visitor';
+}
+
 /**
  * Roles that are allowed to access the Module 15 Enterprise Dashboard.
  * All other roles are redirected to their own role workspace/portal.
  */
 export const DASHBOARD_ROLES = ADMIN_ROLES;
+
 export function isAdminRole(role) {
     const normalized = (role || '').toLowerCase().trim();
-    return ADMIN_ROLES.includes(normalized) || normalized.includes('admin') || normalized === 'developer';
+    return (
+        ADMIN_ROLES.includes(normalized) ||
+        normalized.includes('admin') ||
+        normalized === 'developer' ||
+        normalized === 'dev' ||
+        normalized.includes('sysadmin')
+    );
 }
+
 export function canAccessDashboard(role) {
     return isAdminRole(role);
 }
+
 /**
  * Returns the default landing URL for a given role name or user object.
  * Every role lands on its own workspace — non-dashboard roles must never
  * land on the enterprise dashboard.
  */
 export function getRoleLanding(role, userObject) {
-    const roleName = String(role ||
-        userObject?.role ||
-        userObject?.role_name ||
-        userObject?.roleName ||
-        userObject?.identity?.primaryRole ||
-        '').toLowerCase().trim();
-    const userCode = String(userObject?.userCode ||
-        userObject?.user_code ||
-        userObject?.user_id ||
-        '').toUpperCase().trim();
-    // 1. Admin roles MUST ALWAYS land on Admin Dashboard
-    if (isAdminRole(roleName) || userCode.startsWith('DEV')) {
-        return ROUTES.ADMIN.DASHBOARD;
+    const canonicalRole = normalizeRole(userObject || role);
+    switch (canonicalRole) {
+        case 'admin':
+            return ROUTES.ADMIN.DASHBOARD;
+        case 'manager':
+            return ROUTES.MANAGER.DASHBOARD;
+        case 'receptionist':
+            return ROUTES.RECEPTION.DASHBOARD;
+        case 'security':
+            return ROUTES.SECURITY.DASHBOARD;
+        case 'employee':
+            return ROUTES.EMPLOYEE.DASHBOARD;
+        case 'visitor':
+        default:
+            return ROUTES.VISITOR.DASHBOARD;
     }
-    // 2. Manager roles MUST land on Manager Dashboard
-    if (roleName === 'manager' || roleName === 'department_manager' || roleName.includes('manager')) {
-        return ROUTES.MANAGER.DASHBOARD;
-    }
-    // 3. Receptionist roles
-    if (roleName === 'receptionist' || roleName.includes('reception')) {
-        return ROUTES.RECEPTION.DASHBOARD;
-    }
-    // 4. Security roles
-    if (roleName === 'security_officer' || roleName === 'security' || roleName.includes('security')) {
-        return ROUTES.SECURITY.DASHBOARD;
-    }
-    // 5. Explicit check for Employee IDs (EMP000007, etc.) or Employee/Staff/Host roles
-    if (userCode.startsWith('EMP') ||
-        roleName === 'staff' ||
-        roleName === 'employee' ||
-        roleName === 'host' ||
-        roleName === 'employee_host' ||
-        (roleName.includes('employee') && !roleName.includes('admin')) ||
-        roleName.includes('staff') ||
-        roleName.includes('host')) {
-        return ROUTES.EMPLOYEE.DASHBOARD;
-    }
-    if (roleName === 'visitor' || roleName.includes('visitor'))
-        return ROUTES.VISITOR.DASHBOARD;
-    return ROUTES.VISITOR.DASHBOARD;
 }
+
 /**
  * Returns the default dashboard URL for a given role name.
  * Delegates to getRoleLanding so all redirect logic stays centralized.

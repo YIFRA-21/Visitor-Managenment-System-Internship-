@@ -277,6 +277,14 @@ export default function DashboardPage() {
             return 'org_home';
         if (pathname.includes('/org-tree') || pathname.includes('/org_tree') || pathname.includes('/organization-tree') || pathname.includes('/organization_tree'))
             return 'org_tree';
+        if (pathname.includes('/buildings'))
+            return 'buildings';
+        if (pathname.includes('/floors'))
+            return 'floors';
+        if (pathname.includes('/rooms'))
+            return 'rooms';
+        if (pathname.includes('/workplace'))
+            return 'workplace';
         if (pathname.includes('/visitor-categories') || pathname.includes('/visitor_categories') || pathname.includes('/visitor-category-management')) {
             return 'visitor_categories';
         }

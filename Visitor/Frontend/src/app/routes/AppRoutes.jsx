@@ -110,6 +110,10 @@ export default function AppRoutes() {
       <Route path="/security/identity-reviews/:caseId" element={<ProtectedRoute requiredRole="security"><ReviewerCaseDetailPage /></ProtectedRoute>} />
       <Route path="/security/identity-reviews" element={<ProtectedRoute requiredRole="security"><ReviewerQueuePage /></ProtectedRoute>} />
       <Route path="/admin/identity-policy" element={<ProtectedRoute requiredRole="admin"><VerificationPolicySettingsPage /></ProtectedRoute>} />
+      <Route path="/buildings" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />
+      <Route path="/floors" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />
+      <Route path="/rooms" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />
+      <Route path="/workplace" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />
 
       <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>}/>
       <Route path="/admin/*" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>}/>

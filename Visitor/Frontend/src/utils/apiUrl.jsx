@@ -24,6 +24,8 @@ export function getBackendBaseUrl() {
             currentHostname.endsWith('.local')
         );
 
+        const isLocalHost = currentHostname === 'localhost' || currentHostname === '127.0.0.1';
+
         // If an environment URL is explicitly configured:
         if (envUrl) {
             const stripped = envUrl.replace(/\/api\/?$/, '');
@@ -33,11 +35,15 @@ export function getBackendBaseUrl() {
                     .replace('localhost', currentHostname)
                     .replace('127.0.0.1', currentHostname);
             }
+            // If on a public domain (e.g. Vercel) and envUrl is pointing to localhost, default to origin
+            if (!isLocalHost && !isLanIp && (stripped.includes('localhost') || stripped.includes('127.0.0.1'))) {
+                return window.location.origin;
+            }
             return stripped;
         }
 
         // On local/LAN development:
-        if (currentHostname === 'localhost' || currentHostname === '127.0.0.1' || isLanIp) {
+        if (isLocalHost || isLanIp) {
             return `${protocol}//${currentHostname}:5000`;
         }
 
