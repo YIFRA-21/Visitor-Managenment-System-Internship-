@@ -113,6 +113,11 @@ import HierarchyAssignment from './Admin/Organization/Hierarchy/HierarchyAssignm
 import HierarchyDetails from './Admin/Organization/Hierarchy/HierarchyDetails';
 import HierarchySearch from './Admin/Organization/Hierarchy/HierarchySearch';
 import HierarchyValidation from './Admin/Organization/Hierarchy/HierarchyValidation';
+// Module 3.6 & Enterprise Physical Location & Workplace Infrastructure
+import BuildingManagement from './Admin/Organization/Building/BuildingManagement';
+import FloorManagement from './Admin/Organization/Floor/FloorManagement';
+import RoomManagement from './Admin/Organization/Room/RoomManagement';
+import WorkplaceManagement from './Admin/Organization/Workplace/WorkplaceManagement';
 import HierarchyStatistics from './Admin/Organization/Hierarchy/HierarchyStatistics';
 // Visitor
 import VisitorDashboard from './Visitor/VisitorDashboard';
@@ -481,6 +486,11 @@ export const componentRegistry = {
     DepartmentSearch,
     DepartmentStatistics,
     DepartmentHierarchy,
+    // Facility & Workplace Architecture
+    BuildingManagement,
+    FloorManagement,
+    RoomManagement,
+    WorkplaceManagement,
     // Visitor
     VisitorDashboard,
     EnterpriseVisitorDashboard,
@@ -832,6 +842,21 @@ export const componentRegistry = {
     'hierarchy-search': HierarchySearch,
     'hierarchy-validation': HierarchyValidation,
     'hierarchy-statistics': HierarchyStatistics,
+    // Enterprise Location, Building, Floor, Room & Workplace Routing
+    buildings: BuildingManagement,
+    building_management: BuildingManagement,
+    'building-management': BuildingManagement,
+    floors: FloorManagement,
+    floor_management: FloorManagement,
+    'floor-management': FloorManagement,
+    rooms: RoomManagement,
+    room_management: RoomManagement,
+    'room-management': RoomManagement,
+    workplace: WorkplaceManagement,
+    workplace_management: WorkplaceManagement,
+    'workplace-management': WorkplaceManagement,
+    workplace_assignments: WorkplaceManagement,
+    'workplace-assignments': WorkplaceManagement,
     // Visitor Complete Flow (All 15 Views)
     VisitorMasterFlow,
     visitor_master_flow: VisitorMasterFlow,

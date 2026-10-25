@@ -29,6 +29,10 @@ export const mockQuickActions = [
     { id: 5, title: 'Create Department', icon: 'bi-columns-gap', description: 'Add a new department', route: 'departments_mgmt', color: 'warning', requiredPermission: 'department:create' },
     { id: 6, title: 'View Departments', icon: 'bi-collection', description: 'Browse all departments', route: 'departments_mgmt', color: 'info', requiredPermission: 'department:read' },
     { id: 7, title: 'Organization Tree', icon: 'bi-diagram-2', description: 'View hierarchy structure', route: 'org_tree', color: 'secondary', requiredPermission: 'organization:read' },
+    { id: 8, title: 'Manage Facilities', icon: 'bi-building-gear', description: 'Manage buildings & campuses', route: 'buildings', color: 'primary', requiredPermission: 'organization:read' },
+    { id: 9, title: 'Building Floors', icon: 'bi-layers', description: 'Manage levels & floor plans', route: 'floors', color: 'info', requiredPermission: 'organization:read' },
+    { id: 11, title: 'Meeting Rooms', icon: 'bi-door-open', description: 'Configure rooms & spaces', route: 'rooms', color: 'warning', requiredPermission: 'organization:read' },
+    { id: 13, title: 'Workplace Desks', icon: 'bi-person-workspace', description: 'Assign employee desks', route: 'workplace', color: 'success', requiredPermission: 'organization:read' },
     { id: 10, title: 'Contact Information', icon: 'bi-telephone', description: 'Manage contact details', route: 'org_settings', color: 'info', requiredPermission: 'organization:update' },
     { id: 12, title: 'Audit Logs', icon: 'bi-journal-text', description: 'View security logs', route: 'audit_logs', color: 'secondary', requiredPermission: 'audit:read' },
 ];

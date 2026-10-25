@@ -183,6 +183,14 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
 
         const visitorCode = p.visitor_code || p.historyCode || user?.visitorCode || user?.userCode || `VIS-2026-${String(currentUserId).padStart(6, '0')}`;
         const refNumber = activeAppt.reference_code || p.reference_number || p.referenceNumber || user?.referenceNumber || `REF-REG-2026-${String(currentUserId).padStart(3, '0')}`;
+        const locationParts = [
+            activeAppt?.branch_name,
+            activeAppt?.building_name,
+            activeAppt?.floor_name || (activeAppt?.floor_number !== undefined && activeAppt?.floor_number !== null ? `Floor ${activeAppt.floor_number}` : null),
+            activeAppt?.room_name || activeAppt?.roomName || activeAppt?.office_number
+        ].filter(Boolean);
+        const resolvedLocation = locationParts.length > 0 ? locationParts.join(' • ') : (activeAppt?.location || activeAppt?.building_name || activeAppt?.room_name || p.location || '—');
+
         // Build authoritative visitor pass for THIS logged in user
         return {
             visitorName: authName,
@@ -194,7 +202,10 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
             appointmentId: activeAppt?.reference_code || activeAppt?.appointment_number || activeAppt?.id || '—',
             hostName: activeAppt?.hostName || activeAppt?.host_name || activeAppt?.host || p.hostName || p.host || '—',
             hostDepartment: activeAppt?.hostDepartment || activeAppt?.department_name || activeAppt?.department || p.department || '—',
-            location: activeAppt?.location || activeAppt?.building_name || activeAppt?.room_name || p.location || '—',
+            location: resolvedLocation,
+            building: activeAppt?.building_name || '—',
+            floor: activeAppt?.floor_name || (activeAppt?.floor_number ? `Floor ${activeAppt.floor_number}` : '—'),
+            room: activeAppt?.room_name || activeAppt?.roomName || '—',
             date: activeAppt?.scheduled_start ? new Date(activeAppt.scheduled_start).toLocaleDateString() : (p.registeredOn || new Date().toLocaleDateString()),
             time: activeAppt?.scheduled_start ? `${new Date(activeAppt.scheduled_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '—',
             accessPoint: activeAppt?.roomName || activeAppt?.room_name || 'Main Gate / Reception',

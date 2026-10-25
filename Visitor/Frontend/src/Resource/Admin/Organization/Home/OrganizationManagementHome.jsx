@@ -25,11 +25,14 @@ export default function OrganizationManagementHome() {
         if (card.id === 1 || card.id === 2) {
             navigate('/admin/dashboard?view=organizations');
         }
-        else if (card.id === 3 || card.id === 5) {
+        else if (card.id === 3) {
             navigate('/admin/dashboard?view=branches');
         }
         else if (card.id === 4) {
             navigate('/admin/dashboard?view=departments_mgmt');
+        }
+        else if (card.id === 5) {
+            navigate('/admin/dashboard?view=buildings');
         }
         else if (card.id === 6 || card.id === 7) {
             navigate('/admin/dashboard?view=users');

@@ -4,13 +4,20 @@ const roomController = require('../controllers/room.controller');
 
 const router = Router();
 
-// GET /: lists all conference rooms
-router.get('/', roomController.list);
-
-// GET /:id/availability: gets bookings for a room
+// Availability check (Public/Authenticated)
 router.get('/:id/availability', roomController.getAvailability);
 
-// POST /: registers a room (Admin Only)
-router.post('/', authenticate, authorize('admin'), roomController.create);
+// Room reservation with double-booking prevention check
+router.post('/:id/reserve', authenticate, roomController.reserve);
+
+// Read rooms
+router.get('/', authenticate, roomController.list);
+router.get('/:id', authenticate, roomController.get);
+
+// Admin / Manager Room Configuration
+router.post('/', authenticate, authorize('admin', 'system_admin'), roomController.create);
+router.put('/:id', authenticate, authorize('admin', 'system_admin'), roomController.update);
+router.patch('/:id/status', authenticate, authorize('admin', 'system_admin'), roomController.changeStatus);
+router.delete('/:id', authenticate, authorize('admin', 'system_admin'), roomController.delete);
 
 module.exports = router;

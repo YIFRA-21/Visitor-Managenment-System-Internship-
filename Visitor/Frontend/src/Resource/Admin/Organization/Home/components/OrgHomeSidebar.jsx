@@ -3,6 +3,10 @@ const navItems = [
     { key: 'organizations', label: 'Organizations', icon: 'bi-building', route: 'organizations' },
     { key: 'branches', label: 'Branches', icon: 'bi-diagram-3', route: 'branches' },
     { key: 'departments', label: 'Departments', icon: 'bi-columns-gap', route: 'departments_mgmt' },
+    { key: 'buildings', label: 'Buildings & Campuses', icon: 'bi-building-gear', route: 'buildings' },
+    { key: 'floors', label: 'Floors & Levels', icon: 'bi-layers', route: 'floors' },
+    { key: 'rooms', label: 'Meeting Rooms & Offices', icon: 'bi-door-open', route: 'rooms' },
+    { key: 'workplace', label: 'Workplace Desks', icon: 'bi-person-workspace', route: 'workplace' },
     { key: 'org-tree', label: 'Organization Tree', icon: 'bi-diagram-2', route: 'org_tree' },
 ];
 const settingsItems = [
