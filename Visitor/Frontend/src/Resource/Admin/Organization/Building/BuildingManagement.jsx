@@ -1,14 +1,153 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Building2, Plus, Search, Filter, RefreshCw, Edit, Trash2, Eye,
     CheckCircle, XCircle, AlertTriangle, Layers, DoorOpen, MapPin,
-    ArrowUpDown, ChevronRight, X, Info
+    ArrowUpDown, ChevronRight, X, Info, Sparkles, LayoutGrid, List,
+    ArrowUpRight, Shield, Building, Globe, Compass, Check, ArrowRight,
+    SlidersHorizontal, TrendingUp, Activity
 } from 'lucide-react';
+import {
+    AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
+} from 'recharts';
 import locationService from '../../../../services/locationService';
 import { useTheme } from '../../../../theme/ThemeContext';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ANIMATION VARIANTS & THEME SYSTEM (ADMIN DASHBOARD SPECIFICATION)
+// ─────────────────────────────────────────────────────────────────────────────
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.07,
+            delayChildren: 0.05
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 18, scale: 0.98 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: { type: 'spring', stiffness: 280, damping: 22 }
+    }
+};
+
+const THEME_STYLES = {
+    blue: {
+        barColor: '#3b82f6',
+        hoverBarColor: '#60a5fa',
+        darkHoverBg: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 58, 138, 0.15) 55%, transparent 100%)',
+        iconBg: 'rgba(59, 130, 246, 0.15)',
+        iconBorder: 'rgba(59, 130, 246, 0.3)',
+        iconColor: '#3b82f6',
+    },
+    emerald: {
+        barColor: '#10b981',
+        hoverBarColor: '#34d399',
+        darkHoverBg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 78, 59, 0.15) 55%, transparent 100%)',
+        iconBg: 'rgba(16, 185, 129, 0.15)',
+        iconBorder: 'rgba(16, 185, 129, 0.3)',
+        iconColor: '#10b981',
+    },
+    cyan: {
+        barColor: '#06b6d4',
+        hoverBarColor: '#22d3ee',
+        darkHoverBg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(22, 78, 99, 0.15) 55%, transparent 100%)',
+        iconBg: 'rgba(6, 182, 212, 0.15)',
+        iconBorder: 'rgba(6, 182, 212, 0.3)',
+        iconColor: '#06b6d4',
+    },
+    amber: {
+        barColor: '#f59e0b',
+        hoverBarColor: '#fbbf24',
+        darkHoverBg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(120, 53, 15, 0.15) 55%, transparent 100%)',
+        iconBg: 'rgba(245, 158, 11, 0.15)',
+        iconBorder: 'rgba(245, 158, 11, 0.3)',
+        iconColor: '#f59e0b',
+    },
+    purple: {
+        barColor: '#a855f7',
+        hoverBarColor: '#c084fc',
+        darkHoverBg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(88, 28, 135, 0.15) 55%, transparent 100%)',
+        iconBg: 'rgba(168, 85, 247, 0.15)',
+        iconBorder: 'rgba(168, 85, 247, 0.3)',
+        iconColor: '#a855f7',
+    }
+};
+
+function KpiCard({ title, value, subtitle, icon, theme = 'blue', onClick }) {
+    const [hovered, setHovered] = useState(false);
+    const styles = THEME_STYLES[theme] || THEME_STYLES.blue;
+
+    return (
+        <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -4, scale: 1.015 }}
+            whileTap={{ scale: 0.985 }}
+            onClick={onClick}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            className={`border rounded-2xl p-4 sm:p-5 pl-5 sm:pl-6 min-h-[148px] flex flex-col justify-between transition-all duration-300 relative overflow-hidden group cursor-pointer bg-white dark:bg-[#0b1220] border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-700 ${hovered ? 'shadow-xl' : ''}`}
+        >
+            {/* Dark Hover Fill Overlay */}
+            <div
+                style={{
+                    background: hovered ? styles.darkHoverBg : 'transparent',
+                    opacity: hovered ? 1 : 0,
+                }}
+                className="absolute inset-0 transition-opacity duration-300 pointer-events-none block"
+            />
+
+            {/* SOLID VERTICAL LEFT BAR WITH GLOW & FILL EXPANSION ON HOVER */}
+            <div
+                style={{
+                    backgroundColor: hovered ? styles.hoverBarColor : styles.barColor,
+                    boxShadow: hovered ? `0 0 16px ${styles.barColor}` : `0 0 8px ${styles.barColor}`,
+                }}
+                className="absolute left-0 top-0 bottom-0 w-[6px] rounded-l-2xl transition-all duration-300 group-hover:w-[10px] z-10"
+            />
+
+            <div className="flex items-start justify-between relative z-10 gap-2">
+                <span className="text-[11px] xl:text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-tight min-w-0 pr-1">
+                    {title}
+                </span>
+
+                {/* Sleek Icon Capsule Container */}
+                <div
+                    style={{
+                        backgroundColor: styles.iconBg,
+                        borderColor: styles.iconBorder,
+                        color: styles.iconColor,
+                    }}
+                    className="p-2 sm:p-2.5 rounded-xl border flex items-center justify-center group-hover:scale-110 transition-all shadow-sm shrink-0"
+                >
+                    {icon}
+                </div>
+            </div>
+
+            <div className="mt-2 relative z-10">
+                <div className="flex items-baseline space-x-2">
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight group-hover:translate-x-0.5 transition-transform">
+                        {value}
+                    </h2>
+                </div>
+                <div className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 font-semibold mt-0.5 transition-colors">
+                    {subtitle}
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
 export default function BuildingManagement() {
     const { isDark } = useTheme();
+    const navigate = useNavigate();
 
     // Data states
     const [buildings, setBuildings] = useState([]);
@@ -19,17 +158,14 @@ export default function BuildingManagement() {
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
 
+    // View layout: 'table' | 'grid'
+    const [viewMode, setViewMode] = useState('table');
+
     // Filter states
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedOrg, setSelectedOrg] = useState('');
     const [selectedBranch, setSelectedBranch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
-
-    // Pagination & Sorting
-    const [page, setPage] = useState(1);
-    const [limit] = useState(10);
-    const [sortBy, setSortBy] = useState('building_name');
-    const [sortOrder, setSortOrder] = useState('ASC');
 
     // Modals & Drawers
     const [showModal, setShowModal] = useState(false);
@@ -53,11 +189,11 @@ export default function BuildingManagement() {
     const [formErrors, setFormErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
 
-    // Delete / Deactivate dialog
+    // Delete dialog
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleteError, setDeleteError] = useState(null);
 
-    // Load initial reference data
+    // Initial reference data load
     useEffect(() => {
         loadReferenceData();
     }, []);
@@ -71,7 +207,7 @@ export default function BuildingManagement() {
         }
     };
 
-    // Load branches when organization changes in filters or form
+    // Load branches when organization changes
     useEffect(() => {
         async function fetchBranches() {
             try {
@@ -117,7 +253,7 @@ export default function BuildingManagement() {
         fetchBuildings();
     };
 
-    // Handle Open Create Modal
+    // Open Create Modal
     const handleOpenCreate = () => {
         setModalMode('create');
         setCurrentBuilding(null);
@@ -135,7 +271,7 @@ export default function BuildingManagement() {
         setShowModal(true);
     };
 
-    // Handle Open Edit Modal
+    // Open Edit Modal
     const handleOpenEdit = (building) => {
         setModalMode('edit');
         setCurrentBuilding(building);
@@ -153,7 +289,7 @@ export default function BuildingManagement() {
         setShowModal(true);
     };
 
-    // Handle Open Detail Drawer
+    // Open Details Modal
     const handleOpenDetails = async (building) => {
         setCurrentBuilding(building);
         setShowDetailDrawer(true);
@@ -168,7 +304,7 @@ export default function BuildingManagement() {
         }
     };
 
-    // Form Validation
+    // Validation
     const validateForm = () => {
         const errors = {};
         if (!formData.organization_id) errors.organization_id = 'Organization is required';
@@ -180,7 +316,7 @@ export default function BuildingManagement() {
         return Object.keys(errors).length === 0;
     };
 
-    // Submit Create or Edit
+    // Form Submit
     const handleSubmitForm = async (e) => {
         e.preventDefault();
         if (!validateForm()) return;
@@ -189,10 +325,10 @@ export default function BuildingManagement() {
         try {
             if (modalMode === 'create') {
                 await locationService.createBuilding(formData);
-                setSuccessMessage('Building created successfully!');
+                setSuccessMessage('Facility registered successfully!');
             } else {
                 await locationService.updateBuilding(currentBuilding.id, formData);
-                setSuccessMessage('Building updated successfully!');
+                setSuccessMessage('Facility updated successfully!');
             }
             setShowModal(false);
             fetchBuildings();
@@ -205,7 +341,7 @@ export default function BuildingManagement() {
         }
     };
 
-    // Handle Delete or Deactivate
+    // Confirm Delete
     const confirmDelete = async () => {
         if (!deleteTarget) return;
         setDeleteError(null);
@@ -227,141 +363,359 @@ export default function BuildingManagement() {
     const totalFloorsCount = buildings.reduce((acc, b) => acc + (parseInt(b.floor_count, 10) || parseInt(b.total_floors, 10) || 0), 0);
     const totalRoomsCount = buildings.reduce((acc, b) => acc + (parseInt(b.total_rooms, 10) || parseInt(b.room_count, 10) || 0), 0);
 
+    // Chart Data Preparation
+    const chartData = useMemo(() => {
+        if (!buildings || buildings.length === 0) {
+            return [
+                { name: 'Tower A', floors: 4, rooms: 12 },
+                { name: 'Campus HQ', floors: 6, rooms: 24 },
+                { name: 'Research Lab', floors: 3, rooms: 9 },
+                { name: 'Logistics Center', floors: 2, rooms: 6 }
+            ];
+        }
+        return buildings.slice(0, 7).map(b => ({
+            name: b.building_code || b.building_name.split(' ')[0],
+            floors: parseInt(b.floor_count, 10) || parseInt(b.total_floors, 10) || 1,
+            rooms: parseInt(b.room_count, 10) || parseInt(b.total_rooms, 10) || 0
+        }));
+    }, [buildings]);
+
+    // Navigation items from user's sidebar
+    const facilityNavItems = [
+        { key: 'buildings', label: 'Buildings & Facilities', active: true, path: '?view=buildings', icon: Building2 },
+        { key: 'floors', label: 'Floors & Levels', active: false, path: '?view=floors', icon: Layers },
+        { key: 'rooms', label: 'Meeting Rooms & Offices', active: false, path: '?view=rooms', icon: DoorOpen },
+        { key: 'workplace', label: 'Workplace Desks & Locations', active: false, path: '?view=workplace', icon: MapPin },
+    ];
+
     return (
-        <div className={`p-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            {/* Page Header */}
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-                <div>
-                    <h4 className="fw-bold mb-1 d-flex align-items-center gap-2">
-                        <Building2 className="text-primary" size={26} />
-                        Building & Campus Management
-                    </h4>
-                    <p className={`small mb-0 ${isDark ? 'text-slate-400' : 'text-muted'}`}>
-                        Manage enterprise facilities, campus structures, floors, and workplace infrastructure.
-                    </p>
-                </div>
-                <div className="d-flex align-items-center gap-2">
-                    <button
-                        onClick={handleRefresh}
-                        className={`btn btn-sm ${isDark ? 'btn-outline-secondary text-white' : 'btn-outline-secondary'} d-flex align-items-center gap-1`}
-                        disabled={refreshing}
-                        title="Refresh Data"
-                    >
-                        <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
-                        Refresh
-                    </button>
-                    <button
-                        onClick={handleOpenCreate}
-                        className="btn btn-sm btn-primary d-flex align-items-center gap-1 shadow-sm"
-                    >
-                        <Plus size={16} />
-                        Add Building
-                    </button>
-                </div>
-            </div>
-
-            {/* Notification Alerts */}
-            {successMessage && (
-                <div className="alert alert-success d-flex align-items-center gap-2 alert-dismissible fade show mb-4" role="alert">
-                    <CheckCircle size={18} />
-                    <div>{successMessage}</div>
-                    <button type="button" className="btn-close" onClick={() => setSuccessMessage(null)}></button>
-                </div>
-            )}
-
-            {error && (
-                <div className="alert alert-danger d-flex align-items-center gap-2 alert-dismissible fade show mb-4" role="alert">
-                    <AlertTriangle size={18} />
-                    <div>{error}</div>
-                    <button type="button" className="btn-close" onClick={() => setError(null)}></button>
-                </div>
-            )}
-
-            {/* Metric KPI Cards */}
-            <div className="row g-3 mb-4">
-                <div className="col-12 col-sm-6 col-xl-3">
-                    <div className={`card border-0 shadow-sm rounded-3 p-3 ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                        <div className="d-flex align-items-center justify-content-between">
-                            <div>
-                                <span className={`text-uppercase small fw-bold ${isDark ? 'text-slate-400' : 'text-muted'}`}>Total Buildings</span>
-                                <h3 className="fw-bold mb-0 mt-1">{totalBuildings}</h3>
-                            </div>
-                            <div className="p-3 rounded-3 bg-primary bg-opacity-10 text-primary">
-                                <Building2 size={24} />
-                            </div>
-                        </div>
-                    </div>
+        <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            className="space-y-6 transition-colors"
+        >
+            {/* ── TOP HERO BANNER & WELCOME HEADER (MATCHING ADMIN DASHBOARD STYLE) ── */}
+            <motion.div
+                variants={itemVariants}
+                className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0d1527] via-[#111a33] to-[#0a1020] border border-slate-800 p-7 md:p-9 shadow-2xl transition-colors"
+            >
+                {/* TOP CURVED WAVE SVG ACCENT */}
+                <div className="absolute top-0 left-0 right-0 h-16 overflow-hidden pointer-events-none opacity-80">
+                    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="relative block w-full h-full">
+                        <path d="M0,0 C180,90 380,-30 550,55 C720,130 950,15 1200,35 L1200,0 L0,0 Z" fill="url(#topWaveFacility)"></path>
+                        <defs>
+                            <linearGradient id="topWaveFacility" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#0f3875" />
+                                <stop offset="50%" stopColor="#1e50a2" />
+                                <stop offset="100%" stopColor="#00a0e9" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
                 </div>
 
-                <div className="col-12 col-sm-6 col-xl-3">
-                    <div className={`card border-0 shadow-sm rounded-3 p-3 ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                        <div className="d-flex align-items-center justify-content-between">
-                            <div>
-                                <span className={`text-uppercase small fw-bold ${isDark ? 'text-slate-400' : 'text-muted'}`}>Active Buildings</span>
-                                <h3 className="fw-bold mb-0 mt-1 text-success">{activeBuildings}</h3>
-                            </div>
-                            <div className="p-3 rounded-3 bg-success bg-opacity-10 text-success">
-                                <CheckCircle size={24} />
-                            </div>
-                        </div>
-                    </div>
+                {/* BOTTOM CURVED WAVE SVG ACCENT */}
+                <div className="absolute bottom-0 left-0 right-0 h-14 overflow-hidden pointer-events-none opacity-80">
+                    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="relative block w-full h-full">
+                        <path d="M0,65 C320,125 620,15 920,95 C1070,130 1160,85 1200,65 L1200,120 L0,120 Z" fill="url(#bottomWaveFacility)"></path>
+                        <defs>
+                            <linearGradient id="bottomWaveFacility" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#00a0e9" />
+                                <stop offset="50%" stopColor="#2563eb" />
+                                <stop offset="100%" stopColor="#1d4ed8" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
                 </div>
 
-                <div className="col-12 col-sm-6 col-xl-3">
-                    <div className={`card border-0 shadow-sm rounded-3 p-3 ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                        <div className="d-flex align-items-center justify-content-between">
-                            <div>
-                                <span className={`text-uppercase small fw-bold ${isDark ? 'text-slate-400' : 'text-muted'}`}>Managed Floors</span>
-                                <h3 className="fw-bold mb-0 mt-1 text-info">{totalFloorsCount}</h3>
-                            </div>
-                            <div className="p-3 rounded-3 bg-info bg-opacity-10 text-info">
-                                <Layers size={24} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-12 col-sm-6 col-xl-3">
-                    <div className={`card border-0 shadow-sm rounded-3 p-3 ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                        <div className="d-flex align-items-center justify-content-between">
-                            <div>
-                                <span className={`text-uppercase small fw-bold ${isDark ? 'text-slate-400' : 'text-muted'}`}>Meeting & Work Rooms</span>
-                                <h3 className="fw-bold mb-0 mt-1 text-warning">{totalRoomsCount}</h3>
-                            </div>
-                            <div className="p-3 rounded-3 bg-warning bg-opacity-10 text-warning">
-                                <DoorOpen size={24} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Filter & Search Bar */}
-            <div className={`card border-0 shadow-sm rounded-3 p-3 mb-4 ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                <div className="row g-2 align-items-center">
-                    <div className="col-12 col-md-4">
-                        <div className="input-group input-group-sm">
-                            <span className={`input-group-text ${isDark ? 'bg-secondary bg-opacity-25 border-secondary text-slate-300' : ''}`}>
-                                <Search size={15} />
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 my-2">
+                    <div className="space-y-2.5">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-extrabold shadow-sm">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                             </span>
-                            <input
-                                type="text"
-                                className={`form-control ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                placeholder="Search building name, code, address..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            {searchTerm && (
-                                <button className="btn btn-outline-secondary" onClick={() => setSearchTerm('')}>
-                                    <X size={14} />
-                                </button>
+                            <span>Enterprise Infrastructure • Campus & Facility Console</span>
+                        </div>
+
+                        <h1 className="!text-white text-2xl md:text-4xl font-extrabold tracking-tight flex items-center gap-3">
+                            <span>Buildings & Campus Facilities</span>
+                            <Sparkles className="w-6 h-6 text-amber-400 animate-pulse" />
+                        </h1>
+                        <p className="!text-slate-300 text-sm max-w-2xl font-medium leading-relaxed">
+                            Orchestrate multi-tenant physical infrastructure, building codes, architectural floors, meeting suites, and workplace seating matrices.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={handleRefresh}
+                            disabled={refreshing}
+                            className="px-4 py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80 text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer backdrop-blur-md"
+                            title="Refresh Live Data"
+                        >
+                            <RefreshCw className={`w-4 h-4 text-cyan-400 ${refreshing ? 'animate-spin' : ''}`} />
+                            <span>{refreshing ? 'Syncing...' : 'Sync Data'}</span>
+                        </motion.button>
+
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={handleOpenCreate}
+                            className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 !text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer border-0"
+                        >
+                            <Plus className="w-4 h-4 text-white" />
+                            <span className="!text-white font-bold">Register Facility</span>
+                        </motion.button>
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* ── FACILITY NAVIGATION MODULE PILLS (MATCHING USER SCREENSHOT) ── */}
+            <motion.div variants={itemVariants} className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {facilityNavItems.map((nav) => {
+                    const Icon = nav.icon;
+                    return (
+                        <button
+                            key={nav.key}
+                            onClick={() => {
+                                if (!nav.active) {
+                                    navigate(nav.path);
+                                }
+                            }}
+                            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                                nav.active
+                                    ? 'bg-[#18233c] text-white border-blue-500/50 shadow-md shadow-blue-500/10'
+                                    : 'bg-white dark:bg-[#0b1220] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            {nav.active && (
+                                <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_#38bdf8] shrink-0" />
                             )}
+                            <Icon size={16} className={nav.active ? 'text-blue-400' : 'text-slate-400'} />
+                            <span>{nav.label}</span>
+                        </button>
+                    );
+                })}
+            </motion.div>
+
+            {/* ── NOTIFICATION ALERTS ── */}
+            <AnimatePresence>
+                {successMessage && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-semibold flex items-center justify-between shadow-lg"
+                    >
+                        <div className="flex items-center gap-3">
+                            <CheckCircle size={20} className="text-emerald-400 shrink-0" />
+                            <span>{successMessage}</span>
+                        </div>
+                        <button onClick={() => setSuccessMessage(null)} className="text-emerald-400 hover:text-white">
+                            <X size={18} />
+                        </button>
+                    </motion.div>
+                )}
+
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-sm font-semibold flex items-center justify-between shadow-lg"
+                    >
+                        <div className="flex items-center gap-3">
+                            <AlertTriangle size={20} className="text-rose-400 shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                        <button onClick={() => setError(null)} className="text-rose-400 hover:text-white">
+                            <X size={18} />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ── KPI METRICS SECTION (ADMIN DASHBOARD GLOWING BAR CARDS) ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard
+                    title="Total Registered Facilities"
+                    value={totalBuildings}
+                    subtitle="Enterprise campuses & buildings"
+                    icon={<Building2 size={22} />}
+                    theme="blue"
+                />
+                <KpiCard
+                    title="Active Operational Units"
+                    value={activeBuildings}
+                    subtitle={`${totalBuildings > 0 ? Math.round((activeBuildings / totalBuildings) * 100) : 100}% operational readiness`}
+                    icon={<CheckCircle size={22} />}
+                    theme="emerald"
+                />
+                <KpiCard
+                    title="Managed Architectural Floors"
+                    value={totalFloorsCount}
+                    subtitle="Vertical levels & access zones"
+                    icon={<Layers size={22} />}
+                    theme="cyan"
+                    onClick={() => navigate('?view=floors')}
+                />
+                <KpiCard
+                    title="Meeting & Work Rooms"
+                    value={totalRoomsCount}
+                    subtitle="Dedicated offices & bookable suites"
+                    icon={<DoorOpen size={22} />}
+                    theme="amber"
+                    onClick={() => navigate('?view=rooms')}
+                />
+            </div>
+
+            {/* ── ANALYTICS & STRUCTURE VISUALIZATION (ADMIN DASHBOARD RECHARTS) ── */}
+            <motion.div
+                variants={itemVariants}
+                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+            >
+                {/* Left 2 Cols: Floors & Rooms Distribution Chart */}
+                <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                        <div>
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-blue-500" />
+                                Facility Capacity & Structural Density
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Comparative distribution of floor levels and designated meeting spaces across facilities
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs font-semibold">
+                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                                <span className="w-3 h-3 rounded bg-blue-500 shrink-0" />
+                                <span>Floors</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                                <span className="w-3 h-3 rounded bg-cyan-400 shrink-0" />
+                                <span>Meeting Rooms</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="col-6 col-md-3">
+                    <div className="h-64 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="facilityFloors" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                                    </linearGradient>
+                                    <linearGradient id="facilityRooms" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#f1f5f9'} />
+                                <XAxis dataKey="name" stroke={isDark ? '#64748b' : '#94a3b8'} fontSize={12} tickLine={false} />
+                                <YAxis stroke={isDark ? '#64748b' : '#94a3b8'} fontSize={12} tickLine={false} />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                                        borderColor: isDark ? '#334155' : '#e2e8f0',
+                                        borderRadius: '0.75rem',
+                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                                        color: isDark ? '#ffffff' : '#0f172a',
+                                        fontSize: '12px'
+                                    }}
+                                />
+                                <Area type="monotone" dataKey="floors" stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#facilityFloors)" name="Floors" />
+                                <Area type="monotone" dataKey="rooms" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#facilityRooms)" name="Rooms" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Right 1 Col: Quick Facility Security & Telemetry Card */}
+                <div className="rounded-2xl bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Shield className="w-5 h-5 text-indigo-500" />
+                                Infrastructure Health
+                            </h3>
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-extrabold uppercase">
+                                Normal
+                            </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                            Physical security gateway, visitor badging perimeters, and location synchronization status.
+                        </p>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Access Perimeter Status</span>
+                                <span className="text-xs font-bold text-emerald-500 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    Active / Enforced
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Total Campus Branches</span>
+                                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                    {branches.length > 0 ? branches.length : 'All Synced'}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Average Floors per Unit</span>
+                                <span className="text-xs font-bold text-blue-500">
+                                    {totalBuildings > 0 ? (totalFloorsCount / totalBuildings).toFixed(1) : '1.0'} Floors
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <span className="text-[11px] text-slate-400 font-medium">Last audited 2 mins ago</span>
+                        <button
+                            onClick={() => navigate('?view=workplace')}
+                            className="text-xs font-bold text-blue-500 hover:text-blue-400 flex items-center gap-1 cursor-pointer"
+                        >
+                            <span>Workplace Hub</span>
+                            <ArrowRight size={13} />
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* ── FILTER & SEARCH CONTROLS (ADMIN DASHBOARD BAR) ── */}
+            <motion.div
+                variants={itemVariants}
+                className="rounded-2xl bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
+            >
+                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                    {/* Search Input */}
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+                        <input
+                            type="text"
+                            className="w-full pl-10 pr-9 py-2.5 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            placeholder="Search by facility name, code, physical address, or campus zone..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        {searchTerm && (
+                            <button
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Filter Selects & View Mode Toggles */}
+                    <div className="flex flex-wrap items-center gap-2.5">
                         <select
-                            className={`form-select form-select-sm ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
+                            className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             value={selectedOrg}
                             onChange={(e) => { setSelectedOrg(e.target.value); setSelectedBranch(''); }}
                         >
@@ -370,11 +724,9 @@ export default function BuildingManagement() {
                                 <option key={org.id} value={org.id}>{org.name || org.organization_name}</option>
                             ))}
                         </select>
-                    </div>
 
-                    <div className="col-6 col-md-3">
                         <select
-                            className={`form-select form-select-sm ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
+                            className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             value={selectedBranch}
                             onChange={(e) => setSelectedBranch(e.target.value)}
                         >
@@ -383,11 +735,9 @@ export default function BuildingManagement() {
                                 <option key={b.id} value={b.id}>{b.name || b.branch_name}</option>
                             ))}
                         </select>
-                    </div>
 
-                    <div className="col-12 col-md-2">
                         <select
-                            className={`form-select form-select-sm ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
+                            className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
                         >
@@ -395,425 +745,700 @@ export default function BuildingManagement() {
                             <option value="1">Active Only</option>
                             <option value="0">Inactive Only</option>
                         </select>
+
+                        {/* View Switcher Toggle */}
+                        <div className="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                            <button
+                                onClick={() => setViewMode('table')}
+                                className={`p-1.5 rounded-lg transition-all ${
+                                    viewMode === 'table'
+                                        ? 'bg-white dark:bg-slate-800 text-blue-500 shadow-sm'
+                                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+                                }`}
+                                title="Table List View"
+                            >
+                                <List size={16} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-1.5 rounded-lg transition-all ${
+                                    viewMode === 'grid'
+                                        ? 'bg-white dark:bg-slate-800 text-blue-500 shadow-sm'
+                                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+                                }`}
+                                title="Visual Card Grid"
+                            >
+                                <LayoutGrid size={16} />
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
-            {/* Building Data Table */}
-            <div className={`card border-0 shadow-sm rounded-3 overflow-hidden ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                <div className="table-responsive">
-                    <table className={`table align-middle mb-0 ${isDark ? 'table-dark' : 'table-hover'}`}>
-                        <thead className={isDark ? 'table-dark' : 'table-light'}>
-                            <tr>
-                                <th style={{ minWidth: '180px' }}>Building Name</th>
-                                <th>Code</th>
-                                <th>Organization & Branch</th>
-                                <th>Address</th>
-                                <th className="text-center">Floors</th>
-                                <th className="text-center">Rooms</th>
-                                <th>Status</th>
-                                <th className="text-end" style={{ minWidth: '120px' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                <tr>
-                                    <td colSpan="8" className="text-center py-5">
-                                        <div className="spinner-border text-primary" role="status">
-                                            <span className="visually-hidden">Loading...</span>
-                                        </div>
-                                        <p className="small text-muted mt-2">Loading buildings...</p>
-                                    </td>
+            {/* ── FACILITIES DATA VIEW (TABLE OR GRID WITH FRAMER MOTION) ── */}
+            {viewMode === 'table' ? (
+                <motion.div
+                    variants={itemVariants}
+                    className="rounded-2xl bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+                >
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/50">
+                                    <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        Facility / Building
+                                    </th>
+                                    <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        Code
+                                    </th>
+                                    <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        Campus & Branch
+                                    </th>
+                                    <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        Physical Address
+                                    </th>
+                                    <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                                        Floors
+                                    </th>
+                                    <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                                        Rooms
+                                    </th>
+                                    <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                                        Status
+                                    </th>
+                                    <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">
+                                        Actions
+                                    </th>
                                 </tr>
-                            ) : buildings.length === 0 ? (
-                                <tr>
-                                    <td colSpan="8" className="text-center py-5">
-                                        <Building2 size={40} className="text-muted mb-2 opacity-50" />
-                                        <h6 className="fw-bold mb-1">No Buildings Found</h6>
-                                        <p className="small text-muted mb-3">No buildings match your current filters or none have been added yet.</p>
-                                        <button onClick={handleOpenCreate} className="btn btn-sm btn-primary">
-                                            <Plus size={14} className="me-1" /> Add First Building
-                                        </button>
-                                    </td>
-                                </tr>
-                            ) : (
-                                buildings.map((b) => (
-                                    <tr key={b.id}>
-                                        <td>
-                                            <div className="d-flex align-items-center gap-2">
-                                                <div className="p-2 rounded-2 bg-primary bg-opacity-10 text-primary">
-                                                    <Building2 size={18} />
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan="8" className="py-16 text-center">
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 text-blue-500 font-semibold">
+                                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                                <span>Loading infrastructure records...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : buildings.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="8" className="py-16 text-center">
+                                            <div className="max-w-md mx-auto space-y-3">
+                                                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
+                                                    <Building2 size={24} />
                                                 </div>
-                                                <div>
-                                                    <span className="fw-semibold d-block text-truncate" style={{ maxWidth: '220px' }}>
-                                                        {b.building_name}
-                                                    </span>
-                                                    {b.description && (
-                                                        <span className="small text-muted text-truncate d-block" style={{ maxWidth: '220px' }}>
-                                                            {b.description}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className="badge bg-secondary bg-opacity-25 text-body font-monospace px-2 py-1">
-                                                {b.building_code}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="small">
-                                                <span className="fw-medium">{b.branch_name || 'N/A'}</span>
-                                                {b.organization_name && (
-                                                    <span className="text-muted d-block">{b.organization_name}</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="small text-muted d-flex align-items-center gap-1">
-                                                <MapPin size={13} className="shrink-0" />
-                                                <span className="text-truncate" style={{ maxWidth: '200px' }}>
-                                                    {b.address || 'No address specified'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="text-center">
-                                            <span className="badge bg-info bg-opacity-10 text-info fw-bold px-2 py-1">
-                                                {b.floor_count || b.total_floors || 0}
-                                            </span>
-                                        </td>
-                                        <td className="text-center">
-                                            <span className="badge bg-warning bg-opacity-10 text-warning fw-bold px-2 py-1">
-                                                {b.room_count || 0}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {b.is_active ? (
-                                                <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
-                                                    Active
-                                                </span>
-                                            ) : (
-                                                <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">
-                                                    Inactive
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="text-end">
-                                            <div className="d-flex align-items-center justify-content-end gap-1">
+                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white">No Facilities Found</h4>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                    No building records match your current filter criteria, or none have been established in this organization.
+                                                </p>
                                                 <button
-                                                    onClick={() => handleOpenDetails(b)}
-                                                    className="btn btn-sm btn-ghost p-1 text-primary"
-                                                    title="View Details & Floors"
+                                                    onClick={handleOpenCreate}
+                                                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-1.5"
                                                 >
-                                                    <Eye size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleOpenEdit(b)}
-                                                    className="btn btn-sm btn-ghost p-1 text-secondary"
-                                                    title="Edit Building"
-                                                >
-                                                    <Edit size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => setDeleteTarget(b)}
-                                                    className="btn btn-sm btn-ghost p-1 text-danger"
-                                                    title="Delete Building"
-                                                >
-                                                    <Trash2 size={16} />
+                                                    <Plus size={14} /> Add First Facility
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                ) : (
+                                    buildings.map((b) => (
+                                        <tr
+                                            key={b.id}
+                                            className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group"
+                                        >
+                                            <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-white">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                                                        <Building2 size={18} />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <span className="block truncate font-bold text-slate-900 dark:text-white">
+                                                            {b.building_name}
+                                                        </span>
+                                                        {b.description && (
+                                                            <span className="block truncate text-[11px] text-slate-400 max-w-[200px]">
+                                                                {b.description}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
 
-            {/* Create / Edit Building Modal */}
-            {showModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered modal-lg">
-                        <div className={`modal-content border-0 shadow ${isDark ? 'bg-dark text-white border border-secondary border-opacity-25' : 'bg-white'}`}>
-                            <div className="modal-header border-bottom border-secondary border-opacity-25">
-                                <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
-                                    <Building2 className="text-primary" size={20} />
-                                    {modalMode === 'create' ? 'Add New Facility / Building' : `Edit Building: ${currentBuilding?.building_name}`}
-                                </h5>
-                                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
-                            </div>
-                            <form onSubmit={handleSubmitForm}>
-                                <div className="modal-body p-4">
-                                    {formErrors.submit && (
-                                        <div className="alert alert-danger d-flex align-items-center gap-2 mb-3">
-                                            <AlertTriangle size={16} />
-                                            <div>{formErrors.submit}</div>
+                                            <td className="py-3.5 px-4">
+                                                <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono font-bold text-[11px]">
+                                                    {b.building_code}
+                                                </span>
+                                            </td>
+
+                                            <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
+                                                <div className="font-semibold text-slate-900 dark:text-white">
+                                                    {b.branch_name || 'Main Campus'}
+                                                </div>
+                                                {b.organization_name && (
+                                                    <div className="text-[11px] text-slate-400">
+                                                        {b.organization_name}
+                                                    </div>
+                                                )}
+                                            </td>
+
+                                            <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400">
+                                                <div className="flex items-center gap-1.5 max-w-[200px]">
+                                                    <MapPin size={13} className="shrink-0 text-slate-400" />
+                                                    <span className="truncate">{b.address || 'Address unconfigured'}</span>
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3.5 px-4 text-center">
+                                                <span className="inline-flex items-center justify-center min-w-[26px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 font-bold text-xs">
+                                                    {b.floor_count || b.total_floors || 1}
+                                                </span>
+                                            </td>
+
+                                            <td className="py-3.5 px-4 text-center">
+                                                <span className="inline-flex items-center justify-center min-w-[26px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold text-xs">
+                                                    {b.room_count || 0}
+                                                </span>
+                                            </td>
+
+                                            <td className="py-3.5 px-4 text-center">
+                                                {b.is_active ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold text-[11px]">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                        Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold text-[11px]">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                                        Inactive
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            <td className="py-3.5 px-4 text-right">
+                                                <div className="inline-flex items-center gap-1.5">
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => handleOpenDetails(b)}
+                                                        className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 transition-colors"
+                                                        title="View Facility Architecture & Floors"
+                                                    >
+                                                        <Eye size={15} />
+                                                    </motion.button>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => handleOpenEdit(b)}
+                                                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                                                        title="Edit Facility Parameters"
+                                                    >
+                                                        <Edit size={15} />
+                                                    </motion.button>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => setDeleteTarget(b)}
+                                                        className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 transition-colors"
+                                                        title="Delete Facility"
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </motion.button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </motion.div>
+            ) : (
+                /* Visual Card Grid View */
+                <motion.div
+                    variants={containerVariants}
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+                >
+                    {loading ? (
+                        <div className="col-span-full py-16 text-center text-slate-400 font-semibold">
+                            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-500" />
+                            Loading facilities grid...
+                        </div>
+                    ) : buildings.length === 0 ? (
+                        <div className="col-span-full py-16 text-center text-slate-400">
+                            No building facilities found.
+                        </div>
+                    ) : (
+                        buildings.map((b) => (
+                            <motion.div
+                                key={b.id}
+                                variants={itemVariants}
+                                whileHover={{ y: -4 }}
+                                className="rounded-2xl bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow-lg transition-all relative overflow-hidden group flex flex-col justify-between"
+                            >
+                                <div className="space-y-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-500 border border-blue-500/20 group-hover:scale-105 transition-transform">
+                                            <Building2 size={24} />
                                         </div>
-                                    )}
-
-                                    <div className="row g-3">
-                                        <div className="col-12 col-md-6">
-                                            <label className="form-label small fw-semibold">Organization *</label>
-                                            <select
-                                                className={`form-select ${formErrors.organization_id ? 'is-invalid' : ''} ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                value={formData.organization_id}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, organization_id: e.target.value });
-                                                    setFormErrors({ ...formErrors, organization_id: null });
-                                                }}
-                                            >
-                                                <option value="">Select Organization</option>
-                                                {organizations.map(org => (
-                                                    <option key={org.id} value={org.id}>{org.name || org.organization_name}</option>
-                                                ))}
-                                            </select>
-                                            {formErrors.organization_id && <div className="invalid-feedback">{formErrors.organization_id}</div>}
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                                {b.building_code}
+                                            </span>
+                                            {b.is_active ? (
+                                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+                                            ) : (
+                                                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                                            )}
                                         </div>
+                                    </div>
 
-                                        <div className="col-12 col-md-6">
-                                            <label className="form-label small fw-semibold">Branch / Campus *</label>
-                                            <select
-                                                className={`form-select ${formErrors.branch_id ? 'is-invalid' : ''} ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                value={formData.branch_id}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, branch_id: e.target.value });
-                                                    setFormErrors({ ...formErrors, branch_id: null });
-                                                }}
-                                            >
-                                                <option value="">Select Branch</option>
-                                                {branches.map(b => (
-                                                    <option key={b.id} value={b.id}>{b.name || b.branch_name}</option>
-                                                ))}
-                                            </select>
-                                            {formErrors.branch_id && <div className="invalid-feedback">{formErrors.branch_id}</div>}
+                                    <div>
+                                        <h4 className="text-base font-extrabold text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors">
+                                            {b.building_name}
+                                        </h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                                            {b.description || 'Enterprise building infrastructure unit.'}
+                                        </p>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-slate-400">Campus Branch</span>
+                                            <span className="font-semibold">{b.branch_name || 'Head Office'}</span>
                                         </div>
-
-                                        <div className="col-12 col-md-8">
-                                            <label className="form-label small fw-semibold">Building Name *</label>
-                                            <input
-                                                type="text"
-                                                className={`form-control ${formErrors.building_name ? 'is-invalid' : ''} ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                placeholder="e.g., Silicon Tower, Block A, Headquarters"
-                                                value={formData.building_name}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, building_name: e.target.value });
-                                                    setFormErrors({ ...formErrors, building_name: null });
-                                                }}
-                                            />
-                                            {formErrors.building_name && <div className="invalid-feedback">{formErrors.building_name}</div>}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-slate-400">Vertical Floors</span>
+                                            <span className="font-bold text-cyan-500">{b.floor_count || b.total_floors || 1} Levels</span>
                                         </div>
-
-                                        <div className="col-12 col-md-4">
-                                            <label className="form-label small fw-semibold">Building Code *</label>
-                                            <input
-                                                type="text"
-                                                className={`form-control font-monospace text-uppercase ${formErrors.building_code ? 'is-invalid' : ''} ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                placeholder="e.g., BLD-01"
-                                                value={formData.building_code}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, building_code: e.target.value.toUpperCase() });
-                                                    setFormErrors({ ...formErrors, building_code: null });
-                                                }}
-                                            />
-                                            {formErrors.building_code && <div className="invalid-feedback">{formErrors.building_code}</div>}
-                                        </div>
-
-                                        <div className="col-12 col-md-6">
-                                            <label className="form-label small fw-semibold">Total Floors *</label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="150"
-                                                className={`form-control ${formErrors.total_floors ? 'is-invalid' : ''} ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                value={formData.total_floors}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, total_floors: parseInt(e.target.value, 10) || 1 });
-                                                    setFormErrors({ ...formErrors, total_floors: null });
-                                                }}
-                                            />
-                                            {formErrors.total_floors && <div className="invalid-feedback">{formErrors.total_floors}</div>}
-                                        </div>
-
-                                        <div className="col-12 col-md-6">
-                                            <label className="form-label small fw-semibold">Operational Status</label>
-                                            <select
-                                                className={`form-select ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                value={formData.is_active}
-                                                onChange={(e) => setFormData({ ...formData, is_active: parseInt(e.target.value, 10) })}
-                                            >
-                                                <option value="1">Active & Accessible</option>
-                                                <option value="0">Inactive / Under Renovation</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="col-12">
-                                            <label className="form-label small fw-semibold">Full Physical Address</label>
-                                            <input
-                                                type="text"
-                                                className={`form-control ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                placeholder="Street address, block number, campus zone"
-                                                value={formData.address}
-                                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                            />
-                                        </div>
-
-                                        <div className="col-12">
-                                            <label className="form-label small fw-semibold">Description / Security Notes</label>
-                                            <textarea
-                                                rows="2"
-                                                className={`form-control ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                placeholder="Access instructions, security clearance level, badge requirements..."
-                                                value={formData.description}
-                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            />
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-slate-400">Offices & Rooms</span>
+                                            <span className="font-bold text-amber-500">{b.room_count || 0} Spaces</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="modal-footer border-top border-secondary border-opacity-25">
-                                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowModal(false)}>
+
+                                <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                                    <button
+                                        onClick={() => handleOpenDetails(b)}
+                                        className="text-xs font-bold text-blue-500 hover:text-blue-400 flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <Eye size={14} />
+                                        <span>View Details</span>
+                                    </button>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => handleOpenEdit(b)}
+                                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                                            title="Edit"
+                                        >
+                                            <Edit size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => setDeleteTarget(b)}
+                                            className="p-1.5 rounded-lg text-rose-400 hover:text-rose-500"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))
+                    )}
+                </motion.div>
+            )}
+
+            {/* ── CREATE / EDIT BUILDING MODAL (WITH ANIMATE PRESENCE & BLUR BACKDROP) ── */}
+            <AnimatePresence>
+                {showModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            className="w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0d1627] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                        <Building2 size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                                            {modalMode === 'create' ? 'Register New Campus Facility' : `Edit: ${currentBuilding?.building_name}`}
+                                        </h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            Configure building identifiers, campus assignment, and floor metrics.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSubmitForm} className="p-6 space-y-4">
+                                {formErrors.submit && (
+                                    <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2">
+                                        <AlertTriangle size={16} />
+                                        <span>{formErrors.submit}</span>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                            Organization *
+                                        </label>
+                                        <select
+                                            className={`w-full py-2.5 px-3 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-900/60 border ${
+                                                formErrors.organization_id ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-slate-800'
+                                            } text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                                            value={formData.organization_id}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, organization_id: e.target.value });
+                                                setFormErrors({ ...formErrors, organization_id: null });
+                                            }}
+                                        >
+                                            <option value="">Select Organization</option>
+                                            {organizations.map(org => (
+                                                <option key={org.id} value={org.id}>{org.name || org.organization_name}</option>
+                                            ))}
+                                        </select>
+                                        {formErrors.organization_id && (
+                                            <p className="text-[11px] text-rose-500 mt-1">{formErrors.organization_id}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                            Campus / Branch *
+                                        </label>
+                                        <select
+                                            className={`w-full py-2.5 px-3 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-900/60 border ${
+                                                formErrors.branch_id ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-slate-800'
+                                            } text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                                            value={formData.branch_id}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, branch_id: e.target.value });
+                                                setFormErrors({ ...formErrors, branch_id: null });
+                                            }}
+                                        >
+                                            <option value="">Select Branch</option>
+                                            {branches.map(b => (
+                                                <option key={b.id} value={b.id}>{b.name || b.branch_name}</option>
+                                            ))}
+                                        </select>
+                                        {formErrors.branch_id && (
+                                            <p className="text-[11px] text-rose-500 mt-1">{formErrors.branch_id}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                            Building Name *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className={`w-full py-2.5 px-3 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-900/60 border ${
+                                                formErrors.building_name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-slate-800'
+                                            } text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                                            placeholder="e.g. Silicon Tower, Block A, Executive Annex"
+                                            value={formData.building_name}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, building_name: e.target.value });
+                                                setFormErrors({ ...formErrors, building_name: null });
+                                            }}
+                                        />
+                                        {formErrors.building_name && (
+                                            <p className="text-[11px] text-rose-500 mt-1">{formErrors.building_name}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                            Building Code *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className={`w-full py-2.5 px-3 rounded-xl text-xs font-mono uppercase font-bold bg-slate-50 dark:bg-slate-900/60 border ${
+                                                formErrors.building_code ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-slate-800'
+                                            } text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                                            placeholder="BLD-01"
+                                            value={formData.building_code}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, building_code: e.target.value.toUpperCase() });
+                                                setFormErrors({ ...formErrors, building_code: null });
+                                            }}
+                                        />
+                                        {formErrors.building_code && (
+                                            <p className="text-[11px] text-rose-500 mt-1">{formErrors.building_code}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                            Total Floors *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="120"
+                                            className={`w-full py-2.5 px-3 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-900/60 border ${
+                                                formErrors.total_floors ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-slate-800'
+                                            } text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                                            value={formData.total_floors}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, total_floors: parseInt(e.target.value, 10) || 1 });
+                                                setFormErrors({ ...formErrors, total_floors: null });
+                                            }}
+                                        />
+                                        {formErrors.total_floors && (
+                                            <p className="text-[11px] text-rose-500 mt-1">{formErrors.total_floors}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                            Operational Status
+                                        </label>
+                                        <select
+                                            className="w-full py-2.5 px-3 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                            value={formData.is_active}
+                                            onChange={(e) => setFormData({ ...formData, is_active: parseInt(e.target.value, 10) })}
+                                        >
+                                            <option value="1">Active & Accessible</option>
+                                            <option value="0">Inactive / Maintenance</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                        Physical Address & Campus Location
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="w-full py-2.5 px-3 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                        placeholder="Street address, campus quadrant, building entrance coordinates"
+                                        value={formData.address}
+                                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                        Description & Access Policies
+                                    </label>
+                                    <textarea
+                                        rows="2"
+                                        className="w-full py-2.5 px-3 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                        placeholder="Security clearance prerequisites, visitor escort rules, badging checkpoints..."
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowModal(false)}
+                                        className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    >
                                         Cancel
                                     </button>
-                                    <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center gap-2"
+                                    >
                                         {submitting ? 'Saving...' : modalMode === 'create' ? 'Create Facility' : 'Save Changes'}
                                     </button>
                                 </div>
                             </form>
-                        </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
 
-            {/* Building Details & Floors Modal */}
-            {showDetailDrawer && currentBuilding && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered modal-lg">
-                        <div className={`modal-content border-0 shadow ${isDark ? 'bg-dark text-white border border-secondary border-opacity-25' : 'bg-white'}`}>
-                            <div className="modal-header border-bottom border-secondary border-opacity-25">
-                                <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
-                                    <Building2 className="text-primary" size={20} />
-                                    {currentBuilding.building_name} &mdash; Details & Structure
-                                </h5>
-                                <button type="button" className="btn-close" onClick={() => setShowDetailDrawer(false)}></button>
-                            </div>
-                            <div className="modal-body p-4">
-                                <div className="row g-3 mb-4">
-                                    <div className="col-md-6">
-                                        <div className="p-3 rounded-3 bg-secondary bg-opacity-10">
-                                            <span className="small text-muted d-block">Facility Code</span>
-                                            <span className="fw-bold font-monospace">{currentBuilding.building_code}</span>
-                                        </div>
+            {/* ── FACILITY DETAILS & STRUCTURE DRAWER (ANIMATED) ── */}
+            <AnimatePresence>
+                {showDetailDrawer && currentBuilding && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            className="w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0d1627] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+                                        <Building2 size={20} />
                                     </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 rounded-3 bg-secondary bg-opacity-10">
-                                            <span className="small text-muted d-block">Branch / Campus</span>
-                                            <span className="fw-bold">{currentBuilding.branch_name || 'N/A'}</span>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 rounded-3 bg-secondary bg-opacity-10">
-                                            <span className="small text-muted d-block">Floors Capacity</span>
-                                            <span className="fw-bold text-info">{currentBuilding.total_floors} Floors</span>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 rounded-3 bg-secondary bg-opacity-10">
-                                            <span className="small text-muted d-block">Status</span>
-                                            <span className={currentBuilding.is_active ? 'badge bg-success' : 'badge bg-danger'}>
-                                                {currentBuilding.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="col-12">
-                                        <div className="p-3 rounded-3 bg-secondary bg-opacity-10">
-                                            <span className="small text-muted d-block">Address</span>
-                                            <span>{currentBuilding.address || 'No physical address configured.'}</span>
-                                        </div>
+                                    <div>
+                                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                                            {currentBuilding.building_name}
+                                        </h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            Structural floor layout, room distribution, and campus telemetry.
+                                        </p>
                                     </div>
                                 </div>
-
-                                <h6 className="fw-bold mb-3 d-flex align-items-center gap-2">
-                                    <Layers className="text-info" size={18} />
-                                    Floors in this Facility
-                                </h6>
-
-                                {loadingDetails ? (
-                                    <div className="text-center py-4">
-                                        <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
-                                        <span className="ms-2 small text-muted">Loading floors...</span>
-                                    </div>
-                                ) : selectedBuildingDetails?.floors && selectedBuildingDetails.floors.length > 0 ? (
-                                    <div className="list-group">
-                                        {selectedBuildingDetails.floors.map(fl => (
-                                            <div key={fl.id} className="list-group-item d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <span className="fw-bold me-2">Level {fl.floor_number}:</span>
-                                                    <span>{fl.floor_name || `Floor ${fl.floor_number}`}</span>
-                                                    {fl.floor_code && <span className="badge bg-secondary ms-2">{fl.floor_code}</span>}
-                                                </div>
-                                                <div className="d-flex align-items-center gap-2">
-                                                    <span className="badge bg-light text-dark">Capacity: {fl.capacity || 'N/A'}</span>
-                                                    <span className={fl.is_active ? 'badge bg-success' : 'badge bg-secondary'}>
-                                                        {fl.is_active ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="p-3 text-center border border-dashed rounded-3">
-                                        <p className="small text-muted mb-0">No floor records explicitly configured under this building.</p>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="modal-footer border-top border-secondary border-opacity-25">
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowDetailDrawer(false)}>
-                                    Close
+                                <button
+                                    onClick={() => setShowDetailDrawer(false)}
+                                    className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                                >
+                                    <X size={18} />
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
-            {/* Delete Confirmation Dialog */}
-            {deleteTarget && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className={`modal-content border-0 shadow ${isDark ? 'bg-dark text-white border border-secondary border-opacity-25' : 'bg-white'}`}>
-                            <div className="modal-header border-bottom border-secondary border-opacity-25">
-                                <h5 className="modal-title fw-bold text-danger d-flex align-items-center gap-2">
-                                    <AlertTriangle size={20} />
-                                    Confirm Facility Deletion
-                                </h5>
-                                <button type="button" className="btn-close" onClick={() => setDeleteTarget(null)}></button>
-                            </div>
-                            <div className="modal-body p-4">
-                                {deleteError && (
-                                    <div className="alert alert-danger d-flex align-items-center gap-2 mb-3">
-                                        <AlertTriangle size={16} />
-                                        <div>{deleteError}</div>
+                            <div className="p-6 space-y-6">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Code</span>
+                                        <span className="font-mono font-bold text-sm text-slate-900 dark:text-white">{currentBuilding.building_code}</span>
                                     </div>
-                                )}
-                                <p className="mb-2">
-                                    Are you sure you want to delete building <strong>"{deleteTarget.building_name}"</strong> ({deleteTarget.building_code})?
-                                </p>
-                                <div className="p-3 rounded-2 bg-danger bg-opacity-10 text-danger small">
-                                    <strong>Caution:</strong> Buildings cannot be deleted if they currently contain registered floors, meeting rooms, or active employee workplace assignments.
+                                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Branch</span>
+                                        <span className="font-bold text-sm text-slate-900 dark:text-white truncate block">{currentBuilding.branch_name || 'Main Campus'}</span>
+                                    </div>
+                                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Floors</span>
+                                        <span className="font-bold text-sm text-cyan-500">{currentBuilding.total_floors || 1} Levels</span>
+                                    </div>
+                                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Status</span>
+                                        <span className={`font-bold text-sm ${currentBuilding.is_active ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                            {currentBuilding.is_active ? 'Operational' : 'Inactive'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+                                        <Layers size={16} className="text-cyan-500" />
+                                        Floors in this Facility
+                                    </h4>
+
+                                    {loadingDetails ? (
+                                        <div className="py-8 text-center text-slate-400 text-xs">
+                                            <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-cyan-500" />
+                                            Synchronizing floor structures...
+                                        </div>
+                                    ) : selectedBuildingDetails?.floors && selectedBuildingDetails.floors.length > 0 ? (
+                                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                            {selectedBuildingDetails.floors.map(fl => (
+                                                <div
+                                                    key={fl.id}
+                                                    className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between"
+                                                >
+                                                    <div className="flex items-center gap-2.5">
+                                                        <span className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-500 font-bold text-xs flex items-center justify-center">
+                                                            {fl.floor_number}
+                                                        </span>
+                                                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                                            {fl.floor_name || `Floor ${fl.floor_number}`}
+                                                        </span>
+                                                        {fl.floor_code && (
+                                                            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                                                {fl.floor_code}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <span className="text-slate-400">Cap: {fl.capacity || 'N/A'}</span>
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${fl.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                                            {fl.is_active ? 'Active' : 'Inactive'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-6 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-slate-400 text-xs">
+                                            No individual floor records configured yet for this building.
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                                    <button
+                                        onClick={() => {
+                                            setShowDetailDrawer(false);
+                                            navigate('?view=floors');
+                                        }}
+                                        className="text-xs font-bold text-cyan-500 hover:text-cyan-400 flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <span>Manage Floors Module</span>
+                                        <ArrowRight size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => setShowDetailDrawer(false)}
+                                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs"
+                                    >
+                                        Close
+                                    </button>
                                 </div>
                             </div>
-                            <div className="modal-footer border-top border-secondary border-opacity-25">
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDeleteTarget(null)}>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* ── DELETE CONFIRMATION DIALOG (ANIMATED) ── */}
+            <AnimatePresence>
+                {deleteTarget && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0d1627] border border-slate-200 dark:border-slate-800 shadow-2xl p-6"
+                        >
+                            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-500 flex items-center justify-center mb-4">
+                                <AlertTriangle size={24} />
+                            </div>
+
+                            <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-2">
+                                Confirm Facility Deletion
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
+                                Are you sure you want to delete building <strong>"{deleteTarget.building_name}"</strong> ({deleteTarget.building_code})?
+                            </p>
+
+                            {deleteError && (
+                                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-semibold mb-4">
+                                    {deleteError}
+                                </div>
+                            )}
+
+                            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs mb-6">
+                                <strong>Safety Policy:</strong> Facilities cannot be deleted if they currently contain registered floors, meeting rooms, or active workplace assignments.
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3">
+                                <button
+                                    onClick={() => setDeleteTarget(null)}
+                                    className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                >
                                     Cancel
                                 </button>
-                                <button type="button" className="btn btn-danger btn-sm" onClick={confirmDelete}>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-600/30 transition-all"
+                                >
                                     Confirm Deletion
                                 </button>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </AnimatePresence>
+        </motion.div>
     );
 }

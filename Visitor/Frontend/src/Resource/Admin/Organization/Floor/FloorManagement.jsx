@@ -1,13 +1,132 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Layers, Building2, Plus, Search, Filter, RefreshCw, Edit, Trash2, Eye,
-    CheckCircle, XCircle, AlertTriangle, DoorOpen, Users, MapPin, X
+    CheckCircle, XCircle, AlertTriangle, DoorOpen, Users, MapPin, X,
+    Sparkles, ArrowRight, Shield, List, LayoutGrid
 } from 'lucide-react';
 import locationService from '../../../../services/locationService';
 import { useTheme } from '../../../../theme/ThemeContext';
 
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.07,
+            delayChildren: 0.05
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 18, scale: 0.98 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: { type: 'spring', stiffness: 280, damping: 22 }
+    }
+};
+
+const THEME_STYLES = {
+    cyan: {
+        barColor: '#06b6d4',
+        hoverBarColor: '#22d3ee',
+        darkHoverBg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(22, 78, 99, 0.15) 55%, transparent 100%)',
+        iconBg: 'rgba(6, 182, 212, 0.15)',
+        iconBorder: 'rgba(6, 182, 212, 0.3)',
+        iconColor: '#06b6d4',
+    },
+    emerald: {
+        barColor: '#10b981',
+        hoverBarColor: '#34d399',
+        darkHoverBg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 78, 59, 0.15) 55%, transparent 100%)',
+        iconBg: 'rgba(16, 185, 129, 0.15)',
+        iconBorder: 'rgba(16, 185, 129, 0.3)',
+        iconColor: '#10b981',
+    },
+    amber: {
+        barColor: '#f59e0b',
+        hoverBarColor: '#fbbf24',
+        darkHoverBg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(120, 53, 15, 0.15) 55%, transparent 100%)',
+        iconBg: 'rgba(245, 158, 11, 0.15)',
+        iconBorder: 'rgba(245, 158, 11, 0.3)',
+        iconColor: '#f59e0b',
+    },
+    blue: {
+        barColor: '#3b82f6',
+        hoverBarColor: '#60a5fa',
+        darkHoverBg: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 58, 138, 0.15) 55%, transparent 100%)',
+        iconBg: 'rgba(59, 130, 246, 0.15)',
+        iconBorder: 'rgba(59, 130, 246, 0.3)',
+        iconColor: '#3b82f6',
+    }
+};
+
+function KpiCard({ title, value, subtitle, icon, theme = 'cyan', onClick }) {
+    const [hovered, setHovered] = useState(false);
+    const styles = THEME_STYLES[theme] || THEME_STYLES.cyan;
+
+    return (
+        <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -4, scale: 1.015 }}
+            whileTap={{ scale: 0.985 }}
+            onClick={onClick}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            className={`border rounded-2xl p-4 sm:p-5 pl-5 sm:pl-6 min-h-[148px] flex flex-col justify-between transition-all duration-300 relative overflow-hidden group cursor-pointer bg-white dark:bg-[#0b1220] border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-700 ${hovered ? 'shadow-xl' : ''}`}
+        >
+            <div
+                style={{
+                    background: hovered ? styles.darkHoverBg : 'transparent',
+                    opacity: hovered ? 1 : 0,
+                }}
+                className="absolute inset-0 transition-opacity duration-300 pointer-events-none block"
+            />
+            <div
+                style={{
+                    backgroundColor: hovered ? styles.hoverBarColor : styles.barColor,
+                    boxShadow: hovered ? `0 0 16px ${styles.barColor}` : `0 0 8px ${styles.barColor}`,
+                }}
+                className="absolute left-0 top-0 bottom-0 w-[6px] rounded-l-2xl transition-all duration-300 group-hover:w-[10px] z-10"
+            />
+
+            <div className="flex items-start justify-between relative z-10 gap-2">
+                <span className="text-[11px] xl:text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-tight min-w-0 pr-1">
+                    {title}
+                </span>
+                <div
+                    style={{
+                        backgroundColor: styles.iconBg,
+                        borderColor: styles.iconBorder,
+                        color: styles.iconColor,
+                    }}
+                    className="p-2 sm:p-2.5 rounded-xl border flex items-center justify-center group-hover:scale-110 transition-all shadow-sm shrink-0"
+                >
+                    {icon}
+                </div>
+            </div>
+
+            <div className="mt-2 relative z-10">
+                <div className="flex items-baseline space-x-2">
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight group-hover:translate-x-0.5 transition-transform">
+                        {value}
+                    </h2>
+                </div>
+                <div className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 font-semibold mt-0.5 transition-colors">
+                    {subtitle}
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
 export default function FloorManagement() {
     const { isDark } = useTheme();
+    const navigate = useNavigate();
 
     // Data states
     const [floors, setFloors] = useState([]);
@@ -51,7 +170,7 @@ export default function FloorManagement() {
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleteError, setDeleteError] = useState(null);
 
-    // Load initial reference data
+    // Reference data
     useEffect(() => {
         loadInitialData();
     }, []);
@@ -67,7 +186,6 @@ export default function FloorManagement() {
         }
     };
 
-    // Load branches when organization changes
     useEffect(() => {
         async function fetchBranches() {
             try {
@@ -111,7 +229,7 @@ export default function FloorManagement() {
         fetchFloors();
     };
 
-    // Open Create Modal
+    // Create modal
     const handleOpenCreate = () => {
         setModalMode('create');
         setCurrentFloor(null);
@@ -128,7 +246,7 @@ export default function FloorManagement() {
         setShowModal(true);
     };
 
-    // Open Edit Modal
+    // Edit modal
     const handleOpenEdit = (floor) => {
         setModalMode('edit');
         setCurrentFloor(floor);
@@ -160,7 +278,7 @@ export default function FloorManagement() {
         }
     };
 
-    // Validate Form
+    // Validate
     const validateForm = () => {
         const errors = {};
         if (!formData.building_id) errors.building_id = 'Building is required';
@@ -171,7 +289,7 @@ export default function FloorManagement() {
         return Object.keys(errors).length === 0;
     };
 
-    // Submit Form
+    // Submit
     const handleSubmitForm = async (e) => {
         e.preventDefault();
         if (!validateForm()) return;
@@ -196,7 +314,7 @@ export default function FloorManagement() {
         }
     };
 
-    // Delete confirmation
+    // Confirm Delete
     const confirmDelete = async () => {
         if (!deleteTarget) return;
         setDeleteError(null);
@@ -218,140 +336,220 @@ export default function FloorManagement() {
     const totalCapacity = floors.reduce((acc, f) => acc + (parseInt(f.capacity, 10) || 0), 0);
     const totalRooms = floors.reduce((acc, f) => acc + (parseInt(f.room_count, 10) || 0), 0);
 
+    const facilityNavItems = [
+        { key: 'buildings', label: 'Buildings & Facilities', active: false, path: '?view=buildings', icon: Building2 },
+        { key: 'floors', label: 'Floors & Levels', active: true, path: '?view=floors', icon: Layers },
+        { key: 'rooms', label: 'Meeting Rooms & Offices', active: false, path: '?view=rooms', icon: DoorOpen },
+        { key: 'workplace', label: 'Workplace Desks & Locations', active: false, path: '?view=workplace', icon: MapPin },
+    ];
+
     return (
-        <div className={`p-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            {/* Header */}
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-                <div>
-                    <h4 className="fw-bold mb-1 d-flex align-items-center gap-2">
-                        <Layers className="text-info" size={26} />
-                        Floor & Level Management
-                    </h4>
-                    <p className={`small mb-0 ${isDark ? 'text-slate-400' : 'text-muted'}`}>
-                        Configure building vertical architecture, floor capacities, zones, and security perimeters.
-                    </p>
+        <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            className="space-y-6 transition-colors"
+        >
+            {/* Top Hero Banner */}
+            <motion.div
+                variants={itemVariants}
+                className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0d1527] via-[#111a33] to-[#0a1020] border border-slate-800 p-7 md:p-9 shadow-2xl transition-colors"
+            >
+                <div className="absolute top-0 left-0 right-0 h-16 overflow-hidden pointer-events-none opacity-80">
+                    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="relative block w-full h-full">
+                        <path d="M0,0 C180,90 380,-30 550,55 C720,130 950,15 1200,35 L1200,0 L0,0 Z" fill="url(#topWaveFloor)"></path>
+                        <defs>
+                            <linearGradient id="topWaveFloor" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#0f3875" />
+                                <stop offset="50%" stopColor="#0284c7" />
+                                <stop offset="100%" stopColor="#06b6d4" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
                 </div>
-                <div className="d-flex align-items-center gap-2">
-                    <button
-                        onClick={handleRefresh}
-                        className={`btn btn-sm ${isDark ? 'btn-outline-secondary text-white' : 'btn-outline-secondary'} d-flex align-items-center gap-1`}
-                        disabled={refreshing}
-                    >
-                        <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
-                        Refresh
-                    </button>
-                    <button
-                        onClick={handleOpenCreate}
-                        className="btn btn-sm btn-info text-white d-flex align-items-center gap-1 shadow-sm"
-                    >
-                        <Plus size={16} />
-                        Add Floor
-                    </button>
+                <div className="absolute bottom-0 left-0 right-0 h-14 overflow-hidden pointer-events-none opacity-80">
+                    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="relative block w-full h-full">
+                        <path d="M0,65 C320,125 620,15 920,95 C1070,130 1160,85 1200,65 L1200,120 L0,120 Z" fill="url(#bottomWaveFloor)"></path>
+                        <defs>
+                            <linearGradient id="bottomWaveFloor" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#06b6d4" />
+                                <stop offset="50%" stopColor="#0284c7" />
+                                <stop offset="100%" stopColor="#1d4ed8" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
                 </div>
-            </div>
 
-            {/* Notification Alerts */}
-            {successMessage && (
-                <div className="alert alert-success d-flex align-items-center gap-2 alert-dismissible fade show mb-4" role="alert">
-                    <CheckCircle size={18} />
-                    <div>{successMessage}</div>
-                    <button type="button" className="btn-close" onClick={() => setSuccessMessage(null)}></button>
-                </div>
-            )}
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 my-2">
+                    <div className="space-y-2.5">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 text-xs font-extrabold shadow-sm">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+                            </span>
+                            <span>Vertical Infrastructure • Floor & Level Architecture</span>
+                        </div>
 
-            {error && (
-                <div className="alert alert-danger d-flex align-items-center gap-2 alert-dismissible fade show mb-4" role="alert">
-                    <AlertTriangle size={18} />
-                    <div>{error}</div>
-                    <button type="button" className="btn-close" onClick={() => setError(null)}></button>
+                        <h1 className="!text-white text-2xl md:text-4xl font-extrabold tracking-tight flex items-center gap-3">
+                            <span>Floors & Architectural Levels</span>
+                            <Sparkles className="w-6 h-6 text-amber-400 animate-pulse" />
+                        </h1>
+                        <p className="!text-slate-300 text-sm max-w-2xl font-medium leading-relaxed">
+                            Organize structural storeys, safety evacuation boundaries, occupancy capacities, and designated departmental security zones.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={handleRefresh}
+                            disabled={refreshing}
+                            className="px-4 py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80 text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer backdrop-blur-md"
+                        >
+                            <RefreshCw className={`w-4 h-4 text-cyan-400 ${refreshing ? 'animate-spin' : ''}`} />
+                            <span>{refreshing ? 'Syncing...' : 'Sync Data'}</span>
+                        </motion.button>
+
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={handleOpenCreate}
+                            className="px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-600 via-blue-500 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 !text-white font-bold text-xs tracking-wide shadow-lg shadow-cyan-600/30 flex items-center gap-2 transition-all cursor-pointer border-0"
+                        >
+                            <Plus className="w-4 h-4 text-white" />
+                            <span className="!text-white font-bold">Add Floor Level</span>
+                        </motion.button>
+                    </div>
                 </div>
-            )}
+            </motion.div>
+
+            {/* Navigation Pills */}
+            <motion.div variants={itemVariants} className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {facilityNavItems.map((nav) => {
+                    const Icon = nav.icon;
+                    return (
+                        <button
+                            key={nav.key}
+                            onClick={() => {
+                                if (!nav.active) {
+                                    navigate(nav.path);
+                                }
+                            }}
+                            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                                nav.active
+                                    ? 'bg-[#18233c] text-white border-cyan-500/50 shadow-md shadow-cyan-500/10'
+                                    : 'bg-white dark:bg-[#0b1220] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            {nav.active && (
+                                <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] shrink-0" />
+                            )}
+                            <Icon size={16} className={nav.active ? 'text-cyan-400' : 'text-slate-400'} />
+                            <span>{nav.label}</span>
+                        </button>
+                    );
+                })}
+            </motion.div>
+
+            {/* Alerts */}
+            <AnimatePresence>
+                {successMessage && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-semibold flex items-center justify-between shadow-lg"
+                    >
+                        <div className="flex items-center gap-3">
+                            <CheckCircle size={20} className="text-emerald-400 shrink-0" />
+                            <span>{successMessage}</span>
+                        </div>
+                        <button onClick={() => setSuccessMessage(null)} className="text-emerald-400 hover:text-white">
+                            <X size={18} />
+                        </button>
+                    </motion.div>
+                )}
+
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-sm font-semibold flex items-center justify-between shadow-lg"
+                    >
+                        <div className="flex items-center gap-3">
+                            <AlertTriangle size={20} className="text-rose-400 shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                        <button onClick={() => setError(null)} className="text-rose-400 hover:text-white">
+                            <X size={18} />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* KPI Cards */}
-            <div className="row g-3 mb-4">
-                <div className="col-12 col-sm-6 col-xl-3">
-                    <div className={`card border-0 shadow-sm rounded-3 p-3 ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                        <div className="d-flex align-items-center justify-content-between">
-                            <div>
-                                <span className={`text-uppercase small fw-bold ${isDark ? 'text-slate-400' : 'text-muted'}`}>Total Floors</span>
-                                <h3 className="fw-bold mb-0 mt-1">{totalFloors}</h3>
-                            </div>
-                            <div className="p-3 rounded-3 bg-info bg-opacity-10 text-info">
-                                <Layers size={24} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-12 col-sm-6 col-xl-3">
-                    <div className={`card border-0 shadow-sm rounded-3 p-3 ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                        <div className="d-flex align-items-center justify-content-between">
-                            <div>
-                                <span className={`text-uppercase small fw-bold ${isDark ? 'text-slate-400' : 'text-muted'}`}>Active Levels</span>
-                                <h3 className="fw-bold mb-0 mt-1 text-success">{activeFloors}</h3>
-                            </div>
-                            <div className="p-3 rounded-3 bg-success bg-opacity-10 text-success">
-                                <CheckCircle size={24} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-12 col-sm-6 col-xl-3">
-                    <div className={`card border-0 shadow-sm rounded-3 p-3 ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                        <div className="d-flex align-items-center justify-content-between">
-                            <div>
-                                <span className={`text-uppercase small fw-bold ${isDark ? 'text-slate-400' : 'text-muted'}`}>Rooms Installed</span>
-                                <h3 className="fw-bold mb-0 mt-1 text-warning">{totalRooms}</h3>
-                            </div>
-                            <div className="p-3 rounded-3 bg-warning bg-opacity-10 text-warning">
-                                <DoorOpen size={24} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-12 col-sm-6 col-xl-3">
-                    <div className={`card border-0 shadow-sm rounded-3 p-3 ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                        <div className="d-flex align-items-center justify-content-between">
-                            <div>
-                                <span className={`text-uppercase small fw-bold ${isDark ? 'text-slate-400' : 'text-muted'}`}>Total Max Capacity</span>
-                                <h3 className="fw-bold mb-0 mt-1 text-primary">{totalCapacity}</h3>
-                            </div>
-                            <div className="p-3 rounded-3 bg-primary bg-opacity-10 text-primary">
-                                <Users size={24} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard
+                    title="Total Floor Levels"
+                    value={totalFloors}
+                    subtitle="Vertical architectural storeys"
+                    icon={<Layers size={22} />}
+                    theme="cyan"
+                />
+                <KpiCard
+                    title="Active Operational Levels"
+                    value={activeFloors}
+                    subtitle={`${totalFloors > 0 ? Math.round((activeFloors / totalFloors) * 100) : 100}% occupancy ready`}
+                    icon={<CheckCircle size={22} />}
+                    theme="emerald"
+                />
+                <KpiCard
+                    title="Rooms & Suites Configured"
+                    value={totalRooms}
+                    subtitle="Offices & meeting spaces"
+                    icon={<DoorOpen size={22} />}
+                    theme="amber"
+                    onClick={() => navigate('?view=rooms')}
+                />
+                <KpiCard
+                    title="Total Seating Capacity"
+                    value={totalCapacity}
+                    subtitle="Maximum aggregate headcount"
+                    icon={<Users size={22} />}
+                    theme="blue"
+                />
             </div>
 
-            {/* Filter Bar */}
-            <div className={`card border-0 shadow-sm rounded-3 p-3 mb-4 ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                <div className="row g-2 align-items-center">
-                    <div className="col-12 col-md-4">
-                        <div className="input-group input-group-sm">
-                            <span className={`input-group-text ${isDark ? 'bg-secondary bg-opacity-25 border-secondary text-slate-300' : ''}`}>
-                                <Search size={15} />
-                            </span>
-                            <input
-                                type="text"
-                                className={`form-control ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                placeholder="Search floor name, code, level..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            {searchTerm && (
-                                <button className="btn btn-outline-secondary" onClick={() => setSearchTerm('')}>
-                                    <X size={14} />
-                                </button>
-                            )}
-                        </div>
+            {/* Filter Controls */}
+            <motion.div
+                variants={itemVariants}
+                className="rounded-2xl bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
+            >
+                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+                        <input
+                            type="text"
+                            className="w-full pl-10 pr-9 py-2.5 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                            placeholder="Search floor name, code, level index..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        {searchTerm && (
+                            <button
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
                     </div>
 
-                    <div className="col-6 col-md-4">
+                    <div className="flex flex-wrap items-center gap-2.5">
                         <select
-                            className={`form-select form-select-sm ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
+                            className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                             value={selectedBuilding}
                             onChange={(e) => setSelectedBuilding(e.target.value)}
                         >
@@ -360,11 +558,9 @@ export default function FloorManagement() {
                                 <option key={b.id} value={b.id}>{b.building_name} ({b.building_code})</option>
                             ))}
                         </select>
-                    </div>
 
-                    <div className="col-6 col-md-4">
                         <select
-                            className={`form-select form-select-sm ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
+                            className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
                         >
@@ -374,120 +570,140 @@ export default function FloorManagement() {
                         </select>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
-            {/* Floor Table */}
-            <div className={`card border-0 shadow-sm rounded-3 overflow-hidden ${isDark ? 'bg-dark border border-secondary border-opacity-25' : 'bg-white'}`}>
-                <div className="table-responsive">
-                    <table className={`table align-middle mb-0 ${isDark ? 'table-dark' : 'table-hover'}`}>
-                        <thead className={isDark ? 'table-dark' : 'table-light'}>
-                            <tr>
-                                <th>Level</th>
-                                <th>Floor Name</th>
-                                <th>Code</th>
-                                <th>Facility / Building</th>
-                                <th className="text-center">Capacity</th>
-                                <th className="text-center">Rooms</th>
-                                <th>Status</th>
-                                <th className="text-end">Actions</th>
+            {/* Table */}
+            <motion.div
+                variants={itemVariants}
+                className="rounded-2xl bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+            >
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/50">
+                                <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Level</th>
+                                <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Floor Name</th>
+                                <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Code</th>
+                                <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Facility / Building</th>
+                                <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">Capacity</th>
+                                <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">Rooms</th>
+                                <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">Status</th>
+                                <th className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="8" className="text-center py-5">
-                                        <div className="spinner-border text-info" role="status"></div>
-                                        <p className="small text-muted mt-2">Loading floor directory...</p>
+                                    <td colSpan="8" className="py-16 text-center">
+                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/10 text-cyan-500 font-semibold">
+                                            <RefreshCw className="w-4 h-4 animate-spin" />
+                                            <span>Loading floor records...</span>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : floors.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="text-center py-5">
-                                        <Layers size={40} className="text-muted mb-2 opacity-50" />
-                                        <h6 className="fw-bold mb-1">No Floors Configured</h6>
-                                        <p className="small text-muted mb-3">Add floor levels to your buildings to map meeting rooms and desks.</p>
-                                        <button onClick={handleOpenCreate} className="btn btn-sm btn-info text-white">
-                                            <Plus size={14} className="me-1" /> Add Floor
-                                        </button>
+                                    <td colSpan="8" className="py-16 text-center">
+                                        <div className="max-w-md mx-auto space-y-3">
+                                            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
+                                                <Layers size={24} />
+                                            </div>
+                                            <h4 className="text-sm font-bold text-slate-900 dark:text-white">No Floors Configured</h4>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                No floor records match your current criteria. Add levels to allocate rooms and workspaces.
+                                            </p>
+                                            <button
+                                                onClick={handleOpenCreate}
+                                                className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-1.5"
+                                            >
+                                                <Plus size={14} /> Add Floor Level
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
                                 floors.map(f => (
-                                    <tr key={f.id}>
-                                        <td>
-                                            <span className="badge bg-primary bg-opacity-10 text-primary fw-bold font-monospace px-2 py-1">
+                                    <tr key={f.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                                        <td className="py-3.5 px-4">
+                                            <span className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-500 font-mono font-bold text-xs inline-flex items-center justify-center border border-cyan-500/20">
                                                 L{f.floor_number}
                                             </span>
                                         </td>
-                                        <td>
-                                            <div className="fw-semibold">{f.floor_name}</div>
+                                        <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-white">
+                                            <div>{f.floor_name}</div>
                                             {f.description && (
-                                                <div className="small text-muted text-truncate" style={{ maxWidth: '220px' }}>
-                                                    {f.description}
-                                                </div>
+                                                <div className="text-[11px] text-slate-400 font-normal max-w-[200px] truncate">{f.description}</div>
                                             )}
                                         </td>
-                                        <td>
-                                            <span className="badge bg-secondary bg-opacity-25 text-body font-monospace px-2 py-1">
+                                        <td className="py-3.5 px-4">
+                                            <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 font-mono font-bold text-[11px] text-slate-700 dark:text-slate-300">
                                                 {f.floor_code}
                                             </span>
                                         </td>
-                                        <td>
-                                            <div className="d-flex align-items-center gap-1 small">
-                                                <Building2 size={14} className="text-primary" />
-                                                <span className="fw-medium">{f.building_name || 'N/A'}</span>
+                                        <td className="py-3.5 px-4">
+                                            <div className="flex items-center gap-1.5 font-medium text-slate-900 dark:text-white">
+                                                <Building2 size={14} className="text-blue-500" />
+                                                <span>{f.building_name || 'Main Campus'}</span>
                                             </div>
                                             {f.branch_name && (
-                                                <div className="small text-muted">{f.branch_name}</div>
+                                                <div className="text-[11px] text-slate-400">{f.branch_name}</div>
                                             )}
                                         </td>
-                                        <td className="text-center">
-                                            <span className="badge bg-light text-dark border px-2 py-1">
-                                                {f.capacity || 'N/A'} people
+                                        <td className="py-3.5 px-4 text-center">
+                                            <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-bold text-xs">
+                                                {f.capacity || 'N/A'}
                                             </span>
                                         </td>
-                                        <td className="text-center">
+                                        <td className="py-3.5 px-4 text-center">
                                             <button
                                                 onClick={() => handleOpenRooms(f)}
-                                                className="btn btn-sm btn-link text-warning text-decoration-none fw-bold p-0"
+                                                className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 font-bold text-xs transition-colors"
                                             >
                                                 {f.room_count || 0} Rooms
                                             </button>
                                         </td>
-                                        <td>
+                                        <td className="py-3.5 px-4 text-center">
                                             {f.is_active ? (
-                                                <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold text-[11px]">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                                     Active
                                                 </span>
                                             ) : (
-                                                <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold text-[11px]">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                                     Inactive
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="text-end">
-                                            <div className="d-flex align-items-center justify-content-end gap-1">
-                                                <button
+                                        <td className="py-3.5 px-4 text-right">
+                                            <div className="inline-flex items-center gap-1.5">
+                                                <motion.button
+                                                    whileHover={{ scale: 1.1 }}
+                                                    whileTap={{ scale: 0.95 }}
                                                     onClick={() => handleOpenRooms(f)}
-                                                    className="btn btn-sm btn-ghost p-1 text-warning"
+                                                    className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 transition-colors"
                                                     title="View Rooms on this Floor"
                                                 >
-                                                    <DoorOpen size={16} />
-                                                </button>
-                                                <button
+                                                    <DoorOpen size={15} />
+                                                </motion.button>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.1 }}
+                                                    whileTap={{ scale: 0.95 }}
                                                     onClick={() => handleOpenEdit(f)}
-                                                    className="btn btn-sm btn-ghost p-1 text-secondary"
+                                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
                                                     title="Edit Floor"
                                                 >
-                                                    <Edit size={16} />
-                                                </button>
-                                                <button
+                                                    <Edit size={15} />
+                                                </motion.button>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.1 }}
+                                                    whileTap={{ scale: 0.95 }}
                                                     onClick={() => setDeleteTarget(f)}
-                                                    className="btn btn-sm btn-ghost p-1 text-danger"
+                                                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 transition-colors"
                                                     title="Delete Floor"
                                                 >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                    <Trash2 size={15} />
+                                                </motion.button>
                                             </div>
                                         </td>
                                     </tr>
@@ -496,242 +712,239 @@ export default function FloorManagement() {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </motion.div>
 
-            {/* Create / Edit Modal */}
-            {showModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className={`modal-content border-0 shadow ${isDark ? 'bg-dark text-white border border-secondary border-opacity-25' : 'bg-white'}`}>
-                            <div className="modal-header border-bottom border-secondary border-opacity-25">
-                                <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
-                                    <Layers className="text-info" size={20} />
-                                    {modalMode === 'create' ? 'Add Building Floor' : `Edit Floor: ${currentFloor?.floor_name}`}
-                                </h5>
-                                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+            {/* Create/Edit Modal */}
+            <AnimatePresence>
+                {showModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            className="w-full max-w-lg rounded-3xl bg-white dark:bg-[#0d1627] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+                                        <Layers size={20} />
+                                    </div>
+                                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                                        {modalMode === 'create' ? 'Configure New Floor' : `Edit Floor: ${currentFloor?.floor_name}`}
+                                    </h3>
+                                </div>
+                                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">
+                                    <X size={18} />
+                                </button>
                             </div>
-                            <form onSubmit={handleSubmitForm}>
-                                <div className="modal-body p-4">
-                                    {formErrors.submit && (
-                                        <div className="alert alert-danger d-flex align-items-center gap-2 mb-3">
-                                            <AlertTriangle size={16} />
-                                            <div>{formErrors.submit}</div>
-                                        </div>
-                                    )}
 
-                                    <div className="row g-3">
-                                        <div className="col-12">
-                                            <label className="form-label small fw-semibold">Building / Facility *</label>
-                                            <select
-                                                className={`form-select ${formErrors.building_id ? 'is-invalid' : ''} ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                value={formData.building_id}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, building_id: e.target.value });
-                                                    setFormErrors({ ...formErrors, building_id: null });
-                                                }}
-                                            >
-                                                <option value="">Select Building</option>
-                                                {buildings.map(b => (
-                                                    <option key={b.id} value={b.id}>{b.building_name} ({b.building_code})</option>
-                                                ))}
-                                            </select>
-                                            {formErrors.building_id && <div className="invalid-feedback">{formErrors.building_id}</div>}
-                                        </div>
+                            <form onSubmit={handleSubmitForm} className="p-6 space-y-4">
+                                {formErrors.submit && (
+                                    <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-semibold">
+                                        {formErrors.submit}
+                                    </div>
+                                )}
 
-                                        <div className="col-12 col-md-6">
-                                            <label className="form-label small fw-semibold">Floor Level Number *</label>
-                                            <input
-                                                type="number"
-                                                className={`form-control ${formErrors.floor_number ? 'is-invalid' : ''} ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                placeholder="0 for Ground, 1 for 1st..."
-                                                value={formData.floor_number}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, floor_number: parseInt(e.target.value, 10) });
-                                                    setFormErrors({ ...formErrors, floor_number: null });
-                                                }}
-                                            />
-                                            {formErrors.floor_number && <div className="invalid-feedback">{formErrors.floor_number}</div>}
-                                        </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Building Facility *</label>
+                                    <select
+                                        className="w-full py-2.5 px-3 rounded-xl text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                                        value={formData.building_id}
+                                        onChange={(e) => setFormData({ ...formData, building_id: e.target.value })}
+                                    >
+                                        <option value="">Select Building</option>
+                                        {buildings.map(b => (
+                                            <option key={b.id} value={b.id}>{b.building_name} ({b.building_code})</option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                                        <div className="col-12 col-md-6">
-                                            <label className="form-label small fw-semibold">Floor Code *</label>
-                                            <input
-                                                type="text"
-                                                className={`form-control font-monospace text-uppercase ${formErrors.floor_code ? 'is-invalid' : ''} ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                placeholder="e.g., FL-01, G-00"
-                                                value={formData.floor_code}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, floor_code: e.target.value.toUpperCase() });
-                                                    setFormErrors({ ...formErrors, floor_code: null });
-                                                }}
-                                            />
-                                            {formErrors.floor_code && <div className="invalid-feedback">{formErrors.floor_code}</div>}
-                                        </div>
-
-                                        <div className="col-12">
-                                            <label className="form-label small fw-semibold">Floor Name / Label *</label>
-                                            <input
-                                                type="text"
-                                                className={`form-control ${formErrors.floor_name ? 'is-invalid' : ''} ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                placeholder="e.g., Ground Floor Lobby, Executive Suite, 3rd Floor Engineering"
-                                                value={formData.floor_name}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, floor_name: e.target.value });
-                                                    setFormErrors({ ...formErrors, floor_name: null });
-                                                }}
-                                            />
-                                            {formErrors.floor_name && <div className="invalid-feedback">{formErrors.floor_name}</div>}
-                                        </div>
-
-                                        <div className="col-12 col-md-6">
-                                            <label className="form-label small fw-semibold">Maximum Capacity</label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                className={`form-control ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                value={formData.capacity}
-                                                onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value, 10) || 1 })}
-                                            />
-                                        </div>
-
-                                        <div className="col-12 col-md-6">
-                                            <label className="form-label small fw-semibold">Operational Status</label>
-                                            <select
-                                                className={`form-select ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                value={formData.is_active}
-                                                onChange={(e) => setFormData({ ...formData, is_active: parseInt(e.target.value, 10) })}
-                                            >
-                                                <option value="1">Active</option>
-                                                <option value="0">Inactive / Maintenance</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="col-12">
-                                            <label className="form-label small fw-semibold">Description / Notes</label>
-                                            <textarea
-                                                rows="2"
-                                                className={`form-control ${isDark ? 'bg-dark border-secondary text-white' : ''}`}
-                                                placeholder="Zone restrictions, emergency exits, access control gates..."
-                                                value={formData.description}
-                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            />
-                                        </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Level Index (e.g. 1) *</label>
+                                        <input
+                                            type="number"
+                                            className="w-full py-2.5 px-3 rounded-xl text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                                            value={formData.floor_number}
+                                            onChange={(e) => setFormData({ ...formData, floor_number: parseInt(e.target.value, 10) })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Floor Code *</label>
+                                        <input
+                                            type="text"
+                                            className="w-full py-2.5 px-3 rounded-xl text-xs font-mono uppercase bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                                            placeholder="FL-01"
+                                            value={formData.floor_code}
+                                            onChange={(e) => setFormData({ ...formData, floor_code: e.target.value.toUpperCase() })}
+                                        />
                                     </div>
                                 </div>
-                                <div className="modal-footer border-top border-secondary border-opacity-25">
-                                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowModal(false)}>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Floor Name / Label *</label>
+                                    <input
+                                        type="text"
+                                        className="w-full py-2.5 px-3 rounded-xl text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                                        placeholder="e.g. Level 2 Executive Suites"
+                                        value={formData.floor_name}
+                                        onChange={(e) => setFormData({ ...formData, floor_name: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Capacity</label>
+                                        <input
+                                            type="number"
+                                            className="w-full py-2.5 px-3 rounded-xl text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                                            value={formData.capacity}
+                                            onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value, 10) || 1 })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                                        <select
+                                            className="w-full py-2.5 px-3 rounded-xl text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                                            value={formData.is_active}
+                                            onChange={(e) => setFormData({ ...formData, is_active: parseInt(e.target.value, 10) })}
+                                        >
+                                            <option value="1">Active</option>
+                                            <option value="0">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowModal(false)}
+                                        className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300"
+                                    >
                                         Cancel
                                     </button>
-                                    <button type="submit" className="btn btn-info text-white btn-sm" disabled={submitting}>
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md shadow-cyan-600/30"
+                                    >
                                         {submitting ? 'Saving...' : modalMode === 'create' ? 'Create Floor' : 'Save Changes'}
                                     </button>
                                 </div>
                             </form>
-                        </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
 
-            {/* Floor Rooms Drawer */}
-            {showRoomsDrawer && currentFloor && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered modal-lg">
-                        <div className={`modal-content border-0 shadow ${isDark ? 'bg-dark text-white border border-secondary border-opacity-25' : 'bg-white'}`}>
-                            <div className="modal-header border-bottom border-secondary border-opacity-25">
-                                <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
-                                    <DoorOpen className="text-warning" size={20} />
-                                    Rooms on Level {currentFloor.floor_number} &mdash; {currentFloor.floor_name}
-                                </h5>
-                                <button type="button" className="btn-close" onClick={() => setShowRoomsDrawer(false)}></button>
+            {/* Rooms Drawer */}
+            <AnimatePresence>
+                {showRoomsDrawer && currentFloor && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            className="w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0d1627] border border-slate-200 dark:border-slate-800 shadow-2xl p-6"
+                        >
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-4">
+                                <div className="flex items-center gap-2.5">
+                                    <DoorOpen className="text-amber-500" size={22} />
+                                    <div>
+                                        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                                            Rooms on Level {currentFloor.floor_number} &mdash; {currentFloor.floor_name}
+                                        </h3>
+                                        <p className="text-xs text-slate-400">Designated offices, meeting halls, and rooms</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowRoomsDrawer(false)} className="text-slate-400 hover:text-white">
+                                    <X size={18} />
+                                </button>
                             </div>
-                            <div className="modal-body p-4">
-                                {loadingRooms ? (
-                                    <div className="text-center py-4">
-                                        <div className="spinner-border spinner-border-sm text-warning" role="status"></div>
-                                        <span className="ms-2 small text-muted">Loading rooms on this floor...</span>
-                                    </div>
-                                ) : roomsOnFloor.length === 0 ? (
-                                    <div className="text-center py-4 border border-dashed rounded-3">
-                                        <DoorOpen size={30} className="text-muted opacity-50 mb-2" />
-                                        <p className="small text-muted mb-0">No rooms or offices currently assigned to this floor.</p>
-                                    </div>
-                                ) : (
-                                    <div className="table-responsive">
-                                        <table className="table table-sm align-middle">
-                                            <thead>
-                                                <tr>
-                                                    <th>Room Name</th>
-                                                    <th>Code</th>
-                                                    <th>Type</th>
-                                                    <th className="text-center">Capacity</th>
-                                                    <th>Bookable</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {roomsOnFloor.map(rm => (
-                                                    <tr key={rm.id}>
-                                                        <td className="fw-semibold">{rm.room_name}</td>
-                                                        <td><span className="badge bg-secondary font-monospace">{rm.room_code || 'N/A'}</span></td>
-                                                        <td><span className="badge bg-info bg-opacity-10 text-info">{rm.room_type || 'Meeting'}</span></td>
-                                                        <td className="text-center">{rm.capacity || 'N/A'}</td>
-                                                        <td>{rm.is_bookable ? <span className="text-success small fw-bold">Yes</span> : <span className="text-muted small">No</span>}</td>
-                                                        <td>{rm.is_active ? <span className="badge bg-success">Active</span> : <span className="badge bg-secondary">Inactive</span>}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="modal-footer border-top border-secondary border-opacity-25">
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowRoomsDrawer(false)}>
+
+                            {loadingRooms ? (
+                                <div className="py-8 text-center text-xs text-slate-400">Loading rooms...</div>
+                            ) : roomsOnFloor.length === 0 ? (
+                                <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                                    No rooms or offices currently assigned to this floor.
+                                </div>
+                            ) : (
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                    {roomsOnFloor.map(rm => (
+                                        <div key={rm.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                                            <div className="flex items-center gap-2.5">
+                                                <DoorOpen size={16} className="text-amber-500" />
+                                                <span className="font-bold text-slate-900 dark:text-white">{rm.room_name}</span>
+                                                <span className="px-2 py-0.5 rounded font-mono text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">{rm.room_code}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-slate-400">Capacity: {rm.capacity || 'N/A'}</span>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${rm.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                                    {rm.is_active ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                                <button
+                                    onClick={() => {
+                                        setShowRoomsDrawer(false);
+                                        navigate('?view=rooms');
+                                    }}
+                                    className="text-xs font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1 cursor-pointer"
+                                >
+                                    <span>Open Rooms Management</span>
+                                    <ArrowRight size={14} />
+                                </button>
+                                <button
+                                    onClick={() => setShowRoomsDrawer(false)}
+                                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold"
+                                >
                                     Close
                                 </button>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
 
-            {/* Delete Modal */}
-            {deleteTarget && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className={`modal-content border-0 shadow ${isDark ? 'bg-dark text-white border border-secondary border-opacity-25' : 'bg-white'}`}>
-                            <div className="modal-header border-bottom border-secondary border-opacity-25">
-                                <h5 className="modal-title fw-bold text-danger d-flex align-items-center gap-2">
-                                    <AlertTriangle size={20} />
-                                    Confirm Floor Deletion
-                                </h5>
-                                <button type="button" className="btn-close" onClick={() => setDeleteTarget(null)}></button>
+            {/* Delete Dialog */}
+            <AnimatePresence>
+                {deleteTarget && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0d1627] border border-slate-200 dark:border-slate-800 shadow-2xl p-6"
+                        >
+                            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-500 flex items-center justify-center mb-4">
+                                <AlertTriangle size={24} />
                             </div>
-                            <div className="modal-body p-4">
-                                {deleteError && (
-                                    <div className="alert alert-danger d-flex align-items-center gap-2 mb-3">
-                                        <AlertTriangle size={16} />
-                                        <div>{deleteError}</div>
-                                    </div>
-                                )}
-                                <p className="mb-2">
-                                    Are you sure you want to delete floor <strong>"{deleteTarget.floor_name}"</strong> (Level {deleteTarget.floor_number})?
-                                </p>
-                                <div className="p-3 rounded-2 bg-danger bg-opacity-10 text-danger small">
-                                    <strong>Dependency Restriction:</strong> Floors with active meeting rooms or employee workplace assignments cannot be deleted.
+                            <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-2">Confirm Floor Deletion</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                                Are you sure you want to delete floor <strong>"{deleteTarget.floor_name}"</strong> (Level {deleteTarget.floor_number})?
+                            </p>
+                            {deleteError && (
+                                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-semibold mb-4">
+                                    {deleteError}
                                 </div>
-                            </div>
-                            <div className="modal-footer border-top border-secondary border-opacity-25">
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDeleteTarget(null)}>
+                            )}
+                            <div className="flex items-center justify-end gap-3">
+                                <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-400">
                                     Cancel
                                 </button>
-                                <button type="button" className="btn btn-danger btn-sm" onClick={confirmDelete}>
+                                <button onClick={confirmDelete} className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-600/30">
                                     Confirm Deletion
                                 </button>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </AnimatePresence>
+        </motion.div>
     );
 }
