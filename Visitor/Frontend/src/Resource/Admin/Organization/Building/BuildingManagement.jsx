@@ -473,34 +473,6 @@ export default function BuildingManagement() {
                 </div>
             </motion.div>
 
-            {/* ── FACILITY NAVIGATION MODULE PILLS (MATCHING USER SCREENSHOT) ── */}
-            <motion.div variants={itemVariants} className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {facilityNavItems.map((nav) => {
-                    const Icon = nav.icon;
-                    return (
-                        <button
-                            key={nav.key}
-                            onClick={() => {
-                                if (!nav.active) {
-                                    navigate(nav.path);
-                                }
-                            }}
-                            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
-                                nav.active
-                                    ? 'bg-[#18233c] text-white border-blue-500/50 shadow-md shadow-blue-500/10'
-                                    : 'bg-white dark:bg-[#0b1220] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-white'
-                            }`}
-                        >
-                            {nav.active && (
-                                <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_#38bdf8] shrink-0" />
-                            )}
-                            <Icon size={16} className={nav.active ? 'text-blue-400' : 'text-slate-400'} />
-                            <span>{nav.label}</span>
-                        </button>
-                    );
-                })}
-            </motion.div>
-
             {/* ── NOTIFICATION ALERTS ── */}
             <AnimatePresence>
                 {successMessage && (
