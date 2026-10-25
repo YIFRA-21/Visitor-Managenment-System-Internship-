@@ -99,12 +99,14 @@ export default function BuildingManagement() {
             setBuildings(data);
         } catch (err) {
             console.error('Failed to fetch buildings:', err);
-            setError(err.response?.data?.message || 'Failed to fetch buildings from server.');
+            if (buildings.length === 0) {
+                setError(err.response?.data?.message || 'Unable to reach location server. Displaying cached facilities.');
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [selectedOrg, selectedBranch, statusFilter, searchTerm]);
+    }, [selectedOrg, selectedBranch, statusFilter, searchTerm, buildings.length]);
 
     useEffect(() => {
         fetchBuildings();
@@ -223,7 +225,7 @@ export default function BuildingManagement() {
     const totalBuildings = buildings.length;
     const activeBuildings = buildings.filter(b => b.is_active).length;
     const totalFloorsCount = buildings.reduce((acc, b) => acc + (parseInt(b.floor_count, 10) || parseInt(b.total_floors, 10) || 0), 0);
-    const totalRoomsCount = buildings.reduce((acc, b) => acc + (parseInt(b.room_count, 10) || 0), 0);
+    const totalRoomsCount = buildings.reduce((acc, b) => acc + (parseInt(b.total_rooms, 10) || parseInt(b.room_count, 10) || 0), 0);
 
     return (
         <div className={`p-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>

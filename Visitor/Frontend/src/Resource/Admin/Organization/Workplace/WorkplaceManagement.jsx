@@ -111,12 +111,14 @@ export default function WorkplaceManagement() {
             setAssignments(res.data || []);
         } catch (err) {
             console.error('Failed to load workplace assignments:', err);
-            setError(err.response?.data?.message || 'Failed to load employee workplace assignments.');
+            if (assignments.length === 0) {
+                setError(err.response?.data?.message || 'Unable to load employee workplace assignments.');
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [filterOrg, filterBranch, filterBuilding, filterDept, filterStatus, searchTerm]);
+    }, [filterOrg, filterBranch, filterBuilding, filterDept, filterStatus, searchTerm, assignments.length]);
 
     useEffect(() => {
         fetchAssignments();

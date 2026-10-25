@@ -93,12 +93,14 @@ export default function FloorManagement() {
             setFloors(res.data || []);
         } catch (err) {
             console.error('Failed to fetch floors:', err);
-            setError(err.response?.data?.message || 'Failed to load floors.');
+            if (floors.length === 0) {
+                setError(err.response?.data?.message || 'Unable to load floors from server.');
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [selectedBuilding, statusFilter, searchTerm]);
+    }, [selectedBuilding, statusFilter, searchTerm, floors.length]);
 
     useEffect(() => {
         fetchFloors();

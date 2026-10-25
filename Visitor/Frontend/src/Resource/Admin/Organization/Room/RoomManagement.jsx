@@ -146,12 +146,14 @@ export default function RoomManagement() {
             setRooms(res.data || []);
         } catch (err) {
             console.error('Failed to fetch rooms:', err);
-            setError(err.response?.data?.message || 'Failed to load rooms.');
+            if (rooms.length === 0) {
+                setError(err.response?.data?.message || 'Unable to load rooms from server.');
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [selectedBuilding, selectedFloor, selectedType, bookableFilter, statusFilter, searchTerm]);
+    }, [selectedBuilding, selectedFloor, selectedType, bookableFilter, statusFilter, searchTerm, rooms.length]);
 
     useEffect(() => {
         fetchRooms();
