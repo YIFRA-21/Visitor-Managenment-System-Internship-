@@ -23,6 +23,7 @@ router.get('/overview', (req, res, next) => departmentManagerController.getOverv
  */
 router.get('/employees', (req, res, next) => departmentManagerController.getEmployees(req, res, next));
 router.patch('/employees/:employeeId/host-status', (req, res, next) => departmentManagerController.updateHostStatus(req, res, next));
+router.delete('/employees/:employeeId', (req, res, next) => departmentManagerController.deleteEmployee(req, res, next));
 
 /**
  * 3. Host Availability & Schedules

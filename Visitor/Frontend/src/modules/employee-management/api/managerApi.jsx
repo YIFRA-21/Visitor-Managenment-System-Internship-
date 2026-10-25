@@ -15,6 +15,15 @@ export const managerApi = {
         const res = await api.patch(`/manager/employees/${employeeId}/host-status`, data);
         return res.data;
     },
+    deleteEmployee: async (employeeId) => {
+        try {
+            const res = await api.delete(`/manager/employees/${employeeId}`);
+            return res.data;
+        } catch (err) {
+            const fallback = await api.delete(`/employees/${employeeId}`);
+            return fallback.data;
+        }
+    },
     // 3. Host Availability
     getHostAvailability: async () => {
         const res = await api.get('/manager/host-availability');

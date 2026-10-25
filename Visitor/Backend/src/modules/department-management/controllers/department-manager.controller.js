@@ -52,6 +52,28 @@ class DepartmentManagerController {
   }
 
   /**
+   * DELETE /api/manager/employees/:employeeId
+   */
+  async deleteEmployee(req, res, next) {
+    try {
+      let { employeeId } = req.params;
+      if (!employeeId || isNaN(Number(employeeId))) {
+        return res.status(400).json({ success: false, message: 'Invalid employee ID' });
+      }
+      const actorId = req.user?.id || 1;
+      const actorName = req.user?.full_name || req.user?.email || 'Department Manager';
+      const employeeService = require('../../employee-management/services/employee.service');
+      await employeeService.deleteEmployee(Number(employeeId), actorId, actorName);
+      res.status(200).json({
+        success: true,
+        message: 'Employee removed from department successfully',
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
    * GET /api/manager/host-availability
    */
   async getHostAvailability(req, res, next) {
