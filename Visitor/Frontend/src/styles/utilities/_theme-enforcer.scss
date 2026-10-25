@@ -216,6 +216,16 @@ body[data-theme="dark"],
     color: var(--vms-text-primary, #F8FAFC) !important;
   }
 
+  // Prevent any container or card with bg-white from remaining blinding white in dark mode
+  div.bg-white,
+  section.bg-white,
+  table.bg-white,
+  .card.bg-white,
+  .vms-main-content .bg-white:not(.badge):not(.vms-badge) {
+    background-color: var(--vms-bg-card, #1E293B) !important;
+    color: var(--vms-text-primary, #F8FAFC) !important;
+  }
+
   .vms-main-content [class*="min-h-screen"],
   .vms-main-content [class*='bg-[#07'],
   .vms-main-content [class*='bg-[#08'],

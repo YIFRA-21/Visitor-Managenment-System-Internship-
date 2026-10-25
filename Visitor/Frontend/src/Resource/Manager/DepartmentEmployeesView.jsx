@@ -26,10 +26,12 @@ import BackButton from '../../components/common/BackButton';
 import CountdownAlert from '../../components/common/CountdownAlert';
 import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useTheme } from '../../theme/ThemeContext';
 import useResponseNavigation from '../../modules/response/useResponseNavigation';
 
 export default function DepartmentEmployeesView() {
   const { t } = useLanguage();
+  const { isDark } = useTheme();
   const { toError } = useResponseNavigation();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -197,39 +199,45 @@ export default function DepartmentEmployeesView() {
   };
 
   return (
-    <div className="p-6 space-y-6 text-slate-900 dark:text-slate-100 font-sans transition-colors">
+    <div className={`p-6 space-y-6 font-sans transition-colors duration-200 min-h-screen ${
+      isDark ? 'bg-[#080d16] text-slate-100' : 'bg-slate-50 text-slate-900'
+    }`}>
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b ${
+        isDark ? 'border-slate-800' : 'border-slate-200'
+      }`}>
         <div className="flex items-center space-x-4">
           <BackButton />
           <div>
             <div className="flex items-center space-x-2">
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              <h1 className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Department Employees & Hosts
               </h1>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
                 Staff Roster
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               Manage department staff, designate authorized visitor hosts, and configure availability.
             </p>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            Total Staff: <strong className="text-slate-900 dark:text-white">{employees.length}</strong>
+          <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            Total Staff: <strong className={isDark ? 'text-white' : 'text-slate-900'}>{employees.length}</strong>
           </span>
-          <span className="text-slate-400 dark:text-slate-600">•</span>
+          <span className={isDark ? 'text-slate-600' : 'text-slate-300'}>•</span>
           <span className="text-xs text-indigo-500 dark:text-indigo-400 font-semibold">
-            Active Hosts: <strong className="text-slate-900 dark:text-white">{employees.filter(e => e.is_host_enabled).length}</strong>
+            Active Hosts: <strong className={isDark ? 'text-white' : 'text-slate-900'}>{employees.filter(e => e.is_host_enabled).length}</strong>
           </span>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-4 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div className={`p-4 rounded-2xl border flex flex-col md:flex-row gap-3 items-center justify-between transition-all duration-200 ${
+        isDark ? 'bg-[#0c1322] border-slate-800 shadow-xl' : 'bg-white border-slate-200 shadow-sm'
+      }`}>
         <form onSubmit={handleSearchSubmit} className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
           <input 
@@ -237,7 +245,11 @@ export default function DepartmentEmployeesView() {
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
             placeholder="Search employee by name, email, title..." 
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className={`w-full pl-10 pr-4 py-2 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
+              isDark 
+                ? 'bg-[#070b13] border-slate-800 text-slate-100 placeholder-slate-500' 
+                : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'
+            }`}
           />
         </form>
 
@@ -246,7 +258,11 @@ export default function DepartmentEmployeesView() {
           <select 
             value={hostFilter} 
             onChange={(e) => setHostFilter(e.target.value)} 
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+            className={`px-3 py-2 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer font-medium transition-colors ${
+              isDark 
+                ? 'bg-[#070b13] border-slate-800 text-slate-200' 
+                : 'bg-slate-50 border-slate-200 text-slate-800'
+            }`}
           >
             <option value="ALL">All Roles</option>
             <option value="HOSTS_ONLY">Authorized Hosts Only</option>
@@ -257,7 +273,11 @@ export default function DepartmentEmployeesView() {
           <select 
             value={statusFilter} 
             onChange={(e) => setStatusFilter(e.target.value)} 
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+            className={`px-3 py-2 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer font-medium transition-colors ${
+              isDark 
+                ? 'bg-[#070b13] border-slate-800 text-slate-200' 
+                : 'bg-slate-50 border-slate-200 text-slate-800'
+            }`}
           >
             <option value="ALL">All Availability</option>
             <option value="AVAILABLE">Available</option>
@@ -285,20 +305,28 @@ export default function DepartmentEmployeesView() {
         />
       )}
 
-      {/* Employees Table / Cards */}
-      <div className="bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+      {/* Employees Table Container */}
+      <div className={`rounded-2xl border shadow-xl overflow-hidden transition-all duration-200 ${
+        isDark 
+          ? 'bg-[#0c1322] border-slate-800/90 shadow-[0_10px_35px_rgba(0,0,0,0.5)]' 
+          : 'bg-white border-slate-200 shadow-sm'
+      }`}>
         {loading ? (
-          <div className="py-16 text-center text-slate-400 text-xs animate-pulse">
+          <div className={`py-16 text-center text-xs animate-pulse ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             Loading department employees and host assignments...
           </div>
         ) : employees.length === 0 ? (
-          <div className="py-16 text-center text-slate-500 text-xs italic">
+          <div className={`py-16 text-center text-xs italic ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             No employees match the selected criteria.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-950/80 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-slate-800">
+              <thead className={`font-semibold uppercase tracking-wider text-[10px] border-b transition-colors ${
+                isDark 
+                  ? 'bg-[#080e1b] text-slate-300 border-slate-800' 
+                  : 'bg-slate-100 text-slate-700 border-slate-200 font-bold'
+              }`}>
                 <tr>
                   <th className="py-3.5 px-4">{t('table.employee', 'Employee')}</th>
                   <th className="py-3.5 px-4">{t('table.position', 'Position & Office')}</th>
@@ -309,26 +337,33 @@ export default function DepartmentEmployeesView() {
                   <th className="py-3.5 px-4 text-right">{t('table.actions', 'Actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              <tbody className={`divide-y ${isDark ? 'divide-slate-800/60' : 'divide-slate-100'}`}>
                 {employees.map((emp) => {
                   const isHost = Boolean(emp.is_host_enabled);
                   const isActing = actionLoadingId === emp.id;
                   return (
-                    <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/40 transition">
+                    <tr 
+                      key={emp.id} 
+                      className={`transition-colors duration-150 ${
+                        isDark ? 'hover:bg-[#111a2e]/70' : 'hover:bg-slate-50'
+                      }`}
+                    >
                       <td className="py-3.5 px-4">
                         <div className="flex items-center space-x-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                             isHost
-                              ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 dark:text-emerald-400'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                              ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                              : isDark
+                              ? 'bg-slate-800 border border-slate-700 text-slate-300'
+                              : 'bg-slate-100 border border-slate-200 text-slate-700'
                           }`}>
                             {emp.first_name?.[0] || emp.full_name?.[0] || 'E'}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-900 dark:text-white">
+                            <p className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                               {emp.full_name || `${emp.first_name} ${emp.last_name}`}
                             </p>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                            <p className={`text-[10px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                               ID: {emp.employee_number || emp.id}
                             </p>
                           </div>
@@ -336,21 +371,21 @@ export default function DepartmentEmployeesView() {
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <p className="text-slate-800 dark:text-slate-200 font-medium">
+                        <p className={`font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                           {emp.position || emp.job_title || 'Department Staff'}
                         </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        <p className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                           {emp.office_location || 'Main Office'}
                         </p>
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <p className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <p className={`flex items-center gap-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                           <Mail className="w-3 h-3 text-slate-400 shrink-0"/> 
                           <span className="truncate max-w-[180px]">{emp.email}</span>
                         </p>
                         {emp.mobile_number && (
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
+                          <p className={`text-[10px] flex items-center gap-1.5 mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                             <Phone className="w-3 h-3 text-slate-400 shrink-0"/> {emp.mobile_number}
                           </p>
                         )}
@@ -362,8 +397,10 @@ export default function DepartmentEmployeesView() {
                           disabled={isActing} 
                           className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition cursor-pointer ${
                             isHost
-                              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
+                              : isDark
+                              ? 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-slate-200'
+                              : 'bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200'
                           }`}
                           title={isHost ? "Click to revoke host status" : "Click to enable host status"}
                         >
@@ -377,28 +414,36 @@ export default function DepartmentEmployeesView() {
                           value={emp.availability_status || 'AVAILABLE'} 
                           disabled={!isHost || isActing} 
                           onChange={(e) => handleChangeAvailability(emp.id, e.target.value)} 
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border focus:outline-none ${
+                          className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border focus:outline-none transition-colors ${
                             emp.availability_status === 'AVAILABLE'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                              ? isDark 
+                                ? 'bg-emerald-950/40 text-emerald-300 border-emerald-500/40' 
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-300'
                               : emp.availability_status === 'BUSY'
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                              ? isDark 
+                                ? 'bg-amber-950/40 text-amber-300 border-amber-500/40' 
+                                : 'bg-amber-50 text-amber-700 border-amber-300'
                               : emp.availability_status === 'ON_LEAVE'
-                              ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
-                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                              ? isDark 
+                                ? 'bg-purple-950/40 text-purple-300 border-purple-500/40' 
+                                : 'bg-purple-50 text-purple-700 border-purple-300'
+                              : isDark 
+                                ? 'bg-rose-950/40 text-rose-300 border-rose-500/40' 
+                                : 'bg-rose-50 text-rose-700 border-rose-300'
                           } ${!isHost ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          <option value="AVAILABLE">Available</option>
-                          <option value="UNAVAILABLE">Unavailable</option>
-                          <option value="ON_LEAVE">On Leave</option>
-                          <option value="BUSY">Busy</option>
+                          <option value="AVAILABLE" className={isDark ? 'bg-[#0c1322] text-white' : 'bg-white text-slate-900'}>Available</option>
+                          <option value="UNAVAILABLE" className={isDark ? 'bg-[#0c1322] text-white' : 'bg-white text-slate-900'}>Unavailable</option>
+                          <option value="ON_LEAVE" className={isDark ? 'bg-[#0c1322] text-white' : 'bg-white text-slate-900'}>On Leave</option>
+                          <option value="BUSY" className={isDark ? 'bg-[#0c1322] text-white' : 'bg-white text-slate-900'}>Busy</option>
                         </select>
                       </td>
 
                       <td className="py-3.5 px-4 text-center">
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                        <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                           {emp.today_appointments_count || 0}
                         </span>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1">
+                        <span className={`text-[10px] ml-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                           / {emp.max_visitors_per_day || 10} max
                         </span>
                       </td>
@@ -410,7 +455,11 @@ export default function DepartmentEmployeesView() {
                           <button
                             type="button"
                             onClick={() => setSelectedViewEmployee(emp)}
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-600/20 dark:bg-slate-800/80 dark:hover:bg-indigo-600/30 text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-300 border border-slate-200 dark:border-slate-700/60 hover:border-indigo-400/50 transition-all cursor-pointer shadow-sm"
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer shadow-sm ${
+                              isDark 
+                                ? 'bg-slate-800/80 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-300 border-slate-700 hover:border-indigo-500/50' 
+                                : 'bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border-slate-200 hover:border-indigo-300'
+                            }`}
                             title="View Employee Profile & Schedule"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -420,7 +469,11 @@ export default function DepartmentEmployeesView() {
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(emp)}
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-600/20 dark:bg-slate-800/80 dark:hover:bg-blue-600/30 text-slate-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-300 border border-slate-200 dark:border-slate-700/60 hover:border-blue-400/50 transition-all cursor-pointer shadow-sm"
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer shadow-sm ${
+                              isDark 
+                                ? 'bg-slate-800/80 hover:bg-blue-600/30 text-slate-300 hover:text-blue-300 border-slate-700 hover:border-blue-500/50' 
+                                : 'bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 border-slate-200 hover:border-blue-300'
+                            }`}
                             title="Configure Host Limits & Office"
                           >
                             <Sliders className="w-3.5 h-3.5" />
@@ -433,8 +486,12 @@ export default function DepartmentEmployeesView() {
                             disabled={isActing}
                             className={`p-1.5 rounded-lg border transition-all cursor-pointer shadow-sm ${
                               isHost
-                                ? 'bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:border-emerald-400'
-                                : 'bg-slate-100 hover:bg-amber-500/20 dark:bg-slate-800/80 dark:hover:bg-amber-500/20 text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-300 border-slate-200 dark:border-slate-700 hover:border-amber-500/40'
+                                ? isDark 
+                                  ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border-emerald-500/30 hover:border-emerald-400' 
+                                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 hover:border-emerald-300'
+                                : isDark
+                                ? 'bg-slate-800/80 hover:bg-amber-500/20 text-slate-400 hover:text-amber-300 border-slate-700 hover:border-amber-500/40'
+                                : 'bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-600 border-slate-200 hover:border-amber-300'
                             } ${isActing ? 'opacity-50 cursor-wait' : ''}`}
                             title={isHost ? 'Revoke Host Authorization' : 'Authorize as Visitor Host'}
                           >
@@ -445,7 +502,11 @@ export default function DepartmentEmployeesView() {
                           {emp.email && (
                             <a
                               href={`mailto:${emp.email}?subject=Department%20Host%20Notification`}
-                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-sky-600/20 dark:bg-slate-800/80 dark:hover:bg-sky-600/30 text-slate-600 hover:text-sky-600 dark:text-slate-300 dark:hover:text-sky-300 border border-slate-200 dark:border-slate-700/60 hover:border-sky-400/50 transition-all cursor-pointer shadow-sm"
+                              className={`p-1.5 rounded-lg border transition-all cursor-pointer shadow-sm ${
+                                isDark 
+                                  ? 'bg-slate-800/80 hover:bg-sky-600/30 text-slate-300 hover:text-sky-300 border-slate-700 hover:border-sky-500/50' 
+                                  : 'bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-600 border-slate-200 hover:border-sky-300'
+                              }`}
                               title={`Send Email to ${emp.full_name || emp.first_name}`}
                             >
                               <Mail className="w-3.5 h-3.5" />
@@ -457,7 +518,11 @@ export default function DepartmentEmployeesView() {
                             type="button"
                             onClick={() => setSelectedDeleteEmployee(emp)}
                             disabled={isActing}
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-600/20 dark:bg-slate-800/80 dark:hover:bg-rose-600/30 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700/60 hover:border-rose-400/50 transition-all cursor-pointer shadow-sm group"
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer shadow-sm group ${
+                              isDark 
+                                ? 'bg-slate-800/80 hover:bg-rose-600/30 text-slate-400 hover:text-rose-400 border-slate-700 hover:border-rose-500/50' 
+                                : 'bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border-slate-200 hover:border-rose-300'
+                            }`}
                             title="Delete Employee from Department"
                           >
                             <Trash2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
@@ -478,15 +543,19 @@ export default function DepartmentEmployeesView() {
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {selectedViewEmployee && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+          <div className={`border rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 ${
+            isDark ? 'bg-[#0c1322] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className={`flex items-start justify-between pb-4 border-b ${
+              isDark ? 'border-slate-800' : 'border-slate-100'
+            }`}>
               <div className="flex items-center space-x-3.5">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center font-black text-indigo-500 text-lg">
                   {selectedViewEmployee.first_name?.[0] || selectedViewEmployee.full_name?.[0] || 'E'}
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  <h3 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {selectedViewEmployee.full_name || `${selectedViewEmployee.first_name} ${selectedViewEmployee.last_name}`}
                   </h3>
                   <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium">
@@ -497,7 +566,9 @@ export default function DepartmentEmployeesView() {
               <button 
                 type="button"
                 onClick={() => setSelectedViewEmployee(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition rounded-xl cursor-pointer"
+                className={`p-1.5 transition rounded-xl cursor-pointer ${
+                  isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'
+                }`}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -505,68 +576,84 @@ export default function DepartmentEmployeesView() {
 
             {/* Quick Metrics Cards */}
             <div className="grid grid-cols-3 gap-2.5 text-center">
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Status</span>
+              <div className={`p-2.5 rounded-xl border ${
+                isDark ? 'bg-[#070b13] border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Status</span>
                 <span className={`text-xs font-bold ${
-                  selectedViewEmployee.is_host_enabled ? 'text-emerald-500' : 'text-slate-400'
+                  selectedViewEmployee.is_host_enabled ? 'text-emerald-500' : isDark ? 'text-slate-400' : 'text-slate-500'
                 }`}>
                   {selectedViewEmployee.is_host_enabled ? 'Active Host' : 'Non-Host'}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Availability</span>
+              <div className={`p-2.5 rounded-xl border ${
+                isDark ? 'bg-[#070b13] border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Availability</span>
                 <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400">
                   {selectedViewEmployee.availability_status || 'AVAILABLE'}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Max Visits/Day</span>
-                <span className="text-xs font-bold text-slate-900 dark:text-white">
+              <div className={`p-2.5 rounded-xl border ${
+                isDark ? 'bg-[#070b13] border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Max Visits/Day</span>
+                <span className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   {selectedViewEmployee.max_visitors_per_day || 10}
                 </span>
               </div>
             </div>
 
             {/* Details Grid */}
-            <div className="space-y-3 text-xs bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80">
-              <div className="flex items-center justify-between py-1 border-b border-slate-200 dark:border-slate-800/60">
-                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <div className={`space-y-3 text-xs p-4 rounded-2xl border ${
+              isDark ? 'bg-[#070b13] border-slate-800' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className={`flex items-center justify-between py-1 border-b ${
+                isDark ? 'border-slate-800/60' : 'border-slate-200'
+              }`}>
+                <span className={`flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   <User className="w-3.5 h-3.5 text-slate-400" /> Employee ID
                 </span>
-                <span className="font-mono font-semibold text-slate-900 dark:text-white">
+                <span className={`font-mono font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   {selectedViewEmployee.employee_number || selectedViewEmployee.id}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-slate-200 dark:border-slate-800/60">
-                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <div className={`flex items-center justify-between py-1 border-b ${
+                isDark ? 'border-slate-800/60' : 'border-slate-200'
+              }`}>
+                <span className={`flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   <Mail className="w-3.5 h-3.5 text-slate-400" /> Email Address
                 </span>
-                <span className="font-medium text-slate-900 dark:text-white truncate max-w-[240px]">
+                <span className={`font-medium truncate max-w-[240px] ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   {selectedViewEmployee.email}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-slate-200 dark:border-slate-800/60">
-                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <div className={`flex items-center justify-between py-1 border-b ${
+                isDark ? 'border-slate-800/60' : 'border-slate-200'
+              }`}>
+                <span className={`flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   <Phone className="w-3.5 h-3.5 text-slate-400" /> Phone Contact
                 </span>
-                <span className="font-medium text-slate-900 dark:text-white">
+                <span className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   {selectedViewEmployee.mobile_number || selectedViewEmployee.office_phone || 'N/A'}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-slate-200 dark:border-slate-800/60">
-                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <div className={`flex items-center justify-between py-1 border-b ${
+                isDark ? 'border-slate-800/60' : 'border-slate-200'
+              }`}>
+                <span className={`flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   <Building className="w-3.5 h-3.5 text-slate-400" /> Office / Desk
                 </span>
-                <span className="font-medium text-slate-900 dark:text-white">
+                <span className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   {selectedViewEmployee.office_location || 'Main Office'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between py-1">
-                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <span className={`flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   <Calendar className="w-3.5 h-3.5 text-slate-400" /> Today's Booked Visits
                 </span>
                 <span className="font-bold text-indigo-500 dark:text-indigo-400">
@@ -593,7 +680,11 @@ export default function DepartmentEmployeesView() {
               <button
                 type="button"
                 onClick={() => setSelectedViewEmployee(null)}
-                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs transition cursor-pointer"
+                className={`px-4 py-2 rounded-xl font-semibold text-xs transition cursor-pointer ${
+                  isDark 
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-200' 
+                    : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                }`}
               >
                 Close
               </button>
@@ -607,15 +698,19 @@ export default function DepartmentEmployeesView() {
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {selectedEditEmployee && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className={`border rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 ${
+            isDark ? 'bg-[#0c1322] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className={`flex items-center justify-between pb-3 border-b ${
+              isDark ? 'border-slate-800' : 'border-slate-100'
+            }`}>
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-blue-500/10 text-blue-500 rounded-xl">
                   <Sliders className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Configure Host Settings</h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <h3 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Configure Host Settings</h3>
+                  <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     {selectedEditEmployee.full_name || selectedEditEmployee.first_name}
                   </p>
                 </div>
@@ -623,7 +718,7 @@ export default function DepartmentEmployeesView() {
               <button 
                 type="button"
                 onClick={() => setSelectedEditEmployee(null)} 
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition"
+                className={`transition ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -631,10 +726,12 @@ export default function DepartmentEmployeesView() {
 
             <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
               {/* Host Toggle Switch */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className={`p-3 rounded-2xl border flex items-center justify-between ${
+                isDark ? 'bg-[#070b13] border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
                 <div>
-                  <span className="font-bold text-slate-900 dark:text-white block">Authorized Visitor Host</span>
-                  <p className="text-[10px] text-slate-500">Allow this employee to host visitor appointments.</p>
+                  <span className={`font-bold block ${isDark ? 'text-white' : 'text-slate-900'}`}>Authorized Visitor Host</span>
+                  <p className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Allow this employee to host visitor appointments.</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -649,24 +746,32 @@ export default function DepartmentEmployeesView() {
 
               {/* Availability Status */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
+                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                  isDark ? 'text-slate-400' : 'text-slate-600'
+                }`}>
                   Availability Status
                 </label>
                 <select
                   value={editFormData.availabilityStatus}
                   onChange={(e) => setEditFormData({ ...editFormData, availabilityStatus: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                    isDark 
+                      ? 'bg-[#070b13] border-slate-800 text-slate-200' 
+                      : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
                 >
-                  <option value="AVAILABLE">Available (Online to host)</option>
-                  <option value="UNAVAILABLE">Unavailable (Away from desk)</option>
-                  <option value="ON_LEAVE">On Leave</option>
-                  <option value="BUSY">Busy (In active session)</option>
+                  <option value="AVAILABLE" className={isDark ? 'bg-[#0c1322] text-white' : 'bg-white text-slate-900'}>Available (Online to host)</option>
+                  <option value="UNAVAILABLE" className={isDark ? 'bg-[#0c1322] text-white' : 'bg-white text-slate-900'}>Unavailable (Away from desk)</option>
+                  <option value="ON_LEAVE" className={isDark ? 'bg-[#0c1322] text-white' : 'bg-white text-slate-900'}>On Leave</option>
+                  <option value="BUSY" className={isDark ? 'bg-[#0c1322] text-white' : 'bg-white text-slate-900'}>Busy (In active session)</option>
                 </select>
               </div>
 
               {/* Max Visitors Per Day */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
+                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                  isDark ? 'text-slate-400' : 'text-slate-600'
+                }`}>
                   Daily Visitor Workload Limit
                 </label>
                 <input
@@ -675,14 +780,20 @@ export default function DepartmentEmployeesView() {
                   max="50"
                   value={editFormData.maxVisitorsPerDay}
                   onChange={(e) => setEditFormData({ ...editFormData, maxVisitorsPerDay: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                    isDark 
+                      ? 'bg-[#070b13] border-slate-800 text-slate-200' 
+                      : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
                 />
-                <span className="text-[10px] text-slate-400 mt-1 block">Maximum visitors allowed to book with this host in a single day.</span>
+                <span className={`text-[10px] mt-1 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Maximum visitors allowed to book with this host in a single day.</span>
               </div>
 
               {/* Office Location */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
+                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                  isDark ? 'text-slate-400' : 'text-slate-600'
+                }`}>
                   Office / Desk Location
                 </label>
                 <input
@@ -690,16 +801,26 @@ export default function DepartmentEmployeesView() {
                   placeholder="e.g. Floor 3, Room 304"
                   value={editFormData.officeLocation}
                   onChange={(e) => setEditFormData({ ...editFormData, officeLocation: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                    isDark 
+                      ? 'bg-[#070b13] border-slate-800 text-slate-200' 
+                      : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
                 />
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className={`flex items-center justify-end gap-2 pt-3 border-t ${
+                isDark ? 'border-slate-800' : 'border-slate-100'
+              }`}>
                 <button
                   type="button"
                   onClick={() => setSelectedEditEmployee(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs transition cursor-pointer"
+                  className={`px-4 py-2 rounded-xl font-semibold text-xs transition cursor-pointer ${
+                    isDark 
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-200' 
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
                 >
                   Cancel
                 </button>
@@ -721,8 +842,14 @@ export default function DepartmentEmployeesView() {
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {selectedDeleteEmployee && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-[#0c1322] border border-rose-500/40 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className={`border rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 ${
+            isDark 
+              ? 'bg-[#0c1322] border-rose-500/40 text-white' 
+              : 'bg-white border-rose-500/40 text-slate-900'
+          }`}>
+            <div className={`flex items-center justify-between pb-3 border-b ${
+              isDark ? 'border-slate-800' : 'border-slate-100'
+            }`}>
               <div className="flex items-center gap-2 text-rose-500 font-bold text-sm">
                 <Trash2 className="w-5 h-5 text-rose-500" />
                 <span>Remove Employee from Roster</span>
@@ -730,7 +857,7 @@ export default function DepartmentEmployeesView() {
               <button 
                 type="button"
                 onClick={() => setSelectedDeleteEmployee(null)} 
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition"
+                className={`transition ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -741,13 +868,13 @@ export default function DepartmentEmployeesView() {
               <p className="text-[11px] opacity-90">
                 Employee: <strong>{selectedDeleteEmployee.full_name || selectedDeleteEmployee.first_name}</strong> (ID: {selectedDeleteEmployee.employee_number || selectedDeleteEmployee.id})
               </p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 pt-1">
+              <p className={`text-[10px] pt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 This will revoke their visitor hosting privileges and archive them from active department scheduling.
               </p>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+              <label className={`block text-[11px] font-bold mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                 Reason for Removal (Optional):
               </label>
               <input
@@ -755,15 +882,25 @@ export default function DepartmentEmployeesView() {
                 placeholder="e.g. Transferred to another department, Resigned, Inactive"
                 value={deleteReason}
                 onChange={(e) => setDeleteReason(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-rose-500 ${
+                  isDark 
+                    ? 'bg-[#070b13] border-slate-800 text-slate-200' 
+                    : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className={`flex items-center justify-end gap-2 pt-2 border-t ${
+              isDark ? 'border-slate-800' : 'border-slate-100'
+            }`}>
               <button
                 type="button"
                 onClick={() => setSelectedDeleteEmployee(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs transition cursor-pointer"
+                className={`px-4 py-2 rounded-xl font-semibold text-xs transition cursor-pointer ${
+                  isDark 
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-200' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
               >
                 Cancel
               </button>
