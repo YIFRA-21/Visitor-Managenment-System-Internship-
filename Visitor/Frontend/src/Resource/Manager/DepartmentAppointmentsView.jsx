@@ -41,6 +41,7 @@ import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { HostReassignmentModal } from './components/HostReassignmentModal';
 import { RequestDetailsModal } from './components/RequestDetailsModal';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useTheme } from '../../theme/ThemeContext';
 import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
 import useResponseNavigation from '../../modules/response/useResponseNavigation';
 import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
@@ -184,6 +185,7 @@ const DEFAULT_ROOMS = [
 
 export default function DepartmentAppointmentsView() {
   const { t } = useLanguage();
+  const { isDark = true } = useTheme() || {};
   const { toResponse, toSuccess, toError, toConfirmation } = useResponseNavigation();
   // Primary States
   const [appointments, setAppointments] = useState([]);
@@ -1445,9 +1447,19 @@ export default function DepartmentAppointmentsView() {
       {/* MODAL 1: SCHEDULE / CREATE MEETING MODAL                  */}
       {/* ========================================================= */}
       {showScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0f172a] border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in ${
+          isDark ? 'bg-black/90' : 'bg-slate-950/70'
+        }`}>
+          <div 
+            className={`border rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6 ${
+              isDark ? 'border-slate-800 text-white' : 'border-slate-200 text-slate-900'
+            }`}
+            style={{
+              backgroundColor: isDark ? '#0c1322' : '#ffffff',
+              opacity: 1
+            }}
+          >
+            <div className={`flex items-center justify-between pb-4 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                   <Calendar className="w-5 h-5" />
@@ -1661,25 +1673,35 @@ export default function DepartmentAppointmentsView() {
       {/* MODAL 2: FULL MEETING DETAILS & MANAGEMENT DRAWER/MODAL   */}
       {/* ========================================================= */}
       {selectedMeeting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0f172a] border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in ${
+          isDark ? 'bg-black/90' : 'bg-slate-950/70'
+        }`}>
+          <div 
+            className={`border rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6 ${
+              isDark ? 'border-slate-800 text-white' : 'border-slate-200 text-slate-900'
+            }`}
+            style={{
+              backgroundColor: isDark ? '#0c1322' : '#ffffff',
+              opacity: 1
+            }}
+          >
             {/* Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-slate-800">
+            <div className={`flex items-start justify-between pb-4 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
               <div>
                 <span className="text-[11px] font-mono text-emerald-400 font-bold">
                   #{selectedMeeting.reference_code || selectedMeeting.appointment_number}
                 </span>
-                <h3 className="text-xl font-black text-white mt-0.5">{selectedMeeting.purpose}</h3>
+                <h3 className={`text-xl font-black mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedMeeting.purpose}</h3>
                 <div className="flex items-center space-x-2 mt-1.5">
                   {getStatusBadge(selectedMeeting.appointment_status || selectedMeeting.status)}
-                  <span className="text-xs text-slate-400">
+                  <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     {formatDateTime(selectedMeeting.scheduled_start).date} at {formatDateTime(selectedMeeting.scheduled_start).time}
                   </span>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedMeeting(null)}
-                className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition"
+                className={`p-2 rounded-xl transition ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1688,18 +1710,24 @@ export default function DepartmentAppointmentsView() {
             {/* Quick Summary Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Visitor Box */}
-              <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2">
-                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Visitor / Guest Details</p>
+              <div 
+                className={`p-4 rounded-2xl border space-y-2 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}
+                style={{
+                  backgroundColor: isDark ? '#111a2e' : '#f8fafc',
+                  opacity: 1
+                }}
+              >
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Visitor / Guest Details</p>
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-full bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">
                     {selectedMeeting.visitor_name ? selectedMeeting.visitor_name.charAt(0) : 'V'}
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-sm">{selectedMeeting.visitor_name}</h4>
-                    <p className="text-xs text-slate-400">{selectedMeeting.visitor_company || 'Independent Visitor'}</p>
+                    <h4 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedMeeting.visitor_name}</h4>
+                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{selectedMeeting.visitor_company || 'Independent Visitor'}</p>
                   </div>
                 </div>
-                <div className="space-y-1 pt-2 text-xs text-slate-300">
+                <div className={`space-y-1 pt-2 text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   <p className="flex items-center space-x-2">
                     <Mail className="w-3.5 h-3.5 text-slate-500" />
                     <span>{selectedMeeting.visitor_email || 'Not specified'}</span>
@@ -1712,21 +1740,27 @@ export default function DepartmentAppointmentsView() {
               </div>
 
               {/* Host & Location Box */}
-              <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2">
-                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Host & Space Allocation</p>
+              <div 
+                className={`p-4 rounded-2xl border space-y-2 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}
+                style={{
+                  backgroundColor: isDark ? '#111a2e' : '#f8fafc',
+                  opacity: 1
+                }}
+              >
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Host & Space Allocation</p>
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-sm">
                     {selectedMeeting.host_name ? selectedMeeting.host_name.charAt(0) : 'H'}
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-sm">{selectedMeeting.host_name || 'Department Staff'}</h4>
-                    <p className="text-xs text-slate-400">{selectedMeeting.host_position || 'Staff'}</p>
+                    <h4 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedMeeting.host_name || 'Department Staff'}</h4>
+                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{selectedMeeting.host_position || 'Staff'}</p>
                   </div>
                 </div>
-                <div className="space-y-1 pt-2 text-xs text-slate-300">
+                <div className={`space-y-1 pt-2 text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   <p className="flex items-center space-x-2">
                     <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="font-semibold text-white">{selectedMeeting.room_name || 'Conference Room Alpha'}</span>
+                    <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedMeeting.room_name || 'Conference Room Alpha'}</span>
                   </p>
                   <p className="flex items-center space-x-2 text-slate-400">
                     <Users className="w-3.5 h-3.5 text-slate-500" />
@@ -1737,7 +1771,13 @@ export default function DepartmentAppointmentsView() {
             </div>
 
             {/* Direct Status Action Controls */}
-            <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-3">
+            <div 
+              className={`p-4 rounded-2xl border space-y-3 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}
+              style={{
+                backgroundColor: isDark ? '#111a2e' : '#f8fafc',
+                opacity: 1
+              }}
+            >
               <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Live Meeting State & Transitions</p>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -1838,76 +1878,102 @@ export default function DepartmentAppointmentsView() {
       {/* MODAL 3: RESCHEDULE MODAL                                 */}
       {/* ========================================================= */}
       {showRescheduleModal && selectedForAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0f172a] border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-base font-bold text-white flex items-center space-x-2">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in ${
+          isDark ? 'bg-black/90' : 'bg-slate-950/70'
+        }`}>
+          <div 
+            className={`border rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-5 ${
+              isDark ? 'border-slate-800 text-white' : 'border-slate-200 text-slate-900'
+            }`}
+            style={{
+              backgroundColor: isDark ? '#0c1322' : '#ffffff',
+              opacity: 1
+            }}
+          >
+            <div className={`flex items-center justify-between pb-3 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+              <h3 className={`text-base font-bold flex items-center space-x-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 <Edit3 className="w-4 h-4 text-amber-400" />
                 <span>Reschedule Meeting</span>
               </h3>
-              <button onClick={() => setShowRescheduleModal(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setShowRescheduleModal(false)} className={`${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleRescheduleSubmit} className="space-y-4">
               <div>
-                <p className="text-xs text-slate-400">
-                  Rescheduling meeting for <strong className="text-white">{selectedForAction.visitor_name}</strong>
+                <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Rescheduling meeting for <strong className={isDark ? 'text-white' : 'text-slate-900'}>{selectedForAction.visitor_name}</strong>
                 </p>
-                <p className="text-[11px] text-slate-500 mt-0.5">{selectedForAction.purpose}</p>
+                <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{selectedForAction.purpose}</p>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">{t('form.scheduledDate', 'New Date')} *</label>
+                <label className={`text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{t('form.scheduledDate', 'New Date')} *</label>
                 <input
                   type="date"
                   required
                   value={rescheduleData.date}
                   onChange={(e) => setRescheduleData({ ...rescheduleData, date: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none"
+                  className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none ${isDark ? 'border-slate-800 text-slate-100' : 'border-slate-300 text-slate-900'}`}
+                  style={{
+                    backgroundColor: isDark ? '#080e1a' : '#ffffff',
+                    opacity: 1
+                  }}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">{t('form.startTime', 'New Start Time')} *</label>
+                  <label className={`text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{t('form.startTime', 'New Start Time')} *</label>
                   <input
                     type="time"
                     required
                     value={rescheduleData.start_time}
                     onChange={(e) => setRescheduleData({ ...rescheduleData, start_time: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none"
+                    className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none ${isDark ? 'border-slate-800 text-slate-100' : 'border-slate-300 text-slate-900'}`}
+                    style={{
+                      backgroundColor: isDark ? '#080e1a' : '#ffffff',
+                      opacity: 1
+                    }}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">{t('form.endTime', 'New End Time')} *</label>
+                  <label className={`text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{t('form.endTime', 'New End Time')} *</label>
                   <input
                     type="time"
                     required
                     value={rescheduleData.end_time}
                     onChange={(e) => setRescheduleData({ ...rescheduleData, end_time: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none"
+                    className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none ${isDark ? 'border-slate-800 text-slate-100' : 'border-slate-300 text-slate-900'}`}
+                    style={{
+                      backgroundColor: isDark ? '#080e1a' : '#ffffff',
+                      opacity: 1
+                    }}
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">{t('form.reason', 'Reason for Rescheduling')}</label>
+                <label className={`text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{t('form.reason', 'Reason for Rescheduling')}</label>
                 <textarea
                   rows={2}
                   value={rescheduleData.reason}
                   onChange={(e) => setRescheduleData({ ...rescheduleData, reason: e.target.value })}
                   placeholder={t('placeholder.reason', 'e.g. Schedule conflict with department board review...')}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none placeholder-slate-500"
+                  className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none placeholder-slate-500 ${isDark ? 'border-slate-800 text-slate-100' : 'border-slate-300 text-slate-900'}`}
+                  style={{
+                    backgroundColor: isDark ? '#080e1a' : '#ffffff',
+                    opacity: 1
+                  }}
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+              <div className={`flex items-center justify-end space-x-2 pt-3 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                 <button
                   type="button"
                   onClick={() => setShowRescheduleModal(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold"
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold ${isDark ? 'bg-slate-800 text-slate-300 hover:text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
                 >
                   {t('btn.cancel', 'Cancel')}
                 </button>
@@ -1927,41 +1993,55 @@ export default function DepartmentAppointmentsView() {
       {/* MODAL 4: CANCEL CONFIRMATION MODAL                        */}
       {/* ========================================================= */}
       {showCancelModal && selectedForAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0f172a] border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in ${
+          isDark ? 'bg-black/90' : 'bg-slate-950/70'
+        }`}>
+          <div 
+            className={`border rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-5 ${
+              isDark ? 'border-slate-800 text-white' : 'border-slate-200 text-slate-900'
+            }`}
+            style={{
+              backgroundColor: isDark ? '#0c1322' : '#ffffff',
+              opacity: 1
+            }}
+          >
+            <div className={`flex items-center justify-between pb-3 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
               <h3 className="text-base font-bold text-rose-400 flex items-center space-x-2">
                 <Trash2 className="w-4 h-4" />
                 <span>{t('btn.cancelMeeting', 'Cancel Meeting')}</span>
               </h3>
-              <button onClick={() => setShowCancelModal(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setShowCancelModal(false)} className={`${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCancelSubmit} className="space-y-4">
-              <p className="text-xs text-slate-300">
+              <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                 Are you sure you want to cancel the meeting with{' '}
-                <strong className="text-white">{selectedForAction.visitor_name}</strong>?
+                <strong className={isDark ? 'text-white' : 'text-slate-900'}>{selectedForAction.visitor_name}</strong>?
               </p>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">{t('form.reason', 'Cancellation Reason')} *</label>
+                <label className={`text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{t('form.reason', 'Cancellation Reason')} *</label>
                 <textarea
                   rows={3}
                   required
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                   placeholder={t('placeholder.reason', 'Provide reason for host, visitor and compliance logs...')}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none placeholder-slate-500"
+                  className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none placeholder-slate-500 ${isDark ? 'border-slate-800 text-slate-100' : 'border-slate-300 text-slate-900'}`}
+                  style={{
+                    backgroundColor: isDark ? '#080e1a' : '#ffffff',
+                    opacity: 1
+                  }}
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+              <div className={`flex items-center justify-end space-x-2 pt-3 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                 <button
                   type="button"
                   onClick={() => setShowCancelModal(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold"
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold ${isDark ? 'bg-slate-800 text-slate-300 hover:text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
                 >
                   {t('btn.keepMeeting', 'Keep Meeting')}
                 </button>
