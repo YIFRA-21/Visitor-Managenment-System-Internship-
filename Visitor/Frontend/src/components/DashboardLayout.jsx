@@ -448,6 +448,14 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             return 'org_home';
         if (pathname.includes('/org-tree') || pathname.includes('/org_tree') || pathname.includes('/organization-tree') || pathname.includes('/organization_tree'))
             return 'org_tree';
+        if (pathname.includes('/buildings'))
+            return 'buildings';
+        if (pathname.includes('/floors'))
+            return 'floors';
+        if (pathname.includes('/rooms'))
+            return 'rooms';
+        if (pathname.includes('/workplace'))
+            return 'workplace';
         if (pathname.includes('/approval-workflows') || pathname.includes('/approval_workflows'))
             return 'approval_workflow_management';
         if (pathname.includes('/employee-management') || pathname.includes('/employee_management') || pathname.includes('/employees'))
@@ -566,6 +574,10 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             { key: 'organizations', label: t('sidebar.organizations'), view: 'organizations' },
             { key: 'departments-mgmt', label: t('sidebar.departments'), view: 'departments_mgmt' },
             { key: 'branches', label: t('sidebar.branches'), view: 'branches' },
+            { key: 'buildings-mgmt', label: t('sidebar.buildings', 'Buildings & Facilities'), view: 'buildings' },
+            { key: 'floors-mgmt', label: t('sidebar.floors', 'Floors & Levels'), view: 'floors' },
+            { key: 'rooms-mgmt', label: t('sidebar.rooms', 'Meeting Rooms & Offices'), view: 'rooms' },
+            { key: 'workplace-mgmt', label: t('sidebar.workplace', 'Workplace Desks & Locations'), view: 'workplace' },
             { key: 'org-tree', label: t('sidebar.organizationTree'), view: 'org_tree' },
         ],
     };
