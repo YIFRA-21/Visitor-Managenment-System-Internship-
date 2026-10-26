@@ -123,7 +123,7 @@ const loginRateLimiter = createRateLimiter({
 
 const forgotPasswordRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,  // 15 minutes
-  maxAttempts: 3,
+  maxAttempts: 15,
   endpoint: 'forgot-password'
 });
 
