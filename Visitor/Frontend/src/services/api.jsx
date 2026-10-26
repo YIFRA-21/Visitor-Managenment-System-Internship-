@@ -5,10 +5,23 @@ const api = axios.create({
     baseURL: API_URL,
     headers: { 'Content-Type': 'application/json' },
     timeout: 30000, // 30 second timeout for all requests
+    transformResponse: [
+        function (data) {
+            if (typeof data !== 'string') return data;
+            const trimmed = data.trim();
+            if (!trimmed || trimmed === 'null') return null;
+            if (trimmed === 'undefined') return undefined;
+            try {
+                return JSON.parse(trimmed);
+            } catch {
+                return data;
+            }
+        }
+    ],
 });
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    if (token)
+    if (token && token !== 'null' && token !== 'undefined')
         config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
@@ -41,7 +54,12 @@ api.interceptors.response.use((res) => res, (err) => {
     const isPublicFormValidation = isPublicPath && (status === 400 || status === 409 || status === 422);
     if (!err.config?.skipGlobalErrorNotification && !err.config?.silent && status !== 401 && !isPublicFormValidation) {
         const errorMessage = getErrorMessage(err);
-        if (errorMessage && typeof window !== 'undefined' && window.showNotification) {
+        if (
+            errorMessage &&
+            !/unexpected token|is not valid json|syntaxerror/i.test(errorMessage) &&
+            typeof window !== 'undefined' &&
+            window.showNotification
+        ) {
             const notifType = status === 403 ? 'warning' : status >= 500 ? 'error' : 'error';
             window.showNotification(errorMessage, notifType);
         }
@@ -71,13 +89,18 @@ const withRetry = async (fn, maxRetries = 2) => {
 export const getErrorMessage = (err) => {
     if (!err)
         return 'An unexpected error occurred. Please try again.';
-    if (typeof err === 'string')
+    if (typeof err === 'string') {
+        if (/unexpected token|is not valid json|syntaxerror/i.test(err)) return '';
         return err;
+    }
     const axErr = err;
     if (axErr.code === 'ECONNABORTED')
         return 'Network timeout. Check your connection and try again.';
     if (axErr.code === 'ERR_NETWORK')
         return 'Network error. Server may be unavailable.';
+    if (typeof axErr.message === 'string' && /unexpected token|is not valid json|syntaxerror/i.test(axErr.message)) {
+        return '';
+    }
     const status = axErr.response?.status;
     const data = axErr.response?.data;
     if (status === 401)
@@ -89,6 +112,9 @@ export const getErrorMessage = (err) => {
     // First try: plain string message field (most backend AppError responses)
     if (typeof data?.message === 'string' && data.message) {
         if (/authenticated user token|protected endpoint requires|authentication required/i.test(data.message)) {
+            return '';
+        }
+        if (/unexpected token|is not valid json|syntaxerror/i.test(data.message)) {
             return '';
         }
         return data.message;
@@ -105,6 +131,9 @@ export const getErrorMessage = (err) => {
     const rawError = data?.error;
     if (rawError) {
         if (typeof rawError === 'string') {
+            if (/unexpected token|is not valid json|syntaxerror/i.test(rawError)) {
+                return '';
+            }
             // Mask raw SQL syntax dumps
             if (/select|insert|update|delete|table|column|sql|foreign key/i.test(rawError)) {
                 return 'A database constraint prevented this operation. Please verify your data.';
@@ -115,6 +144,9 @@ export const getErrorMessage = (err) => {
             if (typeof rawError.sqlMessage === 'string' && rawError.sqlMessage)
                 return 'A database constraint prevented this operation. Please verify your data.';
             if (typeof rawError.message === 'string' && rawError.message) {
+                if (/unexpected token|is not valid json|syntaxerror/i.test(rawError.message)) {
+                    return '';
+                }
                 if (/select|insert|update|delete|table|column|sql|foreign key/i.test(rawError.message)) {
                     return 'A database operation could not be completed.';
                 }
@@ -133,8 +165,12 @@ export const getErrorMessage = (err) => {
         return 'Requested resource not found.';
     if (status === 500)
         return 'Server error. Please try again later.';
-    if (axErr.message && typeof axErr.message === 'string')
+    if (axErr.message && typeof axErr.message === 'string') {
+        if (/unexpected token|is not valid json|syntaxerror/i.test(axErr.message)) {
+            return '';
+        }
         return axErr.message;
+    }
     return 'An unexpected error occurred. Please try again.';
 };
 export default api;

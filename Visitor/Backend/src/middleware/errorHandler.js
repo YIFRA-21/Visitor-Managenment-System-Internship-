@@ -56,6 +56,16 @@ function errorHandler(err, req, res, next) {
     });
   }
 
+  // Catch SyntaxError (e.g. malformed JSON in request payload or parameter parse)
+  if (err instanceof SyntaxError || /unexpected token|is not valid json/i.test(err.message || '')) {
+    return res.status(400).json({
+      success: false,
+      status: 'fail',
+      message: 'Invalid data format provided. Please check your request payload.',
+      error: 'Invalid data format provided.'
+    });
+  }
+
   // General 400 / 409 / 422 Client Validation Error Formatting
   if (err.statusCode === 400 || err.statusCode === 409 || err.statusCode === 422 || err.name === 'ValidationError') {
     const statusCode = err.statusCode || 400;

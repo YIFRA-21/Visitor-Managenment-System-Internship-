@@ -73,6 +73,11 @@ export function NotificationProvider({ children }) {
       return null;
     }
 
+    // Suppress raw JSON / syntax parsing errors or malformed null responses from user toasts
+    if (/unexpected token|is not valid json|syntaxerror/i.test(cleanMessage)) {
+      return null;
+    }
+
     // Hide sensitive raw SQL errors from user
     if (/select|insert|update|delete|table|column|sql|syntax error|foreign key/i.test(cleanMessage) && cleanMessage.length > 50) {
       cleanMessage = 'A database operation could not be completed. Please verify your data and try again.';
