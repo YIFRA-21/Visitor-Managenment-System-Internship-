@@ -107,6 +107,7 @@ export default function ForgotPasswordPage() {
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
     const [demoToken, setDemoToken] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     const clearFieldError = (field) =>
         setFieldErrors((prev) => {
@@ -335,28 +336,26 @@ export default function ForgotPasswordPage() {
     const handleResendCode = async () => {
         if (resendCooldown > 0 || loading) return;
         setError('');
+        setSuccessMessage('');
         setLoading(true);
         try {
             const identifier = email || userId;
-            const res = await authApi.resendVerification(identifier);
+            const res = await authApi.forgotPassword(identifier);
             const data = res.data?.data || res.data || {};
             if (data.email) setEmail(data.email);
             if (data.maskedEmail) setMaskedEmailAddress(data.maskedEmail);
-            setOtpDigits(['', '', '', '', '', '']);
+            if (data.demoToken) {
+                setDemoToken(data.demoToken);
+                setOtpDigits(String(data.demoToken).padStart(6, '0').slice(0, 6).split(''));
+            } else {
+                setOtpDigits(['', '', '', '', '', '']);
+            }
             setResendCooldown(45);
             setCodeExpiry(900);
+            setSuccessMessage(`A fresh 6-digit verification code has been dispatched to ${data.maskedEmail || maskedEmailAddress || 'your email'}.`);
+            setTimeout(() => setSuccessMessage(''), 8000);
         } catch (err) {
-            try {
-                const res = await authApi.forgotPassword(email || userId);
-                const data = res.data?.data || res.data || {};
-                if (data.email) setEmail(data.email);
-                if (data.maskedEmail) setMaskedEmailAddress(data.maskedEmail);
-                setOtpDigits(['', '', '', '', '', '']);
-                setResendCooldown(45);
-                setCodeExpiry(900);
-            } catch (fallbackErr) {
-                setError('Failed to resend code. Please try again.');
-            }
+            setError(err.response?.data?.error || err.response?.data?.message || 'Failed to resend code. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -733,34 +732,59 @@ export default function ForgotPasswordPage() {
                                         )}
                                     </button>
 
-                                    <div className="pt-2 text-center space-y-2">
-                                        <p className="text-[11px] text-slate-400">
-                                            Didn't receive the code? Check your spam folder or
-                                        </p>
-                                        <button
-                                            type="button"
-                                            onClick={handleResendCode}
-                                            disabled={resendCooldown > 0 || loading}
-                                            className="text-xs font-bold text-indigo-400 hover:text-indigo-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-1.5"
+                                    {/* Success notification if code resent */}
+                                    {successMessage && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -6 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3 text-xs text-emerald-300 font-semibold flex items-center gap-2 shadow-sm"
                                         >
-                                            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-                                            {resendCooldown > 0
-                                                ? `Resend Code in ${resendCooldown}s`
-                                                : 'Resend Verification Code'}
-                                        </button>
-                                    </div>
+                                            <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
+                                            <span>{successMessage}</span>
+                                        </motion.div>
+                                    )}
 
-                                    <div className="pt-1 text-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setStep(1);
-                                                setError('');
-                                            }}
-                                            className="text-[11px] text-slate-500 hover:text-slate-300 font-semibold transition-colors"
-                                        >
-                                            Wrong email or user ID? Change identity
-                                        </button>
+                                    {/* Medium-sized, visible, hoverable Resend & Change Identity Action Section */}
+                                    <div className="pt-4 border-t border-slate-800/80 space-y-3">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <span className="text-xs text-slate-300 font-medium">
+                                                Didn't receive the code? Check your spam folder
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={handleResendCode}
+                                                disabled={resendCooldown > 0 || loading}
+                                                className={`w-full py-2.5 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200 border cursor-pointer ${
+                                                    resendCooldown > 0 || loading
+                                                        ? 'bg-slate-800/80 border-slate-700/80 text-slate-300 cursor-not-allowed shadow-inner opacity-80'
+                                                        : 'bg-indigo-950/60 hover:bg-indigo-600 border-indigo-500/60 hover:border-indigo-400 text-indigo-200 hover:text-white shadow-md hover:shadow-indigo-500/25 active:scale-[0.99]'
+                                                }`}
+                                            >
+                                                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                                                <span>
+                                                    {loading
+                                                        ? 'Sending New Code...'
+                                                        : resendCooldown > 0
+                                                        ? `Resend Code in ${resendCooldown}s`
+                                                        : 'Resend Verification Code'}
+                                                </span>
+                                            </button>
+                                        </div>
+
+                                        <div className="text-center pt-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setStep(1);
+                                                    setError('');
+                                                    setSuccessMessage('');
+                                                }}
+                                                className="w-full py-2 px-3 rounded-xl text-sm font-bold text-slate-200 hover:text-white bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition-all duration-200 flex items-center justify-center gap-2 group cursor-pointer shadow-sm"
+                                            >
+                                                <ArrowLeft className="h-4 w-4 text-slate-300 group-hover:text-white transition-colors" />
+                                                <span>Wrong email or user ID? Change Identity</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </form>
                             </motion.div>
