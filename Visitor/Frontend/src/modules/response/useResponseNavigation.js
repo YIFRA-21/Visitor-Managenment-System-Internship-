@@ -130,7 +130,11 @@ export function useResponseNavigation() {
       if (resolvedEndpoint) {
         const method = (apiMethod || 'DELETE').toUpperCase();
         if (method === 'DELETE') {
-          await apiClient.delete(resolvedEndpoint, { data: apiPayload });
+          if (apiPayload !== null && apiPayload !== undefined) {
+            await apiClient.delete(resolvedEndpoint, { data: apiPayload });
+          } else {
+            await apiClient.delete(resolvedEndpoint);
+          }
         } else if (method === 'POST') {
           await apiClient.post(resolvedEndpoint, apiPayload);
         } else if (method === 'PUT') {

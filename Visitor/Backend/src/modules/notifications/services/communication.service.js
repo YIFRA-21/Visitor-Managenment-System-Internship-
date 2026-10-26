@@ -883,15 +883,19 @@ class CommunicationService {
    */
   async deleteChatMessage(conversationId, messageId, userId, userRole) {
     const normRole = this.normalizeRole(userRole);
+    const parsedMsgId = Number(messageId);
+    const parsedConvId = Number(conversationId || 0);
 
     const checkRows = await db.query(
-      `SELECT sender_id FROM chat_messages WHERE id = ? AND conversation_id = ? AND is_deleted = FALSE LIMIT 1`,
-      [messageId, conversationId]
+      parsedConvId > 0
+        ? `SELECT id, conversation_id, sender_id FROM chat_messages WHERE id = ? AND conversation_id = ? AND is_deleted = FALSE LIMIT 1`
+        : `SELECT id, conversation_id, sender_id FROM chat_messages WHERE id = ? AND is_deleted = FALSE LIMIT 1`,
+      parsedConvId > 0 ? [parsedMsgId, parsedConvId] : [parsedMsgId]
     );
     const msgList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
     const msg = msgList[0];
     if (!msg) {
-      throw new AppError('Message not found.', 404);
+      throw new AppError('Message not found or already deleted.', 404);
     }
 
     const isSender = Number(msg.sender_id) === Number(userId);
@@ -903,18 +907,84 @@ class CommunicationService {
 
     await db.query(
       `UPDATE chat_messages SET is_deleted = TRUE WHERE id = ?`,
-      [messageId]
+      [parsedMsgId]
     );
 
+    const finalConvId = Number(msg.conversation_id || parsedConvId);
+
     // Broadcast delete event
-    socketService.emitToRoom(`conv:${conversationId}`, 'message_deleted', {
-      conversation_id: Number(conversationId),
-      message_id: Number(messageId)
+    socketService.emitToRoom(`conv:${finalConvId}`, 'message_deleted', {
+      conversation_id: finalConvId,
+      message_id: parsedMsgId
     });
 
     return {
       success: true,
+      messageId: parsedMsgId,
+      conversationId: finalConvId,
       message: 'Message deleted successfully'
+    };
+  }
+
+  /**
+   * Delete specific media attachment from a chat message
+   */
+  async deleteChatMessageAttachment(conversationId, messageId, attachmentUrl, userId, userRole) {
+    const normRole = this.normalizeRole(userRole);
+    const parsedMsgId = Number(messageId);
+    const parsedConvId = Number(conversationId || 0);
+
+    const checkRows = await db.query(
+      `SELECT id, conversation_id, sender_id, message_text, attachments_json FROM chat_messages WHERE id = ? AND is_deleted = FALSE LIMIT 1`,
+      [parsedMsgId]
+    );
+    const msgList = Array.isArray(checkRows[0]) ? checkRows[0] : (Array.isArray(checkRows) ? checkRows : []);
+    const msg = msgList[0];
+    if (!msg) {
+      throw new AppError('Message not found.', 404);
+    }
+
+    const isSender = Number(msg.sender_id) === Number(userId);
+    const isAdmin = normRole === 'admin';
+    if (!isSender && !isAdmin) {
+      throw new AppError('Unauthorized: You can only delete your own attachments.', 403);
+    }
+
+    let attachments = [];
+    try {
+      attachments = typeof msg.attachments_json === 'string' ? JSON.parse(msg.attachments_json) : (msg.attachments_json || []);
+    } catch {}
+
+    const remaining = attachments.filter(a => a.url !== attachmentUrl && a.filename !== attachmentUrl && a.name !== attachmentUrl);
+    const finalConvId = Number(msg.conversation_id || parsedConvId);
+
+    // If no text left and no attachments left, soft-delete entire message
+    if ((!msg.message_text || !msg.message_text.trim()) && remaining.length === 0) {
+      await db.query(`UPDATE chat_messages SET is_deleted = TRUE WHERE id = ?`, [parsedMsgId]);
+      socketService.emitToRoom(`conv:${finalConvId}`, 'message_deleted', {
+        conversation_id: finalConvId,
+        message_id: parsedMsgId
+      });
+      return { success: true, deletedMessage: true, messageId: parsedMsgId, conversationId: finalConvId };
+    }
+
+    // Otherwise update remaining attachments
+    const newJson = remaining.length > 0 ? JSON.stringify(remaining) : null;
+    await db.query(`UPDATE chat_messages SET attachments_json = ? WHERE id = ?`, [newJson, parsedMsgId]);
+
+    socketService.emitToRoom(`conv:${finalConvId}`, 'message_edited', {
+      conversation_id: finalConvId,
+      message_id: parsedMsgId,
+      message_text: msg.message_text,
+      attachments: remaining
+    });
+
+    return {
+      success: true,
+      deletedMessage: false,
+      messageId: parsedMsgId,
+      conversationId: finalConvId,
+      attachments: remaining
     };
   }
 

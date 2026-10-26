@@ -66,6 +66,10 @@ router.get('/chat/messages/:convId', (req, res, next) => communicationController
 router.post('/chat/messages/:convId', (req, res, next) => communicationController.sendChatMessage(req, res, next));
 router.put('/chat/messages/:convId/:messageId', (req, res, next) => communicationController.editChatMessage(req, res, next));
 router.delete('/chat/messages/:convId/:messageId', (req, res, next) => communicationController.deleteChatMessage(req, res, next));
+router.delete('/chat/messages/:convId/:messageId/attachment', (req, res, next) => communicationController.deleteChatMessageAttachment(req, res, next));
+router.delete('/conversations/:convId/messages/:messageId', (req, res, next) => communicationController.deleteChatMessage(req, res, next));
+router.delete('/conversations/:convId/messages/:messageId/attachment', (req, res, next) => communicationController.deleteChatMessageAttachment(req, res, next));
+router.delete('/messages/:messageId', (req, res, next) => communicationController.deleteChatMessage(req, res, next));
 
 // ── Media / File Uploads ──────────────────────────────────────────────────────
 router.post('/upload', upload.single('file'), (req, res, next) => communicationController.uploadAttachment(req, res, next));

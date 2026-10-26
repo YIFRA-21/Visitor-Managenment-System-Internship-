@@ -15,6 +15,7 @@ import { communicationApi, notificationsApi, profileApi, getErrorMessage } from 
 import BackButton from '../../../components/common/BackButton';
 import useResponseNavigation from '../../response/useResponseNavigation';
 import { RESPONSE_TYPES } from '../../response/responseConfig';
+import { resolvePhotoUrl } from '../../../utils/photoUtils';
 
 // Security Redaction: Never display User ID, Temporary Passwords, or raw credentials in any notification view
 export const sanitizeNotificationContent = (msg) => {
@@ -38,10 +39,29 @@ export const sanitizeNotificationContent = (msg) => {
     );
 };
 
+// Safe Avatar Renderer with graceful fallback to dynamic UI Initials Avatar
+export const renderSafeAvatar = (url, name = 'Chat', className = 'w-full h-full object-cover') => {
+  const resolved = resolvePhotoUrl(url);
+  const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Chat')}&background=4338ca&color=ffffff&bold=true`;
+  return (
+    <img
+      src={resolved || fallback}
+      alt={name || 'Avatar'}
+      className={className}
+      onError={(e) => {
+        if (e.currentTarget.src !== fallback) {
+          e.currentTarget.onerror = null;
+          e.currentTarget.src = fallback;
+        }
+      }}
+    />
+  );
+};
+
 export default function UnifiedNotificationCenter({ initialTab = 'messages', onNavigate }) {
   const [searchParams] = useSearchParams();
   const notifIdFromUrl = searchParams.get('notifId');
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { socket } = useSocket();
   const { toConfirmation, toSuccess, toError } = useResponseNavigation();
 
@@ -530,51 +550,48 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
   };
 
   // Delete Message Submit
-  const handleDeleteMessage = (msg) => {
-    toConfirmation({
-      title: 'Delete Chat Message',
-      message: 'Are you sure you want to delete this message from the conversation?',
-      entityType: 'Message',
-      entityName: msg?.message ? (msg.message.length > 30 ? `${msg.message.substring(0, 30)}...` : msg.message) : 'Chat Message',
-      consequences: [
-        'The message will be removed from all participants\' view.',
-        'Attached media links associated with this message will be invalidated.'
-      ],
-      confirmLabel: 'Delete Message',
-      confirmVariant: 'danger',
-      apiEndpoint: `/communication/conversations/${activeConvId}/messages/${msg.id}`,
-      apiMethod: 'DELETE',
-      returnUrl: window.location.pathname + window.location.search,
-      successConfig: {
-        type: RESPONSE_TYPES.SUCCESS,
-        title: 'Message Deleted',
-        message: 'The selected message has been removed from the conversation.',
-      }
-    });
+  const handleDeleteMessage = async (msg) => {
+    if (!msg || !activeConvId) return;
+    try {
+      await communicationApi.deleteChatMessage(activeConvId, msg.id);
+      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+      showToast('Message deleted successfully ✓', 'success');
+      window.dispatchEvent(new CustomEvent('vms-chat-unread-updated'));
+    } catch (err) {
+      showToast(getErrorMessage(err) || 'Failed to delete message.', 'error');
+    }
   };
 
   // Delete Media (Photo / Video) directly from chat
-  const handleDeleteMediaAttachment = (msg, att) => {
-    toConfirmation({
-      title: 'Delete Media Attachment',
-      message: `Are you sure you want to delete ${att?.name || 'this media file'} from the chat?`,
-      entityType: 'Media Attachment',
-      entityName: att?.name || 'Media file',
-      consequences: [
-        'The file will be unlinked and deleted from cloud storage.',
-        'Recipients will no longer be able to download or preview this file.'
-      ],
-      confirmLabel: 'Delete Media',
-      confirmVariant: 'danger',
-      apiEndpoint: `/communication/conversations/${activeConvId}/messages/${msg.id}`,
-      apiMethod: 'DELETE',
-      returnUrl: window.location.pathname + window.location.search,
-      successConfig: {
-        type: RESPONSE_TYPES.SUCCESS,
-        title: 'Media Deleted',
-        message: 'The media file was deleted from the chat.',
+  const handleDeleteMediaAttachment = async (msg, att) => {
+    if (!msg || !activeConvId) return;
+    try {
+      const attUrl = att?.url || att?.filename || att?.name;
+      const res = await communicationApi.deleteChatMessageAttachment(activeConvId, msg.id, attUrl);
+      if (res.data?.deletedMessage) {
+        setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+        showToast('Photo / media deleted from chat ✓', 'success');
+      } else if (res.data?.attachments) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === msg.id ? { ...m, attachments: res.data.attachments } : m))
+        );
+        showToast('Media attachment deleted ✓', 'success');
+      } else {
+        setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+        showToast('Media file removed ✓', 'success');
       }
-    });
+      window.dispatchEvent(new CustomEvent('vms-chat-unread-updated'));
+    } catch (err) {
+      // Fallback: try deleteChatMessage if attachment endpoint encounters an issue
+      try {
+        await communicationApi.deleteChatMessage(activeConvId, msg.id);
+        setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+        showToast('Media attachment removed ✓', 'success');
+        window.dispatchEvent(new CustomEvent('vms-chat-unread-updated'));
+      } catch (e) {
+        showToast(getErrorMessage(err) || 'Failed to delete media attachment.', 'error');
+      }
+    }
   };
 
   // Open Chat Profile / Edit Info Modal
@@ -1097,6 +1114,12 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
     }
     try {
       setUploadingUserAvatar(true);
+      const localPreview = URL.createObjectURL(file);
+      setContactProfileModal((prev) => ({
+        ...prev,
+        formData: { ...prev.formData, avatar_url: localPreview }
+      }));
+
       const fd = new FormData();
       fd.append('avatar', file);
       const res = await profileApi.uploadAvatar(fd);
@@ -1106,6 +1129,18 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
           ...prev,
           formData: { ...prev.formData, avatar_url: newUrl }
         }));
+        if (updateUser && user) {
+          updateUser({ ...user, avatar_url: newUrl, profile_photo: newUrl });
+        }
+        try {
+          const stored = localStorage.getItem('user');
+          if (stored) {
+            const u = JSON.parse(stored);
+            u.avatar_url = newUrl;
+            u.profile_photo = newUrl;
+            localStorage.setItem('user', JSON.stringify(u));
+          }
+        } catch (_) {}
         showToast('Your profile photo has been updated ✓', 'success');
         fetchContacts();
         fetchConversations();
@@ -1162,7 +1197,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
     }
   };
 
-    // Upload Team / Group Avatar
+  // Upload Team / Group Avatar
   const handleUploadTeamAvatar = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1172,6 +1207,16 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
     }
     try {
       setUploadingTeamAvatar(true);
+      // Instant visual preview so the user immediately sees their photo
+      const localPreview = URL.createObjectURL(file);
+      setContactProfileModal((prev) => ({
+        ...prev,
+        formData: {
+          ...prev.formData,
+          avatar_url: localPreview
+        }
+      }));
+
       const fd = new FormData();
       fd.append('file', file);
       const res = await communicationApi.uploadAttachment(fd);
@@ -1184,7 +1229,26 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
             avatar_url: uploadedUrl
           }
         }));
-        showToast('Team photo uploaded! Click "Save Info" to save changes ✓', 'success');
+
+        // Immediately update active conversation and conversations list
+        if (activeConversation?.id) {
+          try {
+            await communicationApi.updateConversation(activeConversation.id, {
+              title: contactProfileModal.formData?.title || activeConversation.title,
+              description: contactProfileModal.formData?.description || activeConversation.description || '',
+              avatar_url: uploadedUrl
+            });
+          } catch (updateErr) {
+            console.warn('Auto-save team avatar warning:', updateErr);
+          }
+
+          setConversations((prev) =>
+            prev.map((c) => (c.id === activeConversation.id ? { ...c, avatar_url: uploadedUrl } : c))
+          );
+          setActiveConversation((prev) => (prev ? { ...prev, avatar_url: uploadedUrl } : prev));
+        }
+
+        showToast('Team photo uploaded and saved successfully ✓', 'success');
       }
     } catch (err) {
       showToast(getErrorMessage(err) || 'Failed to upload photo.', 'error');
@@ -1205,7 +1269,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
       await communicationApi.updateConversation(convId, {
         title: title.trim(),
         description: description?.trim() || '',
-        avatar_url: avatarUrl || undefined
+        avatar_url: avatarUrl ?? ''
       });
       setConversations((prev) =>
         prev.map((c) =>
@@ -1218,6 +1282,16 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
               }
             : c
         )
+      );
+      setActiveConversation((prev) =>
+        prev && prev.id === convId
+          ? {
+              ...prev,
+              title: title.trim(),
+              description: description?.trim() || '',
+              avatar_url: avatarUrl !== undefined ? avatarUrl : prev.avatar_url
+            }
+          : prev
       );
       setContactProfileModal({ visible: false, user: null, conversation: null, isGroup: false, formData: {} });
       showToast('Team information & profile updated successfully ✓', 'success');
@@ -1556,22 +1630,8 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                       }`}
                     >
                       {/* Avatar */}
-                      <div className="relative w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs uppercase text-indigo-300 shrink-0 overflow-hidden">
-                        {conv.avatar_url ? (
-                          <img
-                            src={conv.avatar_url}
-                            alt={title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : other?.avatar_url ? (
-                          <img
-                            src={other.avatar_url}
-                            alt={title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          title.charAt(0)
-                        )}
+                      <div className="relative w-9 h-9 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center font-bold text-xs uppercase text-indigo-300 shrink-0 overflow-hidden shadow-sm">
+                        {renderSafeAvatar(conv.avatar_url || other?.avatar_url, title)}
                         {other?.is_online && (
                           <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-900" />
                         )}
@@ -1637,21 +1697,10 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                       className="flex items-center gap-3 cursor-pointer group/prof hover:opacity-90 transition-all p-1 -m-1 rounded-xl hover:bg-slate-800/40"
                       title="Click to view contact info, change profile, or edit team"
                     >
-                      <div className="w-8 h-8 rounded-full bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center font-bold text-xs uppercase overflow-hidden shrink-0 group-hover/prof:border-indigo-400 group-hover/prof:scale-105 transition-all">
-                        {activeConversation.avatar_url ? (
-                          <img
-                            src={activeConversation.avatar_url}
-                            alt="avatar"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : activeConversation.other_user?.avatar_url ? (
-                          <img
-                            src={activeConversation.other_user.avatar_url}
-                            alt="avatar"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          (activeConversation.title || 'C').charAt(0)
+                      <div className="w-9 h-9 rounded-full bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center font-bold text-xs uppercase overflow-hidden shrink-0 group-hover/prof:border-indigo-400 group-hover/prof:scale-105 transition-all shadow-md">
+                        {renderSafeAvatar(
+                          activeConversation.avatar_url || activeConversation.other_user?.avatar_url,
+                          activeConversation.title || activeConversation.other_user?.name || 'Chat'
                         )}
                       </div>
 
@@ -1741,24 +1790,71 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                       const isMine = msg.is_mine || Number(msg.sender_id) === Number(myUserId);
 
                       return (
-                        <div
+                        <motion.div
                           key={msg.id}
+                          initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ duration: 0.18 }}
                           onContextMenu={(e) => handleContextMenu(e, msg)}
-                          className={`flex gap-2.5 max-w-[85%] sm:max-w-[70%] group ${
+                          className={`flex gap-2.5 max-w-[85%] sm:max-w-[70%] group relative ${
                             isMine ? 'ml-auto flex-row-reverse' : 'mr-auto'
                           }`}
                         >
-                          {/* Sender Avatar */}
-                          <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-indigo-300 uppercase shrink-0 overflow-hidden">
-                            {msg.sender_avatar ? (
-                              <img
-                                src={msg.sender_avatar}
-                                alt={msg.sender_name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              (msg.sender_name || 'U').charAt(0)
+                          {/* Quick Message Actions Bar on Hover */}
+                          <div
+                            className={`absolute -top-3.5 ${
+                              isMine ? 'right-9' : 'left-9'
+                            } opacity-0 group-hover:opacity-100 transition-all duration-200 transform group-hover:scale-100 scale-95 bg-slate-900/95 border border-slate-700/80 rounded-lg p-0.5 shadow-xl flex items-center gap-0.5 z-20 backdrop-blur-md`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setReplyingTo(msg)}
+                              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-indigo-300 transition-colors"
+                              title="Reply"
+                            >
+                              <CornerUpRight className="w-3.5 h-3.5" />
+                            </button>
+                            {msg.message_text && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(msg.message_text);
+                                  showToast('Text copied to clipboard ✓', 'success');
+                                }}
+                                className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                                title="Copy Text"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
                             )}
+                            {isMine && msg.message_text && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingMessage(msg);
+                                  setEditText(msg.message_text);
+                                }}
+                                className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-amber-300 transition-colors"
+                                title="Edit Message"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {(isMine || isAdmin) && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMessage(msg)}
+                                className="p-1 rounded hover:bg-rose-600/30 text-slate-400 hover:text-rose-400 transition-colors"
+                                title="Delete Message"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Sender Avatar */}
+                          <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center text-[10px] font-bold text-indigo-300 uppercase shrink-0 overflow-hidden shadow-sm">
+                            {renderSafeAvatar(msg.sender_avatar, msg.sender_name || 'U')}
                           </div>
 
                           {/* Message Bubble */}
@@ -1810,20 +1906,24 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                                         <div
                                           key={idx}
                                           onContextMenu={(e) => handleContextMenu(e, msg, att)}
-                                          className="relative group/att rounded-xl overflow-hidden border border-white/10 max-w-sm cursor-pointer shadow-md"
+                                          className="relative group/att rounded-xl overflow-hidden border border-white/10 max-w-sm cursor-pointer shadow-md bg-slate-950/60"
                                           onClick={() =>
                                             setMediaLightbox({
                                               visible: true,
                                               type: 'image',
-                                              url: att.url,
+                                              url: resolvePhotoUrl(att.url),
                                               name: att.name
                                             })
                                           }
                                         >
                                           <img
-                                            src={att.url}
-                                            alt={att.name}
-                                            className="w-full max-h-60 object-cover hover:scale-105 transition-transform"
+                                            src={resolvePhotoUrl(att.url)}
+                                            alt={att.name || 'Photo attachment'}
+                                            className="w-full max-h-64 object-cover hover:scale-[1.02] transition-transform duration-200"
+                                            onError={(e) => {
+                                              e.currentTarget.onerror = null;
+                                              e.currentTarget.src = '/vms-lobby.png';
+                                            }}
                                           />
                                           <div className="p-1.5 bg-black/60 backdrop-blur-sm text-[10px] flex items-center justify-between text-white">
                                             <span className="truncate max-w-[200px]">{att.name}</span>
@@ -1853,18 +1953,18 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                                         <div
                                           key={idx}
                                           onContextMenu={(e) => handleContextMenu(e, msg, att)}
-                                          className="relative group/att rounded-xl overflow-hidden border border-white/10 max-w-sm shadow-md"
+                                          className="relative group/att rounded-xl overflow-hidden border border-white/10 max-w-sm shadow-md bg-black"
                                         >
                                           <video
                                             controls
-                                            src={att.url}
-                                            className="w-full max-h-60 bg-black"
+                                            src={resolvePhotoUrl(att.url)}
+                                            className="w-full max-h-64 bg-black"
                                           />
                                           <div className="p-1.5 bg-black/60 backdrop-blur-sm text-[10px] flex items-center justify-between text-white">
                                             <span className="truncate max-w-[180px]">{att.name}</span>
                                             <div className="flex items-center gap-1.5">
                                               <a
-                                                href={att.url}
+                                                href={resolvePhotoUrl(att.url)}
                                                 download={att.name}
                                                 className="p-1 hover:text-indigo-300 transition-colors"
                                                 title="Download Video"
@@ -1904,14 +2004,29 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                                             </span>
                                           </div>
                                         </div>
-                                        <a
-                                          href={att.url}
-                                          download={att.name}
-                                          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                                          title="Download attachment"
-                                        >
-                                          <Download className="w-3.5 h-3.5" />
-                                        </a>
+                                        <div className="flex items-center gap-1">
+                                          <a
+                                            href={resolvePhotoUrl(att.url)}
+                                            download={att.name}
+                                            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                                            title="Download attachment"
+                                          >
+                                            <Download className="w-3.5 h-3.5" />
+                                          </a>
+                                          {(isMine || isAdmin) && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteMediaAttachment(msg, att);
+                                              }}
+                                              className="p-1.5 rounded-lg hover:bg-rose-600/30 text-rose-400 transition-colors"
+                                              title="Delete file"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
+                                        </div>
                                       </div>
                                     );
                                   })}
@@ -1969,7 +2084,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                                 </div>
                             </div>
                           </div>
-                        </div>
+                        </motion.div>
                       );
                     })
                   )}
@@ -1978,28 +2093,38 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
 
                 {/* Staged Attachments Preview before sending */}
                 {stagedAttachments.length > 0 && (
-                  <div className="px-4 py-2 border-t border-slate-800 bg-slate-900/50 flex items-center gap-2 flex-wrap">
+                  <div className="px-4 py-2 border-t border-slate-800 bg-slate-900/60 flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] uppercase font-bold text-slate-400">
-                      Attachments ready to send:
+                      Attachments ({stagedAttachments.length}):
                     </span>
-                    {stagedAttachments.map((att, i) => (
-                      <div
-                        key={i}
-                        className="px-2 py-1 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs flex items-center gap-1.5"
-                      >
-                        <FileText className="w-3 h-3" />
-                        <span className="truncate max-w-[150px]">{att.name}</span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setStagedAttachments((prev) => prev.filter((_, idx) => idx !== i))
-                          }
-                          className="hover:text-white"
+                    {stagedAttachments.map((att, i) => {
+                      const isImg = att.type === 'image' || att.url?.match(/\.(jpeg|jpg|png|gif|webp)$/i);
+                      return (
+                        <div
+                          key={i}
+                          className="px-2 py-1 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-200 text-xs flex items-center gap-2 shadow-sm"
                         >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+                          {isImg ? (
+                            <div className="w-5 h-5 rounded overflow-hidden shrink-0 border border-indigo-500/40">
+                              <img src={resolvePhotoUrl(att.url)} alt={att.name} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <FileText className="w-3.5 h-3.5 text-indigo-300 shrink-0" />
+                          )}
+                          <span className="truncate max-w-[140px] text-[11px] font-medium">{att.name}</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setStagedAttachments((prev) => prev.filter((_, idx) => idx !== i))
+                            }
+                            className="p-0.5 hover:bg-white/10 rounded text-slate-400 hover:text-rose-400 transition-colors"
+                            title="Remove attachment"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -3617,11 +3742,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-indigo-300 uppercase shrink-0 overflow-hidden">
-                            {contact.avatar_url ? (
-                              <img src={contact.avatar_url} alt={contact.full_name || contact.username} className="w-full h-full object-cover" />
-                            ) : (
-                              (contact.full_name || contact.username).charAt(0)
-                            )}
+                            {renderSafeAvatar(contact.avatar_url, contact.full_name || contact.username)}
                           </div>
                           <div>
                             <p className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -3919,14 +4040,9 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                         {/* Uploadable Team Avatar */}
                         <div className="relative group shrink-0">
                           <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 text-indigo-300 border-2 border-indigo-500/40 flex items-center justify-center font-black text-xl uppercase overflow-hidden shadow-lg shadow-indigo-950/50">
-                            {contactProfileModal.formData.avatar_url ? (
-                              <img
-                                src={contactProfileModal.formData.avatar_url}
-                                alt="Team Avatar"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              (contactProfileModal.formData.title || 'T').charAt(0)
+                            {renderSafeAvatar(
+                              contactProfileModal.formData.avatar_url || activeConversation?.avatar_url,
+                              contactProfileModal.formData.title || activeConversation?.title || 'Team'
                             )}
                           </div>
 
@@ -3976,12 +4092,28 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                               {contactProfileModal.formData.avatar_url && (
                                 <button
                                   type="button"
-                                  onClick={() =>
+                                  onClick={async () => {
                                     setContactProfileModal((prev) => ({
                                       ...prev,
                                       formData: { ...prev.formData, avatar_url: '' }
-                                    }))
-                                  }
+                                    }));
+                                    if (activeConversation?.id) {
+                                      try {
+                                        await communicationApi.updateConversation(activeConversation.id, {
+                                          title: contactProfileModal.formData?.title || activeConversation.title,
+                                          description: contactProfileModal.formData?.description || activeConversation.description || '',
+                                          avatar_url: ''
+                                        });
+                                        setConversations((prev) =>
+                                          prev.map((c) => (c.id === activeConversation.id ? { ...c, avatar_url: '' } : c))
+                                        );
+                                        setActiveConversation((prev) => (prev ? { ...prev, avatar_url: '' } : prev));
+                                        showToast('Team photo removed ✓', 'success');
+                                      } catch (err) {
+                                        console.warn('Remove avatar error:', err);
+                                      }
+                                    }
+                                  }}
                                   className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 font-semibold text-[10px] cursor-pointer"
                                 >
                                   Remove
@@ -4070,11 +4202,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                             <div key={member.id} className="p-2 flex items-center justify-between gap-3 hover:bg-slate-800/40 rounded-lg transition-colors">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className="relative w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-indigo-300 uppercase shrink-0 overflow-hidden">
-                                  {member.avatar_url ? (
-                                    <img src={member.avatar_url} alt={member.name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    (member.name || 'U').charAt(0)
-                                  )}
+                                  {renderSafeAvatar(member.avatar_url, member.name || 'U')}
                                 </div>
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold text-white truncate flex items-center gap-1.5">
@@ -4166,11 +4294,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                             <div key={c.id} className="p-2 flex items-center justify-between gap-2 hover:bg-slate-800/40 rounded-lg transition-colors">
                               <div className="flex items-center gap-2 min-w-0">
                                 <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-indigo-300 uppercase shrink-0 overflow-hidden">
-                                  {c.avatar_url ? (
-                                    <img src={c.avatar_url} alt={c.full_name || c.username} className="w-full h-full object-cover" />
-                                  ) : (
-                                    (c.full_name || c.username).charAt(0)
-                                  )}
+                                  {renderSafeAvatar(c.avatar_url, c.full_name || c.username)}
                                 </div>
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold text-white truncate">{c.full_name || c.username}</p>
@@ -4206,14 +4330,9 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                       {/* Avatar with Camera Overlay (for Own Profile) */}
                       <div className="relative group shrink-0">
                         <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center font-extrabold text-base uppercase overflow-hidden shadow-md">
-                          {contactProfileModal.formData.avatar_url || contactProfileModal.user?.avatar_url ? (
-                            <img
-                              src={contactProfileModal.formData.avatar_url || contactProfileModal.user?.avatar_url}
-                              alt="avatar"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            (contactProfileModal.formData.name || 'U').charAt(0)
+                          {renderSafeAvatar(
+                            contactProfileModal.formData.avatar_url || contactProfileModal.user?.avatar_url || user?.avatar_url,
+                            contactProfileModal.formData.name || user?.name || 'User'
                           )}
                         </div>
 

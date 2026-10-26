@@ -727,6 +727,7 @@ export const communicationApi = {
     sendChatMessage: (convId, data) => api.post(`/communication/chat/messages/${convId}`, data),
     editChatMessage: (convId, messageId, messageText) => api.put(`/communication/chat/messages/${convId}/${messageId}`, { message_text: messageText }),
     deleteChatMessage: (convId, messageId) => api.delete(`/communication/chat/messages/${convId}/${messageId}`),
+    deleteChatMessageAttachment: (convId, messageId, attachmentUrl) => api.delete(`/communication/chat/messages/${convId}/${messageId}/attachment`, { data: { attachmentUrl } }),
     uploadAttachment: (formData) => api.post('/communication/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
     }),

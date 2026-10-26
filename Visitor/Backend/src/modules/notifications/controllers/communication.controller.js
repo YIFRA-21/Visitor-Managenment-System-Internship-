@@ -169,8 +169,27 @@ class CommunicationController {
       const userId = req.user?.id;
       const role = req.user?.role;
       const result = await communicationService.deleteChatMessage(
-        Number(convId),
+        convId ? Number(convId) : 0,
         Number(messageId),
+        userId,
+        role
+      );
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteChatMessageAttachment(req, res, next) {
+    try {
+      const { convId, messageId } = req.params;
+      const { attachmentUrl } = req.body || req.query;
+      const userId = req.user?.id;
+      const role = req.user?.role;
+      const result = await communicationService.deleteChatMessageAttachment(
+        convId ? Number(convId) : 0,
+        Number(messageId),
+        attachmentUrl,
         userId,
         role
       );
