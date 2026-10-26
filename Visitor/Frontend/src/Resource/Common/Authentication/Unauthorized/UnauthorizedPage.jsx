@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { ShieldAlert, ArrowLeft, HelpCircle, LogOut, LayoutDashboard, UserCheck, LogIn, Lock } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, HelpCircle, LogOut, LayoutDashboard, UserCheck, LogIn, Lock, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { getRoleLanding, isAdminRole, normalizeRole } from '../../../../config/routes';
 
@@ -8,11 +8,12 @@ export default function UnauthorizedPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, logout } = useAuth();
+    const [countdown, setCountdown] = useState(3);
 
     const normalizedRole = useMemo(() => normalizeRole(user), [user]);
     const roleLanding = useMemo(() => {
         if (!user) return '/login';
-        return getRoleLanding(user?.role, user);
+        return getRoleLanding(user?.role, user) || '/dashboard';
     }, [user]);
 
     const roleDisplayName = useMemo(() => {
@@ -34,6 +35,22 @@ export default function UnauthorizedPage() {
                 return user?.role || 'Standard User';
         }
     }, [user, normalizedRole]);
+
+    // Automatically navigate back to dashboard after brief countdown
+    useEffect(() => {
+        if (!user) return;
+        const timer = setInterval(() => {
+            setCountdown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    navigate(roleLanding, { replace: true });
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [user, roleLanding, navigate]);
 
     const handleReturnToDashboard = () => {
         if (!user) {
@@ -111,6 +128,17 @@ export default function UnauthorizedPage() {
                         </div>
                     )}
 
+                    {/* Auto-redirection notification */}
+                    {user && countdown > 0 && (
+                        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-indigo-400 bg-indigo-950/40 border border-indigo-500/20 rounded-lg py-2 px-3">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                            </span>
+                            <span>Redirecting to your {roleDisplayName} workspace in {countdown}s...</span>
+                        </div>
+                    )}
+
                     {/* Action buttons */}
                     <div className="mt-6 space-y-2.5">
                         {user ? (
@@ -121,7 +149,7 @@ export default function UnauthorizedPage() {
                                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2.5 transition-all shadow-[0_4px_18px_rgba(99,102,241,0.35)] cursor-pointer text-xs uppercase tracking-wider"
                                 >
                                     <LayoutDashboard className="h-4 w-4" />
-                                    <span>Return to My Dashboard ({roleDisplayName})</span>
+                                    <span>Return to My Dashboard ({roleDisplayName}) {countdown > 0 ? `(${countdown}s)` : ''}</span>
                                 </button>
 
                                 <button

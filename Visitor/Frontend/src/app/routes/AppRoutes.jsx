@@ -110,10 +110,10 @@ export default function AppRoutes() {
       <Route path="/security/identity-reviews/:caseId" element={<ProtectedRoute requiredRole="security"><ReviewerCaseDetailPage /></ProtectedRoute>} />
       <Route path="/security/identity-reviews" element={<ProtectedRoute requiredRole="security"><ReviewerQueuePage /></ProtectedRoute>} />
       <Route path="/admin/identity-policy" element={<ProtectedRoute requiredRole="admin"><VerificationPolicySettingsPage /></ProtectedRoute>} />
-      <Route path="/buildings" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />
-      <Route path="/floors" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />
-      <Route path="/rooms" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />
-      <Route path="/workplace" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />
+      <Route path="/buildings" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/floors" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/rooms" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/workplace" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
 
       <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>}/>
       <Route path="/admin/*" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>}/>
@@ -129,6 +129,7 @@ export default function AppRoutes() {
       <Route path="/visitor/*" element={<ProtectedRoute requiredRole="visitor"><DashboardPage /></ProtectedRoute>}/>
 
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>}/>
+      <Route path="/notifications/*" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>}/>
       <Route path="/feedback-support/*" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}/>
       <Route path="/support-feedback/*" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}/>
       <Route path="/support/*" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}/>
