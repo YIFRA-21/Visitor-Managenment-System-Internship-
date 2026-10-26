@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Building, Users, CheckCircle2, Plus, AlertCircle, RefreshCw, } from 'lucide-react';
 import { employeePortalApi } from '../../services/api';
+import locationService from '../../services/locationService';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 
@@ -25,18 +26,59 @@ export default function EmployeeMeetingManagement() {
         setLoading(true);
         try {
             const res = await employeePortalApi.getRooms();
-            setRooms(res.data?.rooms || []);
-            setBookings(res.data?.bookings || []);
+            const portalRooms = res.data?.rooms || [];
+            const portalBookings = res.data?.bookings || [];
+            if (portalRooms.length > 0) {
+                setRooms(portalRooms);
+                setBookings(portalBookings);
+            } else {
+                const locRes = await locationService.getRooms({ limit: 100 });
+                const locRooms = (locRes?.data || []).map((r) => ({
+                    id: r.id,
+                    room_name: r.room_name || `Room ${r.room_number}`,
+                    room_number: r.room_number,
+                    building_name: r.building_name,
+                    floor_name: r.floor_name,
+                    capacity: r.capacity || 10,
+                    location: `${r.building_name || 'Main HQ'}, ${r.floor_name || 'Ground Floor'}`,
+                    is_available: r.status === 'AVAILABLE' || r.status === 'ACTIVE' || !r.status,
+                    features: [
+                        r.has_video_conference ? '4K Video Conf' : null,
+                        r.has_tv ? 'Smart TV' : null,
+                        r.has_projector ? 'Projector' : null,
+                        `Cap: ${r.capacity || 10}`
+                    ].filter(Boolean),
+                    is_active: r.is_active !== 0
+                }));
+                setRooms(locRooms);
+                setBookings(portalBookings);
+            }
         }
         catch (err) {
-            // Mock room dataset fallback
-            const mockRooms = [
-                { id: 1, room_name: 'Executive Boardroom A', capacity: 16, location: 'Building 1, Fl 4', is_available: true, features: ['4K TV', 'Video Conf', 'Wi-Fi'] },
-                { id: 2, room_name: 'Innovation Hub B', capacity: 8, location: 'Building 1, Fl 3', is_available: true, features: ['Whiteboard', '4K TV', 'Wi-Fi'] },
-                { id: 3, room_name: 'Conference Suite 3C', capacity: 12, location: 'Building 2, Fl 2', is_available: false, features: ['Projector', 'Video Conf'] },
-                { id: 4, room_name: 'Creative Studio 4D', capacity: 6, location: 'Building 1, Fl 2', is_available: true, features: ['Wi-Fi', 'Smart Board'] },
-            ];
-            setRooms(mockRooms);
+            console.warn('[EmployeeMeetingManagement] Failed to fetch portal rooms, using locationService:', err);
+            try {
+                const locRes = await locationService.getRooms({ limit: 100 });
+                const locRooms = (locRes?.data || []).map((r) => ({
+                    id: r.id,
+                    room_name: r.room_name || `Room ${r.room_number}`,
+                    room_number: r.room_number,
+                    building_name: r.building_name,
+                    floor_name: r.floor_name,
+                    capacity: r.capacity || 10,
+                    location: `${r.building_name || 'Main HQ'}, ${r.floor_name || 'Ground Floor'}`,
+                    is_available: r.status === 'AVAILABLE' || r.status === 'ACTIVE' || !r.status,
+                    features: [
+                        r.has_video_conference ? '4K Video Conf' : null,
+                        r.has_tv ? 'Smart TV' : null,
+                        r.has_projector ? 'Projector' : null,
+                        `Cap: ${r.capacity || 10}`
+                    ].filter(Boolean),
+                    is_active: r.is_active !== 0
+                }));
+                setRooms(locRooms);
+            } catch (fallbackErr) {
+                console.error('[EmployeeMeetingManagement] Error loading location rooms:', fallbackErr);
+            }
         }
         finally {
             setLoading(false);

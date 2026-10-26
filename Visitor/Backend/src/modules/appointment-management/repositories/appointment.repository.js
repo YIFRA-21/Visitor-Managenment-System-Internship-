@@ -13,11 +13,18 @@ class AppointmentRepository {
               v.company as visitorCompany, v.category as visitorCategory,
               v.id_type as idType, v.id_number as idNumber,
               v.gender, v.date_of_birth as dateOfBirth, v.nationality,
-              u.full_name as hostName, u.email as hostEmail, r.room_name as roomName
+              u.full_name as hostName, u.email as hostEmail, 
+              r.room_name as roomName, r.room_name, r.room_number,
+              b.building_name as buildingName, b.building_name,
+              f.floor_name as floorName, f.floor_name, f.floor_number,
+              d.department_name as departmentName, d.department_name
        FROM appointments a
        LEFT JOIN visitors v ON a.visitor_id = v.id
        LEFT JOIN users u ON a.host_id = u.id
        LEFT JOIN meeting_rooms r ON a.room_id = r.id
+       LEFT JOIN buildings b ON (r.building_id = b.id OR a.building_id = b.id)
+       LEFT JOIN floors f ON (r.floor_id = f.id OR a.floor_id = f.id)
+       LEFT JOIN departments d ON (a.department_id = d.id OR r.department_id = d.id)
        WHERE a.id = ? AND a.deleted_at IS NULL`,
       [id]
     );
@@ -40,11 +47,18 @@ class AppointmentRepository {
               v.company as visitorCompany, v.category as visitorCategory,
               v.id_type as idType, v.id_number as idNumber,
               v.gender, v.date_of_birth as dateOfBirth, v.nationality,
-              u.full_name as hostName, r.room_name as roomName
+              u.full_name as hostName, 
+              r.room_name as roomName, r.room_name, r.room_number,
+              b.building_name as buildingName, b.building_name,
+              f.floor_name as floorName, f.floor_name, f.floor_number,
+              d.department_name as departmentName, d.department_name
        FROM appointments a
        LEFT JOIN visitors v ON a.visitor_id = v.id
        LEFT JOIN users u ON a.host_id = u.id
        LEFT JOIN meeting_rooms r ON a.room_id = r.id
+       LEFT JOIN buildings b ON (r.building_id = b.id OR a.building_id = b.id)
+       LEFT JOIN floors f ON (r.floor_id = f.id OR a.floor_id = f.id)
+       LEFT JOIN departments d ON (a.department_id = d.id OR r.department_id = d.id)
        WHERE (
          a.reference_code = ? 
          OR a.appointment_number = ? 
@@ -233,7 +247,11 @@ class AppointmentRepository {
               v.visitor_id as visitorIdCode, v.reference_number as visitorReferenceNumber,
               v.company as visitorCompany, v.category as visitorCategory,
               v.id_type as idType, v.id_number as idNumber,
-              u.full_name as hostName, r.room_name as roomName,
+              u.full_name as hostName, 
+              r.room_name as roomName, r.room_name, r.room_number,
+              b.building_name as buildingName, b.building_name,
+              f.floor_name as floorName, f.floor_name, f.floor_number,
+              d.department_name as departmentName, d.department_name,
               COALESCE(c.entry_time, c.checked_in_at) as entryTime,
               COALESCE(co.exit_time, co.checkout_time) as exitTime,
               vp.pass_code as passNumber
@@ -241,6 +259,9 @@ class AppointmentRepository {
        LEFT JOIN visitors v ON a.visitor_id = v.id
        LEFT JOIN users u ON a.host_id = u.id
        LEFT JOIN meeting_rooms r ON a.room_id = r.id
+       LEFT JOIN buildings b ON (r.building_id = b.id OR a.building_id = b.id)
+       LEFT JOIN floors f ON (r.floor_id = f.id OR a.floor_id = f.id)
+       LEFT JOIN departments d ON (a.department_id = d.id OR r.department_id = d.id)
        LEFT JOIN checkins c ON c.appointment_id = a.id
        LEFT JOIN visitor_checkouts co ON (co.appointment_id = a.id OR co.checkin_id = c.id)
        LEFT JOIN visitor_passes vp ON (vp.appointment_id = a.id OR c.pass_id = vp.id)

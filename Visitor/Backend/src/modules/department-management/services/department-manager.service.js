@@ -298,26 +298,37 @@ class DepartmentManagerService {
    */
   async getRooms(managerScope) {
     const db = require('../../../config/db');
-    const rooms = await db.query(
-      `SELECT r.*, 
-              (SELECT COUNT(*) FROM appointments a WHERE a.room_id = r.id AND a.department_id = ? AND a.scheduled_date = CURDATE()) as today_bookings_count
-       FROM rooms r 
-       WHERE r.is_active = 1
-       ORDER BY r.name ASC`,
-      [managerScope.departmentId]
+    let rooms = await db.query(
+      `SELECT mr.id, mr.room_name, mr.room_number, mr.room_name AS name, mr.capacity, mr.is_active, mr.room_type,
+              b.id AS building_id, b.building_name, b.building_code,
+              f.id AS floor_id, f.floor_name, f.floor_number,
+              CONCAT(COALESCE(b.building_name, ''), ' • ', COALESCE(f.floor_name, ''), ' • ', COALESCE(mr.room_name, mr.room_number, '')) AS location,
+              (SELECT COUNT(*) FROM appointments a WHERE a.room_id = mr.id AND (a.department_id = ? OR ? IS NULL) AND DATE(a.scheduled_start) = CURDATE()) as today_bookings_count
+       FROM meeting_rooms mr 
+       LEFT JOIN buildings b ON mr.building_id = b.id
+       LEFT JOIN floors f ON mr.floor_id = f.id
+       WHERE mr.deleted_at IS NULL AND (mr.is_active = 1 OR mr.is_active IS NULL)
+       ORDER BY mr.room_name ASC`,
+      [managerScope?.departmentId || null, managerScope?.departmentId || null]
     ).catch(() => []);
 
+    if (!Array.isArray(rooms) || rooms.length === 0) {
+      rooms = await db.query(
+        `SELECT r.id, r.name as room_name, r.name, r.capacity, r.location, r.is_active FROM rooms r WHERE r.is_active = 1 ORDER BY r.name ASC`
+      ).catch(() => []);
+    }
+
     const bookings = await db.query(
-      `SELECT a.id, a.reference_code, a.scheduled_date, a.scheduled_start, a.scheduled_end, a.purpose, a.status,
-              r.name as room_name, r.id as room_id,
+      `SELECT a.id, a.reference_code, a.scheduled_start, a.scheduled_end, a.purpose, a.status,
+              COALESCE(mr.room_name, mr.room_number, 'Meeting Space') as room_name, a.room_id,
               v.full_name as visitor_name, e.full_name as host_name
        FROM appointments a
-       JOIN rooms r ON a.room_id = r.id
+       LEFT JOIN meeting_rooms mr ON a.room_id = mr.id
        LEFT JOIN visitors v ON a.visitor_id = v.id
        LEFT JOIN employees e ON a.host_employee_id = e.id
-       WHERE a.department_id = ? AND a.scheduled_date >= CURDATE()
-       ORDER BY a.scheduled_date ASC, a.scheduled_start ASC LIMIT 20`,
-      [managerScope.departmentId]
+       WHERE (a.department_id = ? OR ? IS NULL) AND a.scheduled_start >= CURDATE()
+       ORDER BY a.scheduled_start ASC LIMIT 20`,
+      [managerScope?.departmentId || null, managerScope?.departmentId || null]
     ).catch(() => []);
 
     return { rooms, bookings };

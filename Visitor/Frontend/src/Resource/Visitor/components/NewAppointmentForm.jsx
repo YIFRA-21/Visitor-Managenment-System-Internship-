@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Calendar, Clock, MapPin, User, Building, Send, Check, FileText, ArrowLeft, UploadCloud, FolderUp, FileCheck, ShieldCheck, Loader2 } from 'lucide-react';
 import { appointmentsApi, organizationsApi, departmentsApi, employeesApi, roomsApi, visitorPortalApi } from '../../../services/api';
+import locationService from '../../../services/locationService';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useEnterpriseForm } from '../../../hooks/useEnterpriseForm';
@@ -19,6 +20,7 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
     const [allBranches, setAllBranches] = useState([]);
     const [allDepartments, setAllDepartments] = useState([]);
     const [allEmployees, setAllEmployees] = useState([]);
+    const [allBuildings, setAllBuildings] = useState([]);
     const [allRooms, setAllRooms] = useState([]);
     const [loadingOrgs, setLoadingOrgs] = useState(true);
     const [loadingBranches, setLoadingBranches] = useState(false);
@@ -351,22 +353,38 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
         return () => { cancelled = true; };
     }, [values.department, values.departmentId]);
     // ══════════════════════════════════════════════════════════════════════════
-    // STEP 5: On mount → Fetch Rooms from DB
+    // STEP 5: On mount → Fetch Real Buildings & Rooms from DB / locationService
     // ══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
         let cancelled = false;
-        async function loadRooms() {
+        async function loadFacilities() {
             try {
-                const res = await roomsApi.list();
-                const roomList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-                if (!cancelled)
-                    setAllRooms(roomList);
+                const bRes = await locationService.getBuildings({ limit: 100 }).catch(() => null);
+                const bList = bRes?.data || [];
+                if (!cancelled && Array.isArray(bList) && bList.length > 0) {
+                    setAllBuildings(bList);
+                }
+            } catch (err) {
+                console.warn('Failed to fetch buildings via locationService:', err);
             }
-            catch (err) {
+
+            try {
+                let roomList = [];
+                const rRes = await locationService.getRooms({ limit: 200 }).catch(() => null);
+                if (rRes?.data && Array.isArray(rRes.data) && rRes.data.length > 0) {
+                    roomList = rRes.data;
+                } else {
+                    const res = await roomsApi.list().catch(() => null);
+                    roomList = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+                }
+                if (!cancelled && Array.isArray(roomList)) {
+                    setAllRooms(roomList);
+                }
+            } catch (err) {
                 console.warn('Failed to fetch rooms:', err);
             }
         }
-        loadRooms();
+        loadFacilities();
         return () => { cancelled = true; };
     }, []);
     // ── Computed Dropdown Options (derived from real DB data) ──
@@ -388,49 +406,56 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
     }, [allEmployees]);
     // Buildings filtered by selected branch
     const availableBuildings = useMemo(() => {
-        if (!values.branch)
-            return [];
-        const selectedBranch = (values.branch || '').toLowerCase();
-        // Use branch location data if available
-        const branchObj = allBranches.find((b) => (b.branchName || b.branch_name || b.name || '') === values.branch);
-        if (branchObj) {
-            const location = branchObj.city || branchObj.location || branchObj.address || '';
-            if (location) {
-                return [{ id: 1, name: `${values.branch} - ${location}` }];
+        if (!values.branch) return [];
+        const selectedBranchLower = (values.branch || '').toLowerCase();
+        const selectedBranchId = values.branchId ? Number(values.branchId) : null;
+
+        let filtered = allBuildings.filter((b) => {
+            if (selectedBranchId && b.branch_id) {
+                return Number(b.branch_id) === selectedBranchId;
+            }
+            const bBranch = (b.branch_name || b.branchName || '').toLowerCase();
+            return bBranch.includes(selectedBranchLower) || selectedBranchLower.includes(bBranch);
+        });
+
+        if (filtered.length === 0) {
+            const branchBuildingNames = allRooms
+                .filter((r) => {
+                    const roomBranch = (r.branch_name || r.branchName || '').toLowerCase();
+                    return roomBranch.includes(selectedBranchLower) || selectedBranchLower.includes(roomBranch);
+                })
+                .map((r) => (r.building_name || r.buildingName || r.building || '').trim())
+                .filter(Boolean);
+            const uniqueNames = [...new Set(branchBuildingNames)];
+            if (uniqueNames.length > 0) {
+                filtered = uniqueNames.map((name, idx) => ({ id: idx + 1, building_name: name }));
             }
         }
-        // Check rooms for building info matching branch
-        const branchBuildings = allRooms
-            .filter((r) => {
-            const roomBranch = (r.branch_name || r.branchName || '').toLowerCase();
-            return roomBranch.includes(selectedBranch) || selectedBranch.includes(roomBranch);
-        })
-            .map((r) => r.building_name || r.buildingName || r.building || '')
-            .filter(Boolean);
-        const uniqueBuildings = [...new Set(branchBuildings)];
-        if (uniqueBuildings.length > 0) {
-            return uniqueBuildings.map((b, idx) => ({ id: idx + 1, name: b }));
+
+        if (filtered.length === 0 && allBuildings.length > 0) {
+            filtered = allBuildings.filter((b) => b.is_active !== 0 && b.is_active !== false);
         }
-        // Fallback: use branch name as building
-        return [{ id: 1, name: `${values.branch} Building` }];
-    }, [values.branch, allBranches, allRooms]);
+
+        return filtered.map((b) => ({
+            id: b.id || b.building_id,
+            name: b.building_name || b.name
+        }));
+    }, [values.branch, values.branchId, allBuildings, allRooms]);
     // Rooms filtered by selected building
     const availableRooms = useMemo(() => {
-        if (!values.location)
-            return [];
-        const selectedBuilding = (values.location || '').toLowerCase();
+        if (!values.location) return [];
+        const selectedBuildingLower = (values.location || '').toLowerCase();
         const matchingRooms = allRooms.filter((r) => {
             const roomBuilding = (r.building_name || r.buildingName || r.building || '').toLowerCase();
-            return roomBuilding.includes(selectedBuilding) || selectedBuilding.includes(roomBuilding);
+            return roomBuilding.includes(selectedBuildingLower) || selectedBuildingLower.includes(roomBuilding);
         });
-        if (matchingRooms.length > 0) {
-            return matchingRooms.map((r) => ({
-                id: r.id,
-                name: r.room_name || r.name || `Room ${r.id}`
-            }));
-        }
-        // Fallback
-        return [{ id: 1, name: 'Conference Room 101' }, { id: 2, name: 'Meeting Room 201' }];
+        const listToDisplay = matchingRooms.length > 0 ? matchingRooms : allRooms;
+        return listToDisplay.map((r) => ({
+            id: r.id,
+            name: r.room_name 
+                ? (r.room_number ? `${r.room_name} (${r.room_number})` : r.room_name)
+                : (r.name || `Room ${r.room_number || r.id}`)
+        }));
     }, [values.location, allRooms]);
     // Automatic Live Duration Calculation
     const calculatedDuration = useMemo(() => {

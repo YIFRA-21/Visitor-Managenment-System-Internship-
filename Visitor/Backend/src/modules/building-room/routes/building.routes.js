@@ -1,15 +1,15 @@
 const { Router } = require('express');
-const { authenticate, authorize } = require('../../../middleware/auth');
+const { authenticate, authorize, optionalAuth } = require('../../../middleware/auth');
 const buildingController = require('../controllers/building.controller');
 
 const router = Router();
 
 // Utilization & details
-router.get('/:id/utilization', authenticate, buildingController.getUtilization);
+router.get('/:id/utilization', optionalAuth, buildingController.getUtilization);
 
 // CRUD operations
-router.get('/', authenticate, buildingController.list);
-router.get('/:id', authenticate, buildingController.get);
+router.get('/', optionalAuth, buildingController.list);
+router.get('/:id', optionalAuth, buildingController.get);
 
 // Admin-only management routes
 router.post('/', authenticate, authorize('admin', 'system_admin'), buildingController.create);

@@ -99,6 +99,7 @@ const pool = require('./config/db');
     try { await pool.query(`ALTER TABLE meeting_rooms DROP INDEX room_number`); await pool.query(`ALTER TABLE meeting_rooms ADD INDEX idx_room_number (room_number)`); } catch (e) {}
     try { await pool.query(`INSERT IGNORE INTO buildings (id, branch_id, building_name, is_active) VALUES (1, 1, 'Main HQ Building', 1)`); } catch (e) {}
     try { await pool.query(`INSERT IGNORE INTO floors (id, building_id, floor_name, is_active) VALUES (1, 1, 'Ground Floor', 1)`); } catch (e) {}
+    try { await pool.query(`CREATE OR REPLACE VIEW rooms AS SELECT mr.id, mr.room_id, mr.facility_id, mr.room_number, mr.room_name, mr.room_name AS name, mr.building_id, mr.floor_id, mr.department_id, mr.capacity, mr.has_projector, mr.has_tv, mr.has_video_conference, mr.status, mr.is_accessible, mr.location, mr.is_active, mr.is_bookable, mr.created_at, mr.updated_at, mr.deleted_at FROM meeting_rooms mr`); } catch (e) {}
     // Module 13: Notifications Engine Auto-Migration
     try { await pool.query(`ALTER TABLE notifications ADD COLUMN organization_id INT NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE notifications ADD COLUMN notification_type VARCHAR(100) NULL`); } catch (e) {}

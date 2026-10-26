@@ -1,12 +1,12 @@
 const { Router } = require('express');
-const { authenticate, authorize } = require('../../../middleware/auth');
+const { authenticate, authorize, optionalAuth } = require('../../../middleware/auth');
 const floorController = require('../controllers/floor.controller');
 
 const router = Router();
 
 // Read operations
-router.get('/', authenticate, floorController.list);
-router.get('/:id', authenticate, floorController.get);
+router.get('/', optionalAuth, floorController.list);
+router.get('/:id', optionalAuth, floorController.get);
 
 // Admin-only management routes
 router.post('/', authenticate, authorize('admin', 'system_admin'), floorController.create);

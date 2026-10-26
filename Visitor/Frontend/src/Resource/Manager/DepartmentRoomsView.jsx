@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DoorOpen, Users, MapPin, Calendar, Clock, Search, Plus, Monitor, Wifi, Video, RefreshCw, X, CheckCircle2 } from 'lucide-react';
 import { managerApi } from '../../modules/employee-management/api/managerApi';
+import locationService from '../../services/locationService';
 import { useLanguage } from '../../contexts/LanguageContext';
 import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
 import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
@@ -24,11 +25,40 @@ export default function DepartmentRoomsView() {
         setLoading(true);
         try {
             const data = await managerApi.getRooms();
-            setRooms(data.rooms || []);
-            setBookings(data.bookings || []);
+            const list = data?.rooms || [];
+            if (list.length > 0) {
+                setRooms(list);
+                setBookings(data.bookings || []);
+            } else {
+                const locRes = await locationService.getRooms({ limit: 100 });
+                const locRooms = (locRes?.data || []).map((r) => ({
+                    id: r.id,
+                    name: r.room_name || `Room ${r.room_number}`,
+                    capacity: r.capacity || 10,
+                    location: `${r.building_name || 'Main HQ'}, ${r.floor_name || 'Level 1'} (${r.room_number ? 'Room ' + r.room_number : ''})`,
+                    is_active: r.is_active,
+                    today_bookings_count: 0
+                }));
+                setRooms(locRooms);
+                setBookings(data?.bookings || []);
+            }
         }
         catch (err) {
-            console.error('Failed to load rooms:', err);
+            console.error('Failed to load rooms, falling back to locationService:', err);
+            try {
+                const locRes = await locationService.getRooms({ limit: 100 });
+                const locRooms = (locRes?.data || []).map((r) => ({
+                    id: r.id,
+                    name: r.room_name || `Room ${r.room_number}`,
+                    capacity: r.capacity || 10,
+                    location: `${r.building_name || 'Main HQ'}, ${r.floor_name || 'Level 1'} (${r.room_number ? 'Room ' + r.room_number : ''})`,
+                    is_active: r.is_active,
+                    today_bookings_count: 0
+                }));
+                setRooms(locRooms);
+            } catch (fallbackErr) {
+                console.error('locationService fallback failed:', fallbackErr);
+            }
         }
         finally {
             setLoading(false);
@@ -180,25 +210,25 @@ export default function DepartmentRoomsView() {
 
       {/* Room Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(filteredRooms.length > 0 ? filteredRooms : [
-            { id: 1, name: 'Main Department Conference Room A', capacity: 16, location: 'Floor 3, East Wing (Room 301)', is_active: 1, today_bookings_count: 1 },
-            { id: 2, name: 'Executive Discussion Suite B', capacity: 8, location: 'Floor 3, Executive Corridor (Room 304)', is_active: 1, today_bookings_count: 0 },
-            { id: 3, name: 'Agile Team Collab Space', capacity: 10, location: 'Floor 3, Tech Hub (Room 310)', is_active: 1, today_bookings_count: 2 },
-            { id: 4, name: 'Visitor Briefing Room 1', capacity: 6, location: 'Floor 3, Lobby Adjacent (Room 302)', is_active: 1, today_bookings_count: 0 },
-            { id: 5, name: 'Private Interview Booth C', capacity: 4, location: 'Floor 3, Quiet Wing (Room 315)', is_active: 1, today_bookings_count: 0 },
-            { id: 6, name: 'Presentation Theater', capacity: 25, location: 'Floor 3, Central Auditorium', is_active: 1, today_bookings_count: 1 },
-        ]).map(room => {
+        {filteredRooms.length === 0 ? (
+          <div className="col-span-full py-16 text-center bg-[#0b101b] border border-slate-800 rounded-2xl p-8">
+            <DoorOpen className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+            <p className="text-sm font-bold text-slate-300">No meeting rooms found</p>
+            <p className="text-xs text-slate-500 mt-1">No rooms match your filter or search criteria in this facility.</p>
+          </div>
+        ) : (
+          filteredRooms.map(room => {
             const isOccupied = (room.today_bookings_count || 0) > 0;
             return (<div key={room.id} className="bg-[#0b101b] border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all flex flex-col justify-between group shadow-xl shadow-black/20">
               <div>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
                     <h3 className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">
-                      {room.name}
+                      {room.name || room.room_name}
                     </h3>
                     <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-1">
                       <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0"/>
-                      {room.location || 'Department Area'}
+                      {room.location || `${room.building_name || 'Main HQ'}, ${room.floor_name || 'Level 1'}`}
                     </p>
                   </div>
                   <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider border shrink-0 ${isOccupied
@@ -211,7 +241,7 @@ export default function DepartmentRoomsView() {
                 <div className="grid grid-cols-2 gap-2 my-4 py-3 border-y border-slate-800/80">
                   <div className="flex items-center gap-2 text-xs text-slate-300">
                     <Users className="w-4 h-4 text-indigo-400"/>
-                    <span>Max {room.capacity} seats</span>
+                    <span>Max {room.capacity || 10} seats</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-slate-300">
                     <Monitor className="w-4 h-4 text-emerald-400"/>
@@ -238,7 +268,8 @@ export default function DepartmentRoomsView() {
                 </button>
               </div>
             </div>);
-        })}
+          })
+        )}
       </div>
 
       {/* Today's Room Schedule Section */}

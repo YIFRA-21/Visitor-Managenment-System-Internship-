@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { authenticate, authorize } = require('../../../middleware/auth');
+const { authenticate, authorize, optionalAuth } = require('../../../middleware/auth');
 const roomController = require('../controllers/room.controller');
 
 const router = Router();
@@ -11,8 +11,8 @@ router.get('/:id/availability', roomController.getAvailability);
 router.post('/:id/reserve', authenticate, roomController.reserve);
 
 // Read rooms
-router.get('/', authenticate, roomController.list);
-router.get('/:id', authenticate, roomController.get);
+router.get('/', optionalAuth, roomController.list);
+router.get('/:id', optionalAuth, roomController.get);
 
 // Admin / Manager Room Configuration
 router.post('/', authenticate, authorize('admin', 'system_admin'), roomController.create);

@@ -334,16 +334,48 @@ class EmployeePortalController {
   // Get Room Bookings & Availability (rooms are shared resources, safe to show all)
   async getRoomBookings(req, res) {
     try {
-      let rooms = await query(`SELECT id, name as room_name, capacity, location, is_active FROM rooms ORDER BY name ASC`).catch(() => []);
-      if (!rooms || rooms.length === 0) {
-        rooms = [
-          { id: 1, room_name: 'Executive Boardroom A', capacity: 18, location: 'Building 1, Fl 4', is_available: true, features: ['4K Video Conf', 'Smart Board', 'Wi-Fi 6', 'Coffee Bar'] },
-          { id: 2, room_name: 'Innovation Hub 2B', capacity: 10, location: 'Building 1, Fl 3', is_available: true, features: ['Interactive Whiteboard', '4K TV', 'Wi-Fi'] },
-          { id: 3, room_name: 'Conference Suite 3C', capacity: 14, location: 'Building 2, Fl 2', is_available: false, features: ['Projector', 'Teleconference Phone'] },
-          { id: 4, room_name: 'Creative Studio 4D', capacity: 8, location: 'Building 1, Fl 2', is_available: true, features: ['Wi-Fi 6', 'Audio Recording Kit'] },
-          { id: 5, room_name: 'VMS Strategy Room 5E', capacity: 12, location: 'Building 3, Fl 1', is_available: true, features: ['4K Video Conf', 'Smart Board'] },
-        ];
-      }
+      const roomRows = await query(`
+        SELECT 
+          mr.id, 
+          COALESCE(mr.room_name, CONCAT('Room ', mr.room_number)) AS room_name,
+          mr.room_number,
+          mr.capacity, 
+          CONCAT(COALESCE(b.building_name, 'Main Building'), ', ', COALESCE(f.floor_name, CONCAT('Floor ', f.floor_number), 'Level 1')) AS location,
+          b.building_name,
+          f.floor_name,
+          mr.status,
+          mr.is_active,
+          mr.has_projector,
+          mr.has_tv,
+          mr.has_video_conference
+        FROM meeting_rooms mr
+        LEFT JOIN buildings b ON mr.building_id = b.id
+        LEFT JOIN floors f ON mr.floor_id = f.id
+        WHERE mr.deleted_at IS NULL
+        ORDER BY mr.room_name ASC, mr.room_number ASC
+      `).catch(() => []);
+
+      const rooms = (roomRows || []).map(r => {
+        const features = [];
+        if (r.has_video_conference) features.push('4K Video Conf');
+        if (r.has_tv) features.push('Smart TV');
+        if (r.has_projector) features.push('HD Projector');
+        if (r.capacity) features.push(`Cap: ${r.capacity}`);
+        if (features.length === 0) features.push('Wi-Fi 6', 'Whiteboard');
+
+        return {
+          id: r.id,
+          room_name: r.room_name,
+          room_number: r.room_number,
+          building_name: r.building_name,
+          floor_name: r.floor_name,
+          capacity: r.capacity || 10,
+          location: r.location,
+          is_available: r.status === 'AVAILABLE' || r.status === 'ACTIVE' || !r.status,
+          features,
+          is_active: r.is_active === 1 || r.is_active === true
+        };
+      });
 
       // STRICT: Only show bookings for THIS host
       const hostId = getHostId(req);

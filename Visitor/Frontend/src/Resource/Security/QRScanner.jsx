@@ -196,6 +196,10 @@ export default function QRScanner() {
           visitor_company: data.company || data.visitorCompany || data.visitor_company,
           visitor_photo: data.photo_url || data.profile_photo || data.visitorPhoto,
           host_name: data.hostName || data.host_name,
+          building_name: data.building_name || data.buildingName || data.building || data.location,
+          floor_name: data.floor_name || data.floorName || data.floor,
+          room_name: data.room_name || data.roomName || (data.room_number ? (data.room_name ? `${data.room_name} (${data.room_number})` : `Room ${data.room_number}`) : data.meeting_room),
+          department_name: data.department_name || data.departmentName || data.department,
           badge_number: data.reference_code || data.referenceCode || raw,
           security_level: data.security_level || 'Level 2: General Workspace & Meeting Rooms'
         });
@@ -1059,12 +1063,20 @@ export default function QRScanner() {
                       <span className="font-extrabold text-white text-sm">{selectedVisitor.host_name || 'System Administrator'}</span>
                     </div>
                     <div className="flex justify-between items-center py-0.5">
-                      <span className="text-slate-500">Department / Office</span>
+                      <span className="text-slate-500">Department</span>
                       <span className="font-bold text-slate-200">{selectedVisitor.department_name || 'Executive Office'}</span>
                     </div>
                     <div className="flex justify-between items-center py-0.5">
-                      <span className="text-slate-500">Designated Room</span>
-                      <span className="font-bold text-slate-200">{selectedVisitor.room_name || 'Executive Boardroom A'}</span>
+                      <span className="text-slate-500">Facility / Building</span>
+                      <span className="font-bold text-indigo-300">{selectedVisitor.building_name || selectedVisitor.building || selectedVisitor.location || 'Main HQ Building'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-0.5">
+                      <span className="text-slate-500">Floor / Level</span>
+                      <span className="font-bold text-slate-200">{selectedVisitor.floor_name || selectedVisitor.floor || (selectedVisitor.floor_number ? `Floor ${selectedVisitor.floor_number}` : 'Ground Floor')}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-0.5">
+                      <span className="text-slate-500">Designated Room / Office</span>
+                      <span className="font-bold text-emerald-400">{selectedVisitor.room_name || (selectedVisitor.room_number ? `Room ${selectedVisitor.room_number}` : (selectedVisitor.meeting_room || 'General Reception'))}</span>
                     </div>
                     <div className="flex justify-between items-center py-0.5">
                       <span className="text-slate-500">Scheduled Time</span>
