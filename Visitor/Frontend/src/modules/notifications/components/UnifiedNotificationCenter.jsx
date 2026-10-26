@@ -1258,108 +1258,186 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
     }
   };
 
-  // Update Team Information (Name, Description & Avatar)
+  // Update Team Information (Name, Description & Avatar) - Instant Snappy UI
   const handleUpdateTeamInfo = async (convId, title, description, avatarUrl) => {
     if (!title || !title.trim()) {
       showToast('Team / Group name is required.', 'error');
       return;
     }
+
+    const trimmedTitle = title.trim();
+    const trimmedDesc = description?.trim() || '';
+    const finalAvatar = avatarUrl !== undefined ? avatarUrl : undefined;
+
+    // Snapshot current state for rollback if network fails
+    const prevConversations = [...conversations];
+    const prevActiveConversation = activeConversation ? { ...activeConversation } : null;
+
+    // 1. Instant Optimistic UI Response (<10ms)
+    setContactProfileModal({ visible: false, user: null, conversation: null, isGroup: false, formData: {} });
+    showToast('Team information updated successfully ✓', 'success');
+
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === convId
+          ? {
+              ...c,
+              title: trimmedTitle,
+              description: trimmedDesc,
+              ...(finalAvatar !== undefined ? { avatar_url: finalAvatar } : {})
+            }
+          : c
+      )
+    );
+
+    setActiveConversation((prev) =>
+      prev && prev.id === convId
+        ? {
+            ...prev,
+            title: trimmedTitle,
+            description: trimmedDesc,
+            ...(finalAvatar !== undefined ? { avatar_url: finalAvatar } : {})
+          }
+        : prev
+    );
+
+    // 2. Background API Sync (non-blocking)
     try {
-      setSavingTeamInfo(true);
       await communicationApi.updateConversation(convId, {
-        title: title.trim(),
-        description: description?.trim() || '',
+        title: trimmedTitle,
+        description: trimmedDesc,
         avatar_url: avatarUrl ?? ''
       });
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === convId
-            ? {
-                ...c,
-                title: title.trim(),
-                description: description?.trim() || '',
-                avatar_url: avatarUrl !== undefined ? avatarUrl : c.avatar_url
-              }
-            : c
-        )
-      );
-      setActiveConversation((prev) =>
-        prev && prev.id === convId
-          ? {
-              ...prev,
-              title: title.trim(),
-              description: description?.trim() || '',
-              avatar_url: avatarUrl !== undefined ? avatarUrl : prev.avatar_url
-            }
-          : prev
-      );
-      setContactProfileModal({ visible: false, user: null, conversation: null, isGroup: false, formData: {} });
-      showToast('Team information & profile updated successfully ✓', 'success');
-      await fetchConversations();
     } catch (err) {
-      showToast(getErrorMessage(err) || 'Failed to update team info.', 'error');
-    } finally {
-      setSavingTeamInfo(false);
+      // Revert optimistic update on failure
+      setConversations(prevConversations);
+      if (prevActiveConversation) setActiveConversation(prevActiveConversation);
+      showToast(getErrorMessage(err) || 'Failed to save team updates.', 'error');
     }
   };
 
-  // Delete Team Channel Permanently
-  const handleDeleteConversation = (convId) => {
-    toConfirmation({
-      title: 'Delete Team Channel',
-      message: 'Are you sure you want to delete this team channel? All messages will be deactivated.',
-      entityType: 'Team Channel',
-      entityName: `Channel #${convId}`,
-      consequences: [
-        'Channel messages and discussions will be closed to all members.',
-        'Team membership links for this channel will be dismantled.'
-      ],
-      confirmLabel: 'Delete Team Channel',
-      confirmVariant: 'danger',
-      apiEndpoint: `/communication/conversations/${convId}`,
-      apiMethod: 'DELETE',
-      returnUrl: window.location.pathname + window.location.search,
-      successConfig: {
-        type: RESPONSE_TYPES.SUCCESS,
-        title: 'Channel Deleted',
-        message: 'Team channel has been deactivated.',
-      }
-    });
+  // Delete Team Channel Permanently - Instant Optimistic UI with confirmation
+  const handleDeleteConversation = async (convId) => {
+    if (!convId) return;
+    const confirmed = window.confirm(
+      'Are you sure you want to permanently delete this team channel? All messages and discussions will be deactivated.'
+    );
+    if (!confirmed) return;
+
+    // Snapshot current state for rollback
+    const prevConversations = [...conversations];
+    const prevActiveId = activeConvId;
+
+    // Instant UI dismissal & update
+    setContactProfileModal({ visible: false, user: null, conversation: null, isGroup: false, formData: {} });
+    const remaining = conversations.filter((c) => c.id !== convId);
+    setConversations(remaining);
+    if (activeConvId === convId) {
+      setActiveConvId(remaining.length > 0 ? remaining[0].id : null);
+    }
+    showToast('Team channel deleted successfully ✓', 'success');
+
+    // Background API dispatch
+    try {
+      await communicationApi.deleteConversation(convId);
+      window.dispatchEvent(new CustomEvent('vms-chat-unread-updated'));
+    } catch (err) {
+      // Revert on error
+      setConversations(prevConversations);
+      setActiveConvId(prevActiveId);
+      showToast(getErrorMessage(err) || 'Failed to delete team channel.', 'error');
+    }
   };
 
-  // Add Member to Team
+  // Add Member to Team - Optimistic instant update
   const handleAddMemberToTeam = async (convId, userIdToAdd) => {
+    if (!convId || !userIdToAdd) return;
     try {
-      await communicationApi.addParticipant(convId, userIdToAdd);
-      await fetchConversations();
+      const addedContact = contacts.find((c) => c.id === userIdToAdd);
+      if (addedContact) {
+        const newMember = {
+          id: addedContact.id,
+          name: addedContact.full_name || addedContact.username,
+          email: addedContact.email,
+          role: addedContact.role,
+          role_label: addedContact.role_label || addedContact.role,
+          avatar_url: addedContact.avatar_url,
+          department: addedContact.department,
+          group_role: 'member',
+          is_online: Boolean(addedContact.is_online),
+          is_me: Number(addedContact.id) === Number(myUserId)
+        };
+        setActiveConversation((prev) => {
+          if (!prev || prev.id !== convId) return prev;
+          const currentMembers = prev.group_members || [];
+          if (currentMembers.some((m) => m.id === userIdToAdd)) return prev;
+          const updated = [...currentMembers, newMember];
+          return { ...prev, group_members: updated, participants_count: updated.length };
+        });
+        setConversations((prev) =>
+          prev.map((c) => {
+            if (c.id === convId) {
+              const currentMembers = c.group_members || [];
+              if (currentMembers.some((m) => m.id === userIdToAdd)) return c;
+              const updated = [...currentMembers, newMember];
+              return { ...c, group_members: updated, participants_count: updated.length };
+            }
+            return c;
+          })
+        );
+      }
       showToast('Personnel added to team ✓', 'success');
+      await communicationApi.addParticipant(convId, userIdToAdd);
     } catch (err) {
       showToast(getErrorMessage(err) || 'Failed to add member to team.', 'error');
+      fetchConversations();
     }
   };
 
-  // Remove Member from Team
-  const handleRemoveMemberFromTeam = (convId, userIdToRemove) => {
-    toConfirmation({
-      title: 'Remove Team Member',
-      message: 'Are you sure you want to remove this member from the team channel?',
-      entityType: 'Team Participant',
-      entityName: `User #${userIdToRemove}`,
-      consequences: [
-        'The member will lose access to team channel messages and media.',
-        'They can only be re-added by an authorized channel administrator.'
-      ],
-      confirmLabel: 'Remove Member',
-      confirmVariant: 'warning',
-      apiEndpoint: `/communication/conversations/${convId}/participants/${userIdToRemove}`,
-      apiMethod: 'DELETE',
-      returnUrl: window.location.pathname + window.location.search,
-      successConfig: {
-        type: RESPONSE_TYPES.SUCCESS,
-        title: 'Member Removed',
-        message: 'Member has been removed from the channel.',
-      }
+  // Remove Member from Team - Instant Optimistic UI
+  const handleRemoveMemberFromTeam = async (convId, userIdToRemove) => {
+    if (!convId || !userIdToRemove) return;
+    const confirmed = window.confirm('Are you sure you want to remove this member from the team channel?');
+    if (!confirmed) return;
+
+    // Snapshot for rollback
+    const prevActiveConversation = activeConversation ? { ...activeConversation } : null;
+    const prevConversations = [...conversations];
+
+    // Optimistically remove member from state immediately
+    setActiveConversation((prev) => {
+      if (!prev || prev.id !== convId) return prev;
+      const updatedMembers = (prev.group_members || []).filter((m) => m.id !== userIdToRemove);
+      return {
+        ...prev,
+        group_members: updatedMembers,
+        participants_count: updatedMembers.length
+      };
     });
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.id === convId) {
+          const updatedMembers = (c.group_members || []).filter((m) => m.id !== userIdToRemove);
+          return {
+            ...c,
+            group_members: updatedMembers,
+            participants_count: updatedMembers.length
+          };
+        }
+        return c;
+      })
+    );
+    showToast('Member removed from team channel ✓', 'success');
+
+    // Background API dispatch
+    try {
+      await communicationApi.removeParticipant(convId, userIdToRemove);
+    } catch (err) {
+      // Rollback on error
+      if (prevActiveConversation) setActiveConversation(prevActiveConversation);
+      setConversations(prevConversations);
+      showToast(getErrorMessage(err) || 'Failed to remove member from team.', 'error');
+    }
   };
 
   // Create Group Chat Submit (Team Name first, then update & add members in profile)

@@ -60,6 +60,13 @@ router.put('/chat/conversations/:convId', (req, res, next) => communicationContr
 router.delete('/chat/conversations/:convId', (req, res, next) => communicationController.deleteConversation(req, res, next));
 router.post('/chat/conversations/:convId/participants', (req, res, next) => communicationController.addParticipant(req, res, next));
 router.delete('/chat/conversations/:convId/participants/:userId', (req, res, next) => communicationController.removeParticipant(req, res, next));
+
+// Direct /conversations route aliases to prevent 404s
+router.get('/conversations', (req, res, next) => communicationController.getConversations(req, res, next));
+router.put('/conversations/:convId', (req, res, next) => communicationController.updateConversation(req, res, next));
+router.delete('/conversations/:convId', (req, res, next) => communicationController.deleteConversation(req, res, next));
+router.post('/conversations/:convId/participants', (req, res, next) => communicationController.addParticipant(req, res, next));
+router.delete('/conversations/:convId/participants/:userId', (req, res, next) => communicationController.removeParticipant(req, res, next));
 router.post('/chat/direct', (req, res, next) => communicationController.createDirectConversation(req, res, next));
 router.post('/chat/group', (req, res, next) => communicationController.createGroupConversation(req, res, next));
 router.get('/chat/messages/:convId', (req, res, next) => communicationController.getChatMessages(req, res, next));
