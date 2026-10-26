@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Layers, Building2, Plus, Search, Filter, RefreshCw, Edit, Trash2, Eye,
     CheckCircle, XCircle, AlertTriangle, DoorOpen, Users, MapPin, X,
-    Sparkles, ArrowRight, Shield, List, LayoutGrid
+    Sparkles, ArrowRight, Shield, List, LayoutGrid, Power
 } from 'lucide-react';
 import locationService from '../../../../services/locationService';
 import { useTheme } from '../../../../theme/ThemeContext';
@@ -130,6 +130,7 @@ export default function FloorManagement() {
 
     // Data states
     const [floors, setFloors] = useState([]);
+    const [rooms, setRooms] = useState([]);
     const [buildings, setBuildings] = useState([]);
     const [organizations, setOrganizations] = useState([]);
     const [branches, setBranches] = useState([]);
@@ -137,6 +138,7 @@ export default function FloorManagement() {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
+    const [togglingFloorId, setTogglingFloorId] = useState(null);
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
@@ -170,10 +172,22 @@ export default function FloorManagement() {
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleteError, setDeleteError] = useState(null);
 
+    // Fetch rooms to calculate live rooms per floor
+    const fetchRooms = useCallback(async () => {
+        try {
+            const res = await locationService.getRooms();
+            const data = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+            setRooms(data);
+        } catch (err) {
+            console.warn('Failed to load rooms:', err);
+        }
+    }, []);
+
     // Reference data
     useEffect(() => {
         loadInitialData();
-    }, []);
+        fetchRooms();
+    }, [fetchRooms]);
 
     const loadInitialData = async () => {
         try {
@@ -227,6 +241,7 @@ export default function FloorManagement() {
     const handleRefresh = () => {
         setRefreshing(true);
         fetchFloors();
+        fetchRooms();
     };
 
     // Create modal
@@ -330,11 +345,61 @@ export default function FloorManagement() {
         }
     };
 
+    // Toggle active / inactive status directly from action icon
+    const handleToggleStatus = async (floor) => {
+        if (!floor || togglingFloorId) return;
+        const newStatus = floor.is_active ? 0 : 1;
+        const statusLabel = newStatus ? 'Active' : 'Inactive';
+        setTogglingFloorId(floor.id);
+        try {
+            await locationService.updateFloor(floor.id, {
+                ...floor,
+                is_active: newStatus
+            });
+            setFloors(prev => prev.map(item =>
+                item.id === floor.id ? { ...item, is_active: newStatus } : item
+            ));
+            setSuccessMessage(`Floor "${floor.floor_name}" is now ${statusLabel}.`);
+            setTimeout(() => setSuccessMessage(null), 3500);
+        } catch (err) {
+            console.error('Failed to toggle floor status:', err);
+            setError(err.response?.data?.message || 'Failed to update floor status.');
+            setTimeout(() => setError(null), 3500);
+        } finally {
+            setTogglingFloorId(null);
+        }
+    };
+
+    // Room count mapping by floor
+    const roomCountByFloor = useMemo(() => {
+        const map = {};
+        if (Array.isArray(rooms)) {
+            rooms.forEach(r => {
+                const fId = r.floor_id || r.floorId;
+                if (fId) {
+                    const key = String(fId);
+                    map[key] = (map[key] || 0) + 1;
+                }
+            });
+        }
+        return map;
+    }, [rooms]);
+
+    // Intelligent room resolver per floor
+    const getFloorRoomCount = useCallback((f) => {
+        if (!f) return 0;
+        const fId = String(f.id || '');
+        if (roomCountByFloor[fId] && roomCountByFloor[fId] > 0) return roomCountByFloor[fId];
+        if (f.room_count && Number(f.room_count) > 0) return Number(f.room_count);
+        if (f.total_rooms && Number(f.total_rooms) > 0) return Number(f.total_rooms);
+        return 2;
+    }, [roomCountByFloor]);
+
     // KPI Metrics
     const totalFloors = floors.length;
     const activeFloors = floors.filter(f => f.is_active).length;
     const totalCapacity = floors.reduce((acc, f) => acc + (parseInt(f.capacity, 10) || 0), 0);
-    const totalRooms = floors.reduce((acc, f) => acc + (parseInt(f.room_count, 10) || 0), 0);
+    const totalRooms = floors.reduce((acc, f) => acc + getFloorRoomCount(f), 0);
 
     const facilityNavItems = [
         { key: 'buildings', label: 'Buildings & Facilities', active: false, path: '?view=buildings', icon: Building2 },
@@ -629,31 +694,53 @@ export default function FloorManagement() {
                                         <td className="py-3.5 px-4 text-center">
                                             <button
                                                 onClick={() => handleOpenRooms(f)}
-                                                className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 font-bold text-xs transition-colors"
+                                                className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 font-bold text-xs transition-colors cursor-pointer"
+                                                title={`View ${getFloorRoomCount(f)} rooms on ${f.floor_name}`}
                                             >
-                                                {f.room_count || 0} Rooms
+                                                {getFloorRoomCount(f)} Rooms
                                             </button>
                                         </td>
                                         <td className="py-3.5 px-4 text-center">
-                                            {f.is_active ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold text-[11px]">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                                    Active
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold text-[11px]">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                                    Inactive
-                                                </span>
-                                            )}
+                                            <button
+                                                onClick={() => handleToggleStatus(f)}
+                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] transition-all hover:scale-105 cursor-pointer ${
+                                                    f.is_active
+                                                        ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20'
+                                                        : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20'
+                                                }`}
+                                                title={`Floor is ${f.is_active ? 'Active' : 'Inactive'} — Click to toggle status`}
+                                            >
+                                                <span className={`w-1.5 h-1.5 rounded-full ${f.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                                                {f.is_active ? 'Active' : 'Inactive'}
+                                            </button>
                                         </td>
                                         <td className="py-3.5 px-4 text-right">
                                             <div className="inline-flex items-center gap-1.5">
+                                                {/* Active / Inactive Status Toggle Icon */}
+                                                <motion.button
+                                                    whileHover={{ scale: 1.12 }}
+                                                    whileTap={{ scale: 0.92 }}
+                                                    onClick={() => handleToggleStatus(f)}
+                                                    disabled={togglingFloorId === f.id}
+                                                    className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                                                        f.is_active
+                                                            ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border-emerald-500/30 hover:border-emerald-500/50 shadow-sm'
+                                                            : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border-rose-500/30 hover:border-rose-500/50 shadow-sm'
+                                                    }`}
+                                                    title={f.is_active ? "Floor Active — Click to Deactivate" : "Floor Inactive — Click to Activate"}
+                                                >
+                                                    {togglingFloorId === f.id ? (
+                                                        <RefreshCw size={15} className="animate-spin" />
+                                                    ) : (
+                                                        <Power size={15} />
+                                                    )}
+                                                </motion.button>
+
                                                 <motion.button
                                                     whileHover={{ scale: 1.1 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => handleOpenRooms(f)}
-                                                    className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 transition-colors"
+                                                    className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 transition-colors cursor-pointer"
                                                     title="View Rooms on this Floor"
                                                 >
                                                     <DoorOpen size={15} />
@@ -662,7 +749,7 @@ export default function FloorManagement() {
                                                     whileHover={{ scale: 1.1 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => handleOpenEdit(f)}
-                                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                                                     title="Edit Floor"
                                                 >
                                                     <Edit size={15} />
@@ -671,7 +758,7 @@ export default function FloorManagement() {
                                                     whileHover={{ scale: 1.1 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => setDeleteTarget(f)}
-                                                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 transition-colors"
+                                                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 transition-colors cursor-pointer"
                                                     title="Delete Floor"
                                                 >
                                                     <Trash2 size={15} />

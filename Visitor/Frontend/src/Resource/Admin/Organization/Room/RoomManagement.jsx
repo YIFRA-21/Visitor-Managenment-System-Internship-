@@ -4,7 +4,7 @@ import {
     DoorOpen, Building2, Layers, Plus, Search, Filter, RefreshCw, Edit, Trash2, Eye,
     CheckCircle, XCircle, AlertTriangle, Users, Calendar, ShieldAlert, Monitor, Video,
     Wifi, Coffee, Check, X, Sparkles, LayoutGrid, List, ArrowRight, Shield, Clock,
-    CheckSquare, Lock, SlidersHorizontal, TrendingUp, Activity, Compass
+    CheckSquare, Lock, SlidersHorizontal, TrendingUp, Activity, Compass, Power
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell
@@ -204,6 +204,7 @@ export default function RoomManagement() {
     // Delete Target
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleteError, setDeleteError] = useState(null);
+    const [togglingRoomId, setTogglingRoomId] = useState(null);
 
     // Initial reference data
     useEffect(() => {
@@ -432,6 +433,31 @@ export default function RoomManagement() {
         } catch (err) {
             console.error('Delete failed:', err);
             setDeleteError(err.response?.data?.message || 'Cannot delete room with existing appointments or bookings.');
+        }
+    };
+
+    // Toggle active / inactive status directly from action icon
+    const handleToggleStatus = async (room) => {
+        if (!room || togglingRoomId) return;
+        const newStatus = room.is_active ? 0 : 1;
+        const statusLabel = newStatus ? 'Active' : 'Inactive';
+        setTogglingRoomId(room.id);
+        try {
+            await locationService.updateRoom(room.id, {
+                ...room,
+                is_active: newStatus
+            });
+            setRooms(prev => prev.map(item =>
+                item.id === room.id ? { ...item, is_active: newStatus } : item
+            ));
+            setSuccessMessage(`Room "${room.room_name}" is now ${statusLabel}.`);
+            setTimeout(() => setSuccessMessage(null), 3500);
+        } catch (err) {
+            console.error('Failed to toggle room status:', err);
+            setError(err.response?.data?.message || 'Failed to update room status.');
+            setTimeout(() => setError(null), 3500);
+        } finally {
+            setTogglingRoomId(null);
         }
     };
 
@@ -914,26 +940,47 @@ export default function RoomManagement() {
                                             </td>
 
                                             <td className="py-3.5 px-4 text-center">
-                                                {r.is_active ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold text-[11px]">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                                        Active
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold text-[11px]">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                                        Inactive
-                                                    </span>
-                                                )}
+                                                <button
+                                                    onClick={() => handleToggleStatus(r)}
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] transition-all hover:scale-105 cursor-pointer ${
+                                                        r.is_active
+                                                            ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20'
+                                                            : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20'
+                                                    }`}
+                                                    title={`Room is ${r.is_active ? 'Active' : 'Inactive'} — Click to toggle status`}
+                                                >
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${r.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                                                    {r.is_active ? 'Active' : 'Inactive'}
+                                                </button>
                                             </td>
 
                                             <td className="py-3.5 px-4 text-right">
                                                 <div className="inline-flex items-center gap-1.5">
+                                                    {/* Active / Inactive Status Toggle Icon */}
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.12 }}
+                                                        whileTap={{ scale: 0.92 }}
+                                                        onClick={() => handleToggleStatus(r)}
+                                                        disabled={togglingRoomId === r.id}
+                                                        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                                                            r.is_active
+                                                                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border-emerald-500/30 hover:border-emerald-500/50 shadow-sm'
+                                                                : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border-rose-500/30 hover:border-rose-500/50 shadow-sm'
+                                                        }`}
+                                                        title={r.is_active ? "Room Active — Click to Deactivate" : "Room Inactive — Click to Activate"}
+                                                    >
+                                                        {togglingRoomId === r.id ? (
+                                                            <RefreshCw size={15} className="animate-spin" />
+                                                        ) : (
+                                                            <Power size={15} />
+                                                        )}
+                                                    </motion.button>
+
                                                     <motion.button
                                                         whileHover={{ scale: 1.1 }}
                                                         whileTap={{ scale: 0.95 }}
                                                         onClick={() => handleOpenAvailability(r)}
-                                                        className="p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 transition-colors"
+                                                        className="p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 transition-colors cursor-pointer"
                                                         title="Check Calendar Availability"
                                                     >
                                                         <Calendar size={15} />
@@ -942,7 +989,7 @@ export default function RoomManagement() {
                                                         whileHover={{ scale: 1.1 }}
                                                         whileTap={{ scale: 0.95 }}
                                                         onClick={() => handleOpenEdit(r)}
-                                                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                                                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                                                         title="Edit Room Specifications"
                                                     >
                                                         <Edit size={15} />
@@ -951,7 +998,7 @@ export default function RoomManagement() {
                                                         whileHover={{ scale: 1.1 }}
                                                         whileTap={{ scale: 0.95 }}
                                                         onClick={() => setDeleteTarget(r)}
-                                                        className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 transition-colors"
+                                                        className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 transition-colors cursor-pointer"
                                                         title="Delete Room"
                                                     >
                                                         <Trash2 size={15} />
