@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Building, Shield, Bell, Globe, Database, Save, RefreshCw, Download, CheckCircle2, AlertCircle, Clock, Mail, Phone, MapPin, Sliders, Printer, Camera, UserCheck, Server, Zap, Power } from 'lucide-react';
 import api from '../../services/api';
 import BackButton from '../../components/common/BackButton';
+import ToggleSwitch from '../../components/common/ToggleSwitch';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function SystemSettings() {
@@ -456,7 +457,12 @@ export default function SystemSettings() {
                         Allow visitors arriving without a pre-scheduled appointment to register at the reception desk.
                       </p>
                     </div>
-                    <input type="checkbox" checked={visitorPolicies.allowWalkIn} onChange={(e) => setVisitorPolicies({ ...visitorPolicies, allowWalkIn: e.target.checked })} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer shrink-0 mt-0.5"/>
+                    <ToggleSwitch
+                      checked={visitorPolicies.allowWalkIn}
+                      onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, allowWalkIn: checked })}
+                      color="indigo"
+                      showLabelBadge={true}
+                    />
                   </div>
 
                   {/* Policy 2: Mandatory Host Pre-Approval */}
@@ -469,7 +475,12 @@ export default function SystemSettings() {
                         Appointments must receive digital employee approval before a visitor pass is generated.
                       </p>
                     </div>
-                    <input type="checkbox" checked={visitorPolicies.requireAppointment} onChange={(e) => setVisitorPolicies({ ...visitorPolicies, requireAppointment: e.target.checked })} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer shrink-0 mt-0.5"/>
+                    <ToggleSwitch
+                      checked={visitorPolicies.requireAppointment}
+                      onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, requireAppointment: checked })}
+                      color="indigo"
+                      showLabelBadge={true}
+                    />
                   </div>
 
                   {/* Policy 3: Photo Capture */}
@@ -482,7 +493,12 @@ export default function SystemSettings() {
                         Capture facial photograph of the visitor during check-in for badge verification and logs.
                       </p>
                     </div>
-                    <input type="checkbox" checked={visitorPolicies.photoRequired} onChange={(e) => setVisitorPolicies({ ...visitorPolicies, photoRequired: e.target.checked })} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer shrink-0 mt-0.5"/>
+                    <ToggleSwitch
+                      checked={visitorPolicies.photoRequired}
+                      onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, photoRequired: checked })}
+                      color="indigo"
+                      showLabelBadge={true}
+                    />
                   </div>
 
                   {/* Policy 4: Government ID */}
@@ -495,7 +511,12 @@ export default function SystemSettings() {
                         Mandatory identification document number recording before entry pass generation.
                       </p>
                     </div>
-                    <input type="checkbox" checked={visitorPolicies.govIdRequired} onChange={(e) => setVisitorPolicies({ ...visitorPolicies, govIdRequired: e.target.checked })} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer shrink-0 mt-0.5"/>
+                    <ToggleSwitch
+                      checked={visitorPolicies.govIdRequired}
+                      onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, govIdRequired: checked })}
+                      color="indigo"
+                      showLabelBadge={true}
+                    />
                   </div>
 
                   {/* Policy 5: Digital NDA Signing */}
@@ -508,7 +529,12 @@ export default function SystemSettings() {
                         Visitors must sign security terms and facility privacy agreement before entry.
                       </p>
                     </div>
-                    <input type="checkbox" checked={visitorPolicies.requireNda} onChange={(e) => setVisitorPolicies({ ...visitorPolicies, requireNda: e.target.checked })} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer shrink-0 mt-0.5"/>
+                    <ToggleSwitch
+                      checked={visitorPolicies.requireNda}
+                      onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, requireNda: checked })}
+                      color="indigo"
+                      showLabelBadge={true}
+                    />
                   </div>
 
                   {/* Policy 6: Badge Printing */}
@@ -521,7 +547,12 @@ export default function SystemSettings() {
                         Trigger physical thermal badge print with QR code upon receptionist check-in.
                       </p>
                     </div>
-                    <input type="checkbox" checked={visitorPolicies.badgePrinting} onChange={(e) => setVisitorPolicies({ ...visitorPolicies, badgePrinting: e.target.checked })} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer shrink-0 mt-0.5"/>
+                    <ToggleSwitch
+                      checked={visitorPolicies.badgePrinting}
+                      onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, badgePrinting: checked })}
+                      color="indigo"
+                      showLabelBadge={true}
+                    />
                   </div>
 
                   {/* Number Setting 1: Auto Checkout */}
@@ -594,25 +625,45 @@ export default function SystemSettings() {
                     <div className="font-bold text-slate-300 uppercase tracking-wider text-[11px]">Automated Alerts</div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      <label className="p-3.5 bg-[#070c16] border border-slate-800 rounded-xl flex items-center justify-between cursor-pointer">
-                        <span className="text-white font-medium">Send Email to Host on Visitor Check-in</span>
-                        <input type="checkbox" checked={notificationSettings.notifyHostOnCheckIn} onChange={(e) => setNotificationSettings({ ...notificationSettings, notifyHostOnCheckIn: e.target.checked })} className="w-4 h-4 accent-indigo-600 rounded"/>
-                      </label>
+                      <div className="p-3.5 bg-[#070c16] border border-slate-800 rounded-xl flex items-center justify-between gap-3">
+                        <span className="text-white font-medium text-xs sm:text-sm">Send Email to Host on Visitor Check-in</span>
+                        <ToggleSwitch
+                          checked={notificationSettings.notifyHostOnCheckIn}
+                          onChange={(checked) => setNotificationSettings({ ...notificationSettings, notifyHostOnCheckIn: checked })}
+                          color="indigo"
+                          showLabelBadge={true}
+                        />
+                      </div>
 
-                      <label className="p-3.5 bg-[#070c16] border border-slate-800 rounded-xl flex items-center justify-between cursor-pointer">
-                        <span className="text-white font-medium">Send Confirmation Email to Visitor on Approval</span>
-                        <input type="checkbox" checked={notificationSettings.notifyVisitorOnApproval} onChange={(e) => setNotificationSettings({ ...notificationSettings, notifyVisitorOnApproval: e.target.checked })} className="w-4 h-4 accent-indigo-600 rounded"/>
-                      </label>
+                      <div className="p-3.5 bg-[#070c16] border border-slate-800 rounded-xl flex items-center justify-between gap-3">
+                        <span className="text-white font-medium text-xs sm:text-sm">Send Confirmation Email to Visitor on Approval</span>
+                        <ToggleSwitch
+                          checked={notificationSettings.notifyVisitorOnApproval}
+                          onChange={(checked) => setNotificationSettings({ ...notificationSettings, notifyVisitorOnApproval: checked })}
+                          color="indigo"
+                          showLabelBadge={true}
+                        />
+                      </div>
 
-                      <label className="p-3.5 bg-[#070c16] border border-slate-800 rounded-xl flex items-center justify-between cursor-pointer">
-                        <span className="text-white font-medium">Alert Security on VIP Visitor Arrivals</span>
-                        <input type="checkbox" checked={notificationSettings.notifySecurityOnVip} onChange={(e) => setNotificationSettings({ ...notificationSettings, notifySecurityOnVip: e.target.checked })} className="w-4 h-4 accent-indigo-600 rounded"/>
-                      </label>
+                      <div className="p-3.5 bg-[#070c16] border border-slate-800 rounded-xl flex items-center justify-between gap-3">
+                        <span className="text-white font-medium text-xs sm:text-sm">Alert Security on VIP Visitor Arrivals</span>
+                        <ToggleSwitch
+                          checked={notificationSettings.notifySecurityOnVip}
+                          onChange={(checked) => setNotificationSettings({ ...notificationSettings, notifySecurityOnVip: checked })}
+                          color="indigo"
+                          showLabelBadge={true}
+                        />
+                      </div>
 
-                      <label className="p-3.5 bg-[#070c16] border border-slate-800 rounded-xl flex items-center justify-between cursor-pointer">
-                        <span className="text-white font-medium">Enable SMS Gateway Dispatch (Twilio / Tele)</span>
-                        <input type="checkbox" checked={notificationSettings.enableSmsAlerts} onChange={(e) => setNotificationSettings({ ...notificationSettings, enableSmsAlerts: e.target.checked })} className="w-4 h-4 accent-indigo-600 rounded"/>
-                      </label>
+                      <div className="p-3.5 bg-[#070c16] border border-slate-800 rounded-xl flex items-center justify-between gap-3">
+                        <span className="text-white font-medium text-xs sm:text-sm">Enable SMS Gateway Dispatch (Twilio / Tele)</span>
+                        <ToggleSwitch
+                          checked={notificationSettings.enableSmsAlerts}
+                          onChange={(checked) => setNotificationSettings({ ...notificationSettings, enableSmsAlerts: checked })}
+                          color="indigo"
+                          showLabelBadge={true}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bell, Globe, CheckCircle2, Save } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import ToggleSwitch from '../../components/common/ToggleSwitch';
 
 export default function EmployeeSettings() {
     const { t } = useLanguage();
@@ -55,29 +56,53 @@ export default function EmployeeSettings() {
           </div>
 
           <div className="space-y-3 text-xs">
-            <label className="flex items-center justify-between p-3 bg-slate-900/60 rounded-xl border border-slate-800 cursor-pointer">
+            <div 
+              onClick={() => setSettings(s => ({ ...s, emailAlerts: !s.emailAlerts }))}
+              className="flex items-center justify-between p-3.5 bg-slate-900/60 hover:bg-slate-900 rounded-xl border border-slate-800 hover:border-slate-700 cursor-pointer transition-all"
+            >
               <div>
                 <span className="text-white font-bold block">{t('notification.emailNotif', 'Email Notifications')}</span>
                 <span className="text-slate-400 text-[10px]">{t('notification.emailNotifHostDesc', 'Receive email when visitors request appointments')}</span>
               </div>
-              <input type="checkbox" checked={settings.emailAlerts} onChange={(e) => setSettings({ ...settings, emailAlerts: e.target.checked })} className="h-4 w-4 rounded accent-indigo-600"/>
-            </label>
+              <ToggleSwitch
+                checked={settings.emailAlerts}
+                onChange={(checked) => setSettings(s => ({ ...s, emailAlerts: checked }))}
+                color="indigo"
+                showLabelBadge={true}
+              />
+            </div>
 
-            <label className="flex items-center justify-between p-3 bg-slate-900/60 rounded-xl border border-slate-800 cursor-pointer">
+            <div 
+              onClick={() => setSettings(s => ({ ...s, desktopAlerts: !s.desktopAlerts }))}
+              className="flex items-center justify-between p-3.5 bg-slate-900/60 hover:bg-slate-900 rounded-xl border border-slate-800 hover:border-slate-700 cursor-pointer transition-all"
+            >
               <div>
                 <span className="text-white font-bold block">{t('notification.desktopPush', 'Desktop Push Notifications')}</span>
                 <span className="text-slate-400 text-[10px]">{t('notification.desktopPushHostDesc', 'Instant alert when guest arrives at lobby kiosk')}</span>
               </div>
-              <input type="checkbox" checked={settings.desktopAlerts} onChange={(e) => setSettings({ ...settings, desktopAlerts: e.target.checked })} className="h-4 w-4 rounded accent-indigo-600"/>
-            </label>
+              <ToggleSwitch
+                checked={settings.desktopAlerts}
+                onChange={(checked) => setSettings(s => ({ ...s, desktopAlerts: checked }))}
+                color="indigo"
+                showLabelBadge={true}
+              />
+            </div>
 
-            <label className="flex items-center justify-between p-3 bg-slate-900/60 rounded-xl border border-slate-800 cursor-pointer">
+            <div 
+              onClick={() => setSettings(s => ({ ...s, smsAlerts: !s.smsAlerts }))}
+              className="flex items-center justify-between p-3.5 bg-slate-900/60 hover:bg-slate-900 rounded-xl border border-slate-800 hover:border-slate-700 cursor-pointer transition-all"
+            >
               <div>
                 <span className="text-white font-bold block">{t('notification.smsMobileAlerts', 'SMS Mobile Alerts')}</span>
                 <span className="text-slate-400 text-[10px]">{t('notification.smsMobileAlertsDesc', 'Send SMS for urgent guest check-ins')}</span>
               </div>
-              <input type="checkbox" checked={settings.smsAlerts} onChange={(e) => setSettings({ ...settings, smsAlerts: e.target.checked })} className="h-4 w-4 rounded accent-indigo-600"/>
-            </label>
+              <ToggleSwitch
+                checked={settings.smsAlerts}
+                onChange={(checked) => setSettings(s => ({ ...s, smsAlerts: checked }))}
+                color="indigo"
+                showLabelBadge={true}
+              />
+            </div>
           </div>
         </div>
 

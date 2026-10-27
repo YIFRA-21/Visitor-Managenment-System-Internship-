@@ -13,6 +13,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useSocket } from '../../../hooks/useSocket';
 import { communicationApi, notificationsApi, profileApi, getErrorMessage } from '../../../services/api';
 import BackButton from '../../../components/common/BackButton';
+import ToggleSwitch from '../../../components/common/ToggleSwitch';
 import useResponseNavigation from '../../response/useResponseNavigation';
 import { RESPONSE_TYPES } from '../../response/responseConfig';
 import { resolvePhotoUrl } from '../../../utils/photoUtils';
@@ -3079,11 +3080,13 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                     <h5 className="text-xs font-bold text-white">{event.title}</h5>
                     <p className="text-[11px] text-slate-400 mt-1">{event.desc}</p>
                   </div>
-                  <input
-                    type="checkbox"
+                  <ToggleSwitch
                     checked={event.active}
-                    onChange={() => {}}
-                    className="w-4 h-4 rounded text-indigo-600 focus:ring-0 mt-0.5 cursor-pointer"
+                    onChange={(checked) =>
+                      setAdminSettings((prev) => ({ ...prev, [event.key]: checked }))
+                    }
+                    color="indigo"
+                    showLabelBadge={true}
                   />
                 </div>
               ))}
@@ -3098,13 +3101,13 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                   <h5 className="text-xs font-bold text-white">Quiet Hours (Do Not Disturb)</h5>
                   <p className="text-[11px] text-slate-400">Suppress audible chimes outside work shift</p>
                 </div>
-                <input
-                  type="checkbox"
+                <ToggleSwitch
                   checked={adminSettings.quietHours}
-                  onChange={(e) =>
-                    setAdminSettings((prev) => ({ ...prev, quietHours: e.target.checked }))
+                  onChange={(checked) =>
+                    setAdminSettings((prev) => ({ ...prev, quietHours: checked }))
                   }
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-0 cursor-pointer"
+                  color="indigo"
+                  showLabelBadge={true}
                 />
               </div>
 

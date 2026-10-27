@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Settings, Save } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
+import ToggleSwitch from '../../../../components/common/ToggleSwitch';
 
 const ReceptionSettingsView = () => {
     const { t } = useLanguage();
@@ -38,10 +39,10 @@ const ReceptionSettingsView = () => {
 
           <div>
             <label className="text-slate-300 font-bold block mb-1">{t('form.autoPrintBadge', 'Auto-Print Badge on Check-In')}</label>
-            <label className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg p-2.5 cursor-pointer">
-              <input type="checkbox" checked={autoPrintBadge} onChange={(e) => setAutoPrintBadge(e.target.checked)} className="w-4 h-4 accent-emerald-500"/>
-              <span className="text-white font-semibold">{autoPrintBadge ? t('status.autoPrintActive', 'Enabled – Auto-Print Active') : t('status.manualPrint', 'Disabled – Manual Print')}</span>
-            </label>
+            <div onClick={() => setAutoPrintBadge(!autoPrintBadge)} className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-lg p-2.5 cursor-pointer hover:border-slate-700 transition-all">
+              <span className="text-white font-semibold text-xs">{autoPrintBadge ? t('status.autoPrintActive', 'Enabled – Auto-Print Active') : t('status.manualPrint', 'Disabled – Manual Print')}</span>
+              <ToggleSwitch checked={autoPrintBadge} onChange={setAutoPrintBadge} color="emerald" showLabelBadge={true}/>
+            </div>
             <span className="text-slate-500 text-[11px] mt-1 block">{t('form.autoPrintBadgeDesc', 'Automatically print visitor badge after successful identity verification.')}</span>
           </div>
         </div>

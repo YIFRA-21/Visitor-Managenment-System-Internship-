@@ -12,6 +12,7 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import BackButton from '../../../components/common/BackButton';
+import ToggleSwitch from '../../../components/common/ToggleSwitch';
 import identityVerificationApi from '../api/identityVerificationApi';
 import { useToast } from '../../../contexts/ToastContext';
 
@@ -136,7 +137,7 @@ export default function VerificationPolicySettingsPage() {
           </h2>
 
           <div className="space-y-4">
-            <label className="flex items-start justify-between p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 cursor-pointer hover:border-slate-700 transition">
+            <div className="flex items-start justify-between p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition gap-4">
               <div className="space-y-1 pr-4">
                 <span className="font-bold text-white text-xs block">
                   Gate Visitor Pass Issuance on Verified Identity
@@ -145,17 +146,17 @@ export default function VerificationPolicySettingsPage() {
                   When enabled, physical QR passes and digital badges cannot be printed or issued unless visitor status is VERIFIED.
                 </p>
               </div>
-              <input
-                type="checkbox"
+              <ToggleSwitch
                 checked={Boolean(policy.gate_visitor_pass_issuance)}
-                onChange={(e) =>
-                  setPolicy({ ...policy, gate_visitor_pass_issuance: e.target.checked ? 1 : 0 })
+                onChange={(checked) =>
+                  setPolicy({ ...policy, gate_visitor_pass_issuance: checked ? 1 : 0 })
                 }
-                className="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 bg-slate-900 border-slate-700"
+                color="emerald"
+                showLabelBadge={true}
               />
-            </label>
+            </div>
 
-            <label className="flex items-start justify-between p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 cursor-pointer hover:border-slate-700 transition">
+            <div className="flex items-start justify-between p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition gap-4">
               <div className="space-y-1 pr-4">
                 <span className="font-bold text-white text-xs block">
                   Require ID Verification to Book Appointments
@@ -164,17 +165,17 @@ export default function VerificationPolicySettingsPage() {
                   Requires external visitors to complete verification before appointment requests are forwarded for employee approval.
                 </p>
               </div>
-              <input
-                type="checkbox"
+              <ToggleSwitch
                 checked={Boolean(policy.require_id_for_appointment)}
-                onChange={(e) =>
-                  setPolicy({ ...policy, require_id_for_appointment: e.target.checked ? 1 : 0 })
+                onChange={(checked) =>
+                  setPolicy({ ...policy, require_id_for_appointment: checked ? 1 : 0 })
                 }
-                className="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 bg-slate-900 border-slate-700"
+                color="emerald"
+                showLabelBadge={true}
               />
-            </label>
+            </div>
 
-            <label className="flex items-start justify-between p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 cursor-pointer hover:border-slate-700 transition">
+            <div className="flex items-start justify-between p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition gap-4">
               <div className="space-y-1 pr-4">
                 <span className="font-bold text-white text-xs block">
                   Auto-Approve High Confidence Submissions
@@ -183,15 +184,15 @@ export default function VerificationPolicySettingsPage() {
                   Automatically set case to VERIFIED if both facial match and liveness surpass target thresholds without human officer bottleneck.
                 </p>
               </div>
-              <input
-                type="checkbox"
+              <ToggleSwitch
                 checked={Boolean(policy.auto_approve_high_confidence)}
-                onChange={(e) =>
-                  setPolicy({ ...policy, auto_approve_high_confidence: e.target.checked ? 1 : 0 })
+                onChange={(checked) =>
+                  setPolicy({ ...policy, auto_approve_high_confidence: checked ? 1 : 0 })
                 }
-                className="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 bg-slate-900 border-slate-700"
+                color="emerald"
+                showLabelBadge={true}
               />
-            </label>
+            </div>
           </div>
         </div>
 
