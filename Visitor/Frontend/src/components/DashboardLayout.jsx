@@ -109,6 +109,7 @@ const sidebarConfig = [
             { key: 'visitor-registration', label: 'Visitor Registration', view: 'visitor_registration', roles: ['admin', 'receptionist', 'security_officer', 'staff', 'manager'] },
             { key: 'appointment-management-admin', label: 'Appointment Management', view: 'appointment_management', roles: ['admin', 'receptionist', 'security_officer', 'staff', 'manager'] },
             { key: 'visitors', label: 'Visitor Profiles', view: 'visitors', roles: ['admin', 'receptionist', 'security_officer', 'staff', 'manager'] },
+            { key: 'visitor-id-verification-admin', label: 'Identity Verification', view: 'identity_verification', roles: ['admin', 'receptionist', 'security_officer', 'staff', 'manager'] },
             { key: 'visitor-categories-admin', label: 'Visitor Categories', view: 'visitor_categories', roles: ['admin', 'receptionist', 'security_officer', 'staff', 'manager'] },
             { key: 'approval-workflows-admin', label: 'Approval Workflows', view: 'approval_workflow_management', roles: ['admin', 'manager', 'staff'] },
             { key: 'visitor-documents-admin', label: 'Visitor Documents', view: 'visitor_documents_management', roles: ['admin', 'receptionist', 'security_officer', 'staff', 'manager'] },
@@ -123,12 +124,20 @@ const sidebarConfig = [
         roles: ['admin', 'staff', 'receptionist', 'manager', 'security_officer'],
     },
     {
+        key: 'identity-verification-direct',
+        label: 'Identity Verification',
+        iconClass: 'bi-shield-check',
+        view: 'identity_verification',
+        roles: ['visitor', 'admin', 'security_officer', 'receptionist'],
+    },
+    {
         key: 'visitor-portal',
         label: 'Visitor Portal',
         iconClass: 'bi-person-badge',
         roles: ['visitor'],
         submenus: [
             { key: 'visitor-home', label: 'My Dashboard', view: 'dashboard' },
+            { key: 'visitor-identity-verification', label: 'Identity Verification', view: 'identity_verification' },
             { key: 'visitor-profile', label: 'My Profile', view: 'visitor_profile' },
             { key: 'visitor-pass', label: 'My Digital Pass', view: 'visitor_pass' },
             { key: 'my-appointments', label: 'My Appointments', view: 'my_appointments' },
@@ -194,7 +203,7 @@ const sidebarConfig = [
         submenus: [
             { key: 'restricted-badges', label: 'Area & Access Level Badges', view: 'badge_management', roles: ['admin', 'security_officer', 'receptionist'] },
             { key: 'security-incidents', label: 'Security Incidents', view: 'security_incidents', roles: ['admin', 'security_officer'] },
-            { key: 'verification', label: 'Verification', view: 'verification', roles: ['admin', 'security_officer'] },
+            { key: 'verification', label: 'Identity Verification', view: 'identity_verification', roles: ['admin', 'security_officer'] },
             { key: 'access-logs', label: 'Access Logs', view: 'security_logs' },
         ],
     },
