@@ -101,7 +101,7 @@ export default function LanguageDropdown({ variant = 'auto', className = '', ali
     const activeOption = LANGUAGES.find((l) => l.code === language) || LANGUAGES[0];
     return (<div className={`relative inline-block text-left ${className}`} ref={dropdownRef}>
       {/* Trigger Button */}
-      <button type="button" onClick={() => setIsOpen(!isOpen)} onMouseEnter={() => setIsBtnHovered(true)} onMouseLeave={() => setIsBtnHovered(false)} aria-haspopup="true" aria-expanded={isOpen} className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs select-none" style={{
+      <button type="button" onClick={() => setIsOpen(!isOpen)} onMouseEnter={() => setIsBtnHovered(true)} onMouseLeave={() => setIsBtnHovered(false)} aria-haspopup="true" aria-expanded={isOpen} className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs select-none shrink-0" style={{
             backgroundColor: isBtnHovered
                 ? isDark
                     ? '#334155'
@@ -122,10 +122,10 @@ export default function LanguageDropdown({ variant = 'auto', className = '', ali
                 : '0 1px 3px rgba(0, 0, 0, 0.08)',
         }}>
         <span className="flex items-center justify-center shrink-0">{activeOption.flag}</span>
-        <span className="tracking-wide font-bold" style={{ color: isDark ? '#f8fafc' : '#0f172a' }}>
+        <span className="hidden sm:inline tracking-wide font-bold" style={{ color: isDark ? '#f8fafc' : '#0f172a' }}>
           {activeOption.nativeLabel}
         </span>
-        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: isDark ? '#94a3b8' : '#475569' }}/>
+        <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: isDark ? '#94a3b8' : '#475569' }}/>
       </button>
 
       {/* Dropdown Menu */}

@@ -12,6 +12,7 @@ export default function Navbar({ collapsed = false, onCollapseToggle = () => { }
     // Dropdown states
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
     const { t } = useLanguage();
     const profileRef = useRef(null);
     const notificationsRef = useRef(null);
@@ -45,8 +46,8 @@ export default function Navbar({ collapsed = false, onCollapseToggle = () => { }
           <i className="bi bi-list"></i>
         </button>
 
-        {/* Global Search Bar */}
-        <div className="vms-navbar__search">
+        {/* Global Search Bar (Desktop / Tablet >= 768px) */}
+        <div className="vms-navbar__search d-none d-md-flex">
           <i className="bi bi-search vms-navbar__search-icon"></i>
           <input type="text" placeholder={t('nav.searchModule')} value={searchQuery} onChange={(e) => onSearchChange(e.target.value)} className="vms-navbar__search-input"/>
 
@@ -65,6 +66,11 @@ export default function Navbar({ collapsed = false, onCollapseToggle = () => { }
 
       {/* Right panel: Actions, Dropdowns */}
       <div className="vms-navbar__right">
+        {/* Mobile Search Toggle Button */}
+        <button onClick={() => setMobileSearchOpen(!mobileSearchOpen)} className="vms-navbar__action-btn d-flex d-md-none" title={t('nav.searchModule')} aria-label="Toggle Search">
+          <i className={`bi ${mobileSearchOpen ? 'bi-x-lg' : 'bi-search'}`}></i>
+        </button>
+
         {/* Language selector with USA & Ethiopian flags */}
         <LanguageDropdown variant="auto"/>
 
@@ -165,5 +171,51 @@ export default function Navbar({ collapsed = false, onCollapseToggle = () => { }
             </div>)}
         </div>
       </div>
+
+      {/* Expandable Mobile Search Bar Overlay */}
+      {mobileSearchOpen && (
+        <div className="vms-navbar__mobile-search-bar animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="vms-navbar__search flex-1">
+            <i className="bi bi-search vms-navbar__search-icon"></i>
+            <input
+              type="text"
+              autoFocus
+              placeholder={t('nav.searchModule')}
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="vms-navbar__search-input"
+            />
+            {searchQuery && (
+              <div className="vms-navbar__search-results shadow-lg">
+                {searchResults.length === 0 ? (
+                  <div className="vms-navbar__search-empty">{t('nav.noModulesFound')}</div>
+                ) : (
+                  searchResults.map((res) => (
+                    <button
+                      key={res.view}
+                      onClick={() => {
+                        onResultClick(res.view);
+                        onSearchChange('');
+                        setMobileSearchOpen(false);
+                      }}
+                      className="vms-navbar__search-result-item"
+                    >
+                      <span className="fw-semibold">{res.label}</span>
+                      <span className="vms-navbar__search-result-category">{res.category}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => setMobileSearchOpen(false)}
+            className="vms-navbar__action-btn shrink-0"
+            aria-label="Close Search"
+          >
+            <i className="bi bi-x-lg"></i>
+          </button>
+        </div>
+      )}
     </header>);
 }

@@ -366,26 +366,26 @@ export default function AuditorDashboard({ onNavigate }) {
   const highRiskEvents = (meta?.severityBreakdown?.HIGH || 40) + (meta?.severityBreakdown?.CRITICAL || 1);
 
   return (
-    <div className="p-4 md:p-8 bg-[#070b12] min-h-screen text-slate-100 font-sans space-y-6">
+    <div className="p-3 sm:p-5 md:p-8 bg-[#070b12] min-h-screen text-slate-100 font-sans space-y-5 sm:space-y-6 overflow-hidden">
       {/* ─── 1. BREADCRUMB & HEADER ────────────────────────────────────────── */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-800/80"
+        className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 sm:pb-6 border-b border-slate-800/80"
       >
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <BackButton fallbackUrl="/dashboard" title="Back to Dashboard" />
             <div>
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
-                  <ShieldCheck className="w-5 h-5" />
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                <div className="p-1.5 sm:p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
+                  <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight uppercase">
+                <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight uppercase">
                   Compliance & Security Audit Center
                 </h1>
               </div>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-1">
                 Cryptographically verifiable, immutable audit trail • 2,813+ system events stored in MySQL database
               </p>
             </div>
@@ -684,7 +684,7 @@ export default function AuditorDashboard({ onNavigate }) {
 
         {/* Tabular Audit Stream */}
         <div className="overflow-x-auto rounded-xl border border-slate-800">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[700px]">
             <thead className="bg-slate-900/90 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
               <tr>
                 <th className="py-3 px-4">Event ID / Time</th>

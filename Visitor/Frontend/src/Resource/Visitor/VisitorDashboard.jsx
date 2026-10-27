@@ -50,7 +50,7 @@ const itemVariants = {
 function KpiCard({ title, value, subtitle, badge, icon, theme, onClick }) {
     const [hovered, setHovered] = useState(false);
     const styles = THEME_STYLES[theme];
-    return (<motion.div variants={itemVariants} whileHover={{ y: -4, scale: 1.015 }} whileTap={{ scale: 0.985 }} onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} className={`border rounded-2xl p-5 pl-6 min-h-[170px] flex flex-col justify-between transition-all duration-300 relative overflow-hidden group cursor-pointer bg-[#0a0f1d] border-slate-800 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] text-white ${hovered ? 'shadow-xl border-slate-700' : ''}`}>
+    return (<motion.div variants={itemVariants} whileHover={{ y: -4, scale: 1.015 }} whileTap={{ scale: 0.985 }} onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} className={`border rounded-2xl p-4 sm:p-5 pl-5 sm:pl-6 min-h-[140px] sm:min-h-[165px] flex flex-col justify-between transition-all duration-300 relative overflow-hidden group cursor-pointer bg-[#0a0f1d] border-slate-800 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] text-white ${hovered ? 'shadow-xl border-slate-700' : ''}`}>
       {/* Dark Hover Fill Overlay */}
       <div style={{
             background: styles.darkHoverBg,
@@ -74,9 +74,9 @@ function KpiCard({ title, value, subtitle, badge, icon, theme, onClick }) {
         </div>
       </div>
 
-      <div className="mt-4 relative z-10">
+      <div className="mt-3 sm:mt-4 relative z-10">
         <div className="flex items-baseline space-x-2">
-          <h2 className="text-3xl font-black text-white tracking-tight">{value}</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{value}</h2>
           {badge}
         </div>
         <p className="text-xs text-slate-400 group-hover:text-slate-200 font-semibold mt-1 transition-colors">
@@ -343,9 +343,9 @@ export default function VisitorDashboard() {
         hidden: { opacity: 0, y: 12 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
     };
-    return (<motion.div initial="hidden" animate="visible" variants={containerVariants} className="p-4 md:p-8 bg-[#070b14] text-slate-100 min-h-screen space-y-6 font-sans selection:bg-indigo-500 selection:text-white">
+    return (<motion.div initial="hidden" animate="visible" variants={containerVariants} className="p-3 sm:p-5 md:p-8 bg-[#070b14] text-slate-100 min-h-screen space-y-5 sm:space-y-6 font-sans selection:bg-indigo-500 selection:text-white max-w-7xl mx-auto overflow-hidden">
       {/* ── TOP HERO BANNER & WELCOME HEADER ── */}
-      <motion.div variants={itemVariants} className="relative overflow-hidden rounded-3xl bg-[#0a0f1d] border border-slate-800 p-7 md:p-9 shadow-2xl transition-colors">
+      <motion.div variants={itemVariants} className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-[#0a0f1d] border border-slate-800 p-4 sm:p-6 md:p-8 shadow-2xl transition-colors">
         {/* TOP CURVED WAVE SVG ACCENT (Matching User Image) */}
         <div className="absolute top-0 left-0 right-0 h-16 overflow-hidden pointer-events-none opacity-90 dark:opacity-40">
           <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="relative block w-full h-full">
@@ -377,9 +377,9 @@ export default function VisitorDashboard() {
         {/* Decorative background ambient glows */}
         <div className="absolute -top-20 -right-20 w-80 h-80 bg-blue-500/10 dark:bg-blue-600/15 rounded-full blur-3xl pointer-events-none"/>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 my-2">
-          <div className="space-y-2.5">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold shadow-sm">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5 my-1">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-extrabold shadow-sm">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -387,21 +387,21 @@ export default function VisitorDashboard() {
               {t('visitorDash.digitalPassActive')}
             </div>
 
-            <h1 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
-              {t('visitorDash.welcomeBack')}, {visitorProfile.fullName}
-              <Sparkles className="w-6 h-6 text-amber-400 animate-pulse"/>
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-white tracking-tight flex items-center flex-wrap gap-2 sm:gap-3">
+              <span>{t('visitorDash.welcomeBack')}, {visitorProfile.fullName}</span>
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 animate-pulse shrink-0"/>
             </h1>
-            <p className="text-slate-300 text-sm max-w-xl font-medium leading-relaxed">
+            <p className="text-slate-300 text-xs sm:text-sm max-w-xl font-medium leading-relaxed">
               {t('visitorDash.heroDesc')}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button onClick={() => setSearchParams({ view: 'request_appointment' })} className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto">
+            <button onClick={() => setSearchParams({ view: 'request_appointment' })} className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto">
               <Plus className="w-4 h-4"/>
               {t('visitorDash.bookAppt')}
             </button>
-            <button onClick={() => setQrModalOpen(true)} className="px-6 py-3.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/60 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all hover:scale-[1.03] shadow-none">
+            <button onClick={() => setQrModalOpen(true)} className="px-5 py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/60 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 backdrop-blur-md transition-all hover:scale-[1.02] shadow-none w-full sm:w-auto">
               <QrCode className="w-4 h-4 text-blue-400"/>
               {t('visitorDash.digitalPassQR')}
             </button>
@@ -427,29 +427,29 @@ export default function VisitorDashboard() {
         {/* ROW 1: APPOINTMENTS (2 SPAN) & DIGITAL ENTRY PASS (1 SPAN) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* MY SCHEDULED APPOINTMENTS (lg:col-span-2) */}
-          <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="lg:col-span-2 bg-[#0b101b] border border-slate-800/90 rounded-3xl p-6 shadow-2xl space-y-5 relative overflow-hidden group flex flex-col justify-between">
+          <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="lg:col-span-2 bg-[#0b101b] border border-slate-800/90 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 relative overflow-hidden group flex flex-col justify-between">
             {/* SOLID VERTICAL LEFT BAR WITH GLOW & FILL EXPANSION ON HOVER */}
             <div style={{
             backgroundColor: '#6366f1',
             boxShadow: '0 0 12px rgba(99, 102, 241, 0.4)',
         }} className="absolute left-0 top-0 bottom-0 w-[6px] rounded-l-3xl transition-all duration-300 group-hover:w-[10px] z-10"/>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4 relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3 sm:pb-4 relative z-10">
               <div className="flex items-center gap-3">
                 {/* Sleek Vertical Oval Pill Icon Capsule Container */}
-                <div className="w-9 h-11 rounded-full border border-slate-700/80 bg-slate-800/90 flex items-center justify-center text-indigo-400 shadow-sm shrink-0">
-                  <Calendar className="w-5 h-5"/>
+                <div className="w-8 h-10 sm:w-9 sm:h-11 rounded-full border border-slate-700/80 bg-slate-800/90 flex items-center justify-center text-indigo-400 shadow-sm shrink-0">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5"/>
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-white">
+                  <h3 className="text-sm sm:text-base font-extrabold text-white">
                     {t('visitorDash.myScheduledAppts')}
                   </h3>
-                  <p className="text-slate-400 text-xs mt-0.5 font-medium">{t('visitorDash.apptsDesc')}</p>
+                  <p className="text-slate-400 text-[11px] sm:text-xs mt-0.5 font-medium">{t('visitorDash.apptsDesc')}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-                {['upcoming', 'approved', 'completed', 'cancelled'].map(tab => (<button key={tab} onClick={() => setActiveApptTab(tab)} className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${activeApptTab === tab
+              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto max-w-full">
+                {['upcoming', 'approved', 'completed', 'cancelled'].map(tab => (<button key={tab} onClick={() => setActiveApptTab(tab)} className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold capitalize transition-all whitespace-nowrap shrink-0 ${activeApptTab === tab
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white'}`}>
                     {tab === 'upcoming' ? t('visitorDash.tabUpcoming') :
@@ -513,7 +513,7 @@ export default function VisitorDashboard() {
           </motion.div>
 
           {/* DIGITAL ENTRY PASS (lg:col-span-1) */}
-          <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="lg:col-span-1 bg-[#0b101b] border border-slate-800/90 rounded-3xl p-6 shadow-2xl space-y-4 relative overflow-hidden group flex flex-col justify-between">
+          <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="lg:col-span-1 bg-[#0b101b] border border-slate-800/90 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 relative overflow-hidden group flex flex-col justify-between">
             {/* SOLID VERTICAL LEFT BAR WITH GLOW & FILL EXPANSION ON HOVER */}
             <div style={{
             backgroundColor: '#10b981',
@@ -522,8 +522,8 @@ export default function VisitorDashboard() {
 
             <div className="flex items-center justify-between border-b border-slate-800/80 pb-3 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-11 rounded-full border border-slate-700/80 bg-slate-800/90 flex items-center justify-center text-emerald-400 shadow-sm shrink-0">
-                  <QrCode className="w-5 h-5"/>
+                <div className="w-8 h-10 sm:w-9 sm:h-11 rounded-full border border-slate-700/80 bg-slate-800/90 flex items-center justify-center text-emerald-400 shadow-sm shrink-0">
+                  <QrCode className="w-4 h-4 sm:w-5 sm:h-5"/>
                 </div>
                 <div>
                   <h3 className="text-sm font-extrabold text-white">Digital Entry Pass</h3>
@@ -537,9 +537,9 @@ export default function VisitorDashboard() {
 
             <div className="flex flex-col items-center justify-center p-4 bg-slate-900/90 rounded-2xl border border-slate-800 text-center space-y-3 relative z-10">
               {qrDataUrl ? (<div className="p-2 bg-white rounded-2xl shadow-lg border border-slate-200">
-                  <img src={qrDataUrl} alt="Visitor QR" className="w-36 h-36 object-contain rounded-xl"/>
-                </div>) : (<div className="w-36 h-36 bg-slate-800 rounded-2xl flex items-center justify-center">
-                  <QrCode size={48} className="text-slate-600"/>
+                  <img src={qrDataUrl} alt="Visitor QR" className="w-32 h-32 sm:w-36 sm:h-36 object-contain rounded-xl"/>
+                </div>) : (<div className="w-32 h-32 sm:w-36 sm:h-36 bg-slate-800 rounded-2xl flex items-center justify-center">
+                  <QrCode size={40} className="text-slate-600"/>
                 </div>)}
               <div>
                 <h4 className="font-extrabold text-white text-sm">{visitorPass.visitorName}</h4>
@@ -564,7 +564,7 @@ export default function VisitorDashboard() {
         {/* ROW 2: ALERTS & NOTIFICATIONS (2 SPAN) & QUICK ACTIONS GUIDE (1 SPAN) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* MY ALERTS & NOTIFICATIONS (lg:col-span-2) */}
-          <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="lg:col-span-2 bg-[#0b101b] border border-slate-800/90 rounded-3xl p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden group">
+          <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="lg:col-span-2 bg-[#0b101b] border border-slate-800/90 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden group">
             {/* SOLID VERTICAL LEFT BAR WITH GLOW & FILL EXPANSION ON HOVER */}
             <div style={{
             backgroundColor: '#f59e0b',
@@ -573,8 +573,8 @@ export default function VisitorDashboard() {
 
             <div className="flex items-center justify-between border-b border-slate-800/80 pb-3 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-11 rounded-full border border-slate-700/80 bg-slate-800/90 flex items-center justify-center text-amber-400 shadow-sm shrink-0">
-                  <Bell className="w-5 h-5"/>
+                <div className="w-8 h-10 sm:w-9 sm:h-11 rounded-full border border-slate-700/80 bg-slate-800/90 flex items-center justify-center text-amber-400 shadow-sm shrink-0">
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5"/>
                 </div>
                 <div>
                   <h3 className="text-sm font-extrabold text-white">My Alerts &amp; Notifications</h3>
@@ -598,7 +598,7 @@ export default function VisitorDashboard() {
           </motion.div>
 
           {/* QUICK VISITOR ACTIONS (lg:col-span-1) */}
-          <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="lg:col-span-1 bg-[#0b101b] border border-slate-800/90 rounded-3xl p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden group">
+          <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="lg:col-span-1 bg-[#0b101b] border border-slate-800/90 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden group">
             {/* SOLID VERTICAL LEFT BAR WITH GLOW & FILL EXPANSION ON HOVER */}
             <div style={{
             backgroundColor: '#a855f7',
