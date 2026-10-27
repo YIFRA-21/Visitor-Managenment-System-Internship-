@@ -1,5 +1,6 @@
 const MockIdentityProvider = require('./MockIdentityProvider');
 const VeriffProviderAdapter = require('./VeriffProviderAdapter');
+const SumsubProviderAdapter = require('./SumsubProviderAdapter');
 
 /**
  * ProviderFactory
@@ -7,7 +8,11 @@ const VeriffProviderAdapter = require('./VeriffProviderAdapter');
  */
 class ProviderFactory {
   static getProvider(providerName) {
-    const selected = (providerName || process.env.IDENTITY_PROVIDER || 'MOCK').toUpperCase();
+    const selected = (providerName || process.env.IDENTITY_PROVIDER || 'SUMSUB').toUpperCase();
+
+    if (selected === 'SUMSUB') {
+      return new SumsubProviderAdapter();
+    }
 
     if (selected === 'VERIFF') {
       const adapter = new VeriffProviderAdapter();
@@ -22,3 +27,4 @@ class ProviderFactory {
 }
 
 module.exports = ProviderFactory;
+
