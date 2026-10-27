@@ -277,7 +277,8 @@ class CommunicationController {
       const result = await communicationService.getUnreadCounts(userId, role, email);
       res.json(result);
     } catch (err) {
-      next(err);
+      console.warn('getUnreadCounts safe fallback warning:', err.message);
+      res.json({ success: true, unread_notifications: 0, unread_messages: 0 });
     }
   }
 

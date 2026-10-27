@@ -69,8 +69,12 @@ export const getErrorMessage = (err) => {
     if (status === 413)
         return 'Maximum file size exceeded (5MB limit).';
     // First try: plain string message field (most backend AppError responses)
-    if (typeof data?.message === 'string' && data.message)
+    if (typeof data?.message === 'string' && data.message) {
+        if (/something went wrong on our end|please try again later/i.test(data.message)) {
+            return '';
+        }
         return data.message;
+    }
     // Second try: validation details array (e.g. { error: 'Validation failed', details: [{field, message}] })
     if (Array.isArray(data?.details) && data.details.length > 0) {
         const firstDetail = data.details[0];
@@ -93,7 +97,7 @@ export const getErrorMessage = (err) => {
                 return JSON.stringify(rawError);
             }
             catch {
-                return 'An error occurred';
+                return '';
             }
         }
     }
@@ -106,9 +110,13 @@ export const getErrorMessage = (err) => {
     if (status === 404)
         return 'Requested resource not found.';
     if (status === 500)
-        return 'Server error. Please try again later.';
-    if (axErr.message && typeof axErr.message === 'string')
+        return '';
+    if (axErr.message && typeof axErr.message === 'string') {
+        if (/something went wrong on our end|please try again later/i.test(axErr.message)) {
+            return '';
+        }
         return axErr.message;
-    return 'An unexpected error occurred. Please try again.';
+    }
+    return '';
 };
 export default apiClient;

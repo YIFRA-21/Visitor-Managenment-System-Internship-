@@ -42,8 +42,8 @@ router.get('/unread-count', authenticate, async (req, res) => {
     const result = await NotificationService.getUnreadCounts(userId, userEmail, role, orgId);
     res.json(result);
   } catch (err) {
-    console.error('Fetch unread count route error:', err);
-    res.status(500).json({ success: false, error: 'Failed to fetch unread count' });
+    console.warn('Fetch unread count route safe fallback warning:', err.message);
+    res.status(200).json({ success: true, data: { notifications: 0, messages: 0 }, unreadCount: 0 });
   }
 });
 

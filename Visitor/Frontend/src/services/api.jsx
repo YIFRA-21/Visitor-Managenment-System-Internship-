@@ -56,6 +56,7 @@ api.interceptors.response.use((res) => res, (err) => {
         const errorMessage = getErrorMessage(err);
         if (
             errorMessage &&
+            !/something went wrong on our end|please try again later/i.test(errorMessage) &&
             !/unexpected token|is not valid json|syntaxerror/i.test(errorMessage) &&
             typeof window !== 'undefined' &&
             window.showNotification
@@ -111,6 +112,9 @@ export const getErrorMessage = (err) => {
         return 'Maximum file size exceeded (5MB limit).';
     // First try: plain string message field (most backend AppError responses)
     if (typeof data?.message === 'string' && data.message) {
+        if (/something went wrong on our end|please try again later/i.test(data.message)) {
+            return '';
+        }
         if (/authenticated user token|protected endpoint requires|authentication required/i.test(data.message)) {
             return '';
         }
@@ -164,14 +168,17 @@ export const getErrorMessage = (err) => {
     if (status === 404)
         return 'Requested resource not found.';
     if (status === 500)
-        return 'Server error. Please try again later.';
+        return '';
     if (axErr.message && typeof axErr.message === 'string') {
+        if (/something went wrong on our end|please try again later/i.test(axErr.message)) {
+            return '';
+        }
         if (/unexpected token|is not valid json|syntaxerror/i.test(axErr.message)) {
             return '';
         }
         return axErr.message;
     }
-    return 'An unexpected error occurred. Please try again.';
+    return '';
 };
 export default api;
 export const authApi = {
@@ -179,12 +186,12 @@ export const authApi = {
     checkUsername: (username) => api.post('/auth/check-username', { username }, { silent: true }),
     login: (identifier, password) => api.post('/auth/login', { identifier, email: identifier, password }),
     register: (data) => api.post('/auth/register', data),
-    me: () => api.get('/auth/me'),
+    me: () => api.get('/auth/me', { skipGlobalErrorNotification: true, silent: true }),
     forgotPassword: (identifier) => api.post('/auth/forgot-password', { identifier, email: identifier, userId: identifier }),
     resetPassword: (identifier, token, newPassword) => api.post('/auth/reset-password', { identifier, email: identifier, userId: identifier, token, resetToken: token, newPassword }),
     logout: (refreshToken) => api.post('/auth/logout', { refreshToken }),
     refreshToken: (refreshToken) => api.post('/auth/refresh-token', { refreshToken }),
-    currentUser: () => api.get('/auth/me'),
+    currentUser: () => api.get('/auth/me', { skipGlobalErrorNotification: true, silent: true }),
     verifyOtp: (identifier, code) => api.post('/auth/verify-email', { identifier, email: identifier, userId: identifier, token: code, code }),
     resendVerification: (identifier) => api.post('/auth/resend-verification', { identifier, email: identifier, userId: identifier }),
     changePassword: (currentPassword, newPassword) => api.post('/auth/change-password', { currentPassword, newPassword }),
