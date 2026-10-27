@@ -217,8 +217,6 @@ const sidebarConfig = [
         submenus: [
             { key: 'reports-dashboard', label: 'Dashboard', view: 'reports' },
             { key: 'operational-reports', label: 'Operational Reports', view: 'operational_reports' },
-            { key: 'visitor-reports', label: 'Visitor Reports', view: 'visitor_reports' },
-            { key: 'appointment-reports', label: 'Appointment Reports', view: 'appointment_reports' },
             { key: 'audit-logs', label: 'Audit Logs', view: 'audit_logs', roles: ['admin', 'security_officer', 'auditor'] },
         ],
     },
@@ -678,8 +676,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     iconClass: 'bi-graph-up',
                     submenus: [
                         { key: 'reports-dashboard', label: t('sidebar.dashboardReports'), view: 'reports' },
-                        { key: 'visitor-reports', label: t('sidebar.visitorReports'), view: 'visitor_reports' },
-                        { key: 'appointment-reports', label: t('sidebar.appointmentReports'), view: 'appointment_reports' },
                         { key: 'audit-logs', label: t('sidebar.auditLogs'), view: 'audit_logs' },
                     ],
                 },
