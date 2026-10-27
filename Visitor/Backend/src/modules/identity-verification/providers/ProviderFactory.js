@@ -8,10 +8,15 @@ const SumsubProviderAdapter = require('./SumsubProviderAdapter');
  */
 class ProviderFactory {
   static getProvider(providerName) {
-    const selected = (providerName || process.env.IDENTITY_PROVIDER || 'SUMSUB').toUpperCase();
+    const selected = (providerName || process.env.IDENTITY_PROVIDER || 'MOCK').toUpperCase();
 
     if (selected === 'SUMSUB') {
-      return new SumsubProviderAdapter();
+      const adapter = new SumsubProviderAdapter();
+      if (adapter.isConfigured()) {
+        return adapter;
+      }
+      console.log('[IDENTITY VERIFICATION] Sumsub requested but credentials missing. Using Mock Provider for instant offline verification.');
+      return new MockIdentityProvider();
     }
 
     if (selected === 'VERIFF') {
@@ -19,11 +24,13 @@ class ProviderFactory {
       if (adapter.isConfigured()) {
         return adapter;
       }
-      console.warn('[IDENTITY VERIFICATION] Veriff requested but credentials missing. Falling back to Mock Provider in non-production.');
+      console.log('[IDENTITY VERIFICATION] Veriff requested but credentials missing. Falling back to Mock Provider.');
+      return new MockIdentityProvider();
     }
 
     return new MockIdentityProvider();
   }
+
 }
 
 module.exports = ProviderFactory;
