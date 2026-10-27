@@ -3085,8 +3085,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                     onChange={(checked) =>
                       setAdminSettings((prev) => ({ ...prev, [event.key]: checked }))
                     }
-                    color="indigo"
-                    showLabelBadge={true}
+                    role="admin"
                   />
                 </div>
               ))}
@@ -3106,8 +3105,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                   onChange={(checked) =>
                     setAdminSettings((prev) => ({ ...prev, quietHours: checked }))
                   }
-                  color="indigo"
-                  showLabelBadge={true}
+                  role="admin"
                 />
               </div>
 

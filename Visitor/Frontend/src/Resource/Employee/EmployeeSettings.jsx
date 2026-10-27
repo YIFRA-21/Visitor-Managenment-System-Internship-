@@ -68,7 +68,6 @@ export default function EmployeeSettings() {
                 checked={settings.emailAlerts}
                 onChange={(checked) => setSettings(s => ({ ...s, emailAlerts: checked }))}
                 color="indigo"
-                showLabelBadge={true}
               />
             </div>
 
@@ -84,7 +83,6 @@ export default function EmployeeSettings() {
                 checked={settings.desktopAlerts}
                 onChange={(checked) => setSettings(s => ({ ...s, desktopAlerts: checked }))}
                 color="indigo"
-                showLabelBadge={true}
               />
             </div>
 
@@ -100,7 +98,6 @@ export default function EmployeeSettings() {
                 checked={settings.smsAlerts}
                 onChange={(checked) => setSettings(s => ({ ...s, smsAlerts: checked }))}
                 color="indigo"
-                showLabelBadge={true}
               />
             </div>
           </div>

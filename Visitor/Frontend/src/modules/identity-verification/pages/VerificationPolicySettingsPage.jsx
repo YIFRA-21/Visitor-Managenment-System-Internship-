@@ -151,8 +151,7 @@ export default function VerificationPolicySettingsPage() {
                 onChange={(checked) =>
                   setPolicy({ ...policy, gate_visitor_pass_issuance: checked ? 1 : 0 })
                 }
-                color="emerald"
-                showLabelBadge={true}
+                color="cyan"
               />
             </div>
 
@@ -170,8 +169,7 @@ export default function VerificationPolicySettingsPage() {
                 onChange={(checked) =>
                   setPolicy({ ...policy, require_id_for_appointment: checked ? 1 : 0 })
                 }
-                color="emerald"
-                showLabelBadge={true}
+                color="cyan"
               />
             </div>
 
@@ -189,8 +187,7 @@ export default function VerificationPolicySettingsPage() {
                 onChange={(checked) =>
                   setPolicy({ ...policy, auto_approve_high_confidence: checked ? 1 : 0 })
                 }
-                color="emerald"
-                showLabelBadge={true}
+                color="cyan"
               />
             </div>
           </div>

@@ -41,7 +41,7 @@ const SecuritySettingsView = () => {
             <label className="text-slate-300 font-bold block mb-1">{t('form.autoLockTurnstile', 'Auto-Lock Turnstile on Blacklist Match')}</label>
             <div onClick={() => setAutoLockTurnstile(!autoLockTurnstile)} className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-lg p-2.5 cursor-pointer hover:border-slate-700 transition-all">
               <span className="text-white font-semibold text-xs">{autoLockTurnstile ? t('status.autoLockActive', 'Enabled – Auto-Lock Active') : t('status.manualLockOnly', 'Disabled – Manual Lock Only')}</span>
-              <ToggleSwitch checked={autoLockTurnstile} onChange={setAutoLockTurnstile} color="red" showLabelBadge={true}/>
+              <ToggleSwitch checked={autoLockTurnstile} onChange={setAutoLockTurnstile} color="red"/>
             </div>
             <span className="text-slate-500 text-[11px] mt-1 block">{t('form.autoLockTurnstileDesc', 'Automatically lock turnstile lane on blacklist or watchlist match.')}</span>
           </div>

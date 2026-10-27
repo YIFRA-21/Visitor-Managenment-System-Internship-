@@ -33,7 +33,7 @@ const ReceptionPreferencesView = () => {
                 <span className="font-bold text-white block">{ch.label}</span>
                 <span className="text-slate-400 text-[11px]">{ch.desc}</span>
               </div>
-              <ToggleSwitch checked={ch.checked} onChange={ch.onChange} color="emerald" showLabelBadge={true}/>
+              <ToggleSwitch checked={ch.checked} onChange={ch.onChange} color="emerald"/>
             </div>))}
         </div>
 
@@ -48,7 +48,7 @@ const ReceptionPreferencesView = () => {
                 <span className="text-slate-400 text-[11px]">{t('notification.audioChimeDesc', 'Play desk alert sound for visitor arrivals and queue warnings')}</span>
               </div>
             </div>
-            <ToggleSwitch checked={soundEnabled} onChange={setSoundEnabled} color="amber" showLabelBadge={true}/>
+            <ToggleSwitch checked={soundEnabled} onChange={setSoundEnabled} color="amber"/>
           </div>
         </div>
 
@@ -64,7 +64,7 @@ const ReceptionPreferencesView = () => {
                 <span className="text-slate-400 text-[11px]">{t('notification.enableQuietHoursReceptionDesc', 'Mute non-critical desk alerts during off-shift hours')}</span>
               </div>
             </div>
-            <ToggleSwitch checked={quietHoursEnabled} onChange={setQuietHoursEnabled} color="purple" showLabelBadge={true}/>
+            <ToggleSwitch checked={quietHoursEnabled} onChange={setQuietHoursEnabled} color="emerald"/>
           </div>
 
           <div onClick={() => setEmergencyBypass(!emergencyBypass)} className="flex items-center justify-between p-3 rounded-lg border border-red-500/30 bg-red-950/20 hover:bg-red-950/30 cursor-pointer transition-all">
@@ -75,7 +75,7 @@ const ReceptionPreferencesView = () => {
                 <span className="text-red-400/80 text-[11px]">{t('notification.emergencyOverrideReceptionDesc', 'Fire, lockdown, medical, and panic alerts will ALWAYS sound')}</span>
               </div>
             </div>
-            <ToggleSwitch checked={emergencyBypass} onChange={setEmergencyBypass} color="red" showLabelBadge={true}/>
+            <ToggleSwitch checked={emergencyBypass} onChange={setEmergencyBypass} color="red"/>
           </div>
         </div>
 

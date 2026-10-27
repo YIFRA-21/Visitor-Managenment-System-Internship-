@@ -26,7 +26,7 @@ const ManagerPreferencesView = () => {
               <span className="font-bold text-white block">Email Notifications</span>
               <span className="text-slate-400 text-[11px]">Receive summary & urgent notifications via registered email</span>
             </div>
-            <ToggleSwitch checked={emailEnabled} onChange={setEmailEnabled} color="blue" showLabelBadge={true}/>
+            <ToggleSwitch checked={emailEnabled} onChange={setEmailEnabled} color="purple"/>
           </div>
 
           <div onClick={() => setBrowserEnabled(!browserEnabled)} className="flex items-center justify-between bg-slate-900/60 hover:bg-slate-900/90 p-3 rounded-lg border border-slate-800 hover:border-slate-700 cursor-pointer transition-all">
@@ -34,7 +34,7 @@ const ManagerPreferencesView = () => {
               <span className="font-bold text-white block">Browser Desktop Push</span>
               <span className="text-slate-400 text-[11px]">Show pop-up notification toasts when browser is active</span>
             </div>
-            <ToggleSwitch checked={browserEnabled} onChange={setBrowserEnabled} color="blue" showLabelBadge={true}/>
+            <ToggleSwitch checked={browserEnabled} onChange={setBrowserEnabled} color="purple"/>
           </div>
 
           <div onClick={() => setSoundEnabled(!soundEnabled)} className="flex items-center justify-between bg-slate-900/60 hover:bg-slate-900/90 p-3 rounded-lg border border-slate-800 hover:border-slate-700 cursor-pointer transition-all">
@@ -44,7 +44,7 @@ const ManagerPreferencesView = () => {
               </span>
               <span className="text-slate-400 text-[11px]">Play audio alert on incoming high-priority notifications</span>
             </div>
-            <ToggleSwitch checked={soundEnabled} onChange={setSoundEnabled} color="amber" showLabelBadge={true}/>
+            <ToggleSwitch checked={soundEnabled} onChange={setSoundEnabled} color="amber"/>
           </div>
         </div>
 
@@ -59,7 +59,7 @@ const ManagerPreferencesView = () => {
               </span>
               <span className="text-slate-400 text-[11px]">Mute non-essential notifications during non-working hours</span>
             </div>
-            <ToggleSwitch checked={quietHoursEnabled} onChange={setQuietHoursEnabled} color="purple" showLabelBadge={true}/>
+            <ToggleSwitch checked={quietHoursEnabled} onChange={setQuietHoursEnabled} color="purple"/>
           </div>
 
           <div onClick={() => setEmergencyBypass(!emergencyBypass)} className="flex items-center justify-between p-3 rounded-lg border border-red-500/30 bg-red-950/20 hover:bg-red-950/30 cursor-pointer transition-all">
@@ -69,7 +69,7 @@ const ManagerPreferencesView = () => {
               </span>
               <span className="text-red-400/80 text-[11px]">Critical security, fire, and lockdown alerts will ALWAYS notify you</span>
             </div>
-            <ToggleSwitch checked={emergencyBypass} onChange={setEmergencyBypass} color="red" showLabelBadge={true}/>
+            <ToggleSwitch checked={emergencyBypass} onChange={setEmergencyBypass} color="red"/>
           </div>
         </div>
 

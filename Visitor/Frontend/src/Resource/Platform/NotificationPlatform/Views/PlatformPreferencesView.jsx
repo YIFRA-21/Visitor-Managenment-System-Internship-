@@ -27,7 +27,6 @@ const PlatformPreferencesView = () => {
             checked={emergencyBypass}
             onChange={(checked) => setEmergencyBypass(checked)}
             color="red"
-            showLabelBadge={true}
           />
         </div>
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ToggleSwitch from '../../../../components/common/ToggleSwitch';
 export default function VisitorPolicySettings() {
     const [config, setConfig] = useState({
         requireIdUpload: true,
@@ -53,7 +54,11 @@ export default function VisitorPolicySettings() {
                 <div className="font-bold text-white">Require Government ID Upload</div>
                 <div className="text-slate-400 text-[11px]">Visitors must attach Passport / National ID photo during booking</div>
               </div>
-              <input type="checkbox" checked={config.requireIdUpload} onChange={() => handleToggle('requireIdUpload')} className="w-5 h-5 rounded accent-indigo-500 cursor-pointer"/>
+              <ToggleSwitch
+                checked={config.requireIdUpload}
+                onChange={() => handleToggle('requireIdUpload')}
+                role="admin"
+              />
             </div>
 
             <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
@@ -61,7 +66,11 @@ export default function VisitorPolicySettings() {
                 <div className="font-bold text-white">Require Face Selfie Verification</div>
                 <div className="text-slate-400 text-[11px]">Webcam / live camera photo capture required for AI match</div>
               </div>
-              <input type="checkbox" checked={config.requireFaceSelfie} onChange={() => handleToggle('requireFaceSelfie')} className="w-5 h-5 rounded accent-indigo-500 cursor-pointer"/>
+              <ToggleSwitch
+                checked={config.requireFaceSelfie}
+                onChange={() => handleToggle('requireFaceSelfie')}
+                role="admin"
+              />
             </div>
 
             <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
@@ -69,7 +78,11 @@ export default function VisitorPolicySettings() {
                 <div className="font-bold text-white">Mandatory Digital NDA Signature</div>
                 <div className="text-slate-400 text-[11px]">Enforce e-signature on confidentiality agreement prior to entry</div>
               </div>
-              <input type="checkbox" checked={config.requireNdaSignature} onChange={() => handleToggle('requireNdaSignature')} className="w-5 h-5 rounded accent-indigo-500 cursor-pointer"/>
+              <ToggleSwitch
+                checked={config.requireNdaSignature}
+                onChange={() => handleToggle('requireNdaSignature')}
+                role="admin"
+              />
             </div>
 
             <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
@@ -77,7 +90,11 @@ export default function VisitorPolicySettings() {
                 <div className="font-bold text-white">Mandatory Security Escort</div>
                 <div className="text-slate-400 text-[11px]">Require assigned escort for Contractor / Vendor access</div>
               </div>
-              <input type="checkbox" checked={config.requireEscortForVendors} onChange={() => handleToggle('requireEscortForVendors')} className="w-5 h-5 rounded accent-indigo-500 cursor-pointer"/>
+              <ToggleSwitch
+                checked={config.requireEscortForVendors}
+                onChange={() => handleToggle('requireEscortForVendors')}
+                color="amber"
+              />
             </div>
           </div>
         </div>
@@ -104,7 +121,11 @@ export default function VisitorPolicySettings() {
                 <div className="font-bold text-white">Enable Walk-In Registration</div>
                 <div className="text-slate-400 text-[11px]">Allow Reception desk to create instant walk-in passes</div>
               </div>
-              <input type="checkbox" checked={config.allowWalkInRegistration} onChange={() => handleToggle('allowWalkInRegistration')} className="w-5 h-5 rounded accent-purple-500 cursor-pointer"/>
+              <ToggleSwitch
+                checked={config.allowWalkInRegistration}
+                onChange={() => handleToggle('allowWalkInRegistration')}
+                color="emerald"
+              />
             </div>
 
             <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
@@ -112,7 +133,11 @@ export default function VisitorPolicySettings() {
                 <div className="font-bold text-white">Automatic Badge Thermal Printing</div>
                 <div className="text-slate-400 text-[11px]">Trigger badge label printer upon reception check-in</div>
               </div>
-              <input type="checkbox" checked={config.enableBadgePrinting} onChange={() => handleToggle('enableBadgePrinting')} className="w-5 h-5 rounded accent-purple-500 cursor-pointer"/>
+              <ToggleSwitch
+                checked={config.enableBadgePrinting}
+                onChange={() => handleToggle('enableBadgePrinting')}
+                color="purple"
+              />
             </div>
           </div>
         </div>

@@ -460,8 +460,7 @@ export default function SystemSettings() {
                     <ToggleSwitch
                       checked={visitorPolicies.allowWalkIn}
                       onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, allowWalkIn: checked })}
-                      color="indigo"
-                      showLabelBadge={true}
+                      role="admin"
                     />
                   </div>
 
@@ -478,8 +477,7 @@ export default function SystemSettings() {
                     <ToggleSwitch
                       checked={visitorPolicies.requireAppointment}
                       onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, requireAppointment: checked })}
-                      color="indigo"
-                      showLabelBadge={true}
+                      role="admin"
                     />
                   </div>
 
@@ -496,8 +494,7 @@ export default function SystemSettings() {
                     <ToggleSwitch
                       checked={visitorPolicies.photoRequired}
                       onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, photoRequired: checked })}
-                      color="indigo"
-                      showLabelBadge={true}
+                      role="admin"
                     />
                   </div>
 
@@ -514,8 +511,7 @@ export default function SystemSettings() {
                     <ToggleSwitch
                       checked={visitorPolicies.govIdRequired}
                       onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, govIdRequired: checked })}
-                      color="indigo"
-                      showLabelBadge={true}
+                      role="admin"
                     />
                   </div>
 
@@ -532,8 +528,7 @@ export default function SystemSettings() {
                     <ToggleSwitch
                       checked={visitorPolicies.requireNda}
                       onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, requireNda: checked })}
-                      color="indigo"
-                      showLabelBadge={true}
+                      role="admin"
                     />
                   </div>
 
@@ -550,8 +545,7 @@ export default function SystemSettings() {
                     <ToggleSwitch
                       checked={visitorPolicies.badgePrinting}
                       onChange={(checked) => setVisitorPolicies({ ...visitorPolicies, badgePrinting: checked })}
-                      color="indigo"
-                      showLabelBadge={true}
+                      role="admin"
                     />
                   </div>
 
@@ -630,8 +624,7 @@ export default function SystemSettings() {
                         <ToggleSwitch
                           checked={notificationSettings.notifyHostOnCheckIn}
                           onChange={(checked) => setNotificationSettings({ ...notificationSettings, notifyHostOnCheckIn: checked })}
-                          color="indigo"
-                          showLabelBadge={true}
+                          role="admin"
                         />
                       </div>
 
@@ -640,8 +633,7 @@ export default function SystemSettings() {
                         <ToggleSwitch
                           checked={notificationSettings.notifyVisitorOnApproval}
                           onChange={(checked) => setNotificationSettings({ ...notificationSettings, notifyVisitorOnApproval: checked })}
-                          color="indigo"
-                          showLabelBadge={true}
+                          role="admin"
                         />
                       </div>
 
@@ -650,8 +642,7 @@ export default function SystemSettings() {
                         <ToggleSwitch
                           checked={notificationSettings.notifySecurityOnVip}
                           onChange={(checked) => setNotificationSettings({ ...notificationSettings, notifySecurityOnVip: checked })}
-                          color="indigo"
-                          showLabelBadge={true}
+                          color="blue"
                         />
                       </div>
 
@@ -660,8 +651,7 @@ export default function SystemSettings() {
                         <ToggleSwitch
                           checked={notificationSettings.enableSmsAlerts}
                           onChange={(checked) => setNotificationSettings({ ...notificationSettings, enableSmsAlerts: checked })}
-                          color="indigo"
-                          showLabelBadge={true}
+                          role="admin"
                         />
                       </div>
                     </div>

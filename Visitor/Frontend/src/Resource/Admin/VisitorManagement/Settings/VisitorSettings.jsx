@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import BackButton from '../../../../components/common/BackButton';
+import ToggleSwitch from '../../../../components/common/ToggleSwitch';
+
 export default function VisitorSettings() {
     const [qrExpiryHours, setQrExpiryHours] = useState(24);
     const [welcomeMessage, setWelcomeMessage] = useState('Welcome to IT Park Visitor Portal!');
+    const [sendSmsHost, setSendSmsHost] = useState(true);
+    const [emailQrPass, setEmailQrPass] = useState(true);
     const [saved, setSaved] = useState(false);
     const handleSave = () => {
         setSaved(true);
@@ -58,18 +62,26 @@ export default function VisitorSettings() {
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
               <div>
-                <div className="font-bold text-white">Send SMS Arrival Alert to Host</div>
+                <div className="font-bold text-white text-xs">Send SMS Arrival Alert to Host</div>
                 <div className="text-slate-400 text-[11px]">Instant SMS when visitor checks in at reception</div>
               </div>
-              <input type="checkbox" defaultChecked className="w-5 h-5 rounded accent-indigo-500 cursor-pointer"/>
+              <ToggleSwitch
+                checked={sendSmsHost}
+                onChange={setSendSmsHost}
+                role="admin"
+              />
             </div>
 
             <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
               <div>
-                <div className="font-bold text-white">Email Digital QR Pass to Visitor</div>
+                <div className="font-bold text-white text-xs">Email Digital QR Pass to Visitor</div>
                 <div className="text-slate-400 text-[11px]">Automatic PDF pass with QR code sent upon booking</div>
               </div>
-              <input type="checkbox" defaultChecked className="w-5 h-5 rounded accent-indigo-500 cursor-pointer"/>
+              <ToggleSwitch
+                checked={emailQrPass}
+                onChange={setEmailQrPass}
+                role="admin"
+              />
             </div>
           </div>
         </div>

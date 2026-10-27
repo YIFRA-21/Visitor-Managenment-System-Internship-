@@ -11,8 +11,7 @@ export default function ConfigSettingItem({ label, description, checked, onChang
       <ToggleSwitch
         checked={checked}
         onChange={(val) => onChange?.(val)}
-        color="blue"
-        showLabelBadge={true}
+        role="admin"
       />
     </div>
   );
