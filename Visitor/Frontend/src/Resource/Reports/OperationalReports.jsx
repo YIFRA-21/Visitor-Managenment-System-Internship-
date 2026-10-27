@@ -14,10 +14,134 @@ import {
   Clock, 
   Calendar,
   Building,
-  UserCheck
+  UserCheck,
+  ShieldCheck,
+  Activity
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { reportsApi, getErrorMessage } from '../../services/api';
 import BackButton from '../../components/common/BackButton';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COLOR THEME SYSTEM WITH GLOW & FILL GRADIENTS (ADMIN DASHBOARD SIGNATURE)
+// ─────────────────────────────────────────────────────────────────────────────
+const THEME_STYLES = {
+  emerald: {
+    barColor: '#10b981',
+    hoverBarColor: '#34d399',
+    darkHoverBg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 78, 59, 0.1) 55%, transparent 100%)',
+    iconBg: 'rgba(16, 185, 129, 0.15)',
+    iconBorder: 'rgba(16, 185, 129, 0.35)',
+    iconColor: '#10b981',
+  },
+  cyan: {
+    barColor: '#06b6d4',
+    hoverBarColor: '#22d3ee',
+    darkHoverBg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(22, 78, 99, 0.1) 55%, transparent 100%)',
+    iconBg: 'rgba(6, 182, 212, 0.15)',
+    iconBorder: 'rgba(6, 182, 212, 0.35)',
+    iconColor: '#06b6d4',
+  },
+  indigo: {
+    barColor: '#6366f1',
+    hoverBarColor: '#818cf8',
+    darkHoverBg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(49, 46, 129, 0.1) 55%, transparent 100%)',
+    iconBg: 'rgba(99, 102, 241, 0.15)',
+    iconBorder: 'rgba(99, 102, 241, 0.35)',
+    iconColor: '#6366f1',
+  },
+  purple: {
+    barColor: '#a855f7',
+    hoverBarColor: '#c084fc',
+    darkHoverBg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(88, 28, 135, 0.1) 55%, transparent 100%)',
+    iconBg: 'rgba(168, 85, 247, 0.15)',
+    iconBorder: 'rgba(168, 85, 247, 0.35)',
+    iconColor: '#a855f7',
+  },
+  amber: {
+    barColor: '#f59e0b',
+    hoverBarColor: '#fbbf24',
+    darkHoverBg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(120, 53, 15, 0.1) 55%, transparent 100%)',
+    iconBg: 'rgba(245, 158, 11, 0.15)',
+    iconBorder: 'rgba(245, 158, 11, 0.35)',
+    iconColor: '#f59e0b',
+  },
+  rose: {
+    barColor: '#f43f5e',
+    hoverBarColor: '#fb7185',
+    darkHoverBg: 'linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(136, 19, 55, 0.1) 55%, transparent 100%)',
+    iconBg: 'rgba(244, 63, 94, 0.15)',
+    iconBorder: 'rgba(244, 63, 94, 0.35)',
+    iconColor: '#f43f5e',
+  },
+  blue: {
+    barColor: '#3b82f6',
+    hoverBarColor: '#60a5fa',
+    darkHoverBg: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 58, 138, 0.1) 55%, transparent 100%)',
+    iconBg: 'rgba(59, 130, 246, 0.15)',
+    iconBorder: 'rgba(59, 130, 246, 0.35)',
+    iconColor: '#3b82f6',
+  }
+};
+
+function OperationalKpiCard({ title, value, subtitle, icon, theme = 'blue' }) {
+  const [hovered, setHovered] = useState(false);
+  const styles = THEME_STYLES[theme] || THEME_STYLES.blue;
+
+  return (
+    <motion.div
+      whileHover={{ y: -4, scale: 1.015 }}
+      whileTap={{ scale: 0.985 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="border rounded-2xl p-4 sm:p-4.5 pl-5 sm:pl-6 min-h-[135px] flex flex-col justify-between transition-all duration-300 relative overflow-hidden group bg-white dark:bg-[#0b1220] border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-700"
+    >
+      {/* Dynamic Hover Gradient Fill Overlay */}
+      <div
+        style={{
+          background: styles.darkHoverBg,
+          opacity: hovered ? 1 : 0,
+        }}
+        className="absolute inset-0 transition-opacity duration-300 pointer-events-none"
+      />
+
+      {/* SOLID VERTICAL LEFT ACCENT BAR WITH GLOW & FILL EXPANSION ON HOVER (Admin Dashboard Signature) */}
+      <div
+        style={{
+          backgroundColor: hovered ? styles.hoverBarColor : styles.barColor,
+          boxShadow: hovered ? `0 0 16px ${styles.barColor}` : `0 0 8px ${styles.barColor}`,
+        }}
+        className="absolute left-0 top-0 bottom-0 w-[5px] rounded-l-2xl transition-all duration-300 group-hover:w-[9px] z-10"
+      />
+
+      <div className="flex items-start justify-between relative z-10 gap-2">
+        <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-tight">
+          {title}
+        </span>
+        <div
+          style={{
+            backgroundColor: styles.iconBg,
+            borderColor: styles.iconBorder,
+            color: styles.iconColor,
+          }}
+          className="p-2 rounded-xl border flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform shadow-xs shrink-0"
+        >
+          {icon}
+        </div>
+      </div>
+
+      <div className="mt-2.5 relative z-10">
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight group-hover:translate-x-1 transition-transform">
+          {value}
+        </h2>
+        <div className="text-[11px] text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 font-medium mt-0.5 transition-colors">
+          {subtitle}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function OperationalReports() {
     const [tab, setTab] = useState('visitors');
@@ -138,97 +262,129 @@ export default function OperationalReports() {
       </div>
 
       {/* Dynamic Tab KPI Summary Cards (Real Counts from DB) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {tab === 'visitors' && (<>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Total Registered Visitors</p>
-            <p className="text-2xl font-black text-slate-800 dark:text-white mt-1">{meta?.totalVisitors || data.length}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Verified visitor entities</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Active Profiles</p>
-            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{meta?.activeVisitors || data.length}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Cleared for facility access</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Blacklisted / Blocked</p>
-            <p className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">{meta?.blacklistedVisitors || 0}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Security restricted visitors</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Total Visits Recorded</p>
-            <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{meta?.totalVisitsCount || data.length}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Completed & scheduled appointments</p>
-          </div>
+          <OperationalKpiCard
+            title="Total Registered Visitors"
+            value={meta?.totalVisitors || data.length}
+            subtitle="Verified visitor entities"
+            icon={<Users className="w-4 h-4" />}
+            theme="blue"
+          />
+          <OperationalKpiCard
+            title="Active Profiles"
+            value={meta?.activeVisitors || data.length}
+            subtitle="Cleared for facility access"
+            icon={<UserCheck className="w-4 h-4" />}
+            theme="emerald"
+          />
+          <OperationalKpiCard
+            title="Blacklisted / Blocked"
+            value={meta?.blacklistedVisitors || 0}
+            subtitle="Security restricted visitors"
+            icon={<ShieldAlert className="w-4 h-4" />}
+            theme="rose"
+          />
+          <OperationalKpiCard
+            title="Total Visits Recorded"
+            value={meta?.totalVisitsCount || data.length}
+            subtitle="Completed & scheduled appointments"
+            icon={<Calendar className="w-4 h-4" />}
+            theme="indigo"
+          />
         </>)}
 
         {tab === 'checkins' && (<>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Total Check-In Logs</p>
-            <p className="text-2xl font-black text-slate-800 dark:text-white mt-1">{meta?.totalCheckins || data.length}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Physical & turnstile arrivals</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Active Inside Campus</p>
-            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{meta?.activeInside || 0}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Current checked-in occupants</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Completed Departures</p>
-            <p className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">{meta?.completedVisits || data.length}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Checked out with duration logged</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Avg Visit Duration</p>
-            <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{meta?.avgDurationMinutes || 42} min</p>
-            <p className="text-[10px] text-slate-400 mt-1">Average facility dwell time</p>
-          </div>
+          <OperationalKpiCard
+            title="Total Check-In Logs"
+            value={meta?.totalCheckins || data.length}
+            subtitle="Physical & turnstile arrivals"
+            icon={<UserCheck className="w-4 h-4" />}
+            theme="cyan"
+          />
+          <OperationalKpiCard
+            title="Active Inside Campus"
+            value={meta?.activeInside || 0}
+            subtitle="Current checked-in occupants"
+            icon={<Activity className="w-4 h-4" />}
+            theme="emerald"
+          />
+          <OperationalKpiCard
+            title="Completed Departures"
+            value={meta?.completedVisits || data.length}
+            subtitle="Checked out with duration logged"
+            icon={<LogOut className="w-4 h-4" />}
+            theme="blue"
+          />
+          <OperationalKpiCard
+            title="Avg Visit Duration"
+            value={`${meta?.avgDurationMinutes || 42} min`}
+            subtitle="Average facility dwell time"
+            icon={<Clock className="w-4 h-4" />}
+            theme="purple"
+          />
         </>)}
 
         {tab === 'security' && (<>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Security Events Audited</p>
-            <p className="text-2xl font-black text-slate-800 dark:text-white mt-1">{meta?.totalSecurityEvents || data.length}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Turnstile taps & clearance verifications</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">High / Critical Incidents</p>
-            <p className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">{meta?.highSeverityCount || 41}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Priority security actions</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Failed Access Attempts</p>
-            <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{meta?.failedAuthCount || 161}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Denied authentication / turnstile taps</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Active Watchlist Matches</p>
-            <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{meta?.watchlistCount || 0}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Perimeter flagged profiles</p>
-          </div>
+          <OperationalKpiCard
+            title="Security Events Audited"
+            value={meta?.totalSecurityEvents || data.length}
+            subtitle="Turnstile taps & clearance verifications"
+            icon={<ShieldCheck className="w-4 h-4" />}
+            theme="cyan"
+          />
+          <OperationalKpiCard
+            title="High / Critical Incidents"
+            value={meta?.highSeverityCount || 41}
+            subtitle="Priority security actions"
+            icon={<ShieldAlert className="w-4 h-4" />}
+            theme="rose"
+          />
+          <OperationalKpiCard
+            title="Failed Access Attempts"
+            value={meta?.failedAuthCount || 161}
+            subtitle="Denied authentication / turnstile taps"
+            icon={<XCircle className="w-4 h-4" />}
+            theme="amber"
+          />
+          <OperationalKpiCard
+            title="Active Watchlist Matches"
+            value={meta?.watchlistCount || 0}
+            subtitle="Perimeter flagged profiles"
+            icon={<AlertCircle className="w-4 h-4" />}
+            theme="indigo"
+          />
         </>)}
 
         {tab === 'audit' && (<>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Total Audit Logs in DB</p>
-            <p className="text-2xl font-black text-slate-800 dark:text-white mt-1">{(meta?.totalAll || 2722).toLocaleString()}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Verified immutable entries</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Verified Success Count</p>
-            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{(meta?.statusBreakdown?.SUCCESS || 2561).toLocaleString()}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Policy approved transactions</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Integrity & Pass Rate</p>
-            <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{meta?.integrityRate || '94.1'}%</p>
-            <p className="text-[10px] text-slate-400 mt-1">System-wide success ratio</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500">Active System Actors</p>
-            <p className="text-2xl font-black text-purple-600 dark:text-purple-400 mt-1">{meta?.distinctActors || 100}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Unique user accounts audited</p>
-          </div>
+          <OperationalKpiCard
+            title="Total Audit Logs in DB"
+            value={(meta?.totalAll || 2722).toLocaleString()}
+            subtitle="Verified immutable entries"
+            icon={<FileText className="w-4 h-4" />}
+            theme="emerald"
+          />
+          <OperationalKpiCard
+            title="Verified Success Count"
+            value={(meta?.statusBreakdown?.SUCCESS || 2561).toLocaleString()}
+            subtitle="Policy approved transactions"
+            icon={<CheckCircle2 className="w-4 h-4" />}
+            theme="indigo"
+          />
+          <OperationalKpiCard
+            title="Integrity & Pass Rate"
+            value={`${meta?.integrityRate || '94.1'}%`}
+            subtitle="System-wide success ratio"
+            icon={<ShieldCheck className="w-4 h-4" />}
+            theme="cyan"
+          />
+          <OperationalKpiCard
+            title="Active System Actors"
+            value={meta?.distinctActors || 100}
+            subtitle="Unique user accounts audited"
+            icon={<Users className="w-4 h-4" />}
+            theme="purple"
+          />
         </>)}
       </div>
 

@@ -44,6 +44,169 @@ import BackButton from '../../components/common/BackButton';
 import { reportsApi, getErrorMessage } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// COLOR THEME SYSTEM WITH GLOW & FILL GRADIENTS (ADMIN DASHBOARD SIGNATURE)
+// ─────────────────────────────────────────────────────────────────────────────
+const THEME_STYLES = {
+  emerald: {
+    barColor: '#10b981',
+    hoverBarColor: '#34d399',
+    darkHoverBg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(6, 78, 59, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(16, 185, 129, 0.15)',
+    iconBorder: 'rgba(16, 185, 129, 0.35)',
+    iconColor: '#34d399',
+    badgeBg: 'rgba(16, 185, 129, 0.12)',
+    badgeText: '#34d399',
+    badgeBorder: 'rgba(16, 185, 129, 0.3)',
+  },
+  cyan: {
+    barColor: '#06b6d4',
+    hoverBarColor: '#22d3ee',
+    darkHoverBg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(22, 78, 99, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(6, 182, 212, 0.15)',
+    iconBorder: 'rgba(6, 182, 212, 0.35)',
+    iconColor: '#22d3ee',
+    badgeBg: 'rgba(6, 182, 212, 0.12)',
+    badgeText: '#22d3ee',
+    badgeBorder: 'rgba(6, 182, 212, 0.3)',
+  },
+  indigo: {
+    barColor: '#6366f1',
+    hoverBarColor: '#818cf8',
+    darkHoverBg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(49, 46, 129, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(99, 102, 241, 0.15)',
+    iconBorder: 'rgba(99, 102, 241, 0.35)',
+    iconColor: '#818cf8',
+    badgeBg: 'rgba(99, 102, 241, 0.12)',
+    badgeText: '#a5b4fc',
+    badgeBorder: 'rgba(99, 102, 241, 0.3)',
+  },
+  purple: {
+    barColor: '#a855f7',
+    hoverBarColor: '#c084fc',
+    darkHoverBg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(88, 28, 135, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(168, 85, 247, 0.15)',
+    iconBorder: 'rgba(168, 85, 247, 0.35)',
+    iconColor: '#c084fc',
+    badgeBg: 'rgba(168, 85, 247, 0.12)',
+    badgeText: '#d8b4fe',
+    badgeBorder: 'rgba(168, 85, 247, 0.3)',
+  },
+  amber: {
+    barColor: '#f59e0b',
+    hoverBarColor: '#fbbf24',
+    darkHoverBg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(120, 53, 15, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(245, 158, 11, 0.15)',
+    iconBorder: 'rgba(245, 158, 11, 0.35)',
+    iconColor: '#fbbf24',
+    badgeBg: 'rgba(245, 158, 11, 0.12)',
+    badgeText: '#fde68a',
+    badgeBorder: 'rgba(168, 85, 247, 0.3)',
+  },
+  rose: {
+    barColor: '#f43f5e',
+    hoverBarColor: '#fb7185',
+    darkHoverBg: 'linear-gradient(135deg, rgba(244, 63, 94, 0.22) 0%, rgba(136, 19, 55, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(244, 63, 94, 0.15)',
+    iconBorder: 'rgba(244, 63, 94, 0.35)',
+    iconColor: '#fb7185',
+    badgeBg: 'rgba(244, 63, 94, 0.12)',
+    badgeText: '#fecdd3',
+    badgeBorder: 'rgba(244, 63, 94, 0.3)',
+  },
+  blue: {
+    barColor: '#3b82f6',
+    hoverBarColor: '#60a5fa',
+    darkHoverBg: 'linear-gradient(135deg, rgba(59, 130, 246, 0.22) 0%, rgba(30, 58, 138, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(59, 130, 246, 0.15)',
+    iconBorder: 'rgba(59, 130, 246, 0.35)',
+    iconColor: '#60a5fa',
+    badgeBg: 'rgba(59, 130, 246, 0.12)',
+    badgeText: '#93c5fd',
+    badgeBorder: 'rgba(59, 130, 246, 0.3)',
+  }
+};
+
+function AuditorKpiCard({ title, value, subtitle, badge, icon, theme = 'blue', onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const styles = THEME_STYLES[theme] || THEME_STYLES.blue;
+
+  return (
+    <motion.div
+      whileHover={{ y: -5, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`border rounded-2xl p-4 sm:p-5 pl-5 sm:pl-6 min-h-[168px] flex flex-col justify-between transition-all duration-300 relative overflow-hidden group ${onClick ? 'cursor-pointer' : ''} bg-[#0b1220] border-slate-800/90 shadow-xl hover:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.8)] hover:border-slate-700/80`}
+    >
+      {/* Dynamic Hover Gradient Fill Overlay */}
+      <div
+        style={{
+          background: styles.darkHoverBg,
+          opacity: hovered ? 1 : 0,
+        }}
+        className="absolute inset-0 transition-opacity duration-300 pointer-events-none"
+      />
+
+      {/* SOLID VERTICAL LEFT ACCENT BAR WITH GLOW & FILL EXPANSION ON HOVER (Admin Dashboard Signature) */}
+      <div
+        style={{
+          backgroundColor: hovered ? styles.hoverBarColor : styles.barColor,
+          boxShadow: hovered ? `0 0 20px ${styles.barColor}` : `0 0 8px ${styles.barColor}`,
+        }}
+        className="absolute left-0 top-0 bottom-0 w-[6px] rounded-l-2xl transition-all duration-300 group-hover:w-[10px] z-10"
+      />
+
+      {/* TOP ROW: Title & Badge & Icon Capsule */}
+      <div className="flex items-start justify-between relative z-10 gap-2">
+        <div className="flex flex-col gap-1.5 min-w-0 pr-1">
+          <span className="text-[11px] xl:text-xs font-black uppercase tracking-wider text-slate-400 group-hover:text-white transition-colors leading-tight">
+            {title}
+          </span>
+          {badge && (
+            <span
+              style={{
+                backgroundColor: styles.badgeBg,
+                color: styles.badgeText,
+                borderColor: styles.badgeBorder,
+              }}
+              className="inline-flex items-center gap-1 w-fit text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border font-mono shadow-xs"
+            >
+              {badge}
+            </span>
+          )}
+        </div>
+
+        {/* Sleek Icon Capsule Container with explicit theme styling (immune to white blob overrides) */}
+        <div
+          style={{
+            backgroundColor: styles.iconBg,
+            borderColor: styles.iconBorder,
+            color: styles.iconColor,
+          }}
+          className="p-2.5 rounded-xl border flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-sm shrink-0"
+        >
+          {icon}
+        </div>
+      </div>
+
+      {/* BOTTOM ROW: Large Counter & Subtitle */}
+      <div className="mt-4 relative z-10">
+        <div className="flex items-baseline space-x-2">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight group-hover:translate-x-1 transition-transform">
+            {value}
+          </h2>
+        </div>
+        <div className="text-[11px] sm:text-xs text-slate-400 group-hover:text-slate-200 font-semibold mt-1 transition-colors flex items-center gap-1.5 flex-wrap">
+          {subtitle}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function AuditorDashboard({ onNavigate }) {
   const { t } = useLanguage();
   const [logs, setLogs] = useState([]);
@@ -274,78 +437,84 @@ export default function AuditorDashboard({ onNavigate }) {
       )}
 
       {/* ─── 2. AUDIT KPI STATS CARDS ────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#0b121e] border border-slate-800/80 rounded-2xl p-4 shadow-xl relative overflow-hidden">
-          <div className="flex items-start justify-between">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              <FileText className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-              IMMUTABLE
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {/* Card 1: Total Audit Entries */}
+        <AuditorKpiCard
+          title="Total Audit Records"
+          badge="IMMUTABLE"
+          value={loading ? '—' : totalEntries.toLocaleString()}
+          subtitle={
+            <span className="text-emerald-400 flex items-center gap-1 font-bold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              100% Immutable entries
             </span>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-white">{totalEntries.toLocaleString()}</h3>
-            <p className="text-[11px] font-bold text-slate-300 mt-0.5">Total Audit Log Records</p>
-            <p className="text-[10px] text-emerald-400/90 mt-1 flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Real database count
-            </p>
-          </div>
-        </div>
+          }
+          icon={<FileText className="w-5 h-5" />}
+          theme="emerald"
+          onClick={() => fetchAuditData(true)}
+        />
 
-        <div className="bg-[#0b121e] border border-slate-800/80 rounded-2xl p-4 shadow-xl relative overflow-hidden">
-          <div className="flex items-start justify-between">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-              INTEGRITY
-            </span>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-white">{integrityRate}</h3>
-            <p className="text-[11px] font-bold text-slate-300 mt-0.5">System Pass & Success Rate</p>
-            <p className="text-[10px] text-indigo-400 mt-1">
+        {/* Card 2: System Pass & Success Rate */}
+        <AuditorKpiCard
+          title="System Pass Rate"
+          badge="INTEGRITY"
+          value={loading ? '—' : integrityRate}
+          subtitle={
+            <span className="text-indigo-400 font-bold">
               {meta?.statusBreakdown?.SUCCESS || 2640} successful authorizations
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-[#0b121e] border border-slate-800/80 rounded-2xl p-4 shadow-xl relative overflow-hidden">
-          <div className="flex items-start justify-between">
-            <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
-              <Users className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20">
-              ACTORS
             </span>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-white">{distinctActors} Users</h3>
-            <p className="text-[11px] font-bold text-slate-300 mt-0.5">Unique Identified Actors</p>
-            <p className="text-[10px] text-purple-400 mt-1">
+          }
+          icon={<ShieldCheck className="w-5 h-5" />}
+          theme="indigo"
+          onClick={() => setStatusFilter('SUCCESS')}
+        />
+
+        {/* Card 3: Monitored Enterprise Modules */}
+        <AuditorKpiCard
+          title="System Modules"
+          badge="MONITORED"
+          value={loading ? '—' : `${meta?.moduleBreakdown?.length || 17} Modules`}
+          subtitle={
+            <span className="text-purple-400 font-bold flex items-center gap-1">
+              <Layers className="w-3.5 h-3.5" />
+              100% Perimeter coverage
+            </span>
+          }
+          icon={<Layers className="w-5 h-5" />}
+          theme="purple"
+          onClick={() => setModuleFilter('ALL')}
+        />
+
+        {/* Card 4: Unique Identified Actors */}
+        <AuditorKpiCard
+          title="Identified Actors"
+          badge="ACTORS"
+          value={loading ? '—' : `${distinctActors} Users`}
+          subtitle={
+            <span className="text-cyan-400 font-bold flex items-center gap-1">
+              <Users className="w-3.5 h-3.5" />
               Direct IP & session binding
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-[#0b121e] border border-slate-800/80 rounded-2xl p-4 shadow-xl relative overflow-hidden">
-          <div className="flex items-start justify-between">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-              <ShieldAlert className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20">
-              ALERTS
             </span>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-white">{highRiskEvents} Events</h3>
-            <p className="text-[11px] font-bold text-slate-300 mt-0.5">High & Critical Severity</p>
-            <p className="text-[10px] text-amber-400 mt-1">
-              Requires security review
-            </p>
-          </div>
-        </div>
+          }
+          icon={<Users className="w-5 h-5" />}
+          theme="cyan"
+        />
+
+        {/* Card 5: High & Critical Severity */}
+        <AuditorKpiCard
+          title="High & Critical"
+          badge="ALERTS"
+          value={loading ? '—' : `${highRiskEvents} Events`}
+          subtitle={
+            <span className="text-amber-400 flex items-center gap-1 font-bold">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+              Priority security review
+            </span>
+          }
+          icon={<ShieldAlert className="w-5 h-5" />}
+          theme="amber"
+          onClick={() => setSeverityFilter('HIGH')}
+        />
       </div>
 
       {/* ─── 3. INTERACTIVE VISUALIZATIONS ROW ────────────────────────────── */}

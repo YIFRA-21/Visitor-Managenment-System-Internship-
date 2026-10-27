@@ -48,6 +48,173 @@ import { useLanguage } from '../../contexts/LanguageContext';
 
 const SEVERITY_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#f43f5e'];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// COLOR THEME SYSTEM WITH GLOW & FILL GRADIENTS (ADMIN DASHBOARD SIGNATURE)
+// ─────────────────────────────────────────────────────────────────────────────
+const THEME_STYLES = {
+  emerald: {
+    barColor: '#10b981',
+    hoverBarColor: '#34d399',
+    darkHoverBg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(6, 78, 59, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(16, 185, 129, 0.15)',
+    iconBorder: 'rgba(16, 185, 129, 0.35)',
+    iconColor: '#34d399',
+    badgeBg: 'rgba(16, 185, 129, 0.12)',
+    badgeText: '#34d399',
+    badgeBorder: 'rgba(16, 185, 129, 0.3)',
+  },
+  cyan: {
+    barColor: '#06b6d4',
+    hoverBarColor: '#22d3ee',
+    darkHoverBg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(22, 78, 99, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(6, 182, 212, 0.15)',
+    iconBorder: 'rgba(6, 182, 212, 0.35)',
+    iconColor: '#22d3ee',
+    badgeBg: 'rgba(6, 182, 212, 0.12)',
+    badgeText: '#22d3ee',
+    badgeBorder: 'rgba(6, 182, 212, 0.3)',
+  },
+  indigo: {
+    barColor: '#6366f1',
+    hoverBarColor: '#818cf8',
+    darkHoverBg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(49, 46, 129, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(99, 102, 241, 0.15)',
+    iconBorder: 'rgba(99, 102, 241, 0.35)',
+    iconColor: '#818cf8',
+    badgeBg: 'rgba(99, 102, 241, 0.12)',
+    badgeText: '#a5b4fc',
+    badgeBorder: 'rgba(99, 102, 241, 0.3)',
+  },
+  purple: {
+    barColor: '#a855f7',
+    hoverBarColor: '#c084fc',
+    darkHoverBg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(88, 28, 135, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(168, 85, 247, 0.15)',
+    iconBorder: 'rgba(168, 85, 247, 0.35)',
+    iconColor: '#c084fc',
+    badgeBg: 'rgba(168, 85, 247, 0.12)',
+    badgeText: '#d8b4fe',
+    badgeBorder: 'rgba(168, 85, 247, 0.3)',
+  },
+  amber: {
+    barColor: '#f59e0b',
+    hoverBarColor: '#fbbf24',
+    darkHoverBg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(120, 53, 15, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(245, 158, 11, 0.15)',
+    iconBorder: 'rgba(245, 158, 11, 0.35)',
+    iconColor: '#fbbf24',
+    badgeBg: 'rgba(245, 158, 11, 0.12)',
+    badgeText: '#fde68a',
+    badgeBorder: 'rgba(245, 158, 11, 0.3)',
+  },
+  rose: {
+    barColor: '#f43f5e',
+    hoverBarColor: '#fb7185',
+    darkHoverBg: 'linear-gradient(135deg, rgba(244, 63, 94, 0.22) 0%, rgba(136, 19, 55, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(244, 63, 94, 0.15)',
+    iconBorder: 'rgba(244, 63, 94, 0.35)',
+    iconColor: '#fb7185',
+    badgeBg: 'rgba(244, 63, 94, 0.12)',
+    badgeText: '#fecdd3',
+    badgeBorder: 'rgba(244, 63, 94, 0.3)',
+  },
+  blue: {
+    barColor: '#3b82f6',
+    hoverBarColor: '#60a5fa',
+    darkHoverBg: 'linear-gradient(135deg, rgba(59, 130, 246, 0.22) 0%, rgba(30, 58, 138, 0.12) 55%, transparent 100%)',
+    iconBg: 'rgba(59, 130, 246, 0.15)',
+    iconBorder: 'rgba(59, 130, 246, 0.35)',
+    iconColor: '#60a5fa',
+    badgeBg: 'rgba(59, 130, 246, 0.12)',
+    badgeText: '#93c5fd',
+    badgeBorder: 'rgba(59, 130, 246, 0.3)',
+  }
+};
+
+function ExecutiveKpiCard({ title, value, subtitle, badge, icon, theme = 'blue', onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const styles = THEME_STYLES[theme] || THEME_STYLES.blue;
+
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 16, scale: 0.98 },
+        show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 280, damping: 22 } }
+      }}
+      whileHover={{ y: -5, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`border rounded-2xl p-4 sm:p-5 pl-5 sm:pl-6 min-h-[168px] flex flex-col justify-between transition-all duration-300 relative overflow-hidden group ${onClick ? 'cursor-pointer' : ''} bg-[#0b1220] border-slate-800/90 shadow-xl hover:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.8)] hover:border-slate-700/80`}
+    >
+      {/* Dynamic Hover Gradient Fill Overlay */}
+      <div
+        style={{
+          background: styles.darkHoverBg,
+          opacity: hovered ? 1 : 0,
+        }}
+        className="absolute inset-0 transition-opacity duration-300 pointer-events-none"
+      />
+
+      {/* SOLID VERTICAL LEFT ACCENT BAR WITH GLOW & FILL EXPANSION ON HOVER (Admin Dashboard Signature) */}
+      <div
+        style={{
+          backgroundColor: hovered ? styles.hoverBarColor : styles.barColor,
+          boxShadow: hovered ? `0 0 20px ${styles.barColor}` : `0 0 8px ${styles.barColor}`,
+        }}
+        className="absolute left-0 top-0 bottom-0 w-[6px] rounded-l-2xl transition-all duration-300 group-hover:w-[10px] z-10"
+      />
+
+      {/* TOP ROW: Title & Badge & Icon Capsule */}
+      <div className="flex items-start justify-between relative z-10 gap-2">
+        <div className="flex flex-col gap-1.5 min-w-0 pr-1">
+          <span className="text-[11px] xl:text-xs font-black uppercase tracking-wider text-slate-400 group-hover:text-white transition-colors leading-tight">
+            {title}
+          </span>
+          {badge && (
+            <span
+              style={{
+                backgroundColor: styles.badgeBg,
+                color: styles.badgeText,
+                borderColor: styles.badgeBorder,
+              }}
+              className="inline-flex items-center gap-1 w-fit text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border font-mono shadow-xs"
+            >
+              {badge}
+            </span>
+          )}
+        </div>
+
+        {/* Sleek Icon Capsule Container with explicit theme styling (immune to white blob overrides) */}
+        <div
+          style={{
+            backgroundColor: styles.iconBg,
+            borderColor: styles.iconBorder,
+            color: styles.iconColor,
+          }}
+          className="p-2.5 rounded-xl border flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-sm shrink-0"
+        >
+          {icon}
+        </div>
+      </div>
+
+      {/* BOTTOM ROW: Large Counter & Subtitle */}
+      <div className="mt-4 relative z-10">
+        <div className="flex items-baseline space-x-2">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight group-hover:translate-x-1 transition-transform">
+            {value}
+          </h2>
+        </div>
+        <div className="text-[11px] sm:text-xs text-slate-400 group-hover:text-slate-200 font-semibold mt-1 transition-colors flex items-center gap-1.5 flex-wrap">
+          {subtitle}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function ReportingDashboard({ onNavigate }) {
   const { t } = useLanguage();
   const [stats, setStats] = useState(null);
@@ -305,154 +472,102 @@ export default function ReportingDashboard({ onNavigate }) {
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"
       >
         {/* Metric 1: Total Audit Entries */}
-        <motion.div 
-          variants={itemVariants}
-          onClick={() => onNavigate?.('audit_logs')}
-          className="group cursor-pointer bg-[#0b121e] border border-slate-800/80 hover:border-emerald-500/40 rounded-2xl p-4 shadow-xl hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-all relative overflow-hidden"
-        >
-          <div className="flex items-start justify-between">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 group-hover:scale-110 transition">
-              <FileText className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-              AUDIT DB
+        <ExecutiveKpiCard
+          title="System Audit Logs"
+          badge="AUDIT DB"
+          value={loading ? '—' : (stats?.totalAuditEntries ? stats.totalAuditEntries.toLocaleString() : '2,890')}
+          subtitle={
+            <span className="text-emerald-400 flex items-center gap-1 font-bold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              100% Immutable entries
             </span>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-white tracking-tight">
-              {loading ? '—' : (stats?.totalAuditEntries ? stats.totalAuditEntries.toLocaleString() : '2,813')}
-            </h3>
-            <p className="text-[11px] font-bold text-slate-300 mt-0.5">Total System Audit Logs</p>
-            <p className="text-[10px] text-emerald-400/90 flex items-center gap-1 mt-1">
-              <CheckCircle2 className="w-3 h-3" /> 100% Immutable entries
-            </p>
-          </div>
-        </motion.div>
+          }
+          icon={<FileText className="w-5 h-5" />}
+          theme="emerald"
+          onClick={() => onNavigate?.('audit_logs')}
+        />
 
         {/* Metric 2: Check-Ins & Active Inside */}
-        <motion.div 
-          variants={itemVariants}
-          onClick={() => onNavigate?.('operational_reports')}
-          className="group cursor-pointer bg-[#0b121e] border border-slate-800/80 hover:border-cyan-500/40 rounded-2xl p-4 shadow-xl hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all relative overflow-hidden"
-        >
-          <div className="flex items-start justify-between">
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 group-hover:scale-110 transition">
-              <UserCheck className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-              CHECK-INS
-            </span>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-white tracking-tight">
-              {loading ? '—' : '66'}
-            </h3>
-            <p className="text-[11px] font-bold text-slate-300 mt-0.5">Total Check-Ins Logged</p>
-            <p className="text-[10px] text-cyan-400 flex items-center gap-1 mt-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+        <ExecutiveKpiCard
+          title="Total Check-Ins"
+          badge="CHECK-INS"
+          value={loading ? '—' : '66'}
+          subtitle={
+            <span className="text-cyan-400 flex items-center gap-1.5 font-bold">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
+              </span>
               {stats?.activeInside || 35} currently on-site
-            </p>
-          </div>
-        </motion.div>
+            </span>
+          }
+          icon={<UserCheck className="w-5 h-5" />}
+          theme="cyan"
+          onClick={() => onNavigate?.('operational_reports')}
+        />
 
         {/* Metric 3: Registered Visitor Profiles */}
-        <motion.div 
-          variants={itemVariants}
-          onClick={() => onNavigate?.('visitor_profiles')}
-          className="group cursor-pointer bg-[#0b121e] border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl p-4 shadow-xl hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all relative overflow-hidden"
-        >
-          <div className="flex items-start justify-between">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 group-hover:scale-110 transition">
-              <Users className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-              PROFILES
+        <ExecutiveKpiCard
+          title="Visitor Profiles"
+          badge="PROFILES"
+          value={loading ? '—' : (stats?.totalVisitors || 23)}
+          subtitle={
+            <span className="text-indigo-400 flex items-center gap-1 font-bold">
+              <ArrowUpRight className="w-3.5 h-3.5 text-indigo-400" />
+              Master registry count
             </span>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-white tracking-tight">
-              {loading ? '—' : (stats?.totalVisitors || 23)}
-            </h3>
-            <p className="text-[11px] font-bold text-slate-300 mt-0.5">Verified Visitor Profiles</p>
-            <p className="text-[10px] text-indigo-400 flex items-center gap-1 mt-1">
-              <ArrowUpRight className="w-3 h-3" /> Master registry count
-            </p>
-          </div>
-        </motion.div>
+          }
+          icon={<Users className="w-5 h-5" />}
+          theme="indigo"
+          onClick={() => onNavigate?.('visitor_profiles')}
+        />
 
         {/* Metric 4: Scheduled Appointments */}
-        <motion.div 
-          variants={itemVariants}
-          onClick={() => onNavigate?.('requests')}
-          className="group cursor-pointer bg-[#0b121e] border border-slate-800/80 hover:border-purple-500/40 rounded-2xl p-4 shadow-xl hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all relative overflow-hidden"
-        >
-          <div className="flex items-start justify-between">
-            <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 group-hover:scale-110 transition">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20">
-              BOOKINGS
+        <ExecutiveKpiCard
+          title="Appointments"
+          badge="BOOKINGS"
+          value={loading ? '—' : (stats?.totalAppointments || 9)}
+          subtitle={
+            <span className="text-purple-400 font-bold">
+              {stats?.todayVisits || 0} arrivals scheduled today
             </span>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-white tracking-tight">
-              {loading ? '—' : (stats?.totalAppointments || 9)}
-            </h3>
-            <p className="text-[11px] font-bold text-slate-300 mt-0.5">Scheduled Appointments</p>
-            <p className="text-[10px] text-purple-400 flex items-center gap-1 mt-1">
-              <span>{stats?.todayVisits || 0} arrivals today</span>
-            </p>
-          </div>
-        </motion.div>
+          }
+          icon={<Calendar className="w-5 h-5" />}
+          theme="purple"
+          onClick={() => onNavigate?.('requests')}
+        />
 
         {/* Metric 5: Security & Telemetry Events */}
-        <motion.div 
-          variants={itemVariants}
-          onClick={() => onNavigate?.('security_reports')}
-          className="group cursor-pointer bg-[#0b121e] border border-slate-800/80 hover:border-amber-500/40 rounded-2xl p-4 shadow-xl hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all relative overflow-hidden"
-        >
-          <div className="flex items-start justify-between">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 group-hover:scale-110 transition">
-              <ShieldAlert className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20">
-              SECURITY
+        <ExecutiveKpiCard
+          title="Security Events"
+          badge="SECURITY"
+          value={loading ? '—' : (securityMeta?.totalSecurityEvents || 287)}
+          subtitle={
+            <span className="text-amber-400 flex items-center gap-1 font-bold">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+              {securityMeta?.highSeverityCount || 24} high priority
             </span>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-white tracking-tight">
-              {loading ? '—' : (securityMeta?.totalSecurityEvents || 385)}
-            </h3>
-            <p className="text-[11px] font-bold text-slate-300 mt-0.5">Security Events Logged</p>
-            <p className="text-[10px] text-amber-400 flex items-center gap-1 mt-1">
-              <AlertTriangle className="w-3 h-3" /> {securityMeta?.highSeverityCount || 41} high priority
-            </p>
-          </div>
-        </motion.div>
+          }
+          icon={<ShieldAlert className="w-5 h-5" />}
+          theme="amber"
+          onClick={() => onNavigate?.('security_reports')}
+        />
 
         {/* Metric 6: Compliance & Pass Integrity Rate */}
-        <motion.div 
-          variants={itemVariants}
-          className="bg-[#0b121e] border border-slate-800/80 rounded-2xl p-4 shadow-xl relative overflow-hidden"
-        >
-          <div className="flex items-start justify-between">
-            <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/20">
-              SOC2 / GDPR
+        <ExecutiveKpiCard
+          title="Pass Integrity"
+          badge="SOC2 / GDPR"
+          value={loading ? '—' : (stats?.complianceRate || '93.8%')}
+          subtitle={
+            <span className="text-rose-400 flex items-center gap-1 font-bold">
+              <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />
+              {stats?.activePassesCount || 4} live QR passes
             </span>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-white tracking-tight">
-              {loading ? '—' : (stats?.complianceRate || '93.8%')}
-            </h3>
-            <p className="text-[11px] font-bold text-slate-300 mt-0.5">System Pass Integrity</p>
-            <p className="text-[10px] text-rose-400 flex items-center gap-1 mt-1">
-              <span>{stats?.activePassesCount || 4} live QR passes</span>
-            </p>
-          </div>
-        </motion.div>
+          }
+          icon={<ShieldCheck className="w-5 h-5" />}
+          theme="rose"
+          onClick={() => onNavigate?.('operational_reports')}
+        />
       </motion.div>
 
       {/* ─── 3. INTERACTIVE SECTION TABS ─────────────────────────────────── */}
