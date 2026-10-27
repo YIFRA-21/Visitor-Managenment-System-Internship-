@@ -3,19 +3,19 @@ import { motion } from 'framer-motion';
 
 /**
  * Enterprise ToggleSwitch Component
- * Replaces generic square checkboxes with sleek, animated, professional on/off toggle switches.
+ * Sleek, animated, professional on/off toggle switch.
  * 
  * @param {boolean} checked - Current toggle state (on/off)
  * @param {function} onChange - Callback receiving (newCheckedState: boolean, event)
  * @param {boolean} disabled - Whether toggle is disabled
- * @param {'sm'|'md'|'lg'} size - Switch size
+ * @param {'sm'|'md'|'lg'} size - Switch size (default: 'md')
  * @param {'indigo'|'emerald'|'blue'|'red'|'purple'|'amber'} color - Active accent color theme
- * @param {boolean} showLabelBadge - Whether to render 'ON' / 'OFF' mini status badge
  * @param {string} label - Optional label text
  * @param {string} description - Optional description text
  * @param {string} className - Additional CSS classes for container
  * @param {string} id - HTML ID
  * @param {string} name - Form field name
+ * @param {string} title - Hover title
  */
 export default function ToggleSwitch({
   checked = false,
@@ -23,7 +23,6 @@ export default function ToggleSwitch({
   disabled = false,
   size = 'md',
   color = 'indigo',
-  showLabelBadge = false,
   label = null,
   description = null,
   className = '',
@@ -31,11 +30,13 @@ export default function ToggleSwitch({
   name,
   title
 }) {
+  const isChecked = Boolean(checked);
+
   const handleClick = (e) => {
     e.stopPropagation();
     if (disabled) return;
     if (onChange) {
-      onChange(!checked, e);
+      onChange(!isChecked, e);
     }
   };
 
@@ -45,42 +46,36 @@ export default function ToggleSwitch({
       e.preventDefault();
       e.stopPropagation();
       if (onChange) {
-        onChange(!checked, e);
+        onChange(!isChecked, e);
       }
     }
   };
 
-  // Color variants for the active "ON" state
+  // Color variants for the active "ON" state track & inner dot
   const colorStyles = {
     indigo: {
-      activeTrack: 'bg-gradient-to-r from-indigo-500 to-indigo-600 border-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]',
-      thumbDot: 'bg-indigo-600',
-      badge: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
+      activeTrack: 'bg-indigo-600 border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.5)]',
+      thumbDot: 'bg-indigo-600'
     },
     emerald: {
-      activeTrack: 'bg-gradient-to-r from-emerald-500 to-teal-500 border-emerald-400/50 shadow-[0_0_12px_rgba(16,185,129,0.4)]',
-      thumbDot: 'bg-emerald-600',
-      badge: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+      activeTrack: 'bg-emerald-500 border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]',
+      thumbDot: 'bg-emerald-600'
     },
     blue: {
-      activeTrack: 'bg-gradient-to-r from-blue-500 to-cyan-500 border-blue-400/50 shadow-[0_0_12px_rgba(59,130,246,0.4)]',
-      thumbDot: 'bg-blue-600',
-      badge: 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+      activeTrack: 'bg-blue-600 border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.5)]',
+      thumbDot: 'bg-blue-600'
     },
     red: {
-      activeTrack: 'bg-gradient-to-r from-rose-500 to-red-600 border-rose-400/50 shadow-[0_0_12px_rgba(244,63,94,0.4)]',
-      thumbDot: 'bg-red-600',
-      badge: 'text-red-400 bg-red-500/10 border-red-500/20'
+      activeTrack: 'bg-rose-600 border-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.5)]',
+      thumbDot: 'bg-rose-600'
     },
     purple: {
-      activeTrack: 'bg-gradient-to-r from-purple-500 to-fuchsia-600 border-purple-400/50 shadow-[0_0_12px_rgba(168,85,247,0.4)]',
-      thumbDot: 'bg-purple-600',
-      badge: 'text-purple-400 bg-purple-500/10 border-purple-500/20'
+      activeTrack: 'bg-purple-600 border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.5)]',
+      thumbDot: 'bg-purple-600'
     },
     amber: {
-      activeTrack: 'bg-gradient-to-r from-amber-500 to-orange-500 border-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.4)]',
-      thumbDot: 'bg-amber-600',
-      badge: 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+      activeTrack: 'bg-amber-500 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]',
+      thumbDot: 'bg-amber-600'
     }
   };
 
@@ -90,21 +85,21 @@ export default function ToggleSwitch({
   const sizeMap = {
     sm: {
       track: 'w-9 h-5',
-      thumb: 'w-3.5 h-3.5',
-      translateX: 'translate-x-4',
-      badgeText: 'text-[9px]'
+      thumb: 'w-4 h-4',
+      dot: 'w-1.5 h-1.5',
+      translateX: 16
     },
     md: {
       track: 'w-11 h-6',
-      thumb: 'w-4.5 h-4.5',
-      translateX: 'translate-x-5',
-      badgeText: 'text-[10px]'
+      thumb: 'w-5 h-5',
+      dot: 'w-2 h-2',
+      translateX: 20
     },
     lg: {
       track: 'w-14 h-7',
-      thumb: 'w-5.5 h-5.5',
-      translateX: 'translate-x-7',
-      badgeText: 'text-xs'
+      thumb: 'w-6 h-6',
+      dot: 'w-2.5 h-2.5',
+      translateX: 26
     }
   };
 
@@ -114,7 +109,7 @@ export default function ToggleSwitch({
     <div
       className={`inline-flex items-center gap-3 select-none ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
       onClick={handleClick}
-      title={title || label || (checked ? 'Toggle off' : 'Toggle on')}
+      title={title || label || (isChecked ? 'Toggle off' : 'Toggle on')}
     >
       {(label || description) && (
         <div className="flex-1">
@@ -128,55 +123,42 @@ export default function ToggleSwitch({
         type="checkbox"
         id={id}
         name={name}
-        checked={Boolean(checked)}
+        checked={isChecked}
         onChange={() => {}}
         disabled={disabled}
         className="sr-only"
-        aria-checked={Boolean(checked)}
+        aria-checked={isChecked}
         role="switch"
       />
 
-      <div className="flex items-center gap-2 shrink-0">
-        {showLabelBadge && (
-          <span
-            className={`font-black uppercase tracking-wider px-1.5 py-0.5 rounded border transition-all ${currentSize.badgeText} ${
-              checked ? theme.badge : 'text-slate-500 bg-slate-900 border-slate-800'
-            }`}
-          >
-            {checked ? 'ON' : 'OFF'}
-          </span>
-        )}
-
-        {/* Toggle Switch Pill Track */}
-        <div
-          role="switch"
-          tabIndex={disabled ? -1 : 0}
-          onKeyDown={handleKeyDown}
-          aria-checked={Boolean(checked)}
-          className={`relative rounded-full p-0.5 transition-all duration-300 ease-in-out border flex items-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
-            currentSize.track
-          } ${
-            checked
-              ? theme.activeTrack
-              : 'bg-slate-900 border-slate-700/80 hover:border-slate-600 shadow-inner'
-          }`}
+      {/* Toggle Switch Pill Track */}
+      <div
+        role="switch"
+        tabIndex={disabled ? -1 : 0}
+        onKeyDown={handleKeyDown}
+        aria-checked={isChecked}
+        className={`relative rounded-full p-0.5 transition-colors duration-250 ease-in-out border flex items-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50 shrink-0 ${
+          currentSize.track
+        } ${
+          isChecked
+            ? theme.activeTrack
+            : 'bg-slate-900 border-slate-700 hover:border-slate-600 shadow-inner'
+        }`}
+      >
+        {/* Animated Thumb Knob */}
+        <motion.div
+          initial={false}
+          animate={{ x: isChecked ? currentSize.translateX : 0 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          className={`rounded-full bg-white shadow-md flex items-center justify-center shrink-0 ${currentSize.thumb}`}
         >
-          {/* Animated Thumb Knob */}
-          <motion.div
-            layout
-            transition={{ type: 'spring', stiffness: 600, damping: 35 }}
-            className={`rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 ${
-              currentSize.thumb
-            } ${checked ? currentSize.translateX : 'translate-x-0.5'}`}
-          >
-            {/* Micro dot indicator inside knob */}
-            <span
-              className={`rounded-full transition-all duration-200 ${
-                size === 'sm' ? 'w-1 h-1' : 'w-1.5 h-1.5'
-              } ${checked ? theme.thumbDot : 'bg-slate-400'}`}
-            />
-          </motion.div>
-        </div>
+          {/* Micro dot indicator inside knob */}
+          <span
+            className={`rounded-full transition-colors duration-200 ${currentSize.dot} ${
+              isChecked ? theme.thumbDot : 'bg-slate-300'
+            }`}
+          />
+        </motion.div>
       </div>
     </div>
   );
