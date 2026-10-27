@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, Camera, Upload, CheckCircle2, UserCheck, Loader2, Check, ArrowRight, AlertCircle, Lock, Cpu, Smartphone, Monitor, Download, Info, Sparkles, Eye, RefreshCw, Zap, ShieldCheck, Play, Pause, Scan, QrCode, Calendar, Bell, KeyRound, FileText } from 'lucide-react';
+import { Shield, Camera, Upload, CheckCircle2, UserCheck, Loader2, Check, ArrowRight, AlertCircle, Lock, Cpu, Smartphone, Monitor, Download, Info, Sparkles, Eye, RefreshCw, Zap, ShieldCheck, Play, Pause, Scan, QrCode, Calendar, Bell, KeyRound, FileText, RotateCcw } from 'lucide-react';
 import { identityVerificationApi } from '../../../../modules/visitor-management/api/identityVerificationApi';
 import CountrySelector, { countryList } from './CountrySelector';
 import MobileVerificationHandoff from './MobileVerificationHandoff';
