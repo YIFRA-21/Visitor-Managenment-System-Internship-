@@ -12,6 +12,7 @@ import {
     validateMiddleName,
     validateGender,
     validateDateOfBirth,
+    validateDateOfBirthDetails,
     validateNationality,
     validateMaritalStatus,
     validateEmail,
@@ -761,8 +762,8 @@ export const RegistrationWizard = ({ onSuccess, onCancel, initialDraftId, depart
                     </p>
                   )}
                   {formData.dateOfBirth && !errors.dateOfBirth && (() => {
-                    const res = validateDateOfBirth(formData.dateOfBirth, 18);
-                    return res.valid ? (
+                    const res = validateDateOfBirthDetails(formData.dateOfBirth, 18);
+                    return res && res.valid ? (
                       <p className="text-[11px] text-emerald-400 mt-1 font-semibold flex items-center gap-1">
                         <span>✓ Age: {res.age} years old (Eligible, ≥ 18)</span>
                       </p>

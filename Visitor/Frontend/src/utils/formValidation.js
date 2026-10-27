@@ -112,6 +112,14 @@ export function validateDateOfBirth(value, minAge = 18, isAm = false) {
 }
 
 /**
+ * Returns structured validation object { valid, age, error }
+ */
+export function validateDateOfBirthDetails(value, minAge = 18) {
+    if (!value) return { valid: false, age: null, error: 'Date of birth is required.' };
+    return countryValidateDob(value, minAge);
+}
+
+/**
  * Validate Nationality
  */
 export function validateNationality(value, isAm = false) {

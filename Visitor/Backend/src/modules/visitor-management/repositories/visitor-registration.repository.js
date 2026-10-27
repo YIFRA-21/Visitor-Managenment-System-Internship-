@@ -115,6 +115,8 @@ class VisitorRegistrationRepository {
       const finalArrival = toMySqlDateTime(expectedArrivalTime);
       const finalDeparture = toMySqlDateTime(expectedDepartureTime);
 
+      const resolvedOrgId = data.organizationId || data.organization_id || 1;
+
       // 1. Insert Master Visitor Row
       const visitorInsertRes = await tx.query(
         `INSERT INTO visitors (
@@ -133,7 +135,7 @@ class VisitorRegistrationRepository {
           ?, ?, FALSE, TRUE, ?
         )`,
         [
-          organizationId, branchId, departmentId, visitorTypeId, visitorCompanyId, userId,
+          resolvedOrgId, branchId, departmentId, visitorTypeId, visitorCompanyId, userId,
           visitorCode, referenceNumber, firstName, middleName, lastName, fullName,
           gender, finalDob, nationality, maritalStatus, email, phone, altPhone, altEmail,
           company, category, purposeOfVisit, expectedVisitType, finalArrival, finalDeparture,

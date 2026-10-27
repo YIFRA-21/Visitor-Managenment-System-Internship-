@@ -73,7 +73,12 @@ class VisitorDashboardService {
    * Builds context filters derived from authenticated user scope & URL params
    */
   _buildFilters(user, queryFilters = {}) {
-    const organizationId = user.role === 'admin' ? (queryFilters.organizationId || user.organizationId) : user.organizationId;
+    const userRole = (user?.role || '').toLowerCase();
+    const isAdmin = ['admin', 'super_admin', 'system_admin'].includes(userRole);
+    const userOrgId = user?.organizationId || user?.organization_id || null;
+    const organizationId = isAdmin
+      ? (queryFilters.organizationId || queryFilters.organization_id || userOrgId || null)
+      : (userOrgId || null);
     const branchId = queryFilters.branchId || null;
     const departmentId = queryFilters.departmentId || null;
     const dateFrom = queryFilters.dateFrom || null;

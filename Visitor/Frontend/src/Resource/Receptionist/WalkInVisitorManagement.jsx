@@ -20,6 +20,7 @@ import {
     validateMiddleName,
     validateGender,
     validateDateOfBirth,
+    validateDateOfBirthDetails,
     validateNationality,
     validateMaritalStatus,
     validateEmail,
@@ -819,8 +820,8 @@ export default function WalkInVisitorManagement({ onNavigate }) {
                                             />
                                             {renderFieldError('date_of_birth')}
                                             {form.date_of_birth && !errors.date_of_birth && (() => {
-                                                const res = validateDateOfBirth(form.date_of_birth, 18);
-                                                return res.valid ? (
+                                                const res = validateDateOfBirthDetails(form.date_of_birth, 18);
+                                                return res && res.valid ? (
                                                     <p className="text-[10px] text-emerald-400 mt-1 font-semibold">
                                                         ✓ Age: {res.age} yrs (Eligible, ≥ 18)
                                                     </p>

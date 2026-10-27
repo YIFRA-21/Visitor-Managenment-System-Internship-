@@ -8,7 +8,7 @@ class VisitorDashboardRepository {
     const conditions = [];
     const params = [];
     if (orgId) {
-      conditions.push(`${alias}.organization_id = ?`);
+      conditions.push(`(${alias}.organization_id = ? OR ${alias}.organization_id IS NULL)`);
       params.push(orgId);
     }
     if (branchId) {
@@ -82,8 +82,9 @@ class VisitorDashboardRepository {
   // ─── 2. Alerts Panel ────────────────────────────────────────────────────────
   async getAlerts(filters = {}) {
     const { organizationId } = filters;
-    const orgParam = organizationId ? [organizationId] : [];
-    const orgFilter = organizationId ? 'AND v.organization_id = ?' : '';
+    const scope = this._buildScopeFilter(organizationId, null, 'v');
+    const orgParam = scope.params;
+    const orgFilter = scope.clause;
 
     const alerts = [];
 
