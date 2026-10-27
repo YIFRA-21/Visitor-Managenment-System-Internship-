@@ -160,11 +160,13 @@ export default function SignupPage() {
     const [copiedUserId, setCopiedUserId] = useState(false);
     // Step 3: OTP Verification
     const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
-    const [otpTimer, setOtpTimer] = useState(120);
+    const [otpTimer, setOtpTimer] = useState(600);
     const [otpVerified, setOtpVerified] = useState(false);
     const [verifyingOtp, setVerifyingOtp] = useState(false);
     const [resendingEmail, setResendingEmail] = useState(false);
     const [resendSuccess, setResendSuccess] = useState(false);
+    const [resendCount, setResendCount] = useState(0);
+    const [resendCooldown, setResendCooldown] = useState(0);
     const [otpStatus, setOtpStatus] = useState('idle');
 
     // General Status & Validation Errors
@@ -217,6 +219,13 @@ export default function SignupPage() {
         }
         return () => clearInterval(timer);
     }, [currentStep, otpTimer]);
+    // Resend cooldown debounce timer
+    useEffect(() => {
+        if (resendCooldown > 0) {
+            const timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [resendCooldown]);
     // Copy User ID helper
     const handleCopyUserId = (textToCopy) => {
         if (!textToCopy)
@@ -548,8 +557,9 @@ export default function SignupPage() {
             setVerifyingOtp(false);
         }
     };
-    // Step 3 Resend OTP Code
+    // Step 3 Resend OTP Code - Always sends a fresh OTP whenever clicked
     const handleResendOtp = async () => {
+        if (resendingEmail || resendCooldown > 0) return;
         const targetEmail = (email || sessionStorage.getItem('signup_email') || '').trim().toLowerCase();
         if (!targetEmail) {
             setError('Email address not found. Please restart registration or go back to Step 1.');
@@ -560,14 +570,18 @@ export default function SignupPage() {
         setError('');
         setOtpStatus('idle');
         setOtpCode(['', '', '', '', '', '']);
+        // 2-second debounce prevents accidental double-clicking while allowing quick repeat sends
+        setResendCooldown(2);
         try {
-            const res = await authApi.resendVerification(targetEmail);
+            await authApi.resendVerification(targetEmail);
+            setResendCount(prev => prev + 1);
             setResendSuccess(true);
-            setOtpTimer(45);
-            setTimeout(() => setResendSuccess(false), 5000);
+            setOtpTimer(600); // Reset OTP validity countdown to full 10 minutes
+            setTimeout(() => setResendSuccess(false), 6000);
         }
         catch (err) {
-            setError(getErrorMessage(err) || 'Failed to resend verification code.');
+            console.error('Resend OTP error:', err);
+            setError(getErrorMessage(err) || 'Failed to resend verification code. Please try again.');
         }
         finally {
             setResendingEmail(false);
@@ -1292,7 +1306,7 @@ export default function SignupPage() {
                   {resendSuccess && (
                     <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-center gap-2 max-w-sm mx-auto shadow-sm animate-pulse">
                       <CheckCircle className="h-4 w-4 shrink-0" />
-                      <span>New 6-digit verification code sent to your email!</span>
+                      <span>New 6-digit verification code sent to your email!{resendCount > 1 ? ` (Attempt #${resendCount})` : ''}</span>
                     </div>
                   )}
 
@@ -1306,41 +1320,40 @@ export default function SignupPage() {
                       <span>✓ Correct verification code! Creating account...</span>
                     </div>)}
 
-
-
                   {/* TIMER ROW */}
                   <div className="text-xs font-bold text-slate-500 dark:text-slate-400 space-y-1">
                     <div>
-                      {t('signup.otpExpires')} <strong className="text-blue-600 dark:text-blue-400 font-black">{Math.floor(otpTimer / 60)}:{String(otpTimer % 60).padStart(2, '0')}</strong>
+                      {t('signup.otpExpires') || 'Code expires in'} <strong className="text-blue-600 dark:text-blue-400 font-black">{Math.floor(otpTimer / 60)}:{String(otpTimer % 60).padStart(2, '0')}</strong>
                     </div>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">
                       Didn't see the email? Please check your <strong>Spam</strong>, <strong>Updates</strong>, or <strong>Promotions</strong> folder.
                     </p>
                   </div>
 
-                  {/* RESEND LINK */}
+                  {/* RESEND LINK - ALWAYS CLICKABLE (NOT BLOCKED BY OTP TIMER) */}
                   <div>
                     <button 
                       type="button" 
                       onClick={handleResendOtp} 
-                      disabled={resendingEmail || otpTimer > 0} 
+                      disabled={resendingEmail || resendCooldown > 0} 
                       className={`text-xs font-extrabold flex items-center justify-center gap-1.5 mx-auto transition-all ${
-                        otpTimer > 0 
-                          ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed' 
-                          : resendingEmail
-                            ? 'text-blue-500 cursor-wait'
+                        resendingEmail
+                          ? 'text-blue-500 cursor-wait opacity-80'
+                          : resendCooldown > 0
+                            ? 'text-slate-400 cursor-wait opacity-70'
                             : 'text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline cursor-pointer active:scale-95'
                       }`}
+                      title="Click to send a new verification code to your email"
                     >
                       {resendingEmail ? (
                         <>
                           <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600"/>
-                          <span>Sending code...</span>
+                          <span>Sending new code...</span>
                         </>
                       ) : (
                         <>
-                          <RefreshCw className="h-3.5 w-3.5"/>
-                          <span>{t('signup.resendOTP')}</span>
+                          <RefreshCw className={`h-3.5 w-3.5 ${resendCooldown > 0 ? 'animate-spin' : ''}`}/>
+                          <span>{resendCount > 0 ? 'Resend New OTP' : (t('signup.resendOTP') || 'Resend OTP')}</span>
                         </>
                       )}
                     </button>

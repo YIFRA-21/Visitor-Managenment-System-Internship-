@@ -132,7 +132,8 @@ export default function ForgotPasswordPage() {
     // Step 2 state
     const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
     const [codeExpiry, setCodeExpiry] = useState(900); // 15 minutes
-    const [resendCooldown, setResendCooldown] = useState(45);
+    const [resendCooldown, setResendCooldown] = useState(0);
+    const [resendAttemptCount, setResendAttemptCount] = useState(0);
     const otpRefs = useRef([]);
 
     // Step 3 state
@@ -214,7 +215,7 @@ export default function ForgotPasswordPage() {
             }
 
             setCodeExpiry(900);
-            setResendCooldown(45);
+            setResendCooldown(0);
             setStep(2);
         } catch (err) {
             const isAccountNotFound =
@@ -338,6 +339,8 @@ export default function ForgotPasswordPage() {
         setError('');
         setSuccessMessage('');
         setLoading(true);
+        // 2-second debounce prevents accidental double-clicking while allowing quick repeat sends
+        setResendCooldown(2);
         try {
             const identifier = email || userId;
             const res = await authApi.forgotPassword(identifier);
@@ -350,9 +353,10 @@ export default function ForgotPasswordPage() {
             } else {
                 setOtpDigits(['', '', '', '', '', '']);
             }
-            setResendCooldown(45);
             setCodeExpiry(900);
-            setSuccessMessage(`A fresh 6-digit verification code has been dispatched to ${data.maskedEmail || maskedEmailAddress || 'your email'}.`);
+            const nextCount = resendAttemptCount + 1;
+            setResendAttemptCount(nextCount);
+            setSuccessMessage(`A fresh 6-digit verification code has been dispatched to ${data.maskedEmail || maskedEmailAddress || 'your email'}.${nextCount > 1 ? ` (Attempt #${nextCount})` : ''}`);
             setTimeout(() => setSuccessMessage(''), 8000);
         } catch (err) {
             setError(err.response?.data?.error || err.response?.data?.message || 'Failed to resend code. Please try again.');
@@ -756,16 +760,16 @@ export default function ForgotPasswordPage() {
                                                 disabled={resendCooldown > 0 || loading}
                                                 className={`w-full py-2.5 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200 border cursor-pointer ${
                                                     resendCooldown > 0 || loading
-                                                        ? 'bg-slate-800/80 border-slate-700/80 text-slate-300 cursor-not-allowed shadow-inner opacity-80'
+                                                        ? 'bg-slate-800/80 border-slate-700/80 text-slate-300 cursor-wait shadow-inner opacity-80'
                                                         : 'bg-indigo-950/60 hover:bg-indigo-600 border-indigo-500/60 hover:border-indigo-400 text-indigo-200 hover:text-white shadow-md hover:shadow-indigo-500/25 active:scale-[0.99]'
                                                 }`}
                                             >
-                                                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                                                <RefreshCw className={`h-4 w-4 ${loading || resendCooldown > 0 ? 'animate-spin' : ''}`} />
                                                 <span>
                                                     {loading
                                                         ? 'Sending New Code...'
-                                                        : resendCooldown > 0
-                                                        ? `Resend Code in ${resendCooldown}s`
+                                                        : resendAttemptCount > 0
+                                                        ? 'Resend New Verification Code'
                                                         : 'Resend Verification Code'}
                                                 </span>
                                             </button>

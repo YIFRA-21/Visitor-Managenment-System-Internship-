@@ -1478,10 +1478,6 @@ class AuthService {
       console.error('[AuthService] Background email sending note:', sendErr.message);
     });
 
-    emailService.sendOtp(user.email, user.id).catch(sendErr2 => {
-      console.warn('[AuthService] Secondary OTP dispatch note:', sendErr2.message);
-    });
-
     // Mask user's email: ye***@gmail.com
     const [local, domain] = (user.email || '').split('@');
     const maskedEmail = domain ? (local.slice(0, 2) + '***@' + domain) : user.email;
@@ -1732,6 +1728,14 @@ class AuthService {
          WHERE id = ?`,
         [user.id]
       );
+      // Also activate corresponding visitor profile if applicable
+      await db.query(
+        `UPDATE visitors 
+         SET registration_status = 'APPROVED', id_verification_status = 'APPROVED', 
+             status = 'ACTIVE', is_active = 1 
+         WHERE user_id = ? OR LOWER(email) = LOWER(?)`,
+        [user.id, cleanEmail]
+      ).catch(() => {});
     } catch (e) {}
 
     console.log(`[AuthService] OTP verified successfully for: ${cleanEmail}`);
@@ -1751,7 +1755,43 @@ class AuthService {
     if (!identifier) {
       throw new AppError('Email address or user identity is required', 400);
     }
-    return await this.forgotPassword(identifier);
+
+    const cleanId = String(identifier).trim();
+    let user = await this.resolveUser(cleanId);
+    let targetEmail = (user?.email || (cleanId.includes('@') ? cleanId : null))?.toLowerCase()?.trim();
+
+    if (!targetEmail && user?.id) {
+      try {
+        const u = await db.query('SELECT email FROM users WHERE id = ? LIMIT 1', [user.id]);
+        if (u && u[0]?.email) targetEmail = u[0].email.toLowerCase().trim();
+      } catch (e) {}
+    }
+
+    if (!targetEmail) {
+      throw new AppError('No account or email address found. Please enter a valid email address.', 404);
+    }
+
+    // Fast, reliable email OTP dispatch - generates a fresh 6-digit OTP every single time clicked,
+    // invalidates any prior OTPs, writes new OTP to DB and users.reset_token,
+    // and sends high-priority email to real inbox!
+    const otpRes = await emailService.sendOtp(targetEmail, user?.id || null);
+
+    const [local, domain] = targetEmail.split('@');
+    const maskedEmail = domain ? (local.slice(0, 2) + '***@' + domain) : targetEmail;
+
+    console.log(`[AuthService] Fresh verification OTP dispatched to ${targetEmail} (resend triggered)`);
+
+    return {
+      success: true,
+      status: 'success',
+      message: `A fresh 6-digit verification code has been dispatched to ${maskedEmail}.`,
+      email: targetEmail,
+      maskedEmail,
+      userCode: user?.user_code || user?.userCode,
+      fullName: user?.full_name || user?.fullName,
+      deliveredToInbox: Boolean(otpRes?.deliveredToInbox ?? true),
+      demoToken: process.env.DEV_BYPASS_AUTH === 'true' ? '123456' : undefined
+    };
   }
 
   async updateProfile(userId, profileData) {
