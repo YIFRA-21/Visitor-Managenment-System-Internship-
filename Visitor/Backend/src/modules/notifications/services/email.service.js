@@ -53,6 +53,17 @@ class EmailService {
   }
 
   /**
+   * Helper to format a clean, RFC-compliant From address that never triggers spam filters
+   */
+  getFromAddress() {
+    const rawFrom = process.env.EMAIL_FROM || '';
+    const fallbackUser = (process.env.SMTP_USER || 'shewerke21@gmail.com').trim();
+    const match = rawFrom.match(/<([^>]+)>/) || rawFrom.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    const email = match ? match[1].trim() : fallbackUser;
+    return `"Visitor Management System" <${email}>`;
+  }
+
+  /**
    * Generate a cryptographically secure 6-digit OTP string.
    * Uses Node.js crypto module. Result is always zero-padded to 6 characters.
    * Examples: "034821", "000012", "999999", "100000"
@@ -163,39 +174,35 @@ class EmailService {
       </div>
     `;
 
-    const senderEmail = (process.env.SMTP_USER || '').trim();
-    const defaultFrom = senderEmail ? `"Visitor Management System" <${senderEmail}>` : '"Visitor Management System" <no-reply@vms.com>';
-    const fromAddress = (process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes('your_email') && !process.env.EMAIL_FROM.includes('no-reply@vms.com'))
-      ? process.env.EMAIL_FROM
-      : defaultFrom;
+    const fromAddress = this.getFromAddress();
 
     const mailOptions = {
       from: fromAddress,
       to: cleanEmail,
       subject: `[VMS] Your Email Verification Code: ${otpCode}`,
-      text: `Your VMS email verification code is: ${otpCode}. Valid for 15 minutes.\n\nIf you did not request this, please disregard.\n\nVisitor Management System`,
+      text: `Your VMS email verification code is: ${otpCode}.\n\nThis code is valid for 15 minutes. Please enter it to complete your verification.\n\nIf you did not request this, please disregard.\n\nVisitor Management System`,
       html: htmlContent,
       headers: {
-        'X-Priority': '1 (Highest)',
-        'X-MSMail-Priority': 'High',
-        'Importance': 'High',
-        'X-Mailer': 'VMS-Enterprise-Notifier'
+        'X-Auto-Response-Suppress': 'All',
+        'Auto-Submitted': 'auto-generated'
       }
     };
 
-    let deliveredToInbox = true;
+    let deliveredToInbox = false;
     let etherealUrl = null;
+    let deliveryError = null;
 
-    // Fast-dispatch: email sending runs in background task so API responds instantly (<50ms)
+    // Guaranteed delivery task with automatic Gmail direct retry
     const sendMailTask = async () => {
       const transporter = this.getTransporter();
       if (transporter) {
         try {
           console.log(`[EmailService] Sending OTP verification email to: ${cleanEmail}...`);
           const info = await transporter.sendMail(mailOptions);
+          deliveredToInbox = true;
           console.log(`[EmailService] REAL EMAIL SENT SUCCESSFULLY TO: ${cleanEmail} (Response: ${info.response || info.messageId})`);
         } catch (err) {
-          console.error(`[EmailService] SMTP send error: ${err.message}. Retrying via Gmail service direct...`);
+          console.error(`[EmailService] SMTP send error: ${err.message}. Retrying via direct Gmail fallback...`);
           this.transporter = null;
           try {
             const directTransporter = nodemailer.createTransport({
@@ -204,29 +211,37 @@ class EmailService {
             });
             const retryInfo = await directTransporter.sendMail(mailOptions);
             this.transporter = directTransporter;
+            deliveredToInbox = true;
             console.log(`[EmailService] REAL EMAIL DELIVERED ON RETRY TO: ${cleanEmail} (${retryInfo.response})`);
           } catch (retryErr) {
+            deliveryError = retryErr.message;
             console.error(`[EmailService] SMTP retry delivery error: ${retryErr.message}`);
           }
         }
+      } else {
+        deliveryError = 'No email transporter configured';
       }
     };
 
-    if (options && options.sync === true) {
-      await sendMailTask();
-    } else {
+    // Synchronous execution by default so OTP email delivery is confirmed before API returns
+    if (options && options.sync === false) {
       sendMailTask().catch(err => {
         console.warn('[EmailService] Background email dispatch note:', err.message);
       });
+    } else {
+      await sendMailTask();
     }
 
     return {
-      status: 'success',
-      message: `OTP verification code sent to ${cleanEmail}`,
-      email: cleanEmail,
+      status: deliveredToInbox ? 'success' : 'error',
       deliveredToInbox,
+      message: deliveredToInbox
+        ? `OTP verification code sent to ${cleanEmail}`
+        : `Failed to deliver verification code: ${deliveryError || 'SMTP transmission error'}`,
+      email: cleanEmail,
       etherealUrl,
-      otpCode
+      otpCode,
+      error: deliveryError || undefined
     };
   }
 
@@ -237,21 +252,19 @@ class EmailService {
    */
   async sendMail({ to, subject, text, html }) {
     if (!to) {
-      return { status: 'error', error: 'Recipient email is required' };
+      return { status: 'error', error: 'Recipient email is required', deliveredToInbox: false };
     }
 
-    const senderEmail = (process.env.SMTP_USER || '').trim();
-    const defaultFrom = senderEmail ? `"Visitor Management System" <${senderEmail}>` : '"Visitor Management System" <no-reply@vms.com>';
-    const fromAddress = (process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes('your_email') && !process.env.EMAIL_FROM.includes('no-reply@vms.com'))
-      ? process.env.EMAIL_FROM
-      : defaultFrom;
-
     const mailOptions = {
-      from: fromAddress,
+      from: this.getFromAddress(),
       to: to.toLowerCase().trim(),
       subject,
       text,
-      html
+      html,
+      headers: {
+        'X-Auto-Response-Suppress': 'All',
+        'Auto-Submitted': 'auto-generated'
+      }
     };
 
     let deliveredToInbox = false;
@@ -271,6 +284,7 @@ class EmailService {
             auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' }
           });
           const retryInfo = await directTransporter.sendMail(mailOptions);
+          this.transporter = directTransporter;
           deliveredToInbox = true;
           console.log(`[EmailService] EMAIL DELIVERED VIA GMAIL RETRY TO: ${mailOptions.to} (${retryInfo.response})`);
         } catch (retryErr) {

@@ -600,7 +600,7 @@ class AuthService {
     // 6. Send OTP *AFTER* database transaction commits — await so delivery is confirmed
     let otpRes = null;
     try {
-      otpRes = await emailService.sendOtp(email, regResult.userId);
+      otpRes = await emailService.sendOtp(email, regResult.userId, { sync: true });
     } catch (otpErr) {
       console.error('[AuthService] sendOtp error during registration:', otpErr.message);
     }
@@ -1467,16 +1467,21 @@ class AuthService {
       console.warn('[AuthService] Could not insert into password_resets:', e.message);
     }
 
-    // 5. Send REAL Email via EmailService in background (FAST SPEED: non-blocking dispatch)
-    emailService.sendPasswordResetOtp({
-      to: user.email,
-      fullName: user.full_name || user.fullName || user.username,
-      userCode: user.user_code || user.userCode,
-      otpCode,
-      expiresMinutes: 15
-    }).catch(sendErr => {
-      console.error('[AuthService] Background email sending note:', sendErr.message);
-    });
+    // 5. Send REAL Email via EmailService (Synchronous so delivery is confirmed)
+    let emailDelivered = true;
+    try {
+      const emailResult = await emailService.sendPasswordResetOtp({
+        to: user.email,
+        fullName: user.full_name || user.fullName || user.username,
+        userCode: user.user_code || user.userCode,
+        otpCode,
+        expiresMinutes: 15
+      });
+      emailDelivered = Boolean(emailResult?.deliveredToInbox ?? true);
+    } catch (sendErr) {
+      emailDelivered = false;
+      console.error('[AuthService] Password reset email sending note:', sendErr.message);
+    }
 
     // Mask user's email: ye***@gmail.com
     const [local, domain] = (user.email || '').split('@');
@@ -1773,8 +1778,8 @@ class AuthService {
 
     // Fast, reliable email OTP dispatch - generates a fresh 6-digit OTP every single time clicked,
     // invalidates any prior OTPs, writes new OTP to DB and users.reset_token,
-    // and sends high-priority email to real inbox!
-    const otpRes = await emailService.sendOtp(targetEmail, user?.id || null);
+    // and sends clean RFC-compliant email to real inbox!
+    const otpRes = await emailService.sendOtp(targetEmail, user?.id || null, { sync: true });
 
     const [local, domain] = targetEmail.split('@');
     const maskedEmail = domain ? (local.slice(0, 2) + '***@' + domain) : targetEmail;
