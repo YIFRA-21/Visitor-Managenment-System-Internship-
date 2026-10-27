@@ -234,6 +234,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     const [usersList, setUsersList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
+    const [isSavingUser, setIsSavingUser] = useState(false);
     // Selected user for dedicated sub-views (User Details, Edit User, Security, Sessions, History, Activity)
     const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
     // Auto-select first user for detail sub-views once usersList loads (EXCEPT for account security view)
@@ -3617,13 +3618,42 @@ export default function UserManagement({ departments = [], initialTab = 'users',
 
           {selectedUserForDetails ? (<form onSubmit={async (e) => {
                     e.preventDefault();
+                    if (!selectedUserForDetails || !selectedUserForDetails.id) {
+                      setAlert({ type: 'error', message: 'No user account selected for editing.' });
+                      return;
+                    }
+                    if (isSavingUser) return;
+
+                    // Pre-flight Client Field Validation
+                    const fName = (selectedUserForDetails.first_name || '').trim();
+                    const lName = (selectedUserForDetails.last_name || '').trim();
+                    const emailVal = (selectedUserForDetails.email || '').trim();
+
+                    if (!fName) {
+                      setAlert({ type: 'error', message: 'Validation Failed: First Name is required.' });
+                      return;
+                    }
+                    if (!lName) {
+                      setAlert({ type: 'error', message: 'Validation Failed: Last Name is required.' });
+                      return;
+                    }
+                    if (!emailVal) {
+                      setAlert({ type: 'error', message: 'Validation Failed: Email Address is required.' });
+                      return;
+                    }
+                    if (selectedUserForDetails.newPassword && selectedUserForDetails.newPassword.trim().length > 0 && selectedUserForDetails.newPassword.trim().length < 8) {
+                      setAlert({ type: 'error', message: 'Validation Failed: New Password must be at least 8 characters long.' });
+                      return;
+                    }
+
+                    setIsSavingUser(true);
                     try {
                         const payload = {
-                            first_name: selectedUserForDetails.first_name || '',
-                            middle_name: selectedUserForDetails.middle_name || '',
-                            last_name: selectedUserForDetails.last_name || '',
-                            full_name: `${selectedUserForDetails.first_name || ''} ${selectedUserForDetails.middle_name ? selectedUserForDetails.middle_name + ' ' : ''}${selectedUserForDetails.last_name || ''}`.trim(),
-                            email: selectedUserForDetails.email || '',
+                            first_name: fName,
+                            middle_name: (selectedUserForDetails.middle_name || '').trim(),
+                            last_name: lName,
+                            full_name: `${fName} ${selectedUserForDetails.middle_name ? selectedUserForDetails.middle_name.trim() + ' ' : ''}${lName}`.trim(),
+                            email: emailVal.toLowerCase(),
                             phone: selectedUserForDetails.phone || selectedUserForDetails.phone_number || '',
                             phone_number: selectedUserForDetails.phone || selectedUserForDetails.phone_number || '',
                             alt_phone: selectedUserForDetails.alt_phone || selectedUserForDetails.altPhone || '',
@@ -3638,18 +3668,33 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                             job_title: selectedUserForDetails.job_title || selectedUserForDetails.jobTitle || '',
                             manager_id: selectedUserForDetails.manager_id ? parseInt(selectedUserForDetails.manager_id) : null,
                             role: selectedUserForDetails.role || selectedUserForDetails.user_type || 'employee',
-                            username: selectedUserForDetails.username || '',
+                            username: (selectedUserForDetails.username || '').trim(),
                             account_status: (selectedUserForDetails.account_status || selectedUserForDetails.status || 'ACTIVE').toUpperCase(),
                             status: (selectedUserForDetails.status || selectedUserForDetails.account_status || 'ACTIVE').toUpperCase(),
                             password: selectedUserForDetails.newPassword && selectedUserForDetails.newPassword.trim().length >= 8 ? selectedUserForDetails.newPassword.trim() : undefined,
                         };
 
-                        await api.put(`/users/${selectedUserForDetails.id}`, payload);
-                        setAlert({ type: 'success', message: `User ${payload.full_name} profile and account updated successfully!` });
-                        fetchUsers();
+                        const updateRes = await api.put(`/users/${selectedUserForDetails.id}`, payload);
+                        setAlert({
+                          type: 'success',
+                          message: updateRes.data?.message || `User "${payload.full_name || selectedUserForDetails.username}" profile and account updated successfully!`
+                        });
+
+                        // Redirect to the All Users list page and trigger fresh loading
+                        setActiveSubView('users');
+                        setSubViewHistory([]);
+                        setSelectedUser(null);
+                        await Promise.all([
+                          fetchUsers(),
+                          typeof fetchStats === 'function' ? fetchStats() : Promise.resolve(),
+                        ]);
                     }
                     catch (err) {
-                        setAlert({ type: 'error', message: err.response?.data?.message || err.message || 'Failed to update user profile.' });
+                        console.error('Failed to update user profile:', err);
+                        setAlert({ type: 'error', message: err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to update user profile.' });
+                    }
+                    finally {
+                        setIsSavingUser(false);
                     }
                 }} className="space-y-6 text-xs">
 
@@ -3940,8 +3985,22 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 <button type="button" onClick={handleBack} className="w-full sm:w-auto px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs uppercase rounded-xl transition-colors cursor-pointer">
                   Cancel / Return to Directory
                 </button>
-                <button type="submit" className="w-full sm:w-auto px-7 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-xs rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]">
-                  <Save className="w-4 h-4"/> Save All User Changes
+                <button
+                  type="submit"
+                  disabled={isSavingUser}
+                  className="w-full sm:w-auto px-7 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black uppercase text-xs rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  {isSavingUser ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0"/>
+                      <span>Saving Changes...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 shrink-0"/>
+                      <span>Save All User Changes</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>) : (
