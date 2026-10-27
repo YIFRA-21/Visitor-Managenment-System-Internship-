@@ -4,8 +4,13 @@ const controller = require('../controllers/identity-verification.controller');
 
 const router = Router();
 
-// Open/Optional Auth for Mobile QR Sync Status
+// Open/Optional Auth for Mobile QR Sync & Cross-Device Capture (Phone needs no password login)
 router.get('/mobile-status/:token', optionalAuth, (req, res, next) => controller.getMobileStatus(req, res, next));
+router.get('/mobile/:token/session', optionalAuth, (req, res, next) => controller.getMobileSession(req, res, next));
+router.post('/mobile/:token/upload-front', optionalAuth, (req, res, next) => controller.uploadMobileFront(req, res, next));
+router.post('/mobile/:token/upload-back', optionalAuth, (req, res, next) => controller.uploadMobileBack(req, res, next));
+router.post('/mobile/:token/upload-selfie', optionalAuth, (req, res, next) => controller.uploadMobileSelfie(req, res, next));
+router.post('/mobile/:token/complete', optionalAuth, (req, res, next) => controller.completeMobile(req, res, next));
 
 // Protected via JWT Auth
 router.use(authenticate);

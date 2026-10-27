@@ -442,7 +442,28 @@ const IdentityVerificationWizard = ({ visitorId, visitorName, onComplete }) => {
             });
         }
 
-        // Desktop First Choice: simple unconstrained video (most direct and universally compatible)
+        // Smart Camera Facing: Environment (back) camera for document scanning, User (front) camera for selfie
+        if (target === 'DOC') {
+            constraintAttempts.push({
+                video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
+            constraintAttempts.push({
+                video: { facingMode: { ideal: 'environment' } },
+                audio: false
+            });
+        } else {
+            constraintAttempts.push({
+                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
+            constraintAttempts.push({
+                video: { facingMode: 'user' },
+                audio: false
+            });
+        }
+
+        // Desktop Fallback Choice: simple unconstrained video (most direct and universally compatible)
         constraintAttempts.push({
             video: true,
             audio: false
@@ -455,11 +476,6 @@ const IdentityVerificationWizard = ({ visitorId, visitorName, onComplete }) => {
         // Desktop Third Choice: standard 640x480 resolution
         constraintAttempts.push({
             video: { width: { ideal: 640 }, height: { ideal: 480 } },
-            audio: false
-        });
-        // Fourth Choice: with facingMode: 'user' (for laptops/tablets)
-        constraintAttempts.push({
-            video: { facingMode: 'user' },
             audio: false
         });
 
@@ -1225,36 +1241,119 @@ const IdentityVerificationWizard = ({ visitorId, visitorName, onComplete }) => {
           </div>)}
 
         {/* STEP 2: Verification Method */}
-        {currentStep === 2 && (<div className="space-y-6 max-w-2xl mx-auto w-full">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider text-center">{t('idv.selectMethod', 'Select Verification Method')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button type="button" onClick={() => handleSelectMethod('CURRENT_DEVICE')} className={`p-6 rounded-2xl border text-center transition-all space-y-3 ${verificationMethod === 'CURRENT_DEVICE'
-                ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-xl ring-1 ring-emerald-500'
-                : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'}`}>
-                <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
-                  <Monitor size={28}/>
+        {/* STEP 2: Verification Method */}
+        {currentStep === 2 && (
+          <div className="space-y-6 max-w-3xl mx-auto w-full">
+            <div className="text-center space-y-1">
+              <h3 className="text-base font-black text-white uppercase tracking-wider">
+                {t('idv.selectMethod', 'Select Verification Method')}
+              </h3>
+              <p className="text-xs text-slate-400">
+                Choose how you want to capture your document and biometric face scan
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Option A: Current Device */}
+              <button
+                type="button"
+                onClick={() => handleSelectMethod('CURRENT_DEVICE')}
+                className={`group relative p-5 rounded-3xl border text-left transition-all overflow-hidden flex flex-col justify-between cursor-pointer ${
+                  verificationMethod === 'CURRENT_DEVICE'
+                    ? 'bg-gradient-to-b from-emerald-950/60 to-slate-900 border-emerald-500 text-white shadow-2xl ring-2 ring-emerald-500/50 scale-[1.01]'
+                    : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
+                }`}
+              >
+                {/* Visual Image Banner */}
+                <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-4 bg-slate-950 border border-slate-800">
+                  <img
+                    src="/assets/current_device_verify.jpg"
+                    alt="Current Device Verification"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+                  <div className="absolute top-2.5 left-2.5 bg-emerald-500/90 text-slate-950 font-black text-[9px] uppercase tracking-wider px-2.5 py-1 rounded-full shadow flex items-center gap-1">
+                    <Monitor size={11} />
+                    <span>DESKTOP / WEBCAM</span>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-sm font-black uppercase">{t('idv.optionCurrent', 'Option A: Current Device')}</h4>
-                  <p className="text-xs text-slate-400 mt-1">{t('idv.optionCurrentDesc', 'Use desktop webcam or file upload directly on this computer.')}</p>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-black uppercase text-white group-hover:text-emerald-400 transition-colors">
+                      {t('idv.optionCurrent', 'Option A: Current Device')}
+                    </h4>
+                    {verificationMethod === 'CURRENT_DEVICE' && (
+                      <span className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-bold text-xs">
+                        ✓
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {t('idv.optionCurrentDesc', 'Use desktop webcam or file upload directly on this computer.')}
+                  </p>
+
+                  <div className="pt-2 flex flex-wrap gap-1.5 text-[10px] font-bold text-slate-400">
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-emerald-400">✓ HD Webcam</span>
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-emerald-400">✓ File Upload</span>
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-emerald-400">✓ Live Face</span>
+                  </div>
                 </div>
               </button>
 
-              <button type="button" onClick={() => handleSelectMethod('MOBILE_DEVICE')} className={`p-6 rounded-2xl border text-center transition-all space-y-3 ${verificationMethod === 'MOBILE_DEVICE'
-                ? 'bg-indigo-950/40 border-indigo-500 text-white shadow-xl ring-1 ring-indigo-500'
-                : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'}`}>
-                <div className="w-14 h-14 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400">
-                  <Smartphone size={28}/>
+              {/* Option B: Mobile Device */}
+              <button
+                type="button"
+                onClick={() => handleSelectMethod('MOBILE_DEVICE')}
+                className={`group relative p-5 rounded-3xl border text-left transition-all overflow-hidden flex flex-col justify-between cursor-pointer ${
+                  verificationMethod === 'MOBILE_DEVICE'
+                    ? 'bg-gradient-to-b from-indigo-950/60 to-slate-900 border-indigo-500 text-white shadow-2xl ring-2 ring-indigo-500/50 scale-[1.01]'
+                    : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
+                }`}
+              >
+                {/* Visual Image Banner */}
+                <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-4 bg-slate-950 border border-slate-800">
+                  <img
+                    src="/assets/mobile_device_verify.jpg"
+                    alt="Mobile Device Verification"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+                  <div className="absolute top-2.5 left-2.5 bg-indigo-500/90 text-white font-black text-[9px] uppercase tracking-wider px-2.5 py-1 rounded-full shadow flex items-center gap-1">
+                    <Smartphone size={11} />
+                    <span>SMARTPHONE QR HANDOFF</span>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-sm font-black uppercase">{t('idv.optionMobile', 'Option B: Mobile Device')}</h4>
-                  <p className="text-xs text-slate-400 mt-1">{t('idv.optionMobileDesc', 'Scan one-time QR code to capture documents using phone camera.')}</p>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-black uppercase text-white group-hover:text-indigo-400 transition-colors">
+                      {t('idv.optionMobile', 'Option B: Mobile Device')}
+                    </h4>
+                    {verificationMethod === 'MOBILE_DEVICE' && (
+                      <span className="w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-xs">
+                        ✓
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {t('idv.optionMobileDesc', 'Scan one-time QR code to capture documents using phone back camera and front selfie camera.')}
+                  </p>
+
+                  <div className="pt-2 flex flex-wrap gap-1.5 text-[10px] font-bold text-slate-400">
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-indigo-400">✓ Back Camera ID Scan</span>
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-indigo-400">✓ Front Selfie</span>
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-indigo-400">✓ Live Sync</span>
+                  </div>
                 </div>
               </button>
             </div>
 
-            {verificationMethod === 'MOBILE_DEVICE' && session && (<MobileVerificationHandoff sessionId={session.sessionId} onMobileComplete={() => setCurrentStep(5)}/>)}
-          </div>)}
+            {verificationMethod === 'MOBILE_DEVICE' && session && (
+              <MobileVerificationHandoff sessionId={session.sessionId} onMobileComplete={() => setCurrentStep(5)} />
+            )}
+          </div>
+        )}
 
         {/* STEP 3: Front Document */}
         {currentStep === 3 && (
@@ -1264,9 +1363,29 @@ const IdentityVerificationWizard = ({ visitorId, visitorName, onComplete }) => {
                 <Shield size={16} className="text-emerald-400" />
                 Scan Front Side of {selectedDocType}
               </h3>
-              <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-xl flex items-center gap-1.5 shadow">
-                <Camera size={13} /> Live Desktop Camera
-              </span>
+              <div className="flex items-center gap-2">
+                {availableCameras.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const curIdx = availableCameras.findIndex(c => c.deviceId === selectedCameraId);
+                      const nextCam = availableCameras[(curIdx + 1) % availableCameras.length];
+                      if (nextCam) {
+                        setSelectedCameraId(nextCam.deviceId);
+                        startCamera('DOC', nextCam.deviceId);
+                      }
+                    }}
+                    className="text-[11px] font-bold text-slate-300 bg-slate-900 border border-slate-700 hover:border-emerald-500 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow transition-all cursor-pointer"
+                    title="Flip camera"
+                  >
+                    <RotateCcw size={12} className="text-emerald-400" />
+                    <span>Flip Camera</span>
+                  </button>
+                )}
+                <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-xl flex items-center gap-1.5 shadow">
+                  <Camera size={13} /> Live Camera
+                </span>
+              </div>
             </div>
 
             <div className="relative border-2 border-slate-800 hover:border-emerald-500/80 rounded-3xl p-5 bg-slate-950/80 backdrop-blur-md shadow-2xl transition-all">
@@ -1452,9 +1571,29 @@ const IdentityVerificationWizard = ({ visitorId, visitorName, onComplete }) => {
                 <Shield size={16} className="text-emerald-400" />
                 Scan Back Side of {selectedDocType}
               </h3>
-              <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-xl flex items-center gap-1.5 shadow">
-                <Camera size={13} /> Live Desktop Camera
-              </span>
+              <div className="flex items-center gap-2">
+                {availableCameras.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const curIdx = availableCameras.findIndex(c => c.deviceId === selectedCameraId);
+                      const nextCam = availableCameras[(curIdx + 1) % availableCameras.length];
+                      if (nextCam) {
+                        setSelectedCameraId(nextCam.deviceId);
+                        startCamera('DOC', nextCam.deviceId);
+                      }
+                    }}
+                    className="text-[11px] font-bold text-slate-300 bg-slate-900 border border-slate-700 hover:border-emerald-500 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow transition-all cursor-pointer"
+                    title="Flip camera"
+                  >
+                    <RotateCcw size={12} className="text-emerald-400" />
+                    <span>Flip Camera</span>
+                  </button>
+                )}
+                <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-xl flex items-center gap-1.5 shadow">
+                  <Camera size={13} /> Live Camera
+                </span>
+              </div>
             </div>
 
             <div className="relative border-2 border-slate-800 hover:border-emerald-500/80 rounded-3xl p-5 bg-slate-950/80 backdrop-blur-md shadow-2xl transition-all">

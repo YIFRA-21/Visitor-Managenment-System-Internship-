@@ -65,5 +65,26 @@ export const identityVerificationApi = {
         const response = await api.get(`/identity-verification/history/${visitorId}`);
         return response.data;
     },
+    // Dedicated Mobile Cross-Device Capture API (Unauthenticated/Token-based)
+    getMobileSession: async (token) => {
+        const response = await api.get(`/identity-verification/mobile/${token}/session`);
+        return response.data;
+    },
+    uploadMobileFront: async (token, imagePayload) => {
+        const response = await api.post(`/identity-verification/mobile/${token}/upload-front`, { imagePayload });
+        return response.data;
+    },
+    uploadMobileBack: async (token, imagePayload) => {
+        const response = await api.post(`/identity-verification/mobile/${token}/upload-back`, { imagePayload });
+        return response.data;
+    },
+    uploadMobileSelfie: async (token, imagePayload) => {
+        const response = await api.post(`/identity-verification/mobile/${token}/upload-selfie`, { imagePayload });
+        return response.data;
+    },
+    completeMobile: async (token) => {
+        const response = await api.post(`/identity-verification/mobile/${token}/complete`);
+        return response.data;
+    },
 };
 export default identityVerificationApi;

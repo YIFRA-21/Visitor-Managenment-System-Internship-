@@ -113,11 +113,17 @@ class IdentityVerificationService {
 
   // ── Check Mobile Session Status ──
   async getMobileSessionStatus(token) {
+    if (!token) return { status: 'EXPIRED', message: 'Token required.' };
+
     const rows = await db.query(
-      `SELECT verification_session_id, visitor_id, doc_type, mobile_session_status, mobile_expires_at, front_image_url, back_image_url, selfie_image_url
-       FROM visitor_identity_verifications
-       WHERE mobile_session_token = ?`,
-      [token]
+      `SELECT viv.verification_session_id, viv.visitor_id, viv.doc_type, viv.mobile_session_status, 
+              viv.mobile_expires_at, viv.front_image_url, viv.back_image_url, viv.selfie_image_url,
+              v.full_name as visitor_name
+       FROM visitor_identity_verifications viv
+       LEFT JOIN visitors v ON viv.visitor_id = v.id
+       WHERE viv.mobile_session_token = ? OR viv.verification_session_id = ?
+       ORDER BY viv.id DESC LIMIT 1`,
+      [token, token]
     );
 
     if (!rows || !rows[0]) {
@@ -125,21 +131,22 @@ class IdentityVerificationService {
     }
 
     const session = rows[0];
-    const isExpired = new Date(session.mobile_expires_at) < new Date();
+    const isExpired = session.mobile_expires_at ? (new Date(session.mobile_expires_at) < new Date()) : false;
 
     if (isExpired && session.mobile_session_status === 'WAITING') {
       await db.query(
         `UPDATE visitor_identity_verifications SET mobile_session_status = 'EXPIRED' WHERE mobile_session_token = ?`,
         [token]
-      );
+      ).catch(() => {});
       return { status: 'EXPIRED', message: 'Session expired.' };
     }
 
     return {
       sessionId: session.verification_session_id,
       visitorId: session.visitor_id,
-      docType: session.doc_type,
-      status: session.mobile_session_status,
+      visitorName: session.visitor_name || 'Visitor',
+      docType: session.doc_type || 'National ID',
+      status: session.mobile_session_status || 'WAITING',
       hasFront: Boolean(session.front_image_url),
       hasBack: Boolean(session.back_image_url),
       hasSelfie: Boolean(session.selfie_image_url)

@@ -815,6 +815,15 @@ export default function CheckIn() {
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                       Approved Arrival
                     </span>
+                    {matchedVisitor.id_verification_status === 'APPROVED' || matchedVisitor.id_verification_status === 'VERIFIED' ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-xs">
+                        🛡️ Biometrics & ID Verified
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-xs">
+                        ⚠️ ID Verification Pending
+                      </span>
+                    )}
                   </div>
                   <span className="text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5 text-blue-400" />

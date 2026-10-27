@@ -32,6 +32,7 @@ import VerificationStatusPage from '../../modules/identity-verification/pages/Ve
 import ReviewerQueuePage from '../../modules/identity-verification/pages/ReviewerQueuePage';
 import ReviewerCaseDetailPage from '../../modules/identity-verification/pages/ReviewerCaseDetailPage';
 import VerificationPolicySettingsPage from '../../modules/identity-verification/pages/VerificationPolicySettingsPage';
+import MobileVerificationPage from '../../modules/identity-verification/pages/MobileVerificationPage';
 import LoadingScreen from '../../components/LoadingScreen';
 
 const DashboardRedirect = () => {
@@ -98,6 +99,10 @@ export default function AppRoutes() {
       <Route path={ROUTES.PUBLIC.TRACK} element={<ProtectedRoute><TrackAppointmentPage /></ProtectedRoute>}/>
       <Route path={ROUTES.PUBLIC.VERIFY_PASS} element={<VerifyVisitorPassPage />}/>
       <Route path="/verify-pass" element={<VerifyVisitorPassPage />}/>
+
+      {/* Mobile Cross-Device Identity Verification Routes (Token-authorized, no password login required on phone) */}
+      <Route path="/mobile-verify/:token" element={<MobileVerificationPage />} />
+      <Route path="/mobile-verify" element={<MobileVerificationPage />} />
 
       <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>}/>
 

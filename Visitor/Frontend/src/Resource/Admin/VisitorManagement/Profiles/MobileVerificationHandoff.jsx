@@ -205,6 +205,19 @@ export const MobileVerificationHandoff = ({ sessionId, onMobileComplete }) => {
             <span className="text-[10px] uppercase font-mono tracking-wider">Advancing...</span>
           </div>)}
       </div>
+
+      {/* Direct Open Link / Simulation Fallback */}
+      <div className="pt-2">
+        <a
+          href={mobileToken ? `/mobile-verify/${mobileToken}` : `/mobile-verify?session=${sessionId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 rounded-xl text-xs font-bold transition-all shadow-sm"
+        >
+          <Smartphone size={14} />
+          <span>Open Mobile Verification Flow In New Tab / Mobile Preview</span>
+        </a>
+      </div>
     </div>);
 };
 export default MobileVerificationHandoff;

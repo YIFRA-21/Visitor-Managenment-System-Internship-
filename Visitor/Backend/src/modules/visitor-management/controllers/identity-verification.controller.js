@@ -34,6 +34,70 @@ class IdentityVerificationController {
     } catch (err) { next(err); }
   }
 
+  // GET /api/identity-verification/mobile/:token/session
+  async getMobileSession(req, res, next) {
+    try {
+      const status = await identityVerificationService.getMobileSessionStatus(req.params.token);
+      res.json(status);
+    } catch (err) { next(err); }
+  }
+
+  // POST /api/identity-verification/mobile/:token/upload-front
+  async uploadMobileFront(req, res, next) {
+    try {
+      const status = await identityVerificationService.getMobileSessionStatus(req.params.token);
+      if (!status || !status.sessionId) {
+        return res.status(404).json({ error: 'Mobile verification session not found or expired.' });
+      }
+      const { imagePayload, image, photo, file } = req.body || {};
+      const payload = imagePayload || image || photo || file;
+      const result = await identityVerificationService.uploadFrontDocument(status.sessionId, payload, 1);
+      await identityVerificationService.updateMobileStatus(req.params.token, 'UPLOADING');
+      res.json({ success: true, message: 'Front document captured successfully.', data: result });
+    } catch (err) { next(err); }
+  }
+
+  // POST /api/identity-verification/mobile/:token/upload-back
+  async uploadMobileBack(req, res, next) {
+    try {
+      const status = await identityVerificationService.getMobileSessionStatus(req.params.token);
+      if (!status || !status.sessionId) {
+        return res.status(404).json({ error: 'Mobile verification session not found or expired.' });
+      }
+      const { imagePayload, image, photo, file } = req.body || {};
+      const payload = imagePayload || image || photo || file;
+      const result = await identityVerificationService.uploadBackDocument(status.sessionId, payload, 1);
+      res.json({ success: true, message: 'Back document captured successfully.', data: result });
+    } catch (err) { next(err); }
+  }
+
+  // POST /api/identity-verification/mobile/:token/upload-selfie
+  async uploadMobileSelfie(req, res, next) {
+    try {
+      const status = await identityVerificationService.getMobileSessionStatus(req.params.token);
+      if (!status || !status.sessionId) {
+        return res.status(404).json({ error: 'Mobile verification session not found or expired.' });
+      }
+      const { imagePayload, image, photo, file } = req.body || {};
+      const payload = imagePayload || image || photo || file;
+      const result = await identityVerificationService.uploadSelfieImage(status.sessionId, payload, 1);
+      res.json({ success: true, message: 'Selfie portrait captured successfully.', data: result });
+    } catch (err) { next(err); }
+  }
+
+  // POST /api/identity-verification/mobile/:token/complete
+  async completeMobile(req, res, next) {
+    try {
+      const status = await identityVerificationService.getMobileSessionStatus(req.params.token);
+      if (!status || !status.sessionId) {
+        return res.status(404).json({ error: 'Mobile verification session not found or expired.' });
+      }
+      const result = await identityVerificationService.completeVerification(status.sessionId, 1);
+      await identityVerificationService.updateMobileStatus(req.params.token, 'COMPLETED');
+      res.json({ success: true, message: 'Mobile verification finished successfully.', data: result });
+    } catch (err) { next(err); }
+  }
+
   // POST /api/identity-verification/:id/upload-front
   async uploadFront(req, res, next) {
     try {

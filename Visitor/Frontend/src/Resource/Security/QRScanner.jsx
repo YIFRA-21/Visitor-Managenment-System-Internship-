@@ -745,6 +745,19 @@ export default function QRScanner() {
                     </span>
                   )}
 
+                  {/* BIOMETRIC & DIGITAL ID VERIFICATION BADGE */}
+                  {(selectedVisitor.id_verification_status === 'APPROVED' || selectedVisitor.id_verification_status === 'VERIFIED' || selectedVisitor.is_identity_verified) ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center gap-1 shadow-xs">
+                      <ShieldCheck className="w-3 h-3 text-purple-400" />
+                      Biometric ID Verified
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700/60 flex items-center gap-1">
+                      <Shield className="w-3 h-3 text-slate-500" />
+                      Standard ID
+                    </span>
+                  )}
+
                   {/* ON-SITE OR SCHEDULED BADGE */}
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase ${

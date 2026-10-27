@@ -17,6 +17,7 @@ export const ROUTES = {
         CONFIRM: '/confirm',
         NOT_FOUND: '/not-found',
         ERROR: '/error',
+        MOBILE_VERIFY: '/mobile-verify',
     },
     VISITOR: {
         BASE: '/visitor',

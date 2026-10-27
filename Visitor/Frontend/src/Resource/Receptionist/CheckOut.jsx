@@ -852,6 +852,15 @@ export default function CheckOut() {
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/30">
                       Inside Building
                     </span>
+                    {activeSession.id_verification_status === 'APPROVED' || activeSession.id_verification_status === 'VERIFIED' ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-xs">
+                        🛡️ Biometrics & ID Verified
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1">
+                        🆔 Standard Badge
+                      </span>
+                    )}
                   </div>
                   <span className="text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5 text-amber-400" />
