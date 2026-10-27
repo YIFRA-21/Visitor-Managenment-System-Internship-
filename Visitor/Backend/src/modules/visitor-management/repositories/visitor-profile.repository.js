@@ -419,90 +419,6 @@ class VisitorProfileRepository {
     });
   }
 
-  // ─── Delete Visitor and Cascade Clean Associated Records ───
-  async deleteVisitor(visitorId, actorId) {
-    return await db.transaction(async (tx) => {
-      const rows = await tx.query(`SELECT id, email, visitor_code FROM visitors WHERE id = ?`, [visitorId]);
-      if (!rows || !rows[0]) return false;
-      const visitor = rows[0];
-
-      // 1. Clean up visitor documents and verification records
-      await tx.query(
-        `DELETE FROM visitor_document_verifications WHERE document_id IN (SELECT id FROM visitor_documents WHERE visitor_id = ?)`,
-        [visitorId]
-      ).catch(() => {});
-      await tx.query(`DELETE FROM visitor_documents WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-
-      // 2. Clean up visitor histories and appointment / checkin records
-      await tx.query(
-        `DELETE FROM visitor_histories WHERE visitor_id = ? OR (visitor_email = ? AND visitor_email IS NOT NULL AND visitor_email != '')`,
-        [visitorId, visitor.email || '']
-      ).catch(() => {});
-      await tx.query(`DELETE FROM visitor_checkins WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_checkouts WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM checkins WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM checkout_feedbacks WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM denied_checkins WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_arrivals WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_access_history WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_activity_log WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM access_logs WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM access_permissions WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM vehicle_access_logs WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-
-      // 3. Clean up appointments & calendar participants
-      await tx.query(`DELETE FROM appointment_participants WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM calendar_event_participants WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM appointments WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-
-      // 4. Clean up photos, vehicles, addresses, contacts, notes, passes
-      await tx.query(`DELETE FROM visitor_photos WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_vehicles WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_addresses WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_emergency_contacts WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_notes WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_passes WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_signatures WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_relationships WHERE visitor_id = ? OR related_visitor_id = ?`, [visitorId, visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_custom_values WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_consent_records WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_preferences WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_tag_mapping WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_waiting_queue WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_queues WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_watchlist WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_blacklist WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM identity_verifications WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_identity_verification WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_identity_verifications WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM host_notifications WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM notification_recipients WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM reception_activity_logs WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM reception_incidents WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM reception_notes WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM security_incidents WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM security_incidents_detail WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM surveillance_events WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM biometric_enrollment_records WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_biometrics WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_asset_returns WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_status_history WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-      await tx.query(`DELETE FROM visitor_profile_history WHERE visitor_id = ?`, [visitorId]).catch(() => {});
-
-      // 5. Delete or strict soft delete the visitor record
-      try {
-        await tx.query(`DELETE FROM visitors WHERE id = ?`, [visitorId]);
-      } catch (delErr) {
-        await tx.query(
-          `UPDATE visitors SET is_active = FALSE, is_archived = FALSE, deleted_at = CURRENT_TIMESTAMP, deleted_by = ?, status = 'DELETED' WHERE id = ?`,
-          [actorId, visitorId]
-        );
-      }
-
-      return true;
-    });
-  }
-
   // ─── Photo Management ───
   async addPhoto(visitorId, photoPath, capturedBy, rotation = 0, zoom = 1.0) {
     return await db.transaction(async (tx) => {
@@ -675,140 +591,102 @@ class VisitorProfileRepository {
 
   // ─── Delete Visitor & Cascade Clean History, Documents, Passes, etc. ───
   async deleteVisitor(visitorId, actorId) {
-    return await db.transaction(async (tx) => {
-      const visitors = await tx.query(
-        `SELECT id, email, user_id, visitor_code, reference_number FROM visitors WHERE id = ?`,
-        [visitorId]
-      );
-      if (!visitors[0]) return false;
+    const rows = await db.query(
+      `SELECT id, email, user_id, visitor_code FROM visitors WHERE id = ?`,
+      [visitorId]
+    );
+    if (!rows || !rows[0]) return false;
 
-      const v = visitors[0];
-      const id = v.id;
-      const email = v.email || '';
+    const v = rows[0];
+    const id = v.id;
+    const email = v.email ? String(v.email).trim().toLowerCase() : null;
+    const userId = v.user_id;
 
-      // Helper to safely execute cleanup queries
-      const safeDelete = async (sql, params = []) => {
-        try {
-          await tx.query(sql, params);
-        } catch (err) {
-          // Ignore if table or column doesn't exist
-        }
-      };
+    // Fast cascade delete: temporarily disable FK checks so all deletions execute in parallel without lock contention
+    await db.query(`SET FOREIGN_KEY_CHECKS = 0`).catch(() => {});
+    try {
+      await Promise.allSettled([
+        // Child & grandchild tables in parallel
+        db.query(`DELETE FROM appointment_participants WHERE appointment_id IN (SELECT id FROM appointments WHERE visitor_id = ?)`, [id]),
+        db.query(`DELETE FROM calendar_event_participants WHERE appointment_id IN (SELECT id FROM appointments WHERE visitor_id = ?)`, [id]),
+        db.query(`DELETE FROM checkout_feedbacks WHERE checkin_id IN (SELECT id FROM checkins WHERE visitor_id = ?)`, [id]),
+        db.query(`DELETE FROM checkout_feedbacks WHERE checkin_id IN (SELECT id FROM visitor_checkins WHERE visitor_id = ?)`, [id]),
+        db.query(`DELETE FROM visitor_document_verifications WHERE document_id IN (SELECT id FROM visitor_documents WHERE visitor_id = ?)`, [id]),
+        db.query(`DELETE FROM visitor_document_approvals WHERE document_id IN (SELECT id FROM visitor_documents WHERE visitor_id = ?)`, [id]),
+        db.query(`DELETE FROM visitor_documents WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_histories WHERE visitor_id = ? OR (visitor_email = ? AND visitor_email IS NOT NULL AND visitor_email != '')`, [id, email || '']),
+        db.query(`DELETE FROM visitor_checkins WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_checkouts WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM checkins WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM denied_checkins WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_arrivals WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_access_history WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_activity_log WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM access_logs WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM access_permissions WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM vehicle_access_logs WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM appointments WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_photos WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_vehicles WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_addresses WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_emergency_contacts WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_notes WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_passes WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_signatures WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_relationships WHERE visitor_id = ? OR related_visitor_id = ?`, [id, id]),
+        db.query(`DELETE FROM visitor_custom_values WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_consent_records WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_preferences WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_tag_mapping WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_waiting_queue WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_queues WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_watchlist WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_blacklist WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM identity_verifications WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_identity_verification WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_identity_verifications WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM host_notifications WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM notification_recipients WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM reception_activity_logs WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM reception_incidents WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM reception_notes WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM security_incidents WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM security_incidents_detail WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM surveillance_events WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM biometric_enrollment_records WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_biometrics WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_asset_returns WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_status_history WHERE visitor_id = ?`, [id]),
+        db.query(`DELETE FROM visitor_profile_history WHERE visitor_id = ?`, [id]),
+        // Delete the visitor row
+        db.query(`DELETE FROM visitors WHERE id = ?`, [id])
+      ]);
 
-      // 1. Grandchild tables (cascade cleanup before child tables are deleted)
-      await safeDelete(
-        `DELETE FROM appointment_participants WHERE appointment_id IN (SELECT id FROM appointments WHERE visitor_id = ?)`,
-        [id]
-      );
-      await safeDelete(
-        `DELETE FROM calendar_event_participants WHERE appointment_id IN (SELECT id FROM appointments WHERE visitor_id = ?)`,
-        [id]
-      );
-      await safeDelete(
-        `DELETE FROM checkout_feedbacks WHERE checkin_id IN (SELECT id FROM checkins WHERE visitor_id = ?)`,
-        [id]
-      );
-      await safeDelete(
-        `DELETE FROM checkout_feedbacks WHERE checkin_id IN (SELECT id FROM visitor_checkins WHERE visitor_id = ?)`,
-        [id]
-      );
-      await safeDelete(
-        `DELETE FROM visitor_document_verifications WHERE document_id IN (SELECT id FROM visitor_documents WHERE visitor_id = ?)`,
-        [id]
-      );
-      await safeDelete(
-        `DELETE FROM visitor_document_approvals WHERE document_id IN (SELECT id FROM visitor_documents WHERE visitor_id = ?)`,
-        [id]
-      );
-
-      // 2. Dynamic foreign key cascade: clean all foreign keys referencing visitors table
-      try {
-        const fks = await tx.query(`
-          SELECT TABLE_NAME, COLUMN_NAME
-          FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-          WHERE REFERENCED_TABLE_SCHEMA = 'visitor_db' AND REFERENCED_TABLE_NAME = 'visitors'
-        `);
-        for (const fk of fks) {
-          await safeDelete(`DELETE FROM ${fk.TABLE_NAME} WHERE ${fk.COLUMN_NAME} = ?`, [id]);
-        }
-      } catch (fkErr) {
-        // Fallback to manual deletion below
-      }
-
-      // 3. Known child & history tables (both FK and non-FK)
-      const childTables = [
-        'visitor_histories',
-        'visitor_consent_records',
-        'visitor_activity_log',
-        'visitor_tag_mapping',
-        'visitor_custom_values',
-        'visitor_preferences',
-        'visitor_queues',
-        'visitor_blacklist',
-        'visitor_documents',
-        'visitor_passes',
-        'appointments',
-        'visitor_photos',
-        'visitor_notes',
-        'visitor_addresses',
-        'visitor_vehicles',
-        'visitor_emergency_contacts',
-        'visitor_checkins',
-        'visitor_checkouts',
-        'checkins',
-        'denied_checkins',
-        'visitor_arrivals',
-        'visitor_access_history',
-        'access_logs',
-        'vehicle_access_logs',
-        'access_permissions',
-        'identity_verifications',
-        'visitor_identity_verifications',
-        'visitor_signatures',
-        'visitor_waiting_queue',
-        'visitor_watchlist',
-        'visitor_asset_returns',
-        'biometric_enrollment_records',
-        'visitor_biometrics',
-        'host_notifications',
-        'notification_recipients',
-        'reception_notes',
-        'reception_incidents',
-        'security_incidents',
-        'security_incidents_detail',
-        'surveillance_events',
-        'visitor_status_history',
-        'visitor_profile_history'
-      ];
-      for (const t of childTables) {
-        await safeDelete(`DELETE FROM ${t} WHERE visitor_id = ?`, [id]);
-      }
-
-      // 4. Visitor histories and documents linked by email
+      // If email existed, clean up any orphaned document/history references
       if (email) {
-        await safeDelete(`DELETE FROM visitor_histories WHERE visitor_email = ?`, [email]);
-        await safeDelete(`DELETE FROM visitor_documents WHERE visitor_email = ?`, [email]);
+        await Promise.allSettled([
+          db.query(`DELETE FROM visitor_histories WHERE visitor_email = ?`, [email]),
+          db.query(`DELETE FROM visitor_documents WHERE visitor_email = ?`, [email])
+        ]);
       }
+    } finally {
+      await db.query(`SET FOREIGN_KEY_CHECKS = 1`).catch(() => {});
+    }
 
-      // 5. Remove visitor row from visitors table
+    // Now safely clean up user credentials without any visitor locks active
+    if (userId) {
       try {
-        await tx.query(`DELETE FROM visitors WHERE id = ?`, [id]);
-      } catch (delErr) {
-        await tx.query(`SET FOREIGN_KEY_CHECKS = 0`).catch(() => {});
-        await tx.query(`DELETE FROM visitors WHERE id = ?`, [id]).catch(() => {});
-        await tx.query(`SET FOREIGN_KEY_CHECKS = 1`).catch(() => {});
-      }
-
-      // 6. If linked to a visitor user account or matching email, permanently delete it to free credentials
-      const userRepo = require('../../user-management/repositories/user.repository');
-      if (v.user_id) {
-        await userRepo.deleteUser(v.user_id).catch(() => {});
-      } else if (email) {
+        const userRepo = require('../../user-management/repositories/user.repository');
+        await userRepo.deleteUser(userId).catch(() => {});
+      } catch (uErr) {}
+    } else if (email) {
+      try {
+        const userRepo = require('../../user-management/repositories/user.repository');
         await userRepo.deleteUserByEmail(email).catch(() => {});
-      }
+      } catch (uErr) {}
+    }
 
-      return true;
-    });
+    return true;
   }
 
   // ─── Summary Statistics ───
