@@ -17,6 +17,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { reportsApi, getErrorMessage } from '../../services/api';
+import BackButton from '../../components/common/BackButton';
 
 export default function OperationalReports() {
     const [tab, setTab] = useState('visitors');
@@ -88,16 +89,19 @@ export default function OperationalReports() {
       }
     };
 
-    return (<div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-6 space-y-6">
+    return (<div className="min-h-screen bg-[#070b12] text-slate-100 p-4 md:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2">
-            <FileText className="h-6 w-6 text-indigo-500"/> Operational Reports Catalog
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Query and analyze real verified datasets across visitors, check-ins, security incidents, and audit trails
-          </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
+        <div className="flex items-center gap-3">
+          <BackButton fallbackUrl="/dashboard" title="Back to Dashboard" />
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-2.5 tracking-tight uppercase">
+              <FileText className="h-6 w-6 text-indigo-400"/> Operational Reports Catalog
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Query and analyze real verified datasets across visitors, check-ins, security incidents, and audit trails
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition">

@@ -1008,6 +1008,9 @@ export default function DashboardPage() {
             case 'appointment_reports':
                 return role === 'visitor' ? <VisitorDashboard /> : <AppointmentReportsView />;
             case 'audit_logs':
+            case 'audit-logs':
+            case 'audit':
+            case 'system_audit':
             case 'auditor_dashboard':
                 return role === 'visitor' ? <VisitorDashboard /> : (role === 'security_officer' ? <SecurityAuditLogsView /> : <AuditorDashboard onNavigate={(v) => navigate(`/dashboard?view=${v}`)} />);
             // System Settings
