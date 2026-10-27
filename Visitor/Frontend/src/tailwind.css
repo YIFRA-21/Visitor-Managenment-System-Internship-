@@ -204,6 +204,12 @@ input[type="checkbox"][role="switch"]:checked::before,
   transform: translateX(18px);
 }
 
+.vms-switch-knob {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
 /* ── Badge & tag visibility inside hovered rows ─────────────────────────── */
 table tbody tr:hover .badge,
 table tbody tr:hover [class*="badge"],
