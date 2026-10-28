@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Shield, QrCode, Key, Camera, Upload, Trash2, CheckCircle2, AlertCircle, Briefcase, MapPin, Lock, Edit3, RefreshCw, Printer, BadgeCheck, ShieldCheck, X, Sparkles } from 'lucide-react';
+import { User, Mail, Shield, QrCode, Key, Camera, Upload, Trash2, CheckCircle2, AlertCircle, Briefcase, MapPin, Lock, Edit3, RefreshCw, Printer, BadgeCheck, ShieldCheck, X, Sparkles, Eye, EyeOff } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -53,6 +53,9 @@ export default function EmployeeProfileView() {
         newPassword: '',
         confirmPassword: '',
     });
+    const [showCurrentPw, setShowCurrentPw] = useState(false);
+    const [showNewPw, setShowNewPw] = useState(false);
+    const [showConfirmPw, setShowConfirmPw] = useState(false);
     const [passwordErrors, setPasswordErrors] = useState({});
     const clearPasswordError = (f) => {
         if (passwordErrors[f]) {
@@ -865,56 +868,71 @@ export default function EmployeeProfileView() {
             <form onSubmit={handlePasswordSubmit} noValidate className="space-y-4 text-xs font-semibold">
               <div>
                 <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">{t('form.currentPassword', 'Current Password')}</label>
-                <input
-                  type="password"
-                  required
-                  value={passwordForm.currentPassword}
-                  data-invalid={Boolean(passwordErrors.currentPassword)}
-                  aria-invalid={Boolean(passwordErrors.currentPassword)}
-                  onChange={(e) => {
-                    setPasswordForm({ ...passwordForm, currentPassword: e.target.value });
-                    clearPasswordError('currentPassword');
-                  }}
-                  className={`w-full bg-slate-950 rounded-xl px-3 py-2.5 text-white focus:outline-none transition-all ${
-                    passwordErrors.currentPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
-                  }`}
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type={showCurrentPw ? 'text' : 'password'}
+                    required
+                    value={passwordForm.currentPassword}
+                    data-invalid={Boolean(passwordErrors.currentPassword)}
+                    aria-invalid={Boolean(passwordErrors.currentPassword)}
+                    onChange={(e) => {
+                      setPasswordForm({ ...passwordForm, currentPassword: e.target.value });
+                      clearPasswordError('currentPassword');
+                    }}
+                    className={`w-full bg-slate-950 rounded-xl px-3 py-2.5 pr-10 text-white focus:outline-none transition-all ${
+                      passwordErrors.currentPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                    }`}
+                  />
+                  <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-3 text-slate-400 hover:text-white">
+                    {showCurrentPw ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+                </div>
                 <FieldError error={passwordErrors.currentPassword} />
               </div>
               <div>
                 <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">{t('form.newPassword', 'New Password (Min 8 chars, mixed case & numbers)')}</label>
-                <input
-                  type="password"
-                  required
-                  value={passwordForm.newPassword}
-                  data-invalid={Boolean(passwordErrors.newPassword)}
-                  aria-invalid={Boolean(passwordErrors.newPassword)}
-                  onChange={(e) => {
-                    setPasswordForm({ ...passwordForm, newPassword: e.target.value });
-                    clearPasswordError('newPassword');
-                  }}
-                  className={`w-full bg-slate-950 rounded-xl px-3 py-2.5 text-white focus:outline-none transition-all ${
-                    passwordErrors.newPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
-                  }`}
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type={showNewPw ? 'text' : 'password'}
+                    required
+                    value={passwordForm.newPassword}
+                    data-invalid={Boolean(passwordErrors.newPassword)}
+                    aria-invalid={Boolean(passwordErrors.newPassword)}
+                    onChange={(e) => {
+                      setPasswordForm({ ...passwordForm, newPassword: e.target.value });
+                      clearPasswordError('newPassword');
+                    }}
+                    className={`w-full bg-slate-950 rounded-xl px-3 py-2.5 pr-10 text-white focus:outline-none transition-all ${
+                      passwordErrors.newPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                    }`}
+                  />
+                  <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 text-slate-400 hover:text-white">
+                    {showNewPw ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+                </div>
                 <FieldError error={passwordErrors.newPassword} />
               </div>
               <div>
                 <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">{t('form.confirmPassword', 'Confirm New Password')}</label>
-                <input
-                  type="password"
-                  required
-                  value={passwordForm.confirmPassword}
-                  data-invalid={Boolean(passwordErrors.confirmPassword)}
-                  aria-invalid={Boolean(passwordErrors.confirmPassword)}
-                  onChange={(e) => {
-                    setPasswordForm({ ...passwordForm, confirmPassword: e.target.value });
-                    clearPasswordError('confirmPassword');
-                  }}
-                  className={`w-full bg-slate-950 rounded-xl px-3 py-2.5 text-white focus:outline-none transition-all ${
-                    passwordErrors.confirmPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
-                  }`}
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type={showConfirmPw ? 'text' : 'password'}
+                    required
+                    value={passwordForm.confirmPassword}
+                    data-invalid={Boolean(passwordErrors.confirmPassword)}
+                    aria-invalid={Boolean(passwordErrors.confirmPassword)}
+                    onChange={(e) => {
+                      setPasswordForm({ ...passwordForm, confirmPassword: e.target.value });
+                      clearPasswordError('confirmPassword');
+                    }}
+                    className={`w-full bg-slate-950 rounded-xl px-3 py-2.5 pr-10 text-white focus:outline-none transition-all ${
+                      passwordErrors.confirmPassword ? 'border-2 border-rose-500 bg-rose-950/20' : 'border border-slate-800 focus:border-indigo-500'
+                    }`}
+                  />
+                  <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 text-slate-400 hover:text-white">
+                    {showConfirmPw ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+                </div>
                 <FieldError error={passwordErrors.confirmPassword} />
               </div>
               <div className="flex justify-end gap-2 pt-2">

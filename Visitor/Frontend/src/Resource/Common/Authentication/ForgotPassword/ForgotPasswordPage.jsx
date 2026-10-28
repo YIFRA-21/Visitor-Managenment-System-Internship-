@@ -868,7 +868,7 @@ export default function ForgotPasswordPage() {
                                                 onClick={() => setShowNewPw(!showNewPw)}
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
                                             >
-                                                {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                {showNewPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                                             </button>
                                         </div>
 
@@ -951,7 +951,7 @@ export default function ForgotPasswordPage() {
                                                 onClick={() => setShowConfirmPw(!showConfirmPw)}
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
                                             >
-                                                {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                {showConfirmPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                                             </button>
                                         </div>
                                         <FieldError error={fieldErrors.confirmPassword} id="forgot-confirmPassword-error" />

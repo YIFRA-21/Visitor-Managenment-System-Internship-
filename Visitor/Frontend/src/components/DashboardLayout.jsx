@@ -1116,7 +1116,7 @@ function ChangePasswordForm({ onClose }) {
         <div className="relative flex items-center">
           <input type={showCurrent ? 'text' : 'password'} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder={t('changePassword.enterCurrent')}/>
           <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-white">
-            {showCurrent ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+            {showCurrent ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
           </button>
         </div>
       </div>
@@ -1126,7 +1126,7 @@ function ChangePasswordForm({ onClose }) {
         <div className="relative flex items-center">
           <input type={showNew ? 'text' : 'password'} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t('changePassword.enterNew')}/>
           <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-white">
-            {showNew ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+            {showNew ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
           </button>
         </div>
       </div>
@@ -1136,7 +1136,7 @@ function ChangePasswordForm({ onClose }) {
         <div className="relative flex items-center">
           <input type={showConfirm ? 'text' : 'password'} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t('changePassword.reEnterNew')}/>
           <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-white">
-            {showConfirm ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+            {showConfirm ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
           </button>
         </div>
       </div>

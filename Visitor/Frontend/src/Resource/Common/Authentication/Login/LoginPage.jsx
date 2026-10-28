@@ -369,8 +369,8 @@ export default function LoginPage() {
             ? 'border-rose-500 bg-rose-950/20 text-rose-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20'
             : 'border-slate-800 focus:border-[#7F77DD] focus:ring-1 focus:ring-[#7F77DD]/20'}`} value={values.password} onChange={(e) => handleChange('password', e.target.value)} onBlur={() => handleBlur('password')} onKeyDown={handleKeyDown} onKeyUp={handleKeyDown} placeholder={t('login.enterPassword')} autoComplete="new-password" autoCorrect="off" autoCapitalize="none" spellCheck={false}/>
                   <div className="absolute right-4 inset-y-0 flex items-center z-10">
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="flex items-center justify-center text-slate-500 hover:text-slate-200 transition-colors duration-200" aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                      {showPassword ? (<EyeOff className="h-5 w-5"/>) : (<Eye className="h-5 w-5"/>)}
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="flex items-center justify-center text-slate-500 hover:text-slate-200 transition-colors duration-200" aria-label={showPassword ? 'Show password' : 'Hide password'}>
+                      {showPassword ? (<Eye className="h-5 w-5"/>) : (<EyeOff className="h-5 w-5"/>)}
                     </button>
                   </div>
                 </div>

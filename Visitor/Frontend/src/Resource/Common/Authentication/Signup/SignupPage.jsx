@@ -1184,7 +1184,7 @@ export default function SignupPage() {
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none z-10"/>
                       <input type={showPassword ? 'text' : 'password'} placeholder={t('signup.password')} className={`signup-field-input w-full pl-10 pr-10 py-3 rounded-xl text-xs font-bold outline-none ${fieldErrors.password ? 'border-2 border-rose-500 bg-rose-50/50' : ''}`} value={password} onChange={e => { setPassword(e.target.value); clearFieldError('password'); }}/>
                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer z-10">
-                        {showPassword ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+                        {showPassword ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
                       </button>
                     </div>
                     {fieldErrors.password && (
@@ -1245,7 +1245,7 @@ export default function SignupPage() {
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none z-10"/>
                       <input type={showConfirmPassword ? 'text' : 'password'} placeholder={t('signup.confirmPassword')} className={`signup-field-input w-full pl-10 pr-10 py-3 rounded-xl text-xs font-bold outline-none ${fieldErrors.confirmPassword ? 'border-2 border-rose-500 bg-rose-50/50' : ''}`} value={confirmPassword} onChange={e => { setConfirmPassword(e.target.value); clearFieldError('confirmPassword'); }}/>
                       <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer z-10">
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+                        {showConfirmPassword ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
                       </button>
                     </div>
                     {fieldErrors.confirmPassword && (

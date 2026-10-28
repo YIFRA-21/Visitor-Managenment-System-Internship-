@@ -149,7 +149,7 @@ export default function ChangePasswordPage() {
                     ? 'border-rose-500 bg-rose-950/20 text-rose-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20'
                     : 'border-slate-800 focus:border-[#7F77DD] focus:ring-1 focus:ring-[#7F77DD]/20'}`} value={values.currentPassword} onChange={(e) => handleChange('currentPassword', e.target.value)} onBlur={() => handleBlur('currentPassword')} placeholder="Enter your current password" autoComplete="current-password"/>
                           <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-                            {showCurrentPw ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+                            {showCurrentPw ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
                           </button>
                         </div>
                         <FieldError error={errors.currentPassword} id="cp-current-error"/>
@@ -165,7 +165,7 @@ export default function ChangePasswordPage() {
                 ? 'border-rose-500 bg-rose-950/20 text-rose-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20'
                 : 'border-slate-800 focus:border-[#7F77DD] focus:ring-1 focus:ring-[#7F77DD]/20'}`} value={values.newPassword} onChange={(e) => handleChange('newPassword', e.target.value)} onBlur={() => handleBlur('newPassword')} placeholder="Minimum 8 characters" autoComplete="new-password"/>
                         <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-                          {showNewPw ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+                          {showNewPw ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
                         </button>
                       </div>
                       <FieldError error={errors.newPassword} id="cp-new-error"/>
@@ -182,7 +182,7 @@ export default function ChangePasswordPage() {
                 ? 'border-rose-500 bg-rose-950/20 text-rose-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20'
                 : 'border-slate-800 focus:border-[#7F77DD] focus:ring-1 focus:ring-[#7F77DD]/20'}`} value={values.confirmPassword} onChange={(e) => handleChange('confirmPassword', e.target.value)} onBlur={() => handleBlur('confirmPassword')} placeholder="Re-enter new password" autoComplete="new-password"/>
                         <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-                          {showConfirmPw ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+                          {showConfirmPw ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
                         </button>
                       </div>
                       <FieldError error={errors.confirmPassword} id="cp-confirm-error"/>
