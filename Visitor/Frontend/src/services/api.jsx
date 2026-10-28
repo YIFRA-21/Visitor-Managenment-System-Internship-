@@ -4,7 +4,7 @@ const API_URL = getApiBaseUrl();
 const api = axios.create({
     baseURL: API_URL,
     headers: { 'Content-Type': 'application/json' },
-    timeout: 30000, // 30 second timeout for all requests
+    timeout: 60000, // 60 second timeout for resilient cloud DB & SMTP requests
     transformResponse: [
         function (data) {
             if (typeof data !== 'string') return data;

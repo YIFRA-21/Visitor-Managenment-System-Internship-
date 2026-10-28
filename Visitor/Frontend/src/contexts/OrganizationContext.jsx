@@ -28,11 +28,19 @@ export const OrganizationProvider = ({ children }) => {
             const cached = localStorage.getItem(CACHE_KEY);
             if (cached) {
                 const parsed = JSON.parse(cached);
-                if (!parsed.name || parsed.name.toLowerCase().includes('it park') || (parsed.email && parsed.email.toLowerCase().includes('itpark')) || (parsed.phone && parsed.phone.includes('921109998'))) {
+                if (
+                    !parsed.name ||
+                    parsed.name.toLowerCase().includes('it park') ||
+                    (parsed.email && parsed.email.toLowerCase().includes('itpark')) ||
+                    (parsed.phone && parsed.phone.includes('921109998')) ||
+                    (parsed.website && parsed.website.toLowerCase().includes('itpark'))
+                ) {
                     parsed.name = 'Enterprise VMS Global';
                     parsed.shortName = 'EVMS';
                     parsed.email = 'info@enterprisevms.com';
                     parsed.phone = '+251 11 123 4567';
+                    parsed.website = 'https://enterprisevms.com';
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(parsed));
                 }
                 return { ...DEFAULT_ORGANIZATION, ...parsed };
             }
@@ -159,18 +167,23 @@ export const OrganizationProvider = ({ children }) => {
     const orgName = (organization.name && !organization.name.toLowerCase().includes('it park'))
         ? organization.name
         : 'Enterprise VMS Global';
-    const cleanOrganization = {
-        ...organization,
-        name: orgName,
-        shortName: (organization.shortName && organization.shortName !== 'ITP') ? organization.shortName : 'EVMS',
-    };
     const orgEmail = (organization.email && !organization.email.toLowerCase().includes('itpark'))
         ? organization.email
         : 'info@enterprisevms.com';
     const orgPhone = (organization.phone && !organization.phone.includes('921109998'))
         ? organization.phone
         : '+251 11 123 4567';
-    const orgWebsite = organization.website || 'https://enterprisevms.com';
+    const orgWebsite = (organization.website && !organization.website.toLowerCase().includes('itpark'))
+        ? organization.website
+        : 'https://enterprisevms.com';
+    const cleanOrganization = {
+        ...organization,
+        name: orgName,
+        shortName: (organization.shortName && organization.shortName !== 'ITP') ? organization.shortName : 'EVMS',
+        email: orgEmail,
+        phone: orgPhone,
+        website: orgWebsite,
+    };
     return (<OrganizationContext.Provider value={{
             organization: cleanOrganization,
             loading,

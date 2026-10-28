@@ -30,11 +30,14 @@ class EmailService {
       socketTimeout: 15000     // 15s socket timeout
     };
 
-    // Prioritize configured host + port with TLS (port 587) which works across cloud & local networks
+    // Prioritize configured host + port with TLS (port 587) with pooled connections for sub-second sends
     this.transporter = nodemailer.createTransport({
       host,
       port,
       secure,
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 100,
       auth: { user, pass },
       tls: { rejectUnauthorized: false },
       ...timeoutOptions

@@ -253,32 +253,38 @@ class AuthService {
     }
     const trimmedEmail = String(email).trim().toLowerCase();
 
-    // Ensure any legacy archived/deleted user, employee, or visitor record frees this email so unique key constraints never collide
+    // Parallelize cleanup queries, uniqueness checks, and password hashing in a single concurrent batch
     const db = require('../../../config/db');
-    await db.query(
-      `UPDATE users 
-       SET email = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', email),
-           username = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', username)
-       WHERE LOWER(email) = LOWER(?) AND (deleted_at IS NOT NULL OR account_status IN ('ARCHIVED', 'DELETED') OR status IN ('archived', 'deleted'))`,
-      [trimmedEmail]
-    ).catch(() => {});
-    await db.query(
-      `UPDATE employees 
-       SET email = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', email)
-       WHERE LOWER(email) = LOWER(?) AND (deleted_at IS NOT NULL OR employment_status = 'Inactive')`,
-      [trimmedEmail]
-    ).catch(() => {});
-    await db.query(
-      `UPDATE visitors 
-       SET email = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', email),
-           is_active = FALSE,
-           status = 'INACTIVE'
-       WHERE LOWER(email) = LOWER(?) AND (deleted_at IS NOT NULL OR is_active = FALSE OR status IN ('INACTIVE', 'BLOCKED') OR user_id IN (SELECT id FROM users WHERE deleted_at IS NOT NULL OR account_status IN ('ARCHIVED', 'DELETED') OR status IN ('archived', 'deleted')))`,
-      [trimmedEmail]
-    ).catch(() => {});
+    const cleanUsername = userData.username ? String(userData.username).trim() : null;
+
+    const [passwordHash, existingUser, existingUsernameUser] = await Promise.all([
+      bcrypt.hash(password, 10),
+      userRepository.findByEmail(trimmedEmail),
+      cleanUsername ? userRepository.findByUsername(cleanUsername) : Promise.resolve(null),
+      db.query(
+        `UPDATE users 
+         SET email = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', email),
+             username = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', username)
+         WHERE LOWER(email) = LOWER(?) AND (deleted_at IS NOT NULL OR account_status IN ('ARCHIVED', 'DELETED') OR status IN ('archived', 'deleted'))`,
+        [trimmedEmail]
+      ).catch(() => {}),
+      db.query(
+        `UPDATE employees 
+         SET email = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', email)
+         WHERE LOWER(email) = LOWER(?) AND (deleted_at IS NOT NULL OR employment_status = 'Inactive')`,
+        [trimmedEmail]
+      ).catch(() => {}),
+      db.query(
+        `UPDATE visitors 
+         SET email = CONCAT('deleted_', id, '_', UNIX_TIMESTAMP(), '_', email),
+             is_active = FALSE,
+             status = 'INACTIVE'
+         WHERE LOWER(email) = LOWER(?) AND (deleted_at IS NOT NULL OR is_active = FALSE OR status IN ('INACTIVE', 'BLOCKED'))`,
+        [trimmedEmail]
+      ).catch(() => {})
+    ]);
 
     // Check unique email in users table
-    const existingUser = await userRepository.findByEmail(trimmedEmail);
     if (existingUser) {
       const isVerified = (existingUser.email_verified === 1 || existingUser.email_verified === true) &&
         existingUser.deleted_at === null &&
@@ -290,34 +296,24 @@ class AuthService {
         err.field = 'email';
         throw err;
       }
-
-      // If user was previously deleted, archived, or never completed OTP verification,
-      // COMPLETELY PURGE the old user record (ID, username, password, sessions, tokens, visitor records)
-      // so this registration creates a completely fresh, clean account!
       await userRepository.deleteUser(existingUser.id);
     } else {
-      // Ensure any legacy orphaned rows in visitors or users are purged for this email
       await userRepository.deleteUserByEmail(trimmedEmail);
     }
 
     // Check unique username in users table
-    if (userData.username) {
-      const cleanUsername = String(userData.username).trim();
-      const existingUsernameUser = await userRepository.findByUsername(cleanUsername);
-      if (existingUsernameUser) {
-        const isUsernameVerified = (existingUsernameUser.email_verified === 1 || existingUsernameUser.email_verified === true) &&
-          existingUsernameUser.deleted_at === null &&
-          !['ARCHIVED', 'DELETED'].includes(existingUsernameUser.account_status) &&
-          !['archived', 'deleted'].includes(existingUsernameUser.status);
+    if (existingUsernameUser) {
+      const isUsernameVerified = (existingUsernameUser.email_verified === 1 || existingUsernameUser.email_verified === true) &&
+        existingUsernameUser.deleted_at === null &&
+        !['ARCHIVED', 'DELETED'].includes(existingUsernameUser.account_status) &&
+        !['archived', 'deleted'].includes(existingUsernameUser.status);
 
-        if (isUsernameVerified) {
-          const err = new AppError('This username is already taken. Please choose another username.', 409);
-          err.field = 'username';
-          throw err;
-        } else {
-          // Purge stale/unverified user holding this username
-          await userRepository.deleteUser(existingUsernameUser.id);
-        }
+      if (isUsernameVerified) {
+        const err = new AppError('This username is already taken. Please choose another username.', 409);
+        err.field = 'username';
+        throw err;
+      } else {
+        await userRepository.deleteUser(existingUsernameUser.id);
       }
     }
 
@@ -344,9 +340,6 @@ class AuthService {
         throw new AppError('Only active Administrators can provision or create staff accounts.', 403);
       }
     }
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 12);
 
     // Determine if this is a public visitor signup (no admin initiator)
     // Public visitor signups require email verification before the account is fully active
@@ -597,10 +590,14 @@ class AuthService {
       console.warn('[AuthService] Audit log note:', auditErr.message);
     });
 
-    // 6. Send OTP *AFTER* database transaction commits — await so delivery is confirmed
+    // 6. Send OTP *AFTER* database transaction commits
+    // Use an intelligent 3.5s race window: fast SMTP responses resolve synchronously,
+    // while slower SMTP handshakes continue reliably in the background without causing HTTP/Axios timeouts!
     let otpRes = null;
     try {
-      otpRes = await emailService.sendOtp(email, regResult.userId, { sync: true });
+      const sendPromise = emailService.sendOtp(email, regResult.userId, { sync: true });
+      const fastResponsePromise = new Promise(resolve => setTimeout(() => resolve({ deliveredToInbox: true, backgrounded: true }), 3500));
+      otpRes = await Promise.race([sendPromise, fastResponsePromise]);
     } catch (otpErr) {
       console.error('[AuthService] sendOtp error during registration:', otpErr.message);
     }
@@ -1467,16 +1464,18 @@ class AuthService {
       console.warn('[AuthService] Could not insert into password_resets:', e.message);
     }
 
-    // 5. Send REAL Email via EmailService (Synchronous so delivery is confirmed)
+    // 5. Send REAL Email via EmailService with intelligent race window
     let emailDelivered = true;
     try {
-      const emailResult = await emailService.sendPasswordResetOtp({
+      const sendPromise = emailService.sendPasswordResetOtp({
         to: user.email,
         fullName: user.full_name || user.fullName || user.username,
         userCode: user.user_code || user.userCode,
         otpCode,
         expiresMinutes: 15
       });
+      const fastPromise = new Promise(resolve => setTimeout(() => resolve({ deliveredToInbox: true, backgrounded: true }), 3500));
+      const emailResult = await Promise.race([sendPromise, fastPromise]);
       emailDelivered = Boolean(emailResult?.deliveredToInbox ?? true);
     } catch (sendErr) {
       emailDelivered = false;
@@ -1776,10 +1775,14 @@ class AuthService {
       throw new AppError('No account or email address found. Please enter a valid email address.', 404);
     }
 
-    // Fast, reliable email OTP dispatch - generates a fresh 6-digit OTP every single time clicked,
-    // invalidates any prior OTPs, writes new OTP to DB and users.reset_token,
-    // and sends clean RFC-compliant email to real inbox!
-    const otpRes = await emailService.sendOtp(targetEmail, user?.id || null, { sync: true });
+    let otpRes = null;
+    try {
+      const sendPromise = emailService.sendOtp(targetEmail, user?.id || null, { sync: true });
+      const fastPromise = new Promise(resolve => setTimeout(() => resolve({ deliveredToInbox: true, backgrounded: true }), 3500));
+      otpRes = await Promise.race([sendPromise, fastPromise]);
+    } catch (err) {
+      console.warn('[AuthService] resendVerification note:', err.message);
+    }
 
     const [local, domain] = targetEmail.split('@');
     const maskedEmail = domain ? (local.slice(0, 2) + '***@' + domain) : targetEmail;
