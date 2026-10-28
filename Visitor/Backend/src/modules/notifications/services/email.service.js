@@ -20,8 +20,8 @@ class EmailService {
     const host = process.env.SMTP_HOST || 'smtp.gmail.com';
     const port = parseInt(process.env.SMTP_PORT || '587');
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-    const user = (process.env.SMTP_USER || 'shewerke21@gmail.com').trim();
-    const rawPass = (process.env.SMTP_PASS || 'mfipytyqlzqukdlu').trim();
+    const user = (process.env.SMTP_USER || '').trim();
+    const rawPass = (process.env.SMTP_PASS || '').trim();
     const pass = rawPass.replace(/\s+/g, '');
 
     const timeoutOptions = {
@@ -47,7 +47,7 @@ class EmailService {
    */
   getFromAddress() {
     const rawFrom = process.env.EMAIL_FROM || '';
-    const fallbackUser = (process.env.SMTP_USER || 'shewerke21@gmail.com').trim();
+    const fallbackUser = (process.env.SMTP_USER || 'noreply@example.com').trim();
     const match = rawFrom.match(/<([^>]+)>/) || rawFrom.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
     const email = match ? match[1].trim() : fallbackUser;
     return `"Visitor Management System" <${email}>`;
@@ -197,7 +197,10 @@ class EmailService {
           try {
             const directTransporter = nodemailer.createTransport({
               service: 'gmail',
-              auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' }
+              auth: {
+                user: (process.env.SMTP_USER || '').trim(),
+                pass: (process.env.SMTP_PASS || '').replace(/\s+/g, '')
+              }
             });
             const retryInfo = await directTransporter.sendMail(mailOptions);
             this.transporter = directTransporter;
@@ -278,8 +281,8 @@ class EmailService {
           const directTransporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-              user: (process.env.SMTP_USER || 'shewerke21@gmail.com').trim(),
-              pass: (process.env.SMTP_PASS || 'mfipytyqlzqukdlu').replace(/\s+/g, '')
+              user: (process.env.SMTP_USER || '').trim(),
+              pass: (process.env.SMTP_PASS || '').replace(/\s+/g, '')
             },
             connectionTimeout: 10000,
             greetingTimeout: 8000,
