@@ -153,7 +153,7 @@ export default function VisitorNotifications({ initialTab }) {
             is_group: true,
             member_count: 4,
             members: [
-                { name: 'Dr. Evelyn Carter', role: 'Host Employee', online: true, email: 'evelyn@itpark.et' },
+                { name: 'Dr. Evelyn Carter', role: 'Host Employee', online: true, email: 'evelyn@enterprisevms.com' },
                 { name: 'Reception Officer', role: 'Front Desk', online: true, email: 'reception@vms.com' },
                 { name: 'Security Kiosk', role: 'Security Clearance', online: true, email: 'gate@vms.com' }
             ]
@@ -168,7 +168,7 @@ export default function VisitorNotifications({ initialTab }) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             recipient_name: 'Dr. Evelyn Carter',
-            recipient_email: 'evelyn@itpark.et',
+            recipient_email: 'evelyn@enterprisevms.com',
             last_message_body: 'Evelyn: See you in Boardroom A.',
             last_message_time: '09:50 AM',
             unread_count: 0,

@@ -28,9 +28,11 @@ export const OrganizationProvider = ({ children }) => {
             const cached = localStorage.getItem(CACHE_KEY);
             if (cached) {
                 const parsed = JSON.parse(cached);
-                if (!parsed.name || parsed.name.toLowerCase().includes('it park')) {
+                if (!parsed.name || parsed.name.toLowerCase().includes('it park') || (parsed.email && parsed.email.toLowerCase().includes('itpark')) || (parsed.phone && parsed.phone.includes('921109998'))) {
                     parsed.name = 'Enterprise VMS Global';
                     parsed.shortName = 'EVMS';
+                    parsed.email = 'info@enterprisevms.com';
+                    parsed.phone = '+251 11 123 4567';
                 }
                 return { ...DEFAULT_ORGANIZATION, ...parsed };
             }
@@ -162,8 +164,12 @@ export const OrganizationProvider = ({ children }) => {
         name: orgName,
         shortName: (organization.shortName && organization.shortName !== 'ITP') ? organization.shortName : 'EVMS',
     };
-    const orgEmail = organization.email || 'info@enterprisevms.com';
-    const orgPhone = organization.phone || '+251 11 123 4567';
+    const orgEmail = (organization.email && !organization.email.toLowerCase().includes('itpark'))
+        ? organization.email
+        : 'info@enterprisevms.com';
+    const orgPhone = (organization.phone && !organization.phone.includes('921109998'))
+        ? organization.phone
+        : '+251 11 123 4567';
     const orgWebsite = organization.website || 'https://enterprisevms.com';
     return (<OrganizationContext.Provider value={{
             organization: cleanOrganization,

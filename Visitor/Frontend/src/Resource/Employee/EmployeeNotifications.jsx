@@ -203,7 +203,7 @@ export default function EmployeeNotifications({ initialTab }) {
                 { name: 'Emily Williams', role: 'Reception Officer', online: true, email: 'emily@vms.com' },
                 { name: 'James Anderson', role: 'Security Officer', online: true, email: 'james@vms.com' },
                 { name: 'Michael John', role: 'System Admin', online: true, email: 'michael@vms.com' },
-                { name: 'David Wilson', role: 'Guest Visitor', online: false, email: 'david@itpark.et' }
+                { name: 'David Wilson', role: 'Guest Visitor', online: false, email: 'david@enterprisevms.com' }
             ]
         },
         {
@@ -309,7 +309,7 @@ export default function EmployeeNotifications({ initialTab }) {
                 { id: 1, full_name: 'Girume Admin', email: 'admin@vms.com', role_type: 'admin', role_label: 'System Admin' },
                 { id: 2, full_name: 'Sarah Connor (Reception Desk)', email: 'reception@vms.com', role_type: 'receptionist', role_label: 'Reception Officer' },
                 { id: 3, full_name: 'Officer Davis (Security)', email: 'security@vms.com', role_type: 'security', role_label: 'Security Officer' },
-                { id: 4, full_name: 'Dr. Evelyn Carter', email: 'evelyn@itpark.et', role_type: 'visitor', role_label: 'Guest Visitor' },
+                { id: 4, full_name: 'Dr. Evelyn Carter', email: 'evelyn@enterprisevms.com', role_type: 'visitor', role_label: 'Guest Visitor' },
             ]);
         }
     }, []);

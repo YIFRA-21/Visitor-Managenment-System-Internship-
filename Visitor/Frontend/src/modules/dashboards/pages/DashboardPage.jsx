@@ -1189,8 +1189,8 @@ function VisitorHelpDesk() {
         </div>
         <div>
           <h4 className="font-bold text-white uppercase mb-1">Support Contact</h4>
-          <p>Help Desk Hotlines: +251921109998 (Ext. 9)</p>
-          <p>Email Help: helpdesk@visitor.com</p>
+          <p>Help Desk Hotlines: +251 11 123 4567 (Ext. 9)</p>
+          <p>Email Help: info@enterprisevms.com</p>
         </div>
       </div>
     </div>);
