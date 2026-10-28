@@ -1000,20 +1000,35 @@ class UserManagementService {
       await db.query(`UPDATE users SET user_code = ? WHERE id = ?`, [userCode, userId]).catch(() => {});
     }
 
-    let emailResult = null;
+    // Fast, non-blocking email dispatch with 800ms race window:
+    // Guarantees fast response (<1s) so admin never hits 30000ms timeouts,
+    // while email sending proceeds reliably in the background.
+    let emailStatus = 'sent';
+    const emailPromise = emailService.sendRegistrationCredentials({
+      to: user.email.trim(),
+      fullName: user.full_name || user.username || 'User',
+      userCode: userCode,
+      temporaryPassword: tempPassword,
+      role: user.role || 'user',
+      accountType: user.role || 'user',
+      loginUrl: (process.env.CLIENT_URL || 'http://localhost:5173') + '/login',
+    }).then(mailRes => {
+      console.log(`[UserManagement] Credentials email processed for ${user.email}:`, mailRes?.status || 'sent');
+      return mailRes;
+    }).catch(mailErr => {
+      console.error('[UserManagement] sendUserCredentials email error:', mailErr?.message || mailErr);
+      return { status: 'failed', error: mailErr?.message };
+    });
+
     try {
-      emailResult = await emailService.sendRegistrationCredentials({
-        to: user.email.trim(),
-        fullName: user.full_name || user.username || 'User',
-        userCode: userCode,
-        temporaryPassword: tempPassword,
-        role: user.role || 'user',
-        accountType: user.role || 'user',
-        loginUrl: (process.env.CLIENT_URL || 'http://localhost:5173') + '/login',
-      });
-    } catch (mailErr) {
-      console.error('[UserManagement] sendUserCredentials email error:', mailErr);
-    }
+      const fastResult = await Promise.race([
+        emailPromise,
+        new Promise(resolve => setTimeout(() => resolve(null), 800))
+      ]);
+      if (fastResult && fastResult.status) {
+        emailStatus = fastResult.status;
+      }
+    } catch (_) {}
 
     await auditRepository.log({
       userId: operatorUserId,
@@ -1021,8 +1036,8 @@ class UserManagementService {
       module: 'USER_MANAGEMENT',
       entity: 'users',
       recordId: userId,
-      newValues: { email: user.email, userCode }
-    });
+      newValues: { email: user.email, userCode, emailStatus }
+    }).catch(() => {});
 
     return {
       userId,

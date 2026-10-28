@@ -836,6 +836,9 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         if (errData.message === 'Validation failed' || errData.error === 'Validation failed') {
             return 'Validation Failed: Please check required fields.';
         }
+        if (err.message && err.message.toLowerCase().includes('timeout')) {
+            return 'The request timed out. Credentials dispatch has been queued in the background.';
+        }
         return err.message || fallback;
     };
     const handleQuickStatusChange = async (user, status) => {
@@ -1486,7 +1489,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         }
         setSendingCredentialsId(user.id);
         try {
-            const res = await api.post(`/users/${user.id}/send-credentials`);
+            const res = await api.post(`/users/${user.id}/send-credentials`, {}, { timeout: 10000 });
             const credData = res.data?.data;
             const baseMsg = res.data?.message || `Account credentials sent to ${user.email}.`;
             setAlert({

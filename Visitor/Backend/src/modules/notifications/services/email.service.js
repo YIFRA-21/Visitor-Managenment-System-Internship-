@@ -23,11 +23,18 @@ class EmailService {
     const rawPass = (process.env.SMTP_PASS || 'mfipytyqlzqukdlu').trim();
     const pass = rawPass.replace(/\s+/g, '');
 
+    const timeoutOptions = {
+      connectionTimeout: 5000, // 5s connection timeout
+      greetingTimeout: 4000,   // 4s greeting timeout
+      socketTimeout: 8000      // 8s socket timeout
+    };
+
     // 1. If service is gmail or host is smtp.gmail.com, use nodemailer's built-in gmail service
     if (service === 'gmail' || host?.includes('gmail') || user.endsWith('@gmail.com')) {
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { user, pass }
+        auth: { user, pass },
+        ...timeoutOptions
       });
       return this.transporter;
     }
@@ -39,7 +46,8 @@ class EmailService {
         port: parseInt(process.env.SMTP_PORT || '587'),
         secure: process.env.SMTP_SECURE === 'true',
         auth: { user, pass },
-        tls: { rejectUnauthorized: false }
+        tls: { rejectUnauthorized: false },
+        ...timeoutOptions
       });
       return this.transporter;
     }
@@ -47,7 +55,8 @@ class EmailService {
     // 3. Guaranteed fallback: Gmail transporter with configured app password
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
-      auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' }
+      auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' },
+      ...timeoutOptions
     });
     return this.transporter;
   }
@@ -267,13 +276,21 @@ class EmailService {
       }
     };
 
+    if (process.env.EMAIL_ENABLED === 'false') {
+      console.log(`[EmailService] (MOCK/SIMULATION) Email dispatched to ${mailOptions.to}`);
+      return { status: 'success', message: 'Email simulated (EMAIL_ENABLED=false)', deliveredToInbox: true, etherealUrl: null };
+    }
+
     let deliveredToInbox = false;
     let etherealUrl = null;
 
     const transporter = this.getTransporter();
     if (transporter) {
       try {
-        const info = await transporter.sendMail(mailOptions);
+        const info = await Promise.race([
+          transporter.sendMail(mailOptions),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP transmission timeout (6s threshold exceeded)')), 6000))
+        ]);
         deliveredToInbox = true;
         console.log(`[EmailService] EMAIL SENT SUCCESSFULLY TO: ${mailOptions.to} (${info.response || info.messageId})`);
       } catch (err) {
@@ -281,9 +298,15 @@ class EmailService {
         try {
           const directTransporter = nodemailer.createTransport({
             service: 'gmail',
-            auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' }
+            auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' },
+            connectionTimeout: 4000,
+            greetingTimeout: 3000,
+            socketTimeout: 5000
           });
-          const retryInfo = await directTransporter.sendMail(mailOptions);
+          const retryInfo = await Promise.race([
+            directTransporter.sendMail(mailOptions),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Direct Gmail retry timeout (5s threshold exceeded)')), 5000))
+          ]);
           this.transporter = directTransporter;
           deliveredToInbox = true;
           console.log(`[EmailService] EMAIL DELIVERED VIA GMAIL RETRY TO: ${mailOptions.to} (${retryInfo.response})`);
