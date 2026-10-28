@@ -184,7 +184,7 @@ export default function LoginPage() {
         }}/>
             </div>
             <span className="text-xl font-bold tracking-tight text-white">
-              {orgName}
+              {orgName && !orgName.toLowerCase().includes('it park') ? orgName : 'Enterprise VMS Global'}
             </span>
           </div>
         </div>

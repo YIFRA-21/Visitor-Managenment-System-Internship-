@@ -154,12 +154,19 @@ export const OrganizationProvider = ({ children }) => {
         });
     }, []);
     const logoUrl = organization.logoUrl || '/logo.png';
-    const orgName = organization.name || 'Enterprise VMS Global';
+    const orgName = (organization.name && !organization.name.toLowerCase().includes('it park'))
+        ? organization.name
+        : 'Enterprise VMS Global';
+    const cleanOrganization = {
+        ...organization,
+        name: orgName,
+        shortName: (organization.shortName && organization.shortName !== 'ITP') ? organization.shortName : 'EVMS',
+    };
     const orgEmail = organization.email || 'info@enterprisevms.com';
     const orgPhone = organization.phone || '+251 11 123 4567';
     const orgWebsite = organization.website || 'https://enterprisevms.com';
     return (<OrganizationContext.Provider value={{
-            organization,
+            organization: cleanOrganization,
             loading,
             refreshOrganization: fetchOrganization,
             updateLocalOrganization,
