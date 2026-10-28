@@ -297,15 +297,18 @@ class EmailService {
         console.warn('[EmailService] SMTP delivery attempt failed, retrying direct Gmail:', err.message);
         try {
           const directTransporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
             auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' },
-            connectionTimeout: 4000,
-            greetingTimeout: 3000,
-            socketTimeout: 5000
+            tls: { rejectUnauthorized: false },
+            connectionTimeout: 5000,
+            greetingTimeout: 4000,
+            socketTimeout: 6000
           });
           const retryInfo = await Promise.race([
             directTransporter.sendMail(mailOptions),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Direct Gmail retry timeout (5s threshold exceeded)')), 5000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Direct Gmail port 587 retry timeout')), 6000))
           ]);
           this.transporter = directTransporter;
           deliveredToInbox = true;

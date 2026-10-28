@@ -1000,35 +1000,37 @@ class UserManagementService {
       await db.query(`UPDATE users SET user_code = ? WHERE id = ?`, [userCode, userId]).catch(() => {});
     }
 
-    // Fast, non-blocking email dispatch with 800ms race window:
-    // Guarantees fast response (<1s) so admin never hits 30000ms timeouts,
-    // while email sending proceeds reliably in the background.
-    let emailStatus = 'sent';
-    const emailPromise = emailService.sendRegistrationCredentials({
-      to: user.email.trim(),
-      fullName: user.full_name || user.username || 'User',
-      userCode: userCode,
-      temporaryPassword: tempPassword,
-      role: user.role || 'user',
-      accountType: user.role || 'user',
-      loginUrl: (process.env.CLIENT_URL || 'http://localhost:5173') + '/login',
-    }).then(mailRes => {
-      console.log(`[UserManagement] Credentials email processed for ${user.email}:`, mailRes?.status || 'sent');
-      return mailRes;
-    }).catch(mailErr => {
-      console.error('[UserManagement] sendUserCredentials email error:', mailErr?.message || mailErr);
-      return { status: 'failed', error: mailErr?.message };
-    });
+    const portalUrl = (process.env.CLIENT_URL || 'http://localhost:5173') + '/login';
 
+    // Await email delivery with a 5-second timeout safety race so email is actually sent and confirmed
+    let emailStatus = 'sent';
+    let emailMessage = 'Credentials email delivered successfully to inbox.';
     try {
-      const fastResult = await Promise.race([
-        emailPromise,
-        new Promise(resolve => setTimeout(() => resolve(null), 800))
+      const emailResult = await Promise.race([
+        emailService.sendRegistrationCredentials({
+          to: user.email.trim(),
+          fullName: user.full_name || user.username || 'User',
+          userCode: userCode,
+          temporaryPassword: tempPassword,
+          role: user.role || 'user',
+          accountType: user.role || 'user',
+          loginUrl: portalUrl,
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Email server connection timed out after 5s')), 5000))
       ]);
-      if (fastResult && fastResult.status) {
-        emailStatus = fastResult.status;
+
+      if (emailResult && (emailResult.status === 'error' || emailResult.error)) {
+        emailStatus = 'failed';
+        emailMessage = emailResult.error || 'SMTP delivery failed.';
+      } else {
+        emailStatus = 'sent';
+        emailMessage = `Credentials email sent successfully to ${user.email}.`;
       }
-    } catch (_) {}
+    } catch (mailErr) {
+      console.error('[UserManagement] sendUserCredentials email error:', mailErr?.message || mailErr);
+      emailStatus = 'failed';
+      emailMessage = mailErr?.message || 'Email delivery failed.';
+    }
 
     await auditRepository.log({
       userId: operatorUserId,
@@ -1036,16 +1038,35 @@ class UserManagementService {
       module: 'USER_MANAGEMENT',
       entity: 'users',
       recordId: userId,
-      newValues: { email: user.email, userCode, emailStatus }
+      newValues: { email: user.email, userCode, emailStatus, emailMessage }
     }).catch(() => {});
+
+    const responseText = `Visitor Management System - Account Credentials\n` +
+      `--------------------------------------------------\n` +
+      `User ID: ${userCode}\n` +
+      `Username: @${user.username || userCode}\n` +
+      `Full Name: ${user.full_name || 'N/A'}\n` +
+      `Email: ${user.email}\n` +
+      `Temporary Password: ${tempPassword}\n` +
+      `Login URL: ${portalUrl}\n` +
+      `Email Delivery: ${emailStatus === 'sent' ? 'Delivered to inbox' : 'Failed / ' + emailMessage}\n` +
+      `Validity: 48 Hours (Password change required on first login)\n` +
+      `--------------------------------------------------`;
 
     return {
       userId,
       userCode,
+      username: user.username,
+      fullName: user.full_name,
       email: user.email,
       temporaryPassword: tempPassword,
-      emailStatus: emailResult?.status || 'sent',
-      message: 'Account credentials have been sent successfully to the user\'s registered email.'
+      emailStatus,
+      emailMessage,
+      loginUrl: portalUrl,
+      responseText,
+      message: emailStatus === 'sent'
+        ? `Account credentials sent successfully to ${user.email}.`
+        : `Credentials generated for ${user.email} (Email delivery: ${emailMessage}).`
     };
   }
 

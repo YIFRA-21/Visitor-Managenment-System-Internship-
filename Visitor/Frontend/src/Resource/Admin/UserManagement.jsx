@@ -1479,6 +1479,16 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     };
     // ── Send Credentials (User ID & Temporary Password via Email) ─────────────
     const [sendingCredentialsId, setSendingCredentialsId] = useState(null);
+    const [credentialsModalData, setCredentialsModalData] = useState(null);
+    const [copiedCredentialField, setCopiedCredentialField] = useState(null);
+
+    const handleCopyCredential = (text, fieldName) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopiedCredentialField(fieldName);
+        setTimeout(() => setCopiedCredentialField(null), 2500);
+    };
+
     const handleSendCredentials = async (user) => {
         if (!user || !user.email) {
             setAlert({
@@ -1489,12 +1499,46 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         }
         setSendingCredentialsId(user.id);
         try {
-            const res = await api.post(`/users/${user.id}/send-credentials`, {}, { timeout: 10000 });
+            const res = await api.post(`/users/${user.id}/send-credentials`, {}, { timeout: 12000 });
             const credData = res.data?.data;
             const baseMsg = res.data?.message || `Account credentials sent to ${user.email}.`;
+
+            if (credData) {
+                const userCode = credData.userCode || user.user_code || `USR-${user.id}`;
+                const tempPass = credData.temporaryPassword || 'TempPass#Generated';
+                const portalUrl = credData.loginUrl || `${window.location.origin}/login`;
+                const emailStatus = credData.emailStatus || 'sent';
+                const formattedResponseText = credData.responseText || (
+                    `Visitor Management System - Account Credentials\n` +
+                    `--------------------------------------------------\n` +
+                    `User ID: ${userCode}\n` +
+                    `Username: @${credData.username || user.username || userCode}\n` +
+                    `Full Name: ${credData.fullName || user.full_name || 'N/A'}\n` +
+                    `Email: ${credData.email || user.email}\n` +
+                    `Temporary Password: ${tempPass}\n` +
+                    `Login URL: ${portalUrl}\n` +
+                    `Email Delivery: ${emailStatus === 'sent' ? 'Delivered to inbox' : 'Delivery: ' + (credData.emailMessage || 'Sent')}\n` +
+                    `Validity: 48 Hours (Password change required on first login)\n` +
+                    `--------------------------------------------------`
+                );
+
+                setCredentialsModalData({
+                    user,
+                    userCode,
+                    username: credData.username || user.username,
+                    fullName: credData.fullName || user.full_name,
+                    email: credData.email || user.email,
+                    temporaryPassword: tempPass,
+                    emailStatus,
+                    emailMessage: credData.emailMessage,
+                    loginUrl: portalUrl,
+                    responseText: formattedResponseText,
+                });
+            }
+
             setAlert({
                 type: 'success',
-                message: `${baseMsg} Login instructions and temporary credentials have been securely sent via email.`,
+                message: `${baseMsg} Credentials and response text ready.`,
             });
             fetchUsers();
         }
@@ -5233,5 +5277,156 @@ export default function UserManagement({ departments = [], initialTab = 'users',
               </div>)}
           </div>
         </div>)}
+
+      {/* ── CREDENTIALS & RESPONSE TEXT DISPLAY MODAL ── */}
+      {credentialsModalData && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-[#0b1220] border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-xs relative overflow-hidden">
+            {/* Top decorative gradient glow */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-500" />
+
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-slate-800/80 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-white text-base tracking-tight flex items-center gap-2">
+                    Account Credentials Response
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    Credentials dispatched for <strong className="text-slate-200">{credentialsModalData.fullName || credentialsModalData.email}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCredentialsModalData(null)}
+                className="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center font-bold text-sm transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Delivery Status Badge */}
+            <div className={`p-3 rounded-2xl border flex items-center justify-between gap-3 ${
+              credentialsModalData.emailStatus === 'sent'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+            }`}>
+              <div className="flex items-center gap-2">
+                {credentialsModalData.emailStatus === 'sent' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                )}
+                <span className="font-bold text-[11px]">
+                  {credentialsModalData.emailStatus === 'sent'
+                    ? `Email successfully delivered to ${credentialsModalData.email}`
+                    : `Email Delivery Status: ${credentialsModalData.emailMessage || 'Pending / SMTP unavailable'}`}
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-black/30 border border-white/10 shrink-0">
+                {credentialsModalData.emailStatus}
+              </span>
+            </div>
+
+            {/* Key Credentials Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* User ID */}
+              <div className="bg-[#070c16] border border-slate-800 rounded-2xl p-3.5 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">User ID / Code</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono font-bold text-sm text-sky-400 break-all">{credentialsModalData.userCode}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCredential(credentialsModalData.userCode, 'userCode')}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    title="Copy User ID"
+                  >
+                    {copiedCredentialField === 'userCode' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Temporary Password */}
+              <div className="bg-[#070c16] border border-amber-500/30 bg-amber-500/5 rounded-2xl p-3.5 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Temporary Password</span>
+                  <span className="text-[9px] font-bold text-amber-300/80">Valid 48h</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono font-bold text-sm text-amber-300 break-all select-all">{credentialsModalData.temporaryPassword}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCredential(credentialsModalData.temporaryPassword, 'password')}
+                    className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition-colors cursor-pointer"
+                    title="Copy Temporary Password"
+                  >
+                    {copiedCredentialField === 'password' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Formatted Response Text (Complete credentials response) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-sky-400" /> Response Text
+                </label>
+                <button
+                  type="button"
+                  onClick={() => handleCopyCredential(credentialsModalData.responseText, 'responseText')}
+                  className="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 font-bold text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                >
+                  {copiedCredentialField === 'responseText' ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-400" /> Copied Text!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" /> Copy Response Text
+                    </>
+                  )}
+                </button>
+              </div>
+              <textarea
+                readOnly
+                rows={6}
+                value={credentialsModalData.responseText}
+                className="w-full bg-[#050811] border border-slate-800 rounded-2xl p-3 text-slate-200 font-mono text-[11px] leading-relaxed resize-none focus:outline-none select-all"
+              />
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/80">
+              <button
+                type="button"
+                onClick={() => setCredentialsModalData(null)}
+                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCopyCredential(credentialsModalData.responseText, 'copyAll')}
+                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 shadow-lg shadow-sky-600/30 cursor-pointer"
+              >
+                {copiedCredentialField === 'copyAll' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" /> All Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" /> Copy All Credentials
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>);
 }
