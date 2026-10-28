@@ -1002,26 +1002,23 @@ class UserManagementService {
 
     const portalUrl = (process.env.CLIENT_URL || 'http://localhost:5173') + '/login';
 
-    // Await email delivery with a 5-second timeout safety race so email is actually sent and confirmed
+    // Dispatch credentials directly to user's registered email
     let emailStatus = 'sent';
     let emailMessage = 'Credentials email delivered successfully to inbox.';
     try {
-      const emailResult = await Promise.race([
-        emailService.sendRegistrationCredentials({
-          to: user.email.trim(),
-          fullName: user.full_name || user.username || 'User',
-          userCode: userCode,
-          temporaryPassword: tempPassword,
-          role: user.role || 'user',
-          accountType: user.role || 'user',
-          loginUrl: portalUrl,
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Email server connection timed out after 5s')), 5000))
-      ]);
+      const emailResult = await emailService.sendRegistrationCredentials({
+        to: user.email.trim(),
+        fullName: user.full_name || user.username || 'User',
+        userCode: userCode,
+        temporaryPassword: tempPassword,
+        role: user.role || 'user',
+        accountType: user.role || 'user',
+        loginUrl: portalUrl,
+      });
 
-      if (emailResult && (emailResult.status === 'error' || emailResult.error)) {
+      if (emailResult && (emailResult.status === 'error' || emailResult.error || !emailResult.deliveredToInbox)) {
         emailStatus = 'failed';
-        emailMessage = emailResult.error || 'SMTP delivery failed.';
+        emailMessage = emailResult.error || emailResult.message || 'SMTP delivery failed.';
       } else {
         emailStatus = 'sent';
         emailMessage = `Credentials email sent successfully to ${user.email}.`;
@@ -1041,17 +1038,9 @@ class UserManagementService {
       newValues: { email: user.email, userCode, emailStatus, emailMessage }
     }).catch(() => {});
 
-    const responseText = `Visitor Management System - Account Credentials\n` +
-      `--------------------------------------------------\n` +
-      `User ID: ${userCode}\n` +
-      `Username: @${user.username || userCode}\n` +
-      `Full Name: ${user.full_name || 'N/A'}\n` +
-      `Email: ${user.email}\n` +
-      `Temporary Password: ${tempPassword}\n` +
-      `Login URL: ${portalUrl}\n` +
-      `Email Delivery: ${emailStatus === 'sent' ? 'Delivered to inbox' : 'Failed / ' + emailMessage}\n` +
-      `Validity: 48 Hours (Password change required on first login)\n` +
-      `--------------------------------------------------`;
+    if (emailStatus === 'failed') {
+      throw new AppError(`Failed to send credentials to ${user.email}: ${emailMessage}`, 500);
+    }
 
     return {
       userId,
@@ -1059,14 +1048,10 @@ class UserManagementService {
       username: user.username,
       fullName: user.full_name,
       email: user.email,
-      temporaryPassword: tempPassword,
-      emailStatus,
+      emailStatus: 'sent',
       emailMessage,
       loginUrl: portalUrl,
-      responseText,
-      message: emailStatus === 'sent'
-        ? `Account credentials sent successfully to ${user.email}.`
-        : `Credentials generated for ${user.email} (Email delivery: ${emailMessage}).`
+      message: `Account credentials sent successfully to ${user.email}.`
     };
   }
 

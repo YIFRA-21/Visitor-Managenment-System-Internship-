@@ -17,45 +17,26 @@ class EmailService {
       return this.transporter;
     }
 
-    const service = (process.env.SMTP_SERVICE || 'gmail').toLowerCase().trim();
-    const host = process.env.SMTP_HOST;
+    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const port = parseInt(process.env.SMTP_PORT || '587');
+    const secure = process.env.SMTP_SECURE === 'true' || port === 465;
     const user = (process.env.SMTP_USER || 'shewerke21@gmail.com').trim();
     const rawPass = (process.env.SMTP_PASS || 'mfipytyqlzqukdlu').trim();
     const pass = rawPass.replace(/\s+/g, '');
 
     const timeoutOptions = {
-      connectionTimeout: 5000, // 5s connection timeout
-      greetingTimeout: 4000,   // 4s greeting timeout
-      socketTimeout: 8000      // 8s socket timeout
+      connectionTimeout: 10000, // 10s connection timeout
+      greetingTimeout: 8000,   // 8s greeting timeout
+      socketTimeout: 15000     // 15s socket timeout
     };
 
-    // 1. If service is gmail or host is smtp.gmail.com, use nodemailer's built-in gmail service
-    if (service === 'gmail' || host?.includes('gmail') || user.endsWith('@gmail.com')) {
-      this.transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass },
-        ...timeoutOptions
-      });
-      return this.transporter;
-    }
-
-    // 2. Custom SMTP host configuration
-    if (host && user && pass) {
-      this.transporter = nodemailer.createTransport({
-        host: host,
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: { user, pass },
-        tls: { rejectUnauthorized: false },
-        ...timeoutOptions
-      });
-      return this.transporter;
-    }
-
-    // 3. Guaranteed fallback: Gmail transporter with configured app password
+    // Prioritize configured host + port with TLS (port 587) which works across cloud & local networks
     this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' },
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false },
       ...timeoutOptions
     });
     return this.transporter;
@@ -259,7 +240,7 @@ class EmailService {
    * Returns { status, deliveredToInbox, etherealUrl, error? }.
    * Never throws; delivery problems are returned so callers can record failures.
    */
-  async sendMail({ to, subject, text, html }) {
+  async sendMail({ to, subject, text, html, headers = {} }) {
     if (!to) {
       return { status: 'error', error: 'Recipient email is required', deliveredToInbox: false };
     }
@@ -271,8 +252,9 @@ class EmailService {
       text,
       html,
       headers: {
-        'X-Auto-Response-Suppress': 'All',
-        'Auto-Submitted': 'auto-generated'
+        'X-Priority': '1',
+        'Importance': 'high',
+        ...headers
       }
     };
 
@@ -287,29 +269,23 @@ class EmailService {
     const transporter = this.getTransporter();
     if (transporter) {
       try {
-        const info = await Promise.race([
-          transporter.sendMail(mailOptions),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP transmission timeout (6s threshold exceeded)')), 6000))
-        ]);
+        const info = await transporter.sendMail(mailOptions);
         deliveredToInbox = true;
         console.log(`[EmailService] EMAIL SENT SUCCESSFULLY TO: ${mailOptions.to} (${info.response || info.messageId})`);
       } catch (err) {
-        console.warn('[EmailService] SMTP delivery attempt failed, retrying direct Gmail:', err.message);
+        console.warn('[EmailService] Primary SMTP delivery attempt failed, retrying via alternative direct transport:', err.message);
         try {
           const directTransporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: { user: 'shewerke21@gmail.com', pass: 'mfipytyqlzqukdlu' },
-            tls: { rejectUnauthorized: false },
-            connectionTimeout: 5000,
-            greetingTimeout: 4000,
-            socketTimeout: 6000
+            service: 'gmail',
+            auth: {
+              user: (process.env.SMTP_USER || 'shewerke21@gmail.com').trim(),
+              pass: (process.env.SMTP_PASS || 'mfipytyqlzqukdlu').replace(/\s+/g, '')
+            },
+            connectionTimeout: 10000,
+            greetingTimeout: 8000,
+            socketTimeout: 15000
           });
-          const retryInfo = await Promise.race([
-            directTransporter.sendMail(mailOptions),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Direct Gmail port 587 retry timeout')), 6000))
-          ]);
+          const retryInfo = await directTransporter.sendMail(mailOptions);
           this.transporter = directTransporter;
           deliveredToInbox = true;
           console.log(`[EmailService] EMAIL DELIVERED VIA GMAIL RETRY TO: ${mailOptions.to} (${retryInfo.response})`);
@@ -398,8 +374,8 @@ class EmailService {
 
     return this.sendMail({
       to,
-      subject: `[VMS] Your Employee Account Credentials`,
-      text: `Dear ${displayName},\n\nYour Employee account has been created in the Visitor Management System.\n\nLogin Information:\n  User ID: ${userCode}\n  Temporary Password: ${temporaryPassword}\n  Login URL: ${portalUrl}\n\nIMPORTANT: You must change your temporary password when you first sign in. It expires in 24 hours.\n\nRegards,\nVisitor Management System`,
+      subject: `Your ${formattedType} Account Credentials - Visitor Management System`,
+      text: `Dear ${displayName},\n\nYour ${formattedType} account has been created in the Visitor Management System.\n\nLogin Information:\n  User ID: ${userCode}\n  Temporary Password: ${temporaryPassword}\n  Login URL: ${portalUrl}\n\nIMPORTANT: You must change your temporary password when you first sign in. It expires in 24 hours.\n\nRegards,\nVisitor Management System`,
       html: htmlContent
     });
   }
