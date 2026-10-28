@@ -108,11 +108,10 @@ export default function AppRoutes() {
 
       {/* Identity Verification Module Routes */}
       <Route path="/identity-verification" element={<ProtectedRoute><IdentityVerificationOverviewPage /></ProtectedRoute>} />
-      <Route path="/identity-verification/select-document" element={<ProtectedRoute><IdentityVerificationOverviewPage /></ProtectedRoute>} />
-      <Route path="/identity-verification/capture/:caseId" element={<ProtectedRoute><IdentityVerificationOverviewPage /></ProtectedRoute>} />
-      <Route path="/identity-verification/biometric/:caseId" element={<ProtectedRoute><IdentityVerificationOverviewPage /></ProtectedRoute>} />
-      <Route path="/identity-verification/status" element={<ProtectedRoute><IdentityVerificationOverviewPage /></ProtectedRoute>} />
-      <Route path="/verification" element={<ProtectedRoute><IdentityVerificationOverviewPage /></ProtectedRoute>} />
+      <Route path="/identity-verification/select-document" element={<ProtectedRoute><DocumentSelectionPage /></ProtectedRoute>} />
+      <Route path="/identity-verification/capture/:caseId" element={<ProtectedRoute><DocumentCapturePage /></ProtectedRoute>} />
+      <Route path="/identity-verification/biometric/:caseId" element={<ProtectedRoute><BiometricVerificationPage /></ProtectedRoute>} />
+      <Route path="/identity-verification/status" element={<ProtectedRoute><VerificationStatusPage /></ProtectedRoute>} />
       <Route path="/security/identity-reviews/:caseId" element={<ProtectedRoute requiredRole="security"><ReviewerCaseDetailPage /></ProtectedRoute>} />
       <Route path="/security/identity-reviews" element={<ProtectedRoute requiredRole="security"><ReviewerQueuePage /></ProtectedRoute>} />
       <Route path="/admin/identity-policy" element={<ProtectedRoute requiredRole="admin"><VerificationPolicySettingsPage /></ProtectedRoute>} />

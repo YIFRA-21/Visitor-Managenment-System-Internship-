@@ -449,7 +449,6 @@ export default function DashboardPage() {
             'visitor_announcements', 'visitor-announcements',
             'visitor_master_flow',
             'identity_verification', 'identity-verification',
-            'verification', 'id_verification', 'id-verification',
             'select_document', 'select-document',
             'capture_document', 'capture-document',
             'biometric_verification', 'biometric-verification',
@@ -848,6 +847,7 @@ export default function DashboardPage() {
             case 'system-health':
             case 'system_health_monitoring':
                 return role === 'admin' ? <HealthPerformanceAndDeploymentCenter /> : <AdminDashboard />;
+            case 'verification':
             case 'pass_verification':
             case 'qr_scanner':
             case 'security_scanner':
@@ -1129,18 +1129,19 @@ export default function DashboardPage() {
             // Identity Verification Module
             case 'identity_verification':
             case 'identity-verification':
-            case 'verification':
-            case 'id_verification':
-            case 'id-verification':
+                return <IdentityVerificationOverviewPage />;
             case 'select_document':
             case 'select-document':
+                return <DocumentSelectionPage />;
             case 'capture_document':
             case 'capture-document':
+                return <DocumentCapturePage />;
             case 'biometric_verification':
             case 'biometric-verification':
+                return <BiometricVerificationPage />;
             case 'verification_status':
             case 'verification-status':
-                return <IdentityVerificationOverviewPage />;
+                return <VerificationStatusPage />;
             case 'identity_reviews':
             case 'identity-reviews':
             case 'security_identity_reviews':

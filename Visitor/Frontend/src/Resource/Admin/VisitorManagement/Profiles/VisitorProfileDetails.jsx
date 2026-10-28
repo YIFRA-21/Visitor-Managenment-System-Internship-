@@ -6,7 +6,6 @@ import { visitorProfileApi } from '../../../../modules/visitor-management/api/vi
 import { visitorPortalApi } from '../../../../services/api';
 import identityVerificationApi from '../../../../modules/visitor-management/api/identityVerificationApi';
 import IdentityVerificationWizard from './IdentityVerificationWizard';
-import IdentityVerificationOverviewPage from '../../../../modules/identity-verification/pages/IdentityVerificationOverviewPage';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { resolvePhotoUrl } from '../../../../utils/photoUtils';
 import BackButton from '../../../../components/common/BackButton';
@@ -1619,13 +1618,19 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
               </div>
             </div>
 
-            {/* Render Upgraded 4-Stage Verification Experience */}
-            <IdentityVerificationOverviewPage
-              isEmbedded={true}
-              onComplete={() => {
-                loadProfile();
-              }}
-            />
+            {/* Render 10-Step Wizard directly inside tab */}
+            {showIdentityWizard ? (<IdentityVerificationWizard visitorId={visitorId || profile?.id || 131} visitorName={profile?.full_name || 'Visitor'} onComplete={() => {
+                    loadProfile();
+                }}/>) : (<div className="p-8 bg-[#0b101b] rounded-2xl border border-slate-800 text-center space-y-4">
+                <Shield size={36} className="mx-auto text-emerald-400"/>
+                <div>
+                  <h4 className="text-sm font-bold text-white uppercase">Enterprise Identity Verification</h4>
+                  <p className="text-xs text-slate-400 mt-1">Launch the 10-step identity verification pipeline to verify documents, liveness, and security checks.</p>
+                </div>
+                <button onClick={() => setShowIdentityWizard(true)} className="px-6 py-2.5 text-xs font-bold text-slate-950 bg-emerald-500 hover:bg-emerald-400 rounded-xl shadow-lg transition-all">
+                  Launch 10-Step Identity Verification Wizard
+                </button>
+              </div>)}
           </div>)}
 
         {/* TAB 6: PHOTO MANAGEMENT */}
