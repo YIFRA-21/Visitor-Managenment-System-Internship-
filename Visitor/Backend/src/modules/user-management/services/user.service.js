@@ -156,12 +156,12 @@ class UserManagementService {
              u.created_at, u.updated_at,
              COALESCE(d.department_name, d.name, 'General') AS department_name,
              COALESCE(b.branch_name, 'Main Branch') AS branch_name,
-             COALESCE(o.name, 'IT Park') AS organization_name
+             COALESCE(o.name, 'Enterprise VMS Global') AS organization_name
       FROM users u
       LEFT JOIN employees e ON e.user_id = u.id
       LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
       LEFT JOIN organization_branches b ON e.branch_id = b.id
-      LEFT JOIN organizations o ON b.organization_id = o.id
+      LEFT JOIN organizations o ON o.id = COALESCE(e.organization_id, u.organization_id, b.organization_id, 1)
       WHERE 1=1
     `;
     const params = [];
@@ -287,12 +287,12 @@ class UserManagementService {
               u.created_at, u.updated_at, u.deleted_at,
               COALESCE(d.department_name, d.name, 'General') AS department_name,
               COALESCE(b.branch_name, 'Main Branch') AS branch_name,
-              COALESCE(o.name, 'IT Park') AS organization_name
+              COALESCE(o.name, 'Enterprise VMS Global') AS organization_name
        FROM users u
        LEFT JOIN employees e ON e.user_id = u.id
        LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
        LEFT JOIN organization_branches b ON e.branch_id = b.id
-       LEFT JOIN organizations o ON b.organization_id = o.id
+       LEFT JOIN organizations o ON o.id = COALESCE(e.organization_id, u.organization_id, b.organization_id, 1)
        ${whereClause}`,
       [id]
     );
@@ -1430,7 +1430,7 @@ class UserManagementService {
       phone: u.phone || u.phone_number,
       role: u.role,
       department: u.department_name || 'N/A',
-      organization: u.organization_name || 'IT Park',
+      organization: u.organization_name || 'Enterprise VMS Global',
       branch: u.branch_name || 'Main Branch',
       accountStatus: u.account_status || u.status,
       emailVerified: u.email_verified ? 'Yes' : 'No',

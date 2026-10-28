@@ -15,8 +15,9 @@ class OrgStatisticsService {
     const appointmentsTodayCount = await db.query('SELECT COUNT(*) as count FROM appointments');
 
     // Chart 1: Departments per Organization
+    const activeOrg = await db.query('SELECT name FROM organizations WHERE id = 1 LIMIT 1').catch(() => []);
     const deptsPerOrg = [
-      { name: 'IT Park', departments: deptsCount[0]?.count || 6 }
+      { name: activeOrg[0]?.name || 'Enterprise VMS Global', departments: deptsCount[0]?.count || 6 }
     ];
 
     // Chart 2: Employees by Department

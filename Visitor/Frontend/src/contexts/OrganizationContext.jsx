@@ -2,17 +2,17 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import api from '../services/api';
 const DEFAULT_ORGANIZATION = {
     id: 1,
-    name: 'IT Park',
-    shortName: 'ITP',
-    code: 'ITP01',
-    email: 'info@ethiopianitpark.et',
+    name: 'Enterprise VMS Global',
+    shortName: 'EVMS',
+    code: 'EVMS-HQ',
+    email: 'info@enterprisevms.com',
     phone: '+251 11 123 4567',
-    website: 'https://ethiopianitpark.et/',
-    address: 'Bole Sub-City, IT Park',
+    website: 'https://enterprisevms.com',
+    address: 'Headquarters Campus, Main Commercial Tower',
     country: 'Ethiopia',
     region: 'Addis Ababa',
     city: 'Addis Ababa',
-    subCity: 'Bole',
+    subCity: 'Main HQ',
     woreda: '',
     postalCode: '',
     logoUrl: '/logo.png',
@@ -28,6 +28,10 @@ export const OrganizationProvider = ({ children }) => {
             const cached = localStorage.getItem(CACHE_KEY);
             if (cached) {
                 const parsed = JSON.parse(cached);
+                if (!parsed.name || parsed.name.toLowerCase().includes('it park')) {
+                    parsed.name = 'Enterprise VMS Global';
+                    parsed.shortName = 'EVMS';
+                }
                 return { ...DEFAULT_ORGANIZATION, ...parsed };
             }
         }
@@ -150,10 +154,10 @@ export const OrganizationProvider = ({ children }) => {
         });
     }, []);
     const logoUrl = organization.logoUrl || '/logo.png';
-    const orgName = organization.name || 'Enterprise VMS';
-    const orgEmail = organization.email || 'support@vms.com';
+    const orgName = organization.name || 'Enterprise VMS Global';
+    const orgEmail = organization.email || 'info@enterprisevms.com';
     const orgPhone = organization.phone || '+251 11 123 4567';
-    const orgWebsite = organization.website || '';
+    const orgWebsite = organization.website || 'https://enterprisevms.com';
     return (<OrganizationContext.Provider value={{
             organization,
             loading,

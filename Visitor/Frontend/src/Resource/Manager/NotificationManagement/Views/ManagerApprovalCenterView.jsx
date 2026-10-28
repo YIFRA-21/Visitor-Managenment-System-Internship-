@@ -6,8 +6,8 @@ const ManagerApprovalCenterView = () => {
         {
             id: 'appr_9021',
             requestType: 'After-Hours Facility Access',
-            visitorName: 'IT Park Maintenance Team (5 Members)',
-            company: 'IT Park',
+            visitorName: 'Enterprise VMS Global Maintenance Team (5 Members)',
+            company: 'Enterprise VMS Global',
             hostName: 'David Miller',
             requestedDate: '2026-08-06',
             requestedTime: '19:00 - 23:00',

@@ -183,7 +183,7 @@ export default function UnauthorizedPage() {
 
                 {/* Footer system disclaimer */}
                 <p className="text-[11px] text-slate-600 mt-4 font-mono">
-                    IT Park VMS • Security Policy Enforcement Gateway
+                    Enterprise VMS Global VMS • Security Policy Enforcement Gateway
                 </p>
             </div>
         </div>

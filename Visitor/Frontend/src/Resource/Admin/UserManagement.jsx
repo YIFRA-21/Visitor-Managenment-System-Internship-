@@ -502,7 +502,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         phone: '',
         altPhone: '',
         address: '',
-        organization: 'IT Park',
+        organization: 'Enterprise VMS Global',
         branch: 'Megenagna',
         departmentId: '',
         jobTitle: '',
@@ -542,7 +542,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             phone: '',
             altPhone: '',
             address: '',
-            organization: 'IT Park',
+            organization: 'Enterprise VMS Global',
             branch: 'Megenagna',
             departmentId: '',
             jobTitle: '',
@@ -577,7 +577,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             phone: '',
             altPhone: '',
             address: '',
-            organization: 'IT Park',
+            organization: 'Enterprise VMS Global',
             branch: 'Megenagna',
             departmentId: '',
             jobTitle: '',
@@ -627,7 +627,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 }
                 else {
                     loadedOrgs = [
-                        { id: 1, name: 'IT Park', code: 'ITP01' },
+                        { id: 1, name: 'Enterprise VMS Global', code: 'EVMS-HQ' },
                     ];
                 }
                 setAllOrgs(loadedOrgs);
@@ -647,9 +647,9 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 }
                 else {
                     loadedBranches = [
-                        { id: 1, branchName: 'Megenagna', organizationName: 'IT Park', organizationId: 1 },
-                        { id: 2, branchName: 'Debre Berhan', organizationName: 'IT Park', organizationId: 1 },
-                        { id: 3, branchName: 'Tulu Dimtu', organizationName: 'IT Park', organizationId: 1 },
+                        { id: 1, branchName: 'Megenagna', organizationName: 'Enterprise VMS Global', organizationId: 1 },
+                        { id: 2, branchName: 'Debre Berhan', organizationName: 'Enterprise VMS Global', organizationId: 1 },
+                        { id: 3, branchName: 'Tulu Dimtu', organizationName: 'Enterprise VMS Global', organizationId: 1 },
                     ];
                 }
                 setAllBranches(loadedBranches);
@@ -662,12 +662,12 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 }
                 else {
                     loadedDepts = [
-                        { id: 1, departmentName: 'Executive Office', organizationName: 'IT Park', organizationId: 1 },
-                        { id: 2, departmentName: 'Sales & Marketing', organizationName: 'IT Park', organizationId: 1 },
-                        { id: 3, departmentName: 'Finance', organizationName: 'IT Park', organizationId: 1 },
-                        { id: 4, departmentName: 'Operations', organizationName: 'IT Park', organizationId: 1 },
-                        { id: 5, departmentName: 'Human Resources', organizationName: 'IT Park', organizationId: 1 },
-                        { id: 6, departmentName: 'Security Operations', organizationName: 'IT Park', organizationId: 1 },
+                        { id: 1, departmentName: 'Executive Office', organizationName: 'Enterprise VMS Global', organizationId: 1 },
+                        { id: 2, departmentName: 'Sales & Marketing', organizationName: 'Enterprise VMS Global', organizationId: 1 },
+                        { id: 3, departmentName: 'Finance', organizationName: 'Enterprise VMS Global', organizationId: 1 },
+                        { id: 4, departmentName: 'Operations', organizationName: 'Enterprise VMS Global', organizationId: 1 },
+                        { id: 5, departmentName: 'Human Resources', organizationName: 'Enterprise VMS Global', organizationId: 1 },
+                        { id: 6, departmentName: 'Security Operations', organizationName: 'Enterprise VMS Global', organizationId: 1 },
                     ];
                 }
                 setAllDepts(loadedDepts);
@@ -2289,7 +2289,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
 
                       {/* 8. Organization */}
                       <td className="py-3 px-3 text-slate-400 text-[11px] whitespace-nowrap">
-                        {user.organization_name || 'IT Park'}
+                        {user.organization_name || 'Enterprise VMS Global'}
                       </td>
 
                       {/* 9. Branch */}
@@ -3354,7 +3354,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                         <span className="text-slate-300 font-bold uppercase">{activeDetailsUser.role}</span>
                       </div>
                       <div className="flex items-center space-x-3 mt-1.5 text-[11px] text-slate-400">
-                        <span>🏢 {activeDetailsUser.organization_name || 'IT Park'}</span>
+                        <span>🏢 {activeDetailsUser.organization_name || 'Enterprise VMS Global'}</span>
                         <span>📍 {activeDetailsUser.branch_name || 'Main Branch'}</span>
                         <span>📁 {activeDetailsUser.department_name || 'IT & Systems'}</span>
                       </div>
@@ -3473,7 +3473,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 {activeUserTab === 'organization' && (<div className="p-4 bg-[#070c16] border border-slate-800 rounded-xl space-y-3">
                     <h4 className="font-black uppercase text-indigo-400 text-[11px] tracking-wider border-b border-slate-800 pb-2">Organization Structure & Hierarchy</h4>
                     <div className="grid grid-cols-3 gap-4 text-slate-300">
-                      <div><span className="text-slate-500 block text-[10px]">Organization</span><strong className="text-white">{activeDetailsUser.organization_name || 'IT Park'}</strong></div>
+                      <div><span className="text-slate-500 block text-[10px]">Organization</span><strong className="text-white">{activeDetailsUser.organization_name || 'Enterprise VMS Global'}</strong></div>
                       <div><span className="text-slate-500 block text-[10px]">Branch</span><strong className="text-white">{activeDetailsUser.branch_name || 'Main Branch'}</strong></div>
                       <div><span className="text-slate-500 block text-[10px]">Department</span><strong className="text-white">{activeDetailsUser.department_name || 'IT Security'}</strong></div>
                       <div><span className="text-slate-500 block text-[10px]">Job Title</span><strong className="text-white">{activeDetailsUser.job_title || 'Senior Specialist'}</strong></div>
@@ -3667,7 +3667,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                             date_of_birth: selectedUserForDetails.date_of_birth || selectedUserForDetails.dob || null,
                             nationality: selectedUserForDetails.nationality || 'Ethiopian',
                             avatar_url: selectedUserForDetails.avatar_url || selectedUserForDetails.avatarUrl || '',
-                            organization: selectedUserForDetails.organization || selectedUserForDetails.organization_name || 'IT Park',
+                            organization: selectedUserForDetails.organization || selectedUserForDetails.organization_name || 'Enterprise VMS Global',
                             branch: selectedUserForDetails.branch || selectedUserForDetails.branch_name || 'Megenagna',
                             department_id: selectedUserForDetails.department_id ? parseInt(selectedUserForDetails.department_id) : null,
                             job_title: selectedUserForDetails.job_title || selectedUserForDetails.jobTitle || '',
@@ -3883,7 +3883,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-slate-300 font-bold mb-1">Organization *</label>
-                    <select value={selectedUserForDetails.organization || selectedUserForDetails.organization_name || 'IT Park'} onChange={(e) => setSelectedUserForDetails({ ...selectedUserForDetails, organization: e.target.value, organization_name: e.target.value })} className="w-full bg-[#0b1220] border border-slate-700 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-indigo-500">
+                    <select value={selectedUserForDetails.organization || selectedUserForDetails.organization_name || 'Enterprise VMS Global'} onChange={(e) => setSelectedUserForDetails({ ...selectedUserForDetails, organization: e.target.value, organization_name: e.target.value })} className="w-full bg-[#0b1220] border border-slate-700 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-indigo-500">
                       {orgOptions.map((o) => (
                         <option key={o.id || o.name} value={o.name}>
                           {o.name} {o.code ? `(${o.code})` : ''}

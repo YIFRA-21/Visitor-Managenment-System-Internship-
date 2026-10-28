@@ -93,7 +93,7 @@ export default function EmployeeProfileDetailsModal({ employee, onClose }) {
             {activeTab === 'history' && (<div className="space-y-2">
                 <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 d-flex justify-content-between align-items-center text-xs">
                   <div>
-                    <div className="font-bold text-white">John Smith (IT Park)</div>
+                    <div className="font-bold text-white">John Smith (Enterprise VMS Global)</div>
                     <div className="text-[10px] text-slate-400">Quarterly Strategic Audit • 2026-07-31 09:00 AM</div>
                   </div>
                   <span className="badge bg-success">COMPLETED</span>

@@ -246,9 +246,12 @@ class DashboardRepository {
        ORDER BY created_at DESC LIMIT 3`
     ).catch(() => []);
 
+    const orgNameRes = await db.query('SELECT name FROM organizations WHERE id = 1 LIMIT 1').catch(() => []);
+    const resolvedOrgName = orgNameRes[0]?.name || 'Enterprise VMS Global';
+
     return {
       welcomeMessage: 'Welcome back!',
-      orgName: 'IT park',
+      orgName: resolvedOrgName,
       branchName: 'Head Office',
       departmentName: role === 'manager' ? 'Operations' : 'Enterprise',
       stats: {

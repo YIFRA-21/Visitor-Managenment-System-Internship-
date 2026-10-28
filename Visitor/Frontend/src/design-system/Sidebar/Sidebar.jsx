@@ -53,7 +53,11 @@ export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle
     const { organization, logoUrl: orgLogoUrl, orgName } = useOrganization();
     const { t } = useLanguage();
     const displayLogo = orgLogoUrl || organization?.logoUrl || '/logo.jpg';
-    const displayName = orgName || organization?.name || 'IT Park';
+    const displayName = (orgName && !orgName.toLowerCase().includes('it park'))
+        ? orgName
+        : ((organization?.name && !organization.name.toLowerCase().includes('it park'))
+            ? organization.name
+            : 'Enterprise VMS Global');
     const activeRole = resolveSidebarRole(user?.role, location.pathname);
     const currentRoleMeta = roleMetaMap[activeRole];
     const [expandedMenus, setExpandedMenus] = useState(() => {

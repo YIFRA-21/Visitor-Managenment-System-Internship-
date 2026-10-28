@@ -117,7 +117,7 @@ function KpiCard({ title, value, subtitle, icon, theme = 'blue', onClick }) {
 }
 const DEFAULT_DASHBOARD_DATA = {
     welcomeMessage: 'Welcome back!',
-    orgName: 'IT park',
+    orgName: 'Enterprise VMS Global',
     branchName: 'Head Office',
     departmentName: 'Enterprise',
     stats: {

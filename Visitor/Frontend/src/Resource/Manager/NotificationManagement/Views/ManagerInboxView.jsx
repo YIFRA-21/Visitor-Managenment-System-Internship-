@@ -9,7 +9,7 @@ const ManagerInboxView = () => {
             id: 'mnotif_1001',
             category: 'Visitor',
             title: 'New VIP Visitor Registered',
-            message: 'VIP Visitor Sarah Jenkins (IT Park) registered for host David Miller.',
+            message: 'VIP Visitor Sarah Jenkins (Enterprise VMS Global) registered for host David Miller.',
             priority: 'High',
             status: 'Unread',
             isPinned: true,

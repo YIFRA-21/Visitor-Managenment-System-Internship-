@@ -4,7 +4,7 @@ import ToggleSwitch from '../../../../components/common/ToggleSwitch';
 
 export default function VisitorSettings() {
     const [qrExpiryHours, setQrExpiryHours] = useState(24);
-    const [welcomeMessage, setWelcomeMessage] = useState('Welcome to IT Park Visitor Portal!');
+    const [welcomeMessage, setWelcomeMessage] = useState('Welcome to Enterprise VMS Global Visitor Portal!');
     const [sendSmsHost, setSendSmsHost] = useState(true);
     const [emailQrPass, setEmailQrPass] = useState(true);
     const [saved, setSaved] = useState(false);

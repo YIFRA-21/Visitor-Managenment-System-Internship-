@@ -41,7 +41,7 @@ const INITIAL_VISITOR_HISTORIES = {
             sender_role: 'receptionist',
             recipient_id: 1,
             recipient_role: 'visitor',
-            body: 'Welcome to IT Park Building! Your digital pass PASS-2025-4421 is verified.',
+            body: 'Welcome to Enterprise VMS Global Building! Your digital pass PASS-2025-4421 is verified.',
             is_read: true,
             created_at: '10:10 AM',
             sender_name: 'Lobby Reception Desk'

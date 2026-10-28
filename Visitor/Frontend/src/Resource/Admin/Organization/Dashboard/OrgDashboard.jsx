@@ -206,7 +206,7 @@ export default function OrgDashboard() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-900 dark:text-slate-200 mb-0.5">
-                  IT Park registered
+                  Enterprise VMS Global registered
                 </p>
                 <span className="text-[10px] text-slate-400 font-semibold block">July 19, 2026 by Admin</span>
               </div>
