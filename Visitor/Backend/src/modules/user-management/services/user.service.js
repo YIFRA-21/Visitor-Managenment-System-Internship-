@@ -79,10 +79,11 @@ class UserManagementService {
       const candidate = candidate6;
 
       const [uMatch] = await db.query(`SELECT id FROM users WHERE user_code IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
-      const [eMatch] = await db.query(`SELECT id FROM employees WHERE employee_number IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
+      const [eMatch] = await db.query(`SELECT id FROM employees WHERE employee_number IN (?, ?) OR employee_code IN (?, ?) LIMIT 1`, [candidate, candidate5, candidate, candidate5]).catch(() => []);
       const [mMatch] = await db.query(`SELECT id FROM manager_profiles WHERE manager_number IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
+      const [vMatch] = await db.query(`SELECT id FROM visitors WHERE visitor_code IN (?, ?) LIMIT 1`, [candidate, candidate5]).catch(() => []);
 
-      if (!uMatch && !eMatch && !mMatch) {
+      if (!uMatch && !eMatch && !mMatch && !vMatch) {
         return candidate;
       }
       nextNum++;
@@ -985,6 +986,8 @@ class UserManagementService {
            account_locked_until = NULL,
            account_status = 'ACTIVE',
            status = 'active',
+           is_active = 1,
+           deleted_at = NULL,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [passwordHash, userId]
@@ -993,14 +996,36 @@ class UserManagementService {
     // Invalidate existing sessions so the new credentials are required
     await db.query(`DELETE FROM user_sessions WHERE user_id = ?`, [userId]).catch(() => {});
 
-    // Ensure user_code is populated
-    let userCode = user.user_code;
-    if (!userCode) {
+    // Ensure user_code is populated, unique, and not an archived DEL_ prefix
+    let userCode = (user.user_code || '').trim();
+    if (!userCode || userCode.toUpperCase().startsWith('DEL_')) {
       userCode = await this.generateUserCode(user.role || 'employee');
       await db.query(`UPDATE users SET user_code = ? WHERE id = ?`, [userCode, userId]).catch(() => {});
     }
 
-    const portalUrl = (process.env.CLIENT_URL || 'http://localhost:5173') + '/login';
+    // Keep associated employee, visitor, or manager profile synchronized
+    const roleLower = String(user.role || '').toLowerCase();
+    if (['employee', 'staff', 'host'].includes(roleLower)) {
+      await db.query(
+        `UPDATE employees SET employee_number = ?, employment_status = 'Active', deleted_at = NULL WHERE user_id = ?`,
+        [userCode, userId]
+      ).catch(() => {});
+    } else if (roleLower === 'visitor') {
+      await db.query(
+        `UPDATE visitors SET visitor_code = ?, is_active = 1, status = 'ACTIVE', deleted_at = NULL WHERE user_id = ?`,
+        [userCode, userId]
+      ).catch(() => {});
+    } else if (roleLower === 'manager') {
+      await db.query(
+        `UPDATE manager_profiles SET manager_number = ? WHERE user_id = ?`,
+        [userCode, userId]
+      ).catch(() => {});
+    }
+
+    const clientUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
+      ? process.env.CLIENT_URL
+      : 'https://visitor-management-system-internsh-rho.vercel.app';
+    const portalUrl = clientUrl.replace(/\/+$/, '') + '/login';
 
     // Dispatch credentials directly to user's registered email
     let emailStatus = 'sent';

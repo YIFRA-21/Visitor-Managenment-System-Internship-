@@ -65,19 +65,26 @@ class UserRepository {
     const empIdMatch = cleanId.match(/^(?:EMP|MGR)-?(?:202\d-)?0*(\d+)$/i);
     const parsedEmpId = empIdMatch ? parseInt(empIdMatch[1], 10) : null;
 
-    // 1. Search users table (joining with employees table for employee_number / employee id matching)
+    // 1. Search users table (joining with employees, visitors, manager_profiles tables for multi-field identifier matching)
     let rows = await db.query(
       `SELECT u.* FROM users u 
        LEFT JOIN employees e ON u.id = e.user_id OR u.employee_id = e.id
+       LEFT JOIN visitors v ON u.id = v.user_id
+       LEFT JOIN manager_profiles m ON u.id = m.user_id
        WHERE (LOWER(u.email) = LOWER(?) 
           OR LOWER(u.username) = LOWER(?) 
           OR LOWER(u.user_code) = LOWER(?)
           OR (e.id = ?)
-          OR (e.employee_number IS NOT NULL AND LOWER(e.employee_number) = LOWER(?)))
-         AND u.deleted_at IS NULL
+          OR (e.employee_number IS NOT NULL AND LOWER(e.employee_number) = LOWER(?))
+          OR (e.employee_code IS NOT NULL AND LOWER(e.employee_code) = LOWER(?))
+          OR (v.visitor_code IS NOT NULL AND LOWER(v.visitor_code) = LOWER(?))
+          OR (m.manager_number IS NOT NULL AND LOWER(m.manager_number) = LOWER(?))
+          OR (u.phone IS NOT NULL AND u.phone = ?)
+          OR (u.phone_number IS NOT NULL AND u.phone_number = ?))
+         AND (u.deleted_at IS NULL OR LOWER(COALESCE(u.status, '')) = 'active' OR LOWER(COALESCE(u.account_status, '')) = 'active')
        ORDER BY (CASE WHEN LOWER(u.user_code) = LOWER(?) THEN 1 WHEN LOWER(u.email) = LOWER(?) THEN 2 ELSE 3 END)
        LIMIT 1`,
-      [cleanId, cleanId, cleanId, parsedEmpId || -1, cleanId, cleanId, cleanId]
+      [cleanId, cleanId, cleanId, parsedEmpId || -1, cleanId, cleanId, cleanId, cleanId, cleanId, cleanId, cleanId, cleanId]
     );
 
     if (rows && rows.length > 0) {

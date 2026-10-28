@@ -315,7 +315,10 @@ class EmailService {
     const typeStr = accountType || role || 'User';
     const formattedType = typeStr.charAt(0).toUpperCase() + typeStr.slice(1);
     const displayName = fullName || formattedType;
-    const portalUrl = loginUrl || (process.env.CLIENT_URL || 'http://localhost:5173') + '/login';
+    const clientHost = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
+      ? process.env.CLIENT_URL
+      : 'https://visitor-management-system-internsh-rho.vercel.app';
+    const portalUrl = loginUrl || `${clientHost.replace(/\/+$/, '')}/login`;
 
     const htmlContent = `
       <div style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; max-width: 560px; margin: 0 auto; padding: 28px; background-color: #0b0f17; color: #ffffff; border-radius: 16px; border: 1px solid #1e293b; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
