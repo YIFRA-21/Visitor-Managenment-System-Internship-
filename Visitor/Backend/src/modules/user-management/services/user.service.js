@@ -973,12 +973,19 @@ class UserManagementService {
       throw new AppError('This user account has no email address configured.', 400);
     }
 
+    // Ensure user_code is populated, unique, and not an archived DEL_ prefix
+    let userCode = (user.user_code || '').trim();
+    if (!userCode || userCode.toUpperCase().startsWith('DEL_')) {
+      userCode = await this.generateUserCode(user.role || 'employee');
+    }
+
     const tempPassword = `TempPass#${Math.floor(100000 + Math.random() * 900000)}`;
-    const passwordHash = await bcrypt.hash(tempPassword, 12);
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     await db.query(
       `UPDATE users 
        SET password_hash = ?,
+           user_code = ?,
            first_login_required = 1,
            temporary_password_created_at = CURRENT_TIMESTAMP,
            temporary_password_expires_at = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 48 HOUR),
@@ -986,22 +993,17 @@ class UserManagementService {
            account_locked_until = NULL,
            account_status = 'ACTIVE',
            status = 'active',
+           verification_status = 'VERIFIED',
+           email_verified = 1,
            is_active = 1,
            deleted_at = NULL,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [passwordHash, userId]
+      [passwordHash, userCode, userId]
     );
 
     // Invalidate existing sessions so the new credentials are required
     await db.query(`DELETE FROM user_sessions WHERE user_id = ?`, [userId]).catch(() => {});
-
-    // Ensure user_code is populated, unique, and not an archived DEL_ prefix
-    let userCode = (user.user_code || '').trim();
-    if (!userCode || userCode.toUpperCase().startsWith('DEL_')) {
-      userCode = await this.generateUserCode(user.role || 'employee');
-      await db.query(`UPDATE users SET user_code = ? WHERE id = ?`, [userCode, userId]).catch(() => {});
-    }
 
     // Keep associated employee, visitor, or manager profile synchronized
     const roleLower = String(user.role || '').toLowerCase();
@@ -1022,9 +1024,7 @@ class UserManagementService {
       ).catch(() => {});
     }
 
-    const clientUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
-      ? process.env.CLIENT_URL
-      : 'https://visitor-management-system-internsh-rho.vercel.app';
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').trim();
     const portalUrl = clientUrl.replace(/\/+$/, '') + '/login';
 
     // Dispatch credentials directly to user's registered email

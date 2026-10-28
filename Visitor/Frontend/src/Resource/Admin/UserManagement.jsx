@@ -1490,7 +1490,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         }
         setSendingCredentialsId(user.id);
         try {
-            const res = await api.post(`/users/${user.id}/send-credentials`, {}, { timeout: 20000 });
+            const res = await api.post(`/users/${user.id}/send-credentials`);
             const userEmail = user.email;
             const baseMsg = res.data?.message || `Account credentials sent to ${userEmail}.`;
 

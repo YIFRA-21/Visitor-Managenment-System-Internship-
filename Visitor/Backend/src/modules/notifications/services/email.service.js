@@ -321,9 +321,7 @@ class EmailService {
     const typeStr = accountType || role || 'User';
     const formattedType = typeStr.charAt(0).toUpperCase() + typeStr.slice(1);
     const displayName = fullName || formattedType;
-    const clientHost = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
-      ? process.env.CLIENT_URL
-      : 'https://visitor-management-system-internsh-rho.vercel.app';
+    const clientHost = (process.env.CLIENT_URL || 'http://localhost:3000').trim();
     const portalUrl = loginUrl || `${clientHost.replace(/\/+$/, '')}/login`;
 
     const htmlContent = `

@@ -662,7 +662,7 @@ class AuthService {
   async login(identifier, password, clientInfo = {}) {
     const idStr = String(identifier || '').trim();
     const isEmail = idStr.includes('@');
-    const isUserCode = /^[A-Z]{2,6}\d{6}$/i.test(idStr);
+    const isUserCode = /^[A-Z]{2,6}-?(?:202\d-)?\d{4,8}$/i.test(idStr);
     const identifierType = isEmail ? 'EMAIL' : isUserCode ? 'USER_CODE' : 'USERNAME';
 
     const user = await userRepository.findByIdentifier(identifier);
@@ -673,11 +673,15 @@ class AuthService {
     }
 
     // Check if account is awaiting email OTP verification before allowing login
+    // Staff/employee/admin accounts provisioned by an administrator are pre-approved and active.
+    // Only self-registered public visitors require email OTP verification before initial sign-in.
     const statusUpper = String(user.account_status || user.status || '').trim().toUpperCase();
-    const isPendingVerification = statusUpper === 'PENDING_VERIFICATION' || 
-                                  statusUpper === 'PENDING' ||
-                                  (user.verification_status || '').toUpperCase() === 'PENDING' ||
-                                  ((user.role || '').toLowerCase() === 'visitor' && (user.email_verified === 0 || user.email_verified === false) && statusUpper !== 'ACTIVE');
+    const isVisitor = (user.role || '').toLowerCase() === 'visitor';
+    const isPendingVerification = isVisitor && (
+      statusUpper === 'PENDING_VERIFICATION' || 
+      statusUpper === 'PENDING' ||
+      user.email_verified === 0 || user.email_verified === false
+    );
 
     if (isPendingVerification) {
       authAuditService.logLoginFailure(identifier, `Login blocked: Email verification pending`, clientInfo).catch(() => {});
