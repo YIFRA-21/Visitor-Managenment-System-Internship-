@@ -6,3 +6,7 @@ uploads/
 .DS_Store
 vite.config.*.timestamp*
 *.timestamp-*.mjs
+
+# Postman local cache & accidental nested exports
+postman/**/postman/
+postman/**/.postman/
