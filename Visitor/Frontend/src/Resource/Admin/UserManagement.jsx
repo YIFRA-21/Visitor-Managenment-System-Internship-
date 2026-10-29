@@ -350,16 +350,24 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         }
     }, []);
     useEffect(() => {
-        if (activeSubView === 'account_security' ||
-            activeSubView === 'account-security' ||
-            activeSubView === 'sessions_devices' ||
-            activeSubView === 'login_history' ||
-            activeSubView === 'user_activity') {
-            if (selectedUserForDetails?.id) {
-                loadSecurityDetailsForUser(selectedUserForDetails.id);
+        const targetUserId = selectedUserForDetails?.id || usersList[0]?.id;
+        if (targetUserId) {
+            if (activeSubView === 'account_security' ||
+                activeSubView === 'account-security' ||
+                activeSubView === 'sessions_devices' ||
+                activeSubView === 'login_history' ||
+                activeSubView === 'user_activity' ||
+                activeSubView === 'user_details' ||
+                activeSubView === 'user-details') {
+                loadSecurityDetailsForUser(targetUserId);
+                api.get(`/users/${targetUserId}/sessions`)
+                    .then(res => {
+                        if (res.data?.data) setUserSessions(res.data.data);
+                    })
+                    .catch(() => {});
             }
         }
-    }, [activeSubView, selectedUserForDetails?.id, loadSecurityDetailsForUser]);
+    }, [activeSubView, selectedUserForDetails?.id, usersList, loadSecurityDetailsForUser]);
     const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 25, totalPages: 1 });
     // Filters State
     const [search, setSearch] = useState('');
@@ -856,6 +864,10 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     const openStatusModal = (user, type = 'status') => {
         setActionModalUser(user);
         setActionType(type);
+        if (type === 'reset_password') {
+            const temp = `TempPass#${Math.floor(100000 + Math.random() * 900000)}!`;
+            setNewAdminPassword(temp);
+        }
     };
     // Saved Searches API Fetch
     const fetchSavedSearches = useCallback(async () => {
@@ -1034,13 +1046,14 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         }
     };
     // ─── Revoke Session ──────────────────────────────────────────────────────────
-    const handleRevokeSession = async (sessionId) => {
-        if (!selectedUser)
+    const handleRevokeSession = async (sessionId, targetUserId) => {
+        const userId = targetUserId || selectedUser?.id || selectedUserForDetails?.id;
+        if (!userId)
             return;
         try {
-            await api.delete(`/users/${selectedUser.id}/sessions/${sessionId}`);
-            setUserSessions(prev => prev.filter(s => s.id !== sessionId));
-            setAlert({ type: 'success', message: 'Session revoked successfully.' });
+            await api.delete(`/users/${userId}/sessions/${sessionId}`);
+            setUserSessions(prev => prev.map(s => (s.id === sessionId || s.session_id === sessionId) ? { ...s, is_active: 0, isActive: false } : s));
+            setAlert({ type: 'success', message: 'Session revoked successfully. The device has been logged out.' });
         }
         catch (err) {
             setAlert({ type: 'error', message: extractErrorMessage(err, 'Failed to revoke session.') });
@@ -1052,8 +1065,8 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             return;
         try {
             await api.delete(`/users/${targetId}/sessions/all`);
-            setUserSessions([]);
-            setAlert({ type: 'success', message: 'All active sessions revoked for this user.' });
+            setUserSessions(prev => prev.map(s => ({ ...s, is_active: 0, isActive: false })));
+            setAlert({ type: 'success', message: 'All active sessions revoked for this user. Devices logged out.' });
         }
         catch (err) {
             setAlert({ type: 'error', message: extractErrorMessage(err, 'Failed to revoke all sessions.') });
@@ -3509,7 +3522,17 @@ export default function UserManagement({ departments = [], initialTab = 'users',
 
                 {/* TAB 7: SESSIONS */}
                 {activeUserTab === 'sessions' && (<div className="space-y-3">
-                    <h4 className="font-black uppercase text-indigo-400 text-[11px] tracking-wider">Active Device Sessions</h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-black uppercase text-indigo-400 text-[11px] tracking-wider">Active Device Sessions ({userSessions.filter(s => s.is_active === 1 || s.is_active === true).length})</h4>
+                      {userSessions.some(s => s.is_active === 1 || s.is_active === true) && (
+                        <button
+                          onClick={() => handleRevokeAllSessions(activeDetailsUser.id)}
+                          className="px-2.5 py-1 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 rounded-lg text-[10px] font-bold uppercase transition-all"
+                        >
+                          Revoke All
+                        </button>
+                      )}
+                    </div>
                     <div className="overflow-x-auto border border-slate-800 rounded-xl">
                       <table className="w-full text-left text-xs text-slate-300">
                         <thead className="bg-[#070c16] text-[10px] uppercase font-bold text-slate-400">
@@ -3522,15 +3545,46 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60">
-                          <tr>
-                            <td className="py-2.5 px-3 font-bold text-white">Windows 11 PC</td>
-                            <td className="py-2.5 px-3">Chrome 122.0</td>
-                            <td className="py-2.5 px-3 font-mono">127.0.0.1</td>
-                            <td className="py-2.5 px-3 text-emerald-400 font-bold">Active Now</td>
-                            <td className="py-2.5 px-3 text-right">
-                              <button onClick={() => setAlert({ type: 'success', message: 'Session revoked.' })} className="text-red-400 hover:underline font-bold">Revoke</button>
-                            </td>
-                          </tr>
+                          {userSessions.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="py-6 text-center text-slate-500 italic">
+                                No active device sessions recorded for this user.
+                              </td>
+                            </tr>
+                          ) : (
+                            userSessions.map((session, idx) => {
+                              const isActive = session.is_active === 1 || session.is_active === true;
+                              return (
+                                <tr key={session.id || session.session_id || idx} className="hover:bg-slate-900/40 transition-colors">
+                                  <td className="py-2.5 px-3 font-bold text-white flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                                    <span>{session.device_name || session.device_os || session.deviceName || 'Windows 11 PC'}</span>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-slate-300">{session.browser || 'Chrome 122.0'}</td>
+                                  <td className="py-2.5 px-3 font-mono text-slate-400">{session.ip_address || session.ipAddress || '127.0.0.1'}</td>
+                                  <td className="py-2.5 px-3">
+                                    {isActive ? (
+                                      <span className="text-emerald-400 font-bold">Active Now</span>
+                                    ) : (
+                                      <span className="text-slate-500 font-medium">Revoked</span>
+                                    )}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right">
+                                    {isActive ? (
+                                      <button
+                                        onClick={() => handleRevokeSession(session.id || session.session_id, activeDetailsUser.id)}
+                                        className="text-red-400 hover:text-red-300 hover:underline font-bold transition-colors cursor-pointer"
+                                      >
+                                        Revoke
+                                      </button>
+                                    ) : (
+                                      <span className="text-slate-600 text-[11px] font-bold">Terminated</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -5218,15 +5272,29 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 <div className="pt-3 flex justify-end gap-2">
                   <button onClick={() => setActionModalUser(null)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold">Cancel</button>
                   <button onClick={async () => {
+                    if (!newAdminPassword || newAdminPassword.length < 8) {
+                        setAlert({ type: 'error', message: 'Temporary password must be at least 8 characters long.' });
+                        return;
+                    }
                     try {
-                        await api.post(`/users/${actionModalUser.id}/reset-password`, { newPassword: newAdminPassword });
-                        setAlert({ type: 'success', message: `Password reset successfully for ${actionModalUser.full_name || actionModalUser.email}. New temporary credentials have been sent via email.` });
+                        await api.patch(`/users/${actionModalUser.id}/reset-password`, { 
+                            newPassword: newAdminPassword,
+                            forceMustChange: true 
+                        });
+                        setAlert({ 
+                            type: 'success', 
+                            message: `Password reset successfully for ${actionModalUser.full_name || actionModalUser.email}. Temporary credentials generated: ${newAdminPassword}` 
+                        });
                     }
                     catch (err) {
-                        setAlert({ type: 'success', message: `Password reset instructions sent for ${actionModalUser.full_name || actionModalUser.email} to their email.` });
+                        setAlert({ 
+                            type: 'error', 
+                            message: extractErrorMessage(err, 'Failed to reset password.') 
+                        });
                     }
                     finally {
                         setActionModalUser(null);
+                        fetchUsers();
                     }
                 }} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl uppercase">
                     Reset Password

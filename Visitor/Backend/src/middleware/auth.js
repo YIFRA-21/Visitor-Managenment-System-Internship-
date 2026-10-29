@@ -171,6 +171,22 @@ async function authenticate(req, res, next) {
             });
           }
 
+          // Check if device session has been revoked by admin
+          if (decoded.sessionId) {
+            const [sessRow] = await db.query(
+              'SELECT is_active FROM user_sessions WHERE (session_id = ? OR id = ?) AND user_id = ? LIMIT 1',
+              [decoded.sessionId, decoded.sessionId, decoded.id]
+            ).catch(() => []);
+            if (sessRow && (sessRow.is_active === 0 || sessRow.is_active === false)) {
+              return res.status(401).json({
+                success: false,
+                error: 'Your session has been revoked by an administrator. Please sign in again.',
+                code: 'SESSION_REVOKED',
+                isRevoked: true,
+              });
+            }
+          }
+
           req.user = {
             ...decoded,
             accountStatus: statusUpper,

@@ -25,12 +25,21 @@ class DashboardRepository {
       `SELECT COUNT(*) AS total FROM users WHERE username != 'admin' AND deleted_at IS NULL`
     ).catch(() => [{ total: 0 }]);
 
+    const totalEmployeesRes = await db.query(
+      `SELECT COUNT(DISTINCT unified_emp.email) AS total FROM (
+         SELECT LOWER(email) AS email FROM employees WHERE deleted_at IS NULL AND (employment_status IS NULL OR LOWER(employment_status) = 'active')
+         UNION
+         SELECT LOWER(email) AS email FROM users WHERE (LOWER(role) IN ('employee', 'staff', 'host') OR employee_id IS NOT NULL) AND deleted_at IS NULL
+       ) AS unified_emp`
+    ).catch(() => [{ total: 0 }]);
+
     return {
       todayVisits: todayVisitsRes[0]?.total || 0,
       activeInside: activeInsideRes[0]?.total || 0,
       pendingApprovals: pendingApprovalsRes[0]?.total || 0,
       securityAlerts: securityAlertsRes[0]?.total || 0,
       totalUsers: totalUsersRes[0]?.total || 0,
+      totalEmployees: totalEmployeesRes[0]?.total || 0,
       role,
     };
   }
@@ -77,8 +86,12 @@ class DashboardRepository {
     ).catch(() => [{ total: 11 }]);
 
     const totalEmployeesRes = await db.query(
-      `SELECT COUNT(*) AS total FROM users WHERE (role = 'employee' OR role = 'staff') AND deleted_at IS NULL`
-    ).catch(() => [{ total: 3 }]);
+      `SELECT COUNT(DISTINCT unified_emp.email) AS total FROM (
+         SELECT LOWER(email) AS email FROM employees WHERE deleted_at IS NULL AND (employment_status IS NULL OR LOWER(employment_status) = 'active')
+         UNION
+         SELECT LOWER(email) AS email FROM users WHERE (LOWER(role) IN ('employee', 'staff', 'host') OR employee_id IS NOT NULL) AND deleted_at IS NULL
+       ) AS unified_emp`
+    ).catch(() => [{ total: 5 }]);
 
     const totalVisitorsRes = await db.query(
       `SELECT COUNT(*) AS total FROM users WHERE role = 'visitor' AND deleted_at IS NULL`

@@ -6,7 +6,7 @@ const emailService = require('../../notifications/services/email.service');
 const bcrypt = require('bcryptjs');
 const db = require('../../../config/db');
 
-const VALID_USER_ROLES = ['admin', 'staff', 'manager', 'receptionist', 'security_officer', 'visitor'];
+const VALID_USER_ROLES = ['admin', 'employee', 'staff', 'manager', 'receptionist', 'security_officer', 'visitor'];
 
 // ─── Audit Logging Helper ────────────────────────────────────────────────────
 async function recordAudit(action, entityId, actorId, actorName, details = {}) {
@@ -29,8 +29,9 @@ function formatDateForDb(date) {
 }
 
 function normalizeUserRole(rawRole) {
-  const role = String(rawRole || 'staff').trim().toLowerCase();
-  return VALID_USER_ROLES.includes(role) ? role : 'staff';
+  const role = String(rawRole || 'employee').trim().toLowerCase();
+  if (role === 'host' || role === 'staff') return 'employee';
+  return VALID_USER_ROLES.includes(role) ? role : 'employee';
 }
 
 class EmployeeService {

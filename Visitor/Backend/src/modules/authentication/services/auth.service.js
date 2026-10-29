@@ -869,10 +869,11 @@ class AuthService {
 
     // Generate JWT access + refresh tokens (with unique nonce to avoid duplicate session tokens)
     const nonce = Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
-    const accessToken = jwt.sign({ ...payload, nonce }, environment.JWT.SECRET, {
+    const sessionId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+    const accessToken = jwt.sign({ ...payload, nonce, sessionId }, environment.JWT.SECRET, {
       expiresIn: environment.JWT.EXPIRES_IN,
     });
-    const refreshToken = jwt.sign({ id: user.id, nonce }, environment.JWT.REFRESH_SECRET, {
+    const refreshToken = jwt.sign({ id: user.id, nonce, sessionId }, environment.JWT.REFRESH_SECRET, {
       expiresIn: environment.JWT.REFRESH_EXPIRES_IN,
     });
 
@@ -882,8 +883,6 @@ class AuthService {
       .toISOString()
       .slice(0, 19)
       .replace('T', ' ');
-
-    const sessionId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
 
     // Fire-and-forget: session insert and audit log should not block the login response
     if (!db.useMock) {

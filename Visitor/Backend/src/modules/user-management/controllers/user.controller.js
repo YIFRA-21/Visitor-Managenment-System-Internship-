@@ -114,11 +114,12 @@ class UserManagementController {
   // ── Password Reset ────────────────────────────────────────────────────────
   async resetPassword(req, res, next) {
     try {
-      const { newPassword, forceMustChange } = req.body;
-      if (!newPassword || newPassword.length < 8) {
+      const { newPassword, password, tempPassword, forceMustChange } = req.body;
+      const effectivePassword = newPassword || password || tempPassword;
+      if (!effectivePassword || effectivePassword.length < 8) {
         return res.status(400).json({ success: false, error: 'Password must be at least 8 characters long.' });
       }
-      await userManagementService.adminResetPassword(parseInt(req.params.id), newPassword, forceMustChange !== false, req.user ? req.user.id : null);
+      await userManagementService.adminResetPassword(parseInt(req.params.id), effectivePassword, forceMustChange !== false, req.user ? req.user.id : null);
       res.json({ success: true, message: 'Password reset successfully.' });
     } catch (err) {
       next(err);

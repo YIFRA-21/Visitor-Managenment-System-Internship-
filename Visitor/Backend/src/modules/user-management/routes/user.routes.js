@@ -60,6 +60,7 @@ router.post('/:id/resend-phone-verification', checkPermission('USER:MANAGE'), (r
 
 // Password Reset & Credentials Dispatch
 router.patch('/:id/reset-password', checkPermission('USER:MANAGE'), (req, res, next) => userController.resetPassword(req, res, next));
+router.post('/:id/reset-password', checkPermission('USER:MANAGE'), (req, res, next) => userController.resetPassword(req, res, next));
 router.post('/:id/send-credentials', checkPermission('USER:MANAGE'), (req, res, next) => userController.sendCredentials(req, res, next));
 router.post('/:id/resend-registration-email', checkPermission('USER:MANAGE'), (req, res, next) => userController.sendCredentials(req, res, next));
 
