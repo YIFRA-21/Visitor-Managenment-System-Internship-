@@ -477,7 +477,7 @@ export default function ForgotPasswordPage() {
                         Forgot Password
                     </h2>
                     <p className="text-xs text-slate-400 mt-1.5 font-medium">
-                        Reset password for <span className="text-slate-200 font-semibold">{orgName || 'Enterprise VMS Global'}</span>
+                        Reset password for <span className="text-slate-200 font-semibold">{orgName || 'IT park'}</span>
                     </p>
                 </motion.div>
 

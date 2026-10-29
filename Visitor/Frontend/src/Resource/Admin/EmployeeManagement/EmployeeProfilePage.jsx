@@ -80,7 +80,7 @@ export default function EmployeeProfilePage({ employeeId, onBack }) {
         position: 'Lead Admin',
         hire_date: '2020-01-15',
         employment_status: 'Active',
-        organization_name: 'Enterprise VMS Global',
+        organization_name: 'IT park',
         branch_name: 'HQ Silicon Valley Campus',
         department_name: 'Executive Office',
         building_name: 'HQ Building A',
@@ -607,7 +607,7 @@ export default function EmployeeProfilePage({ employeeId, onBack }) {
             <div className="space-y-3 text-xs">
               <div className="flex justify-between py-1 border-b border-slate-800/50">
                 <span className="text-slate-400">Organization:</span>
-                <span className="font-bold text-white">{currentEmp.organization_name || 'Enterprise VMS Global'}</span>
+                <span className="font-bold text-white">{currentEmp.organization_name || 'IT park'}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-800/50">
                 <span className="text-slate-400">Branch Location:</span>

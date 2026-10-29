@@ -47,7 +47,7 @@ class HierarchyRepository {
       // Mock Fallback
       return {
         organizations: [
-          { id: 1, name: 'Enterprise VMS Global', code: 'VMS-HQ', status: 'ACTIVE' },
+          { id: 1, name: 'IT park', code: 'ITP01', status: 'ACTIVE' },
           { id: 2, name: 'ICT Park Corporation', code: 'ICT-PARK', status: 'ACTIVE' }
         ],
         branches: [

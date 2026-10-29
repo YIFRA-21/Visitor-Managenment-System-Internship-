@@ -12,7 +12,7 @@ const SecurityAppointmentNotificationsView = () => {
       <div className="space-y-3">
         {[
             { title: 'Diplomatic Delegation Visit Clearance', delegation: 'Ambassador Elena Rostova & Escort Security', time: 'Today 14:00', zone: 'Executive Boardroom Wing', tag: 'High Security VIP', tagCol: 'bg-purple-500/10 text-purple-400 border-purple-500/30' },
-            { title: 'Confidential Audit Contractor Access', delegation: 'Enterprise VMS Global Audit Team (5 Technicians)', time: 'Today 15:30', zone: 'Data Center Level 2', tag: 'Restricted Access', tagCol: 'bg-amber-500/10 text-amber-400 border-amber-500/30' }
+            { title: 'Confidential Audit Contractor Access', delegation: 'IT park Audit Team (5 Technicians)', time: 'Today 15:30', zone: 'Data Center Level 2', tag: 'Restricted Access', tagCol: 'bg-amber-500/10 text-amber-400 border-amber-500/30' }
         ].map((a, i) => (<div key={i} className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex justify-between items-center text-xs">
             <div>
               <div className="flex items-center gap-2">

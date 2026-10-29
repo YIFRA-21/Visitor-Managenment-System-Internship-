@@ -771,7 +771,7 @@ export default function SignupPage() {
               </div>
               <div>
                 <h1 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
-                  {orgName && !orgName.toLowerCase().includes('it park') ? orgName : 'Enterprise VMS Global'}
+                  {orgName || 'IT park'}
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold tracking-wider mt-0.5">Secure. Track. Manage.</p>
               </div>

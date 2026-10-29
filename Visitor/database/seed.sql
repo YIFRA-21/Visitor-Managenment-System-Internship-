@@ -3926,9 +3926,9 @@ INSERT INTO
 VALUES (
         1,
         1,
-        'Enterprise VMS Global',
-        'EVMS',
-        'EVMSG',
+        'IT park',
+        'IT park',
+        'ITP01',
         'REG-120938-US',
         'TAX-9988112-FED',
         'https://evmsglobal.com',

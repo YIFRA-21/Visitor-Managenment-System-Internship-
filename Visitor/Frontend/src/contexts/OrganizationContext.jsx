@@ -2,19 +2,19 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import api from '../services/api';
 const DEFAULT_ORGANIZATION = {
     id: 1,
-    name: 'Enterprise VMS Global',
-    shortName: 'EVMS',
-    code: 'EVMS-HQ',
-    email: 'info@enterprisevms.com',
-    phone: '+251 11 123 4567',
-    website: 'https://enterprisevms.com',
-    address: 'Headquarters Campus, Main Commercial Tower',
+    name: 'IT park',
+    shortName: 'IT park',
+    code: 'ITP01',
+    email: 'info@ethiopianitpark.et',
+    phone: '+251 921109998',
+    website: 'https://ethiopianitpark.et',
+    address: 'Bole, Addis Ababa, Ethiopia',
     country: 'Ethiopia',
     region: 'Addis Ababa',
     city: 'Addis Ababa',
-    subCity: 'Main HQ',
-    woreda: '',
-    postalCode: '',
+    subCity: 'Bole',
+    woreda: '03',
+    postalCode: '1000',
     logoUrl: '/logo.png',
     faviconUrl: '',
     primaryColor: '#2563eb',
@@ -30,16 +30,16 @@ export const OrganizationProvider = ({ children }) => {
                 const parsed = JSON.parse(cached);
                 if (
                     !parsed.name ||
-                    parsed.name.toLowerCase().includes('it park') ||
-                    (parsed.email && parsed.email.toLowerCase().includes('itpark')) ||
-                    (parsed.phone && parsed.phone.includes('921109998')) ||
-                    (parsed.website && parsed.website.toLowerCase().includes('itpark'))
+                    parsed.name.toLowerCase().includes('enterprise vms') ||
+                    (parsed.email && parsed.email.toLowerCase().includes('enterprisevms')) ||
+                    (parsed.website && parsed.website.toLowerCase().includes('enterprisevms'))
                 ) {
-                    parsed.name = 'Enterprise VMS Global';
-                    parsed.shortName = 'EVMS';
-                    parsed.email = 'info@enterprisevms.com';
-                    parsed.phone = '+251 11 123 4567';
-                    parsed.website = 'https://enterprisevms.com';
+                    parsed.name = 'IT park';
+                    parsed.shortName = 'IT park';
+                    parsed.code = 'ITP01';
+                    parsed.email = 'info@ethiopianitpark.et';
+                    parsed.phone = '+251 921109998';
+                    parsed.website = 'https://ethiopianitpark.et';
                     localStorage.setItem(CACHE_KEY, JSON.stringify(parsed));
                 }
                 return { ...DEFAULT_ORGANIZATION, ...parsed };
@@ -164,22 +164,20 @@ export const OrganizationProvider = ({ children }) => {
         });
     }, []);
     const logoUrl = organization.logoUrl || '/logo.png';
-    const orgName = (organization.name && !organization.name.toLowerCase().includes('it park'))
+    const orgName = (organization.name && !organization.name.toLowerCase().includes('enterprise vms'))
         ? organization.name
-        : 'Enterprise VMS Global';
-    const orgEmail = (organization.email && !organization.email.toLowerCase().includes('itpark'))
+        : 'IT park';
+    const orgEmail = (organization.email && !organization.email.toLowerCase().includes('enterprisevms'))
         ? organization.email
-        : 'info@enterprisevms.com';
-    const orgPhone = (organization.phone && !organization.phone.includes('921109998'))
-        ? organization.phone
-        : '+251 11 123 4567';
-    const orgWebsite = (organization.website && !organization.website.toLowerCase().includes('itpark'))
+        : 'info@ethiopianitpark.et';
+    const orgPhone = organization.phone || '+251 921109998';
+    const orgWebsite = (organization.website && !organization.website.toLowerCase().includes('enterprisevms'))
         ? organization.website
-        : 'https://enterprisevms.com';
+        : 'https://ethiopianitpark.et';
     const cleanOrganization = {
         ...organization,
         name: orgName,
-        shortName: (organization.shortName && organization.shortName !== 'ITP') ? organization.shortName : 'EVMS',
+        shortName: (organization.shortName && organization.shortName !== 'EVMS') ? organization.shortName : 'IT park',
         email: orgEmail,
         phone: orgPhone,
         website: orgWebsite,

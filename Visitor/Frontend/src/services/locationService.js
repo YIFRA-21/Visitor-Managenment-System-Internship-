@@ -32,8 +32,8 @@ const DEFAULT_BUILDINGS = [
         organization_id: 1,
         branch_name: 'Megenagna Super Site',
         branch_code: 'VS-123454321',
-        organization_name: 'Enterprise VMS Global',
-        organization_code: 'EVMS-HQ',
+        organization_name: 'IT park',
+        organization_code: 'ITP01',
         total_floors: 4,
         total_rooms: 8,
         total_employees: 18
@@ -51,8 +51,8 @@ const DEFAULT_BUILDINGS = [
         organization_id: 1,
         branch_name: 'Megenagna Super Site',
         branch_code: 'VS-123454321',
-        organization_name: 'Enterprise VMS Global',
-        organization_code: 'EVMS-HQ',
+        organization_name: 'IT park',
+        organization_code: 'ITP01',
         total_floors: 2,
         total_rooms: 6,
         total_employees: 12
@@ -70,8 +70,8 @@ const DEFAULT_BUILDINGS = [
         organization_id: 1,
         branch_name: 'Megenagna Super Site',
         branch_code: 'VS-123454321',
-        organization_name: 'Enterprise VMS Global',
-        organization_code: 'EVMS-HQ',
+        organization_name: 'IT park',
+        organization_code: 'ITP01',
         total_floors: 5,
         total_rooms: 10,
         total_employees: 14
@@ -89,8 +89,8 @@ const DEFAULT_BUILDINGS = [
         organization_id: 1,
         branch_name: 'Megenagna Super Site',
         branch_code: 'VS-123454321',
-        organization_name: 'Enterprise VMS Global',
-        organization_code: 'EVMS-HQ',
+        organization_name: 'IT park',
+        organization_code: 'ITP01',
         total_floors: 3,
         total_rooms: 4,
         total_employees: 8
@@ -108,8 +108,8 @@ const DEFAULT_BUILDINGS = [
         organization_id: 1,
         branch_name: 'Megenagna Super Site',
         branch_code: 'VS-123454321',
-        organization_name: 'Enterprise VMS Global',
-        organization_code: 'EVMS-HQ',
+        organization_name: 'IT park',
+        organization_code: 'ITP01',
         total_floors: 3,
         total_rooms: 6,
         total_employees: 6
@@ -127,8 +127,8 @@ const DEFAULT_BUILDINGS = [
         organization_id: 1,
         branch_name: 'Megenagna Super Site',
         branch_code: 'VS-123454321',
-        organization_name: 'Enterprise VMS Global',
-        organization_code: 'EVMS-HQ',
+        organization_name: 'IT park',
+        organization_code: 'ITP01',
         total_floors: 2,
         total_rooms: 4,
         total_employees: 4
@@ -146,8 +146,8 @@ const DEFAULT_BUILDINGS = [
         organization_id: 1,
         branch_name: 'Megenagna Super Site',
         branch_code: 'VS-123454321',
-        organization_name: 'Enterprise VMS Global',
-        organization_code: 'EVMS-HQ',
+        organization_name: 'IT park',
+        organization_code: 'ITP01',
         total_floors: 3,
         total_rooms: 5,
         total_employees: 10
@@ -174,9 +174,9 @@ const DEFAULT_ROOMS = [
 
 // Seed workplace assignments
 const DEFAULT_WORKPLACE = [
-    { id: 1, employee_id: 1, full_name: 'Admin User', employee_number: 'EMP-001', job_title: 'System Administrator', department_name: 'Information Technology', department_id: 1, organization_id: 1, organization_name: 'Enterprise VMS Global', branch_id: 1, branch_name: 'Megenagna Super Site', building_id: 1, building_name: 'Main HQ Building', floor_id: 2, floor_name: '1st Floor - Executive Suites', room_id: 1, room_name: 'Executive Boardroom A', office_number: 'STE-101', floor_number: '1', workplace_status: 'ASSIGNED', effective_start_date: '2026-01-01' },
-    { id: 2, employee_id: 2, full_name: 'Michael Chen', employee_number: 'EMP-002', job_title: 'Senior Solutions Architect', department_name: 'Software Engineering', department_id: 2, organization_id: 1, organization_name: 'Enterprise VMS Global', branch_id: 1, branch_name: 'Megenagna Super Site', building_id: 2, building_name: 'HQ Main Tower', floor_id: 4, floor_name: 'Floor 2 - Engineering Wing', room_id: 4, room_name: 'Creative Studio 4D', office_number: 'ENG-204', floor_number: '2', workplace_status: 'ASSIGNED', effective_start_date: '2026-02-15' },
-    { id: 3, employee_id: 3, full_name: 'Lisa Taylor', employee_number: 'EMP-003', job_title: 'Lead Reception Officer', department_name: 'Customer Relations', department_id: 3, organization_id: 1, organization_name: 'Enterprise VMS Global', branch_id: 1, branch_name: 'Megenagna Super Site', building_id: 1, building_name: 'Main HQ Building', floor_id: 1, floor_name: 'Ground Floor & Lobby', room_id: 2, room_name: 'Innovation Hub 2B', office_number: 'RCP-01', floor_number: '0', workplace_status: 'ASSIGNED', effective_start_date: '2026-03-01' }
+    { id: 1, employee_id: 1, full_name: 'Admin User', employee_number: 'EMP-001', job_title: 'System Administrator', department_name: 'Information Technology', department_id: 1, organization_id: 1, organization_name: 'IT park', branch_id: 1, branch_name: 'Megenagna Super Site', building_id: 1, building_name: 'Main HQ Building', floor_id: 2, floor_name: '1st Floor - Executive Suites', room_id: 1, room_name: 'Executive Boardroom A', office_number: 'STE-101', floor_number: '1', workplace_status: 'ASSIGNED', effective_start_date: '2026-01-01' },
+    { id: 2, employee_id: 2, full_name: 'Michael Chen', employee_number: 'EMP-002', job_title: 'Senior Solutions Architect', department_name: 'Software Engineering', department_id: 2, organization_id: 1, organization_name: 'IT park', branch_id: 1, branch_name: 'Megenagna Super Site', building_id: 2, building_name: 'HQ Main Tower', floor_id: 4, floor_name: 'Floor 2 - Engineering Wing', room_id: 4, room_name: 'Creative Studio 4D', office_number: 'ENG-204', floor_number: '2', workplace_status: 'ASSIGNED', effective_start_date: '2026-02-15' },
+    { id: 3, employee_id: 3, full_name: 'Lisa Taylor', employee_number: 'EMP-003', job_title: 'Lead Reception Officer', department_name: 'Customer Relations', department_id: 3, organization_id: 1, organization_name: 'IT park', branch_id: 1, branch_name: 'Megenagna Super Site', building_id: 1, building_name: 'Main HQ Building', floor_id: 1, floor_name: 'Ground Floor & Lobby', room_id: 2, room_name: 'Innovation Hub 2B', office_number: 'RCP-01', floor_number: '0', workplace_status: 'ASSIGNED', effective_start_date: '2026-03-01' }
 ];
 
 // Helper: load from localStorage with default seed fallback
@@ -290,7 +290,7 @@ export const locationService = {
             organization_id: data.organization_id || 1,
             branch_id: data.branch_id || 1,
             branch_name: 'Megenagna Super Site',
-            organization_name: 'Enterprise VMS Global',
+            organization_name: 'IT park',
             total_floors: 0,
             total_rooms: 0,
             total_employees: 0,
@@ -671,7 +671,7 @@ export const locationService = {
             department_name: data.department_name || 'Operations',
             department_id: data.department_id || 1,
             organization_id: data.organization_id || 1,
-            organization_name: 'Enterprise VMS Global',
+            organization_name: 'IT park',
             branch_id: data.branch_id || 1,
             branch_name: 'Megenagna Super Site',
             building_id: data.building_id,
@@ -743,7 +743,7 @@ export const locationService = {
             if (list.length > 0) return list;
         } catch (err) {}
         return [
-            { id: 1, name: 'Enterprise VMS Global', code: 'EVMS-HQ' },
+            { id: 1, name: 'IT park', code: 'ITP01' },
             { id: 2, name: 'Enterprise Global Corp', code: 'EGC01' }
         ];
     },

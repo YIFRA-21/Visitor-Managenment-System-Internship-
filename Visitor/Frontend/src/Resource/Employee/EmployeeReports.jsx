@@ -17,9 +17,9 @@ export default function EmployeeReports() {
         catch (err) {
             // Mock fallback report data
             setReportsData([
-                { id: 501, visitor_name: 'Dr. Evelyn Carter', company: 'Enterprise VMS Global', date: '2026-07-28', status: 'COMPLETED', room: 'Boardroom A' },
-                { id: 502, visitor_name: 'Marcus Brody', company: 'Enterprise VMS Global', date: '2026-07-25', status: 'COMPLETED', room: 'Suite 2B' },
-                { id: 503, visitor_name: 'Sophia Laurent', company: 'Enterprise VMS Global', date: '2026-07-20', status: 'COMPLETED', room: 'Studio 4D' },
+                { id: 501, visitor_name: 'Dr. Evelyn Carter', company: 'IT park', date: '2026-07-28', status: 'COMPLETED', room: 'Boardroom A' },
+                { id: 502, visitor_name: 'Marcus Brody', company: 'IT park', date: '2026-07-25', status: 'COMPLETED', room: 'Suite 2B' },
+                { id: 503, visitor_name: 'Sophia Laurent', company: 'IT park', date: '2026-07-20', status: 'COMPLETED', room: 'Studio 4D' },
             ]);
         }
         finally {

@@ -156,7 +156,7 @@ class UserManagementService {
              u.created_at, u.updated_at,
              COALESCE(d.department_name, d.name, 'General') AS department_name,
              COALESCE(b.branch_name, 'Main Branch') AS branch_name,
-             COALESCE(o.name, 'Enterprise VMS Global') AS organization_name
+             COALESCE(o.name, 'IT park') AS organization_name
       FROM users u
       LEFT JOIN employees e ON e.user_id = u.id
       LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
@@ -287,7 +287,7 @@ class UserManagementService {
               u.created_at, u.updated_at, u.deleted_at,
               COALESCE(d.department_name, d.name, 'General') AS department_name,
               COALESCE(b.branch_name, 'Main Branch') AS branch_name,
-              COALESCE(o.name, 'Enterprise VMS Global') AS organization_name
+              COALESCE(o.name, 'IT park') AS organization_name
        FROM users u
        LEFT JOIN employees e ON e.user_id = u.id
        LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
@@ -1430,7 +1430,7 @@ class UserManagementService {
       phone: u.phone || u.phone_number,
       role: u.role,
       department: u.department_name || 'N/A',
-      organization: u.organization_name || 'Enterprise VMS Global',
+      organization: u.organization_name || 'IT park',
       branch: u.branch_name || 'Main Branch',
       accountStatus: u.account_status || u.status,
       emailVerified: u.email_verified ? 'Yes' : 'No',

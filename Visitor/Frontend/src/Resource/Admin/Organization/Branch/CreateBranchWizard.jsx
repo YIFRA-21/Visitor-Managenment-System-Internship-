@@ -52,7 +52,7 @@ export default function CreateBranchWizard() {
                 }
             })
             .catch(() => {
-                const fallback = [{ id: 1, name: 'Enterprise VMS Global', code: 'ITP', status: 'ACTIVE' }];
+                const fallback = [{ id: 1, name: 'IT park', code: 'ITP01', status: 'ACTIVE' }];
                 setOrganizations(fallback);
                 setFormData(prev => ({ ...prev, organizationId: prev.organizationId || '1' }));
             });

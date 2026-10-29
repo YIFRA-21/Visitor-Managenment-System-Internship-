@@ -41,7 +41,7 @@ const INITIAL_CHAT_HISTORIES = {
             sender_role: 'receptionist',
             recipient_id: 1,
             recipient_role: 'employee',
-            body: 'Visitor Mr. David Wilson from Enterprise VMS Global has arrived at Reception Desk A.',
+            body: 'Visitor Mr. David Wilson from IT park has arrived at Reception Desk A.',
             is_read: true,
             created_at: '10:30 AM',
             sender_name: 'Emily Williams (Reception)'

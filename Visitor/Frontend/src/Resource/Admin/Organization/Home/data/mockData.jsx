@@ -37,16 +37,16 @@ export const mockQuickActions = [
     { id: 12, title: 'Audit Logs', icon: 'bi-journal-text', description: 'View security logs', route: 'audit_logs', color: 'secondary', requiredPermission: 'audit:read' },
 ];
 export const mockActivities = [
-    { id: 1, user: 'John Smith', action: 'created organization "Enterprise VMS Global"', date: '2026-07-20', time: '09:15 AM', status: 'completed', module: 'Organization', avatar: null },
+    { id: 1, user: 'John Smith', action: 'created organization "IT park"', date: '2026-07-20', time: '09:15 AM', status: 'completed', module: 'Organization', avatar: null },
     { id: 2, user: 'Sarah Johnson', action: 'updated branch "Downtown Office"', date: '2026-07-20', time: '08:45 AM', status: 'completed', module: 'Branch', avatar: null },
     { id: 3, user: 'Michael Chen', action: 'created department "Research & Development"', date: '2026-07-19', time: '04:30 PM', status: 'completed', module: 'Department', avatar: null },
-    { id: 4, user: 'Emily Davis', action: 'activated organization "Enterprise VMS Global"', date: '2026-07-19', time: '02:15 PM', status: 'completed', module: 'Organization', avatar: null },
-    { id: 5, user: 'Robert Wilson', action: 'updated branding for "Enterprise VMS Global"', date: '2026-07-19', time: '11:00 AM', status: 'completed', module: 'Branding', avatar: null },
+    { id: 4, user: 'Emily Davis', action: 'activated organization "IT park"', date: '2026-07-19', time: '02:15 PM', status: 'completed', module: 'Organization', avatar: null },
+    { id: 5, user: 'Robert Wilson', action: 'updated branding for "IT park"', date: '2026-07-19', time: '11:00 AM', status: 'completed', module: 'Branding', avatar: null },
     { id: 6, user: 'Lisa Thompson', action: 'archived department "Legacy Products"', date: '2026-07-18', time: '03:45 PM', status: 'completed', module: 'Department', avatar: null },
     { id: 7, user: 'James Brown', action: 'added holiday to business calendar', date: '2026-07-18', time: '01:20 PM', status: 'pending', module: 'Calendar', avatar: null },
-    { id: 8, user: 'Amanda Garcia', action: 'modified organization settings for "Enterprise VMS Global"', date: '2026-07-18', time: '10:30 AM', status: 'completed', module: 'Settings', avatar: null },
+    { id: 8, user: 'Amanda Garcia', action: 'modified organization settings for "IT park"', date: '2026-07-18', time: '10:30 AM', status: 'completed', module: 'Settings', avatar: null },
     { id: 9, user: 'David Martinez', action: 'created branch "West Coast Hub"', date: '2026-07-17', time: '04:00 PM', status: 'completed', module: 'Branch', avatar: null },
-    { id: 10, user: 'Jennifer Lee', action: 'updated contact information for "Enterprise VMS Global"', date: '2026-07-17', time: '02:00 PM', status: 'completed', module: 'Contact', avatar: null },
+    { id: 10, user: 'Jennifer Lee', action: 'updated contact information for "IT park"', date: '2026-07-17', time: '02:00 PM', status: 'completed', module: 'Contact', avatar: null },
     { id: 11, user: 'John Smith', action: 'viewed organization tree', date: '2026-07-17', time: '11:15 AM', status: 'completed', module: 'Organization Tree', avatar: null },
     { id: 12, user: 'Sarah Johnson', action: 'exported audit logs', date: '2026-07-16', time: '04:45 PM', status: 'completed', module: 'Audit Logs', avatar: null },
 ];
@@ -92,23 +92,23 @@ export const mockStatistics = {
     ],
 };
 export const mockNotifications = [
-    { id: 1, title: 'Organization Registered', description: 'Enterprise VMS Global has been registered', time: '5m ago', read: false, icon: 'bi-building', color: 'primary', category: 'activity' },
+    { id: 1, title: 'Organization Registered', description: 'IT park has been registered', time: '5m ago', read: false, icon: 'bi-building', color: 'primary', category: 'activity' },
     { id: 2, title: 'Branch Updated', description: 'Downtown Office details were modified', time: '1h ago', read: false, icon: 'bi-diagram-3', color: 'info', category: 'activity' },
     { id: 3, title: 'Department Created', description: 'R&D department added to HQ branch', time: '2h ago', read: true, icon: 'bi-columns-gap', color: 'warning', category: 'activity' },
     { id: 4, title: 'System Backup Completed', description: 'Automated nightly backup finished successfully', time: '6h ago', read: true, icon: 'bi-cloud-check', color: 'success', category: 'system' },
-    { id: 5, title: 'Organization Activated', description: 'Enterprise VMS Global is now active', time: '1d ago', read: true, icon: 'bi-building-check', color: 'success', category: 'activity' },
+    { id: 5, title: 'Organization Activated', description: 'IT park is now active', time: '1d ago', read: true, icon: 'bi-building-check', color: 'success', category: 'activity' },
     { id: 6, title: 'Security Alert', description: 'Unauthorized access attempt detected', time: '1d ago', read: true, icon: 'bi-shield-exclamation', color: 'danger', category: 'alert' },
-    { id: 7, title: 'Branding Updated', description: 'Enterprise VMS Global logo and theme changed', time: '2d ago', read: true, icon: 'bi-palette', color: 'danger', category: 'activity' },
+    { id: 7, title: 'Branding Updated', description: 'IT park logo and theme changed', time: '2d ago', read: true, icon: 'bi-palette', color: 'danger', category: 'activity' },
 ];
 export const mockSearchOrganizations = [
-    { id: 'org-1', type: 'organization', title: 'Enterprise VMS Global', description: 'Enterprise · Active · ORG-001', route: 'org_details' },
+    { id: 'org-1', type: 'organization', title: 'IT park', description: 'Enterprise · Active · ORG-001', route: 'org_details' },
 ];
 export const mockSearchBranches = [
-    { id: 'br-1', type: 'branch', title: 'HQ Silicon Valley Campus', description: 'Enterprise VMS Global · San Jose · Active', route: 'branches' },
-    { id: 'br-2', type: 'branch', title: 'London Development Hub', description: 'Enterprise VMS Global · London · Active', route: 'branches' },
+    { id: 'br-1', type: 'branch', title: 'HQ Silicon Valley Campus', description: 'IT park · San Jose · Active', route: 'branches' },
+    { id: 'br-2', type: 'branch', title: 'London Development Hub', description: 'IT park · London · Active', route: 'branches' },
 ];
 export const mockSearchDepartments = [
-    { id: 'dept-1', type: 'department', title: 'Research & Development', description: 'Enterprise VMS Global · HQ Campus · 45 employees', route: 'departments_mgmt' },
-    { id: 'dept-2', type: 'department', title: 'Sales & Marketing', description: 'Enterprise VMS Global · London Hub · 32 employees', route: 'departments_mgmt' },
-    { id: 'dept-3', type: 'department', title: 'Human Resources', description: 'Enterprise VMS Global · Main Office · 12 employees', route: 'departments_mgmt' },
+    { id: 'dept-1', type: 'department', title: 'Research & Development', description: 'IT park · HQ Campus · 45 employees', route: 'departments_mgmt' },
+    { id: 'dept-2', type: 'department', title: 'Sales & Marketing', description: 'IT park · London Hub · 32 employees', route: 'departments_mgmt' },
+    { id: 'dept-3', type: 'department', title: 'Human Resources', description: 'IT park · Main Office · 12 employees', route: 'departments_mgmt' },
 ];

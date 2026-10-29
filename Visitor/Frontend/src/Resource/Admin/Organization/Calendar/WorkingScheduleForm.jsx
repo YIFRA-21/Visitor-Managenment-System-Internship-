@@ -177,7 +177,7 @@ export default function WorkingScheduleForm({ initialData, onSave, onCancel }) {
             <div>
               <label className="form-label text-xxs font-bold uppercase text-slate-400">Organization Scope</label>
               <select className="form-select text-xs font-semibold" value={businessInfo.organizationId} onChange={(e) => setBusinessInfo({ ...businessInfo, organizationId: Number(e.target.value) })}>
-                <option value={1}>Enterprise VMS Global</option>
+                <option value={1}>IT park</option>
               </select>
             </div>
 
@@ -207,7 +207,7 @@ export default function WorkingScheduleForm({ initialData, onSave, onCancel }) {
         {step === 3 && (<div className="space-y-4 max-w-2xl mx-auto text-xs font-semibold text-slate-600 dark:text-slate-350">
             <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
               <h4 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase mb-2">Scope Summary</h4>
-              <p>• **Scope Organization**: Enterprise VMS Global</p>
+              <p>• **Scope Organization**: IT park</p>
               <p>• **Operational TimeZone**: {businessInfo.timeZone}</p>
               <p>• **Effective Period**: {businessInfo.startDate} {businessInfo.endDate ? `to ${businessInfo.endDate}` : '(Indefinite)'}</p>
             </div>

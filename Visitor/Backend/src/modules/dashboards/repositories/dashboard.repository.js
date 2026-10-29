@@ -247,7 +247,7 @@ class DashboardRepository {
     ).catch(() => []);
 
     const orgNameRes = await db.query('SELECT name FROM organizations WHERE id = 1 LIMIT 1').catch(() => []);
-    const resolvedOrgName = orgNameRes[0]?.name || 'Enterprise VMS Global';
+    const resolvedOrgName = orgNameRes[0]?.name || 'IT park';
 
     return {
       welcomeMessage: 'Welcome back!',

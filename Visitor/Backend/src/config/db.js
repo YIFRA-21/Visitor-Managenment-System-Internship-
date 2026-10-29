@@ -730,7 +730,7 @@ const PASSWORD_HASH = bcrypt.hashSync('Password123!', 10);
 // In-memory mock database seeded with default seed data
 const mockDb = {
   organizations: [
-    { id: 1, organization_id: 1, name: 'Enterprise VMS Global', short_name: 'EVMS', code: 'EVMS-HQ', registration_number: 'REG123456', tax_number: '1234567890', website: 'https://enterprisevms.com', email: 'info@enterprisevms.com', phone: '+251111234567', address: 'Headquarters Campus, Main Commercial Tower', country: 'Ethiopia', region: 'Addis Ababa', city: 'Addis Ababa', status: 'ACTIVE', created_by: 1, created_at: '2026-07-19T00:00:00Z' }
+    { id: 1, organization_id: 1, name: 'IT park', short_name: 'IT park', code: 'ITP01', registration_number: '45678', tax_number: '1098765456789', website: 'https://ethiopianitpark.et', email: 'info@ethiopianitpark.et', phone: '+251 921109998', address: 'Bole, Addis Ababa, Ethiopia', country: 'Ethiopia', region: 'Addis Ababa', city: 'Addis Ababa', status: 'ACTIVE', created_by: 1, created_at: '2026-07-19T00:00:00Z' }
   ],
   organization_branches: [
     { id: 1, branch_id: 1, organization_id: 1, branch_name: 'HQ Silicon Valley Campus', branch_code: 'HQ-SV', branch_type: 'OFFICE', country: 'United States', city: 'San Jose', timezone: 'America/Los_Angeles', address: '100 Innovation Way', status: 'ACTIVE', created_by: 1, created_at: '2026-07-27T10:00:00Z' },
@@ -986,9 +986,9 @@ const mockDb = {
   user_sessions: [],
   user_otp: [],
   visitors: [
-    { id: 1, user_id: 12, visitor_id: 'VISIT000001', visitor_code: 'VISIT000001', full_name: 'Yetmwerk Ayele Muluneh', first_name: 'Yetmwerk', last_name: 'Ayele Muluneh', email: 'yetmul8@gmail.com', phone: '+251911234567', company: 'Enterprise VMS Global', id_type: 'Passport', id_number: 'EP987654', is_blacklisted: false, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' },
-    { id: 2, user_id: null, full_name: 'Maria Garcia', email: 'maria.g@techstart.io', phone: '+1-555-1002', company: 'Enterprise VMS Global', id_type: 'Driver License', id_number: 'DL987654', is_blacklisted: false, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' },
-    { id: 3, user_id: null, full_name: 'David Lee', email: 'david.lee@invest.com', phone: '+1-555-1003', company: 'Enterprise VMS Global', id_type: 'National ID', id_number: 'NID456789', is_blacklisted: true, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' }
+    { id: 1, user_id: 12, visitor_id: 'VISIT000001', visitor_code: 'VISIT000001', full_name: 'Yetmwerk Ayele Muluneh', first_name: 'Yetmwerk', last_name: 'Ayele Muluneh', email: 'yetmul8@gmail.com', phone: '+251911234567', company: 'IT park', id_type: 'Passport', id_number: 'EP987654', is_blacklisted: false, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' },
+    { id: 2, user_id: null, full_name: 'Maria Garcia', email: 'maria.g@techstart.io', phone: '+1-555-1002', company: 'IT park', id_type: 'Driver License', id_number: 'DL987654', is_blacklisted: false, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' },
+    { id: 3, user_id: null, full_name: 'David Lee', email: 'david.lee@invest.com', phone: '+1-555-1003', company: 'IT park', id_type: 'National ID', id_number: 'NID456789', is_blacklisted: true, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' }
   ],
   blacklist: [
     { id: 1, visitor_id: 3, reason: 'Security violation', added_by: 1, expires_at: null }
@@ -2968,7 +2968,7 @@ function handleMockQuery(sql, params) {
       return {
         ...b,
         branch_id: b.branch_id || b.id,
-        organization_name: org ? org.name : (b.organization_name || 'Enterprise VMS Global'),
+        organization_name: org ? org.name : (b.organization_name || 'IT park'),
         created_at: b.created_at || '2026-07-27T10:00:00Z',
         updated_at: b.updated_at || new Date().toISOString()
       };

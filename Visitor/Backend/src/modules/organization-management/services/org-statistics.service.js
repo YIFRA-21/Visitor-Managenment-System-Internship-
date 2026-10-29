@@ -17,7 +17,7 @@ class OrgStatisticsService {
     // Chart 1: Departments per Organization
     const activeOrg = await db.query('SELECT name FROM organizations WHERE id = 1 LIMIT 1').catch(() => []);
     const deptsPerOrg = [
-      { name: activeOrg[0]?.name || 'Enterprise VMS Global', departments: deptsCount[0]?.count || 6 }
+      { name: activeOrg[0]?.name || 'IT park', departments: deptsCount[0]?.count || 6 }
     ];
 
     // Chart 2: Employees by Department

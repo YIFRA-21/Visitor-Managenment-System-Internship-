@@ -12,7 +12,7 @@ const ReceptionAppointmentView = () => {
       <div className="space-y-3">
         {[
             { title: 'VIP Boardroom Briefing Starting Soon', visitor: 'Ambassador Elena Rostova', host: 'MD Office', time: 'Starting in 15m', tag: 'VIP Group', tagCol: 'bg-purple-500/10 text-purple-400 border-purple-500/30' },
-            { title: 'Group Audit Visit Approved', visitor: 'Enterprise VMS Global Maintenance Team (5 Members)', host: 'David Miller', time: 'Today 14:00', tag: 'Approved Group', tagCol: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' }
+            { title: 'Group Audit Visit Approved', visitor: 'IT park Maintenance Team (5 Members)', host: 'David Miller', time: 'Today 14:00', tag: 'Approved Group', tagCol: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' }
         ].map((item, idx) => (<div key={idx} className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex justify-between items-center text-xs">
             <div>
               <div className="flex items-center gap-2">

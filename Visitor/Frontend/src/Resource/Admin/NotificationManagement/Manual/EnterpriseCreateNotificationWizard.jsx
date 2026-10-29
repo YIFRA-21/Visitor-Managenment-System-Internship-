@@ -109,7 +109,7 @@ export default function EnterpriseCreateNotificationWizard({ isOpen, onClose, on
             .replace(/\{\{userName\}\}/g, 'Sarah Johnson')
             .replace(/\{\{visitorName\}\}/g, 'John Smith')
             .replace(/\{\{employeeName\}\}/g, 'Michael Chen')
-            .replace(/\{\{organizationName\}\}/g, 'Enterprise VMS Global')
+            .replace(/\{\{organizationName\}\}/g, 'IT park')
             .replace(/\{\{appointmentNumber\}\}/g, 'VMS-APT-8842')
             .replace(/\{\{appointmentDate\}\}/g, new Date().toLocaleDateString())
             .replace(/\{\{visitorPassNumber\}\}/g, 'PASS-XK8842')
