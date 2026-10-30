@@ -25,19 +25,26 @@ class EmailService {
     const pass = rawPass.replace(/\s+/g, '');
 
     const timeoutOptions = {
-      connectionTimeout: 10000, // 10s connection timeout
-      greetingTimeout: 8000,   // 8s greeting timeout
-      socketTimeout: 15000     // 15s socket timeout
+      connectionTimeout: 8000,
+      greetingTimeout: 5000,
+      socketTimeout: 10000
     };
 
-    // Prioritize configured host + port with TLS (port 587) with pooled connections for sub-second sends
+    // Direct Gmail configuration for fast, socket-resilient delivery without stale pool issues
+    if (process.env.SMTP_SERVICE === 'gmail' || host === 'smtp.gmail.com') {
+      this.transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user, pass },
+        ...timeoutOptions
+      });
+      return this.transporter;
+    }
+
+    // Generic SMTP transport
     this.transporter = nodemailer.createTransport({
       host,
       port,
       secure,
-      pool: true,
-      maxConnections: 3,
-      maxMessages: 100,
       auth: { user, pass },
       tls: { rejectUnauthorized: false },
       ...timeoutOptions

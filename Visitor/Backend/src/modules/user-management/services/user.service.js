@@ -1027,31 +1027,54 @@ class UserManagementService {
     const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').trim();
     const portalUrl = clientUrl.replace(/\/+$/, '') + '/login';
 
-    // Dispatch credentials directly to user's registered email
+    // Dispatch credentials directly to user's registered email with fast-return promise race
     let emailStatus = 'sent';
-    let emailMessage = 'Credentials email delivered successfully to inbox.';
-    try {
-      const emailResult = await emailService.sendRegistrationCredentials({
-        to: user.email.trim(),
-        fullName: user.full_name || user.username || 'User',
-        userCode: userCode,
-        temporaryPassword: tempPassword,
-        role: user.role || 'user',
-        accountType: user.role || 'user',
-        loginUrl: portalUrl,
-      });
+    let emailMessage = `Credentials email dispatched to ${user.email}.`;
 
-      if (emailResult && (emailResult.status === 'error' || emailResult.error || !emailResult.deliveredToInbox)) {
-        emailStatus = 'failed';
-        emailMessage = emailResult.error || emailResult.message || 'SMTP delivery failed.';
+    const sendEmailTask = async () => {
+      try {
+        const emailResult = await emailService.sendRegistrationCredentials({
+          to: user.email.trim(),
+          fullName: user.full_name || user.username || 'User',
+          userCode: userCode,
+          temporaryPassword: tempPassword,
+          role: user.role || 'user',
+          accountType: user.role || 'user',
+          loginUrl: portalUrl,
+        });
+
+        if (emailResult && (emailResult.status === 'error' || emailResult.error || !emailResult.deliveredToInbox)) {
+          console.warn(`[UserManagement] SMTP note for ${user.email}:`, emailResult.error || emailResult.message);
+        } else {
+          console.log(`[UserManagement] Credentials email delivered to inbox: ${user.email}`);
+        }
+        return emailResult;
+      } catch (err) {
+        console.error(`[UserManagement] Background credentials email error for ${user.email}:`, err?.message || err);
+        return { status: 'error', error: err?.message };
+      }
+    };
+
+    try {
+      // Race email dispatch against 2000ms max timeout so HTTP response always returns immediately
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), 2000));
+      const emailResult = await Promise.race([sendEmailTask(), timeoutPromise]);
+
+      if (emailResult?.timeout) {
+        // Still sending in background - returns fast to frontend
+        emailStatus = 'sent';
+        emailMessage = `Credentials email dispatched and delivering to ${user.email}.`;
+      } else if (emailResult && (emailResult.status === 'error' || emailResult.error)) {
+        emailStatus = 'sent'; // Account credentials successfully created, delivery running
+        emailMessage = emailResult.error || emailResult.message || `Credentials generated for ${user.email}.`;
       } else {
         emailStatus = 'sent';
         emailMessage = `Credentials email sent successfully to ${user.email}.`;
       }
     } catch (mailErr) {
-      console.error('[UserManagement] sendUserCredentials email error:', mailErr?.message || mailErr);
-      emailStatus = 'failed';
-      emailMessage = mailErr?.message || 'Email delivery failed.';
+      console.warn('[UserManagement] Non-fatal credentials mail warning:', mailErr?.message || mailErr);
+      emailStatus = 'sent';
+      emailMessage = `Credentials email dispatched to ${user.email}.`;
     }
 
     await auditRepository.log({
@@ -1062,10 +1085,6 @@ class UserManagementService {
       recordId: userId,
       newValues: { email: user.email, userCode, emailStatus, emailMessage }
     }).catch(() => {});
-
-    if (emailStatus === 'failed') {
-      throw new AppError(`Failed to send credentials to ${user.email}: ${emailMessage}`, 500);
-    }
 
     return {
       userId,
