@@ -235,7 +235,6 @@ class EmailService {
       email: cleanEmail,
       etherealUrl,
       otpCode,
-      devTestCode: '123456',
       error: deliveryError || undefined
     };
   }
@@ -519,7 +518,7 @@ class EmailService {
     // Reject code if it doesn't match user_otp or users.reset_token or QA master test code
     if (!matchingRecord && !matchedInUsersTable && !isMasterQaCode) {
       console.log(`[EmailService] OTP Mismatch for ${cleanEmail}: submitted="${submittedOtp}"`);
-      const err = new Error('The verification code does not match the code sent to your email. Please check your inbox or use QA helper code 123456.');
+      const err = new Error('The verification code does not match the code sent to your email. Please check your inbox.');
       err.code = 'INVALID_OTP';
       throw err;
     }

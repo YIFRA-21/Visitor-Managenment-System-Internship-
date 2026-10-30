@@ -14,9 +14,7 @@ import {
     MessageSquare,
     RefreshCw,
     AlertCircle,
-    Smartphone,
-    Sparkles,
-    Zap
+    Smartphone
 } from 'lucide-react';
 import { authApi } from '../../../../services/api';
 import { useOrganization } from '../../../../contexts/OrganizationContext';
@@ -209,12 +207,7 @@ export default function ForgotPasswordPage() {
             if (data.userCode) {
                 setAccountUserCode(data.userCode);
             }
-            if (data.demoToken) {
-                setDemoToken(data.demoToken);
-                setOtpDigits(String(data.demoToken).padStart(6, '0').slice(0, 6).split(''));
-            } else {
-                setOtpDigits(['', '', '', '', '', '']);
-            }
+            setOtpDigits(['', '', '', '', '', '']);
 
             setCodeExpiry(900);
             setResendCooldown(0);
@@ -256,13 +249,8 @@ export default function ForgotPasswordPage() {
         }
         setLoading(true);
         try {
-            const res = await authApi.forgotPassword(value);
-            const data = res.data?.data || res.data || {};
-            if (data.demoToken) {
-                setDemoToken(data.demoToken);
-                const digits = String(data.demoToken).padStart(6, '0').slice(0, 6).split('');
-                setOtpDigits(digits);
-            }
+            await authApi.forgotPassword(value);
+            setOtpDigits(['', '', '', '', '', '']);
             setCodeExpiry(900);
             setResendCooldown(45);
             setStep(2);
@@ -322,16 +310,11 @@ export default function ForgotPasswordPage() {
             if (data.email) setEmail(data.email);
             setStep(3);
         } catch (err) {
-            const testCodes = ['123456', '000000', '111111', '999999', '123123', '572751'];
-            if ((demoToken && code === demoToken) || testCodes.includes(code)) {
-                setStep(3);
-            } else {
-                setError(
-                    err.response?.data?.error ||
-                    err.response?.data?.message ||
-                    'Invalid or expired verification code. Please check your inbox or use QA helper code 123456.'
-                );
-            }
+            setError(
+                err.response?.data?.error ||
+                err.response?.data?.message ||
+                'Invalid or expired verification code. Please check your inbox and try again.'
+            );
         } finally {
             setLoading(false);
         }
@@ -350,12 +333,7 @@ export default function ForgotPasswordPage() {
             const data = res.data?.data || res.data || {};
             if (data.email) setEmail(data.email);
             if (data.maskedEmail) setMaskedEmailAddress(data.maskedEmail);
-            if (data.demoToken) {
-                setDemoToken(data.demoToken);
-                setOtpDigits(String(data.demoToken).padStart(6, '0').slice(0, 6).split(''));
-            } else {
-                setOtpDigits(['', '', '', '', '', '']);
-            }
+            setOtpDigits(['', '', '', '', '', '']);
             setCodeExpiry(900);
             const nextCount = resendAttemptCount + 1;
             setResendAttemptCount(nextCount);
@@ -397,7 +375,7 @@ export default function ForgotPasswordPage() {
         setFieldErrors({});
         setLoading(true);
         try {
-            const tokenToUse = otpDigits.join('') || demoToken || '123456';
+            const tokenToUse = otpDigits.join('');
             const targetIdentifier = accountUserCode || userId || accountUsername || email;
             await authApi.resetPassword(targetIdentifier, tokenToUse, newPassword);
             setStep(4);
@@ -671,33 +649,6 @@ export default function ForgotPasswordPage() {
                                     <span className="text-xs font-bold text-indigo-300 tracking-wide font-mono">
                                         {maskedEmailAddress || maskedEmail()}
                                     </span>
-                                </div>
-
-                                {/* QA & DEMO TESTING HELPER BADGE */}
-                                <div className="bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-indigo-900/40 border border-indigo-500/40 rounded-2xl p-3.5 mb-5 text-center space-y-2 shadow-lg">
-                                    <div className="flex items-center justify-between gap-2 border-b border-indigo-500/20 pb-1.5">
-                                        <span className="text-[11px] font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
-                                            <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Test & QA Helper
-                                        </span>
-                                        <span className="font-mono text-xs font-black text-white bg-indigo-600/40 border border-indigo-400/40 px-2 py-0.5 rounded-lg">
-                                            {demoToken || '123456'}
-                                        </span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-300 font-medium leading-tight">
-                                        For fast manual testing without opening email, click below to autofill and verify instantly.
-                                    </p>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            const code = String(demoToken || '123456').slice(0, 6);
-                                            setOtpDigits(code.split(''));
-                                            handleStep2Submit(null, code);
-                                        }}
-                                        className="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/30 flex items-center justify-center gap-1.5 cursor-pointer"
-                                    >
-                                        <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-                                        Auto-Fill & Verify Code ({demoToken || '123456'})
-                                    </button>
                                 </div>
 
                                 <form onSubmit={handleStep2Submit} className="space-y-5">

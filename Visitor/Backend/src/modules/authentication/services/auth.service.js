@@ -602,8 +602,6 @@ class AuthService {
     return {
       ...regResult,
       deliveredToInbox: Boolean(otpRes?.deliveredToInbox ?? true),
-      previewOtp: otpRes?.otpCode || null,
-      devTestCode: '123456',
     };
   }
 
@@ -1499,10 +1497,7 @@ class AuthService {
       username: user.username,
       userCode: user.user_code || user.userCode,
       fullName: user.full_name || user.fullName,
-      deliveredToInbox: true,
-      previewOtp: otpCode,
-      demoToken: otpCode || '123456',
-      devTestCode: '123456'
+      deliveredToInbox: true
     };
   }
 
