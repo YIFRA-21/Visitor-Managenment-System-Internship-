@@ -372,8 +372,6 @@ const pool = require('./config/db');
       ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
     `);
 
-    await pool.query(`
-      
     try { await pool.query(`ALTER TABLE user_otp MODIFY COLUMN otp_code VARCHAR(255) NOT NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE user_otp MODIFY COLUMN destination VARCHAR(255) NOT NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE user_otp ADD COLUMN IF NOT EXISTS user_id BIGINT UNSIGNED NULL`); } catch (e) {}
@@ -404,7 +402,8 @@ const pool = require('./config/db');
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
-    CREATE TABLE IF NOT EXISTS messages (
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS messages (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         sender_id BIGINT UNSIGNED NOT NULL,
         recipient_id BIGINT UNSIGNED NULL,
