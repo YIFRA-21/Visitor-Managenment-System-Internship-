@@ -376,6 +376,7 @@ const pool = require('./config/db');
     try { await pool.query(`ALTER TABLE user_otp MODIFY COLUMN destination VARCHAR(255) NOT NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE user_otp ADD COLUMN IF NOT EXISTS user_id BIGINT UNSIGNED NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE user_otp ADD COLUMN IF NOT EXISTS otp_hash VARCHAR(255) NULL`); } catch (e) {}
+    try { await pool.query(`UPDATE organizations SET name = 'IT park', short_name = 'IT park', code = 'ITP01' WHERE name LIKE '%Corporate%' OR name LIKE '%Enterprise VMS%' OR name = 'New Organization'`); } catch (e) {}
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS email_outbox (

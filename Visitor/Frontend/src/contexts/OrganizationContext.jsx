@@ -31,6 +31,8 @@ export const OrganizationProvider = ({ children }) => {
                 if (
                     !parsed.name ||
                     parsed.name.toLowerCase().includes('enterprise vms') ||
+                    parsed.name.toLowerCase().includes('corporate') ||
+                    parsed.name.toLowerCase() === 'corporate hq' ||
                     (parsed.email && parsed.email.toLowerCase().includes('enterprisevms')) ||
                     (parsed.website && parsed.website.toLowerCase().includes('enterprisevms'))
                 ) {
@@ -164,7 +166,7 @@ export const OrganizationProvider = ({ children }) => {
         });
     }, []);
     const logoUrl = organization.logoUrl || '/logo.png';
-    const orgName = (organization.name && !organization.name.toLowerCase().includes('enterprise vms'))
+    const orgName = (organization.name && !organization.name.toLowerCase().includes('enterprise vms') && !organization.name.toLowerCase().includes('corporate'))
         ? organization.name
         : 'IT park';
     const orgEmail = (organization.email && !organization.email.toLowerCase().includes('enterprisevms'))
@@ -177,7 +179,7 @@ export const OrganizationProvider = ({ children }) => {
     const cleanOrganization = {
         ...organization,
         name: orgName,
-        shortName: (organization.shortName && organization.shortName !== 'EVMS') ? organization.shortName : 'IT park',
+        shortName: (organization.shortName && organization.shortName !== 'EVMS' && !organization.shortName.toLowerCase().includes('corporate')) ? organization.shortName : 'IT park',
         email: orgEmail,
         phone: orgPhone,
         website: orgWebsite,

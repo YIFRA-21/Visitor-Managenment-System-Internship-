@@ -35,9 +35,9 @@ export function getBackendBaseUrl() {
                     .replace('localhost', currentHostname)
                     .replace('127.0.0.1', currentHostname);
             }
-            // If on a public domain (e.g. Vercel) and envUrl is pointing to localhost, default to origin
+            // If on a public domain (e.g. Vercel) and envUrl is pointing to localhost, connect to Render backend
             if (!isLocalHost && !isLanIp && (stripped.includes('localhost') || stripped.includes('127.0.0.1'))) {
-                return window.location.origin;
+                return 'https://visitor-management-system-backend.onrender.com';
             }
             return stripped;
         }
@@ -48,7 +48,7 @@ export function getBackendBaseUrl() {
         }
 
         // On deployed public internet hosting without explicit envUrl:
-        return window.location.origin;
+        return 'https://visitor-management-system-backend.onrender.com';
     }
     // Fallback for non-browser/SSR contexts:
     if (envUrl) {

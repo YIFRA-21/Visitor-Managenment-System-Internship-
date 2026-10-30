@@ -2536,7 +2536,7 @@ function handleMockQuery(sql, params) {
 
   // 30. SELECT FROM ORGANIZATIONS
   if (normalizedSql.includes('from organizations')) {
-    return [{ id: 1, name: 'Corporate HQ' }];
+    return mockDb.organizations;
   }
 
   // 31. SELECT FROM BUILDINGS
