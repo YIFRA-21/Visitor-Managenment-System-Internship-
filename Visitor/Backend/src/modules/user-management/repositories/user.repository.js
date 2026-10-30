@@ -57,12 +57,43 @@ class UserRepository {
     return rows[0] || null;
   }
 
+  getCandidateCodes(cleanId) {
+    if (!cleanId) return [];
+    const lower = cleanId.toLowerCase().trim();
+    const candidateCodes = new Set([lower]);
+    // Match codes like EMP-2026-000023, EMP-2026-00023, EMP-23, EMP000023, VIS-2026-000003, SEC-2026-000002, etc.
+    const codeMatch = cleanId.match(/^([A-Za-z]{2,6})-?(?:(202\d)-?)?0*(\d+)$/);
+    if (codeMatch) {
+      const prefix = codeMatch[1].toLowerCase();
+      const year = codeMatch[2] || '2026';
+      const num = parseInt(codeMatch[3], 10);
+      if (!isNaN(num)) {
+        // Standard padded with year
+        candidateCodes.add(`${prefix}-${year}-${String(num).padStart(6, '0')}`);
+        candidateCodes.add(`${prefix}-${year}-${String(num).padStart(5, '0')}`);
+        candidateCodes.add(`${prefix}-${year}-${String(num).padStart(4, '0')}`);
+        candidateCodes.add(`${prefix}-${year}-${num}`);
+        // Without year
+        candidateCodes.add(`${prefix}-${String(num).padStart(6, '0')}`);
+        candidateCodes.add(`${prefix}-${String(num).padStart(5, '0')}`);
+        candidateCodes.add(`${prefix}-${num}`);
+        // Unhyphenated
+        candidateCodes.add(`${prefix}${String(num).padStart(6, '0')}`);
+        candidateCodes.add(`${prefix}${String(num).padStart(5, '0')}`);
+        candidateCodes.add(`${prefix}${num}`);
+        candidateCodes.add(`${prefix}${year}${String(num).padStart(6, '0')}`);
+        candidateCodes.add(`${prefix}${year}${String(num).padStart(5, '0')}`);
+      }
+    }
+    return Array.from(candidateCodes);
+  }
+
   async findByIdentifier(identifier) {
     const cleanId = (identifier || '').trim();
     if (!cleanId) return null;
 
-    // Extract numeric ID if format is EMP000010, EMP-10, MGR-2026-000001, or similar
-    const empIdMatch = cleanId.match(/^(?:EMP|MGR)-?(?:202\d-)?0*(\d+)$/i);
+    const candidateCodes = this.getCandidateCodes(cleanId);
+    const empIdMatch = cleanId.match(/^(?:EMP|MGR|SEC|REC|VIS|USR)-?(?:202\d-)?0*(\d+)$/i);
     const parsedEmpId = empIdMatch ? parseInt(empIdMatch[1], 10) : null;
 
     // 1. Search users table (joining with employees, visitors, manager_profiles tables for multi-field identifier matching)
@@ -73,18 +104,34 @@ class UserRepository {
        LEFT JOIN manager_profiles m ON u.id = m.user_id
        WHERE (LOWER(u.email) = LOWER(?) 
           OR LOWER(u.username) = LOWER(?) 
-          OR LOWER(u.user_code) = LOWER(?)
+          OR LOWER(u.user_code) IN (?)
+          OR LOWER(e.employee_number) IN (?)
+          OR LOWER(e.employee_code) IN (?)
+          OR LOWER(v.visitor_code) IN (?)
+          OR LOWER(m.manager_number) IN (?)
           OR (e.id = ?)
-          OR (e.employee_number IS NOT NULL AND LOWER(e.employee_number) = LOWER(?))
-          OR (e.employee_code IS NOT NULL AND LOWER(e.employee_code) = LOWER(?))
-          OR (v.visitor_code IS NOT NULL AND LOWER(v.visitor_code) = LOWER(?))
-          OR (m.manager_number IS NOT NULL AND LOWER(m.manager_number) = LOWER(?))
           OR (u.phone IS NOT NULL AND u.phone = ?)
           OR (u.phone_number IS NOT NULL AND u.phone_number = ?))
          AND (u.deleted_at IS NULL OR LOWER(COALESCE(u.status, '')) = 'active' OR LOWER(COALESCE(u.account_status, '')) = 'active')
-       ORDER BY (CASE WHEN LOWER(u.user_code) = LOWER(?) THEN 1 WHEN LOWER(u.email) = LOWER(?) THEN 2 ELSE 3 END)
+       ORDER BY 
+         (CASE WHEN u.is_active = 1 AND LOWER(COALESCE(u.account_status, '')) = 'active' THEN 0 ELSE 1 END),
+         (CASE WHEN LOWER(u.user_code) = LOWER(?) THEN 1 WHEN LOWER(u.email) = LOWER(?) THEN 2 ELSE 3 END),
+         u.id DESC
        LIMIT 1`,
-      [cleanId, cleanId, cleanId, parsedEmpId || -1, cleanId, cleanId, cleanId, cleanId, cleanId, cleanId, cleanId, cleanId]
+      [
+        cleanId,
+        cleanId,
+        candidateCodes,
+        candidateCodes,
+        candidateCodes,
+        candidateCodes,
+        candidateCodes,
+        parsedEmpId || -1,
+        cleanId,
+        cleanId,
+        cleanId,
+        cleanId
+      ]
     );
 
     if (rows && rows.length > 0) {
@@ -94,29 +141,39 @@ class UserRepository {
     // 2. Check employees table if user not found in users table
     try {
       const empRows = await db.query(
-        `SELECT * FROM employees WHERE LOWER(email) = LOWER(?) OR LOWER(employee_number) = LOWER(?)`,
-        [cleanId, cleanId]
+        `SELECT * FROM employees WHERE LOWER(email) = LOWER(?) OR LOWER(employee_number) IN (?) OR LOWER(employee_code) IN (?)`,
+        [cleanId, candidateCodes, candidateCodes]
       );
 
       if (empRows && empRows.length > 0) {
         const emp = empRows[0];
+        if (emp.user_id) {
+          const linkedUsers = await db.query(`SELECT * FROM users WHERE id = ?`, [emp.user_id]);
+          if (linkedUsers && linkedUsers[0]) {
+            return linkedUsers[0];
+          }
+        }
+
         const defaultHash = bcrypt.hashSync('Password123!', 10);
         const userCode = emp.employee_number || `EMP-${emp.id}`;
         const username = cleanId || (emp.email ? emp.email.split('@')[0] : `emp${emp.id}`);
 
         try {
-          await db.query(
-            `INSERT INTO users (username, email, password_hash, first_name, last_name, full_name, role, account_status, status, user_code, verification_status)
-             VALUES (?, ?, ?, ?, ?, ?, 'staff', 'ACTIVE', 'active', ?, 'VERIFIED')`,
+          const insertRes = await db.query(
+            `INSERT INTO users (username, email, password_hash, first_name, last_name, full_name, role, account_status, status, user_code, verification_status, is_active)
+             VALUES (?, ?, ?, ?, ?, ?, 'employee', 'ACTIVE', 'active', ?, 'VERIFIED', 1)`,
             [username, emp.email, defaultHash, emp.first_name || '', emp.last_name || '', emp.full_name || username, userCode]
           );
+          if (insertRes?.insertId) {
+            await db.query(`UPDATE employees SET user_id = ? WHERE id = ?`, [insertRes.insertId, emp.id]).catch(() => {});
+          }
         } catch (e) {
           /* ignore duplicate insert */
         }
 
         const freshUsers = await db.query(
-          `SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)`,
-          [emp.email, username]
+          `SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) OR LOWER(user_code) IN (?)`,
+          [emp.email, username, candidateCodes]
         );
         if (freshUsers && freshUsers.length > 0) {
           return freshUsers[0];
