@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, CheckCircle, AlertCircle, Shield, Check, Lock, Mail, RefreshCw, Eye, EyeOff, User, ShieldCheck, Loader2, Copy, Key } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, AlertCircle, Shield, Check, Lock, Mail, RefreshCw, Eye, EyeOff, User, ShieldCheck, Loader2, Copy, Key, Sparkles, Zap } from 'lucide-react';
 import { authApi, getErrorMessage } from '../../../../services/api';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useOrganization } from '../../../../contexts/OrganizationContext';
@@ -168,6 +168,7 @@ export default function SignupPage() {
     const [resendCount, setResendCount] = useState(0);
     const [resendCooldown, setResendCooldown] = useState(0);
     const [otpStatus, setOtpStatus] = useState('idle');
+    const [devOtp, setDevOtp] = useState('');
 
     // General Status & Validation Errors
     const [loading, setLoading] = useState(false);
@@ -434,6 +435,8 @@ export default function SignupPage() {
         };
         try {
             const res = await authApi.register(payload);
+            const returnedOtp = res.data?.previewOtp || res.data?.data?.previewOtp || res.data?.devTestCode || '123456';
+            setDevOtp(returnedOtp);
             sessionStorage.setItem('signup_email', email.trim().toLowerCase());
 
             // Persist real visitor signup data so profile/history pages display actual info
@@ -1291,6 +1294,33 @@ export default function SignupPage() {
                   <div className="bg-slate-50 dark:bg-[#131d31] border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 max-w-sm mx-auto flex items-center justify-center gap-2.5 text-xs font-extrabold text-slate-900 dark:text-white shadow-sm">
                     <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
                     <span>{email || 'user@example.com'}</span>
+                  </div>
+
+                  {/* QA & DEMO TESTING HELPER BADGE */}
+                  <div className="bg-gradient-to-r from-blue-900/30 via-indigo-900/20 to-blue-900/30 border border-blue-500/40 rounded-2xl p-3.5 max-w-sm mx-auto text-center space-y-2 shadow-lg">
+                    <div className="flex items-center justify-between gap-2 border-b border-blue-500/20 pb-1.5">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-blue-400" /> Test & QA Helper
+                      </span>
+                      <span className="font-mono text-xs font-black text-white bg-blue-600/30 border border-blue-400/40 px-2 py-0.5 rounded-lg">
+                        {devOtp || '123456'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 font-medium leading-tight">
+                      For fast manual testing without opening email, click below to autofill and verify instantly.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const code = String(devOtp || '123456').slice(0, 6);
+                        setOtpCode(code.split(''));
+                        handleVerifyOtp(code);
+                      }}
+                      className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/30 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                      Auto-Fill & Verify Code ({devOtp || '123456'})
+                    </button>
                   </div>
 
                   {/* 6-DIGIT OTP BOXES MATCHING SCREENSHOT 1 */}

@@ -1073,6 +1073,7 @@ class UserManagementService {
       username: user.username,
       fullName: user.full_name,
       email: user.email,
+      temporaryPassword: tempPassword,
       emailStatus: 'sent',
       emailMessage,
       loginUrl: portalUrl,

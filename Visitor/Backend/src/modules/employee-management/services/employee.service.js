@@ -288,6 +288,8 @@ class EmployeeService {
       registration: {
         userId,
         userCode,
+        username: employee.email?.split('@')[0] || userCode,
+        temporaryPassword: tempPassword,
         email: employee.email,
         emailStatus,
         emailDeliveredToInbox: emailResult ? !!emailResult.deliveredToInbox : false,
@@ -435,6 +437,8 @@ class EmployeeService {
       registration: {
         userId: linkedUser.id,
         userCode: linkedUser.userCode || linkedUser.user_code,
+        username: linkedUser.username || linkedUser.email?.split('@')[0],
+        temporaryPassword: tempPassword,
         email: linkedUser.email,
         emailStatus,
         emailDeliveredToInbox: emailResult ? !!emailResult.deliveredToInbox : false,

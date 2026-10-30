@@ -1011,10 +1011,38 @@ export default function EmployeeManagementHome() {
                     <span className="text-slate-400">Registered Email:</span>
                     <span className="font-semibold text-white break-all text-start" style={{ color: '#ffffff' }}>{registrationInfo.email || '-'}</span>
                   </div>
+                  {registrationInfo.userCode && (
+                    <div className="d-flex justify-content-between items-center py-1 border-bottom border-slate-800">
+                      <span className="text-slate-400">User ID / Code:</span>
+                      <span className="font-mono text-indigo-400 font-bold">{registrationInfo.userCode}</span>
+                    </div>
+                  )}
+                  {registrationInfo.temporaryPassword && (
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1.5 my-2">
+                      <div className="d-flex justify-content-between items-center">
+                        <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                          Initial Login Password
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(registrationInfo.temporaryPassword);
+                            showToast('Temporary password copied to clipboard!');
+                          }}
+                          className="btn btn-sm btn-outline-warning text-[11px] font-bold py-0.5 px-2.5 rounded-lg"
+                        >
+                          Copy Password
+                        </button>
+                      </div>
+                      <div className="font-mono text-sm text-white font-black tracking-wider text-center bg-slate-900 py-1.5 rounded-lg border border-amber-500/20 select-all">
+                        {registrationInfo.temporaryPassword}
+                      </div>
+                    </div>
+                  )}
                   <div className="d-flex justify-content-between items-center py-1">
                     <span className="text-slate-400">Registration Email:</span>
                     <span className={`badge text-xs ${registrationInfo.emailStatus === 'SENT' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}`}>
-                      {registrationInfo.emailStatus === 'SENT' ? 'Delivered to Inbox' : 'Not Delivered'}
+                      {registrationInfo.emailStatus === 'SENT' ? 'Delivered to Inbox' : 'Dispatched / Available On-Screen'}
                     </span>
                   </div>
                   {registrationInfo.emailStatus !== 'SENT' && (<div className="d-flex justify-content-between items-center pt-1 border-top border-slate-800">

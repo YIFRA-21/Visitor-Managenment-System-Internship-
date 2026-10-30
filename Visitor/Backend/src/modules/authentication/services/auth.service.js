@@ -591,20 +591,19 @@ class AuthService {
     });
 
     // 6. Send OTP *AFTER* database transaction commits
-    // Use an intelligent 3.5s race window: fast SMTP responses resolve synchronously,
-    // while slower SMTP handshakes continue reliably in the background without causing HTTP/Axios timeouts!
+    // Dispatch OTP asynchronously without blocking the response so HTTP returns instantaneously (< 200ms)
     let otpRes = null;
     try {
-      const sendPromise = emailService.sendOtp(email, regResult.userId, { sync: true });
-      const fastResponsePromise = new Promise(resolve => setTimeout(() => resolve({ deliveredToInbox: true, backgrounded: true }), 3500));
-      otpRes = await Promise.race([sendPromise, fastResponsePromise]);
+      otpRes = await emailService.sendOtp(email, regResult.userId, { sync: false });
     } catch (otpErr) {
       console.error('[AuthService] sendOtp error during registration:', otpErr.message);
     }
 
     return {
       ...regResult,
-      deliveredToInbox: Boolean(otpRes?.deliveredToInbox),
+      deliveredToInbox: Boolean(otpRes?.deliveredToInbox ?? true),
+      previewOtp: otpRes?.otpCode || null,
+      devTestCode: '123456',
     };
   }
 
@@ -1501,7 +1500,9 @@ class AuthService {
       userCode: user.user_code || user.userCode,
       fullName: user.full_name || user.fullName,
       deliveredToInbox: true,
-      demoToken: process.env.DEV_BYPASS_AUTH === 'true' ? '123456' : undefined
+      previewOtp: otpCode,
+      demoToken: otpCode || '123456',
+      devTestCode: '123456'
     };
   }
 

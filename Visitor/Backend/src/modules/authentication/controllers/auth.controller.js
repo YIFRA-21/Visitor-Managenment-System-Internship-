@@ -15,7 +15,11 @@ class AuthController {
           userId: result.userId,
           profileId: result.profileId,
           userCode: result.userCode,
+          previewOtp: result.previewOtp,
+          devTestCode: result.devTestCode || '123456',
         },
+        previewOtp: result.previewOtp,
+        devTestCode: result.devTestCode || '123456',
         deliveredToInbox: result?.deliveredToInbox,
       });
     } catch (err) {

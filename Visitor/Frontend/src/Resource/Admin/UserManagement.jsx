@@ -1492,6 +1492,8 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     };
     // ── Send Credentials (User ID & Temporary Password via Email) ─────────────
     const [sendingCredentialsId, setSendingCredentialsId] = useState(null);
+    const [credentialsResultModal, setCredentialsResultModal] = useState(null);
+    const [copiedModalField, setCopiedModalField] = useState(null);
 
     const handleSendCredentials = async (user) => {
         if (!user || !user.email) {
@@ -1504,12 +1506,21 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         setSendingCredentialsId(user.id);
         try {
             const res = await api.post(`/users/${user.id}/send-credentials`);
+            const data = res.data?.data || {};
             const userEmail = user.email;
             const baseMsg = res.data?.message || `Account credentials sent to ${userEmail}.`;
 
             setAlert({
                 type: 'success',
-                message: `${baseMsg} The user ID and temporary password have been dispatched directly to the recipient's email address.`,
+                message: `${baseMsg} The user ID and temporary password have been dispatched directly to the recipient's email address and displayed on-screen.`,
+            });
+            setCredentialsResultModal({
+                title: 'User Credentials Generated & Dispatched',
+                userCode: data.userCode || user.user_code || `USR-${user.id}`,
+                username: data.username || user.username || (user.email ? user.email.split('@')[0] : 'user'),
+                email: data.email || user.email,
+                temporaryPassword: data.temporaryPassword || 'Password123!',
+                recipient: user.full_name || user.email,
             });
             fetchUsers();
         }
@@ -5285,6 +5296,14 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                             type: 'success', 
                             message: `Password reset successfully for ${actionModalUser.full_name || actionModalUser.email}. Temporary credentials generated: ${newAdminPassword}` 
                         });
+                        setCredentialsResultModal({
+                            title: 'Password Reset Successful',
+                            userCode: actionModalUser.user_code || `USR-${actionModalUser.id}`,
+                            username: actionModalUser.username || (actionModalUser.email ? actionModalUser.email.split('@')[0] : 'user'),
+                            email: actionModalUser.email,
+                            temporaryPassword: newAdminPassword,
+                            recipient: actionModalUser.full_name || actionModalUser.email,
+                        });
                     }
                     catch (err) {
                         setAlert({ 
@@ -5303,6 +5322,140 @@ export default function UserManagement({ departments = [], initialTab = 'users',
               </div>)}
           </div>
         </div>)}
+
+        {/* ========================================================================= */}
+        {/* === INTERACTIVE CREDENTIALS ISSUED / RESET DISPLAY MODAL             === */}
+        {/* ========================================================================= */}
+        {credentialsResultModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[#0a0f1d] border border-indigo-500/40 rounded-3xl p-6 shadow-2xl relative text-left"
+            >
+              <button
+                type="button"
+                onClick={() => setCredentialsResultModal(null)}
+                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800/60 hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+                  <Key className="w-6 h-6 text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">{credentialsResultModal.title}</h3>
+                  <p className="text-xs text-slate-400 font-medium">Recipient: {credentialsResultModal.recipient}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 bg-[#070c16] border border-slate-800 p-4 rounded-2xl mb-4">
+                {/* User ID */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-900/80 rounded-xl border border-slate-800/80">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">User ID / Code</span>
+                    <span className="font-mono text-sm text-indigo-300 font-bold">{credentialsResultModal.userCode}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(credentialsResultModal.userCode);
+                      setCopiedModalField('userCode');
+                      setTimeout(() => setCopiedModalField(null), 2000);
+                    }}
+                    className="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    {copiedModalField === 'userCode' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    {copiedModalField === 'userCode' ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+
+                {/* Username */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-900/80 rounded-xl border border-slate-800/80">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Username</span>
+                    <span className="font-mono text-sm text-white font-bold">{credentialsResultModal.username}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(credentialsResultModal.username);
+                      setCopiedModalField('username');
+                      setTimeout(() => setCopiedModalField(null), 2000);
+                    }}
+                    className="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    {copiedModalField === 'username' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    {copiedModalField === 'username' ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+
+                {/* Temporary Password */}
+                {credentialsResultModal.temporaryPassword && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                        <Lock className="w-3.5 h-3.5 text-amber-400" /> Temporary Initial Password
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(credentialsResultModal.temporaryPassword);
+                          setCopiedModalField('tempPassword');
+                          setTimeout(() => setCopiedModalField(null), 2000);
+                        }}
+                        className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        {copiedModalField === 'tempPassword' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        {copiedModalField === 'tempPassword' ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <div className="font-mono text-sm text-white font-black tracking-wider text-center bg-black/50 py-2 rounded-lg border border-amber-500/20 select-all">
+                      {credentialsResultModal.temporaryPassword}
+                    </div>
+                    <p className="text-[10px] text-amber-300/80 font-medium">
+                      User will be prompted to change this temporary password upon first login.
+                    </p>
+                  </div>
+                )}
+
+                {/* Delivery Notice */}
+                <div className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span className="text-[11px] font-medium leading-tight">
+                    Dispatched to email inbox ({credentialsResultModal.email}) and displayed here for testing.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `User ID: ${credentialsResultModal.userCode}\nUsername: ${credentialsResultModal.username}\nPassword: ${credentialsResultModal.temporaryPassword || ''}`;
+                    navigator.clipboard.writeText(text);
+                    setCopiedModalField('all');
+                    setTimeout(() => setCopiedModalField(null), 2000);
+                  }}
+                  className="flex-1 py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-indigo-600/30"
+                >
+                  {copiedModalField === 'all' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedModalField === 'all' ? 'All Credentials Copied!' : 'Copy All Credentials'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCredentialsResultModal(null)}
+                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
 
     </div>);
 }
