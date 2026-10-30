@@ -373,7 +373,38 @@ const pool = require('./config/db');
     `);
 
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS messages (
+      
+    try { await pool.query(`ALTER TABLE user_otp MODIFY COLUMN otp_code VARCHAR(255) NOT NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE user_otp MODIFY COLUMN destination VARCHAR(255) NOT NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE user_otp ADD COLUMN IF NOT EXISTS user_id BIGINT UNSIGNED NULL`); } catch (e) {}
+    try { await pool.query(`ALTER TABLE user_otp ADD COLUMN IF NOT EXISTS otp_hash VARCHAR(255) NULL`); } catch (e) {}
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS email_outbox (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        operation_id VARCHAR(100) NOT NULL UNIQUE,
+        purpose VARCHAR(50) NOT NULL,
+        recipient VARCHAR(255) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        body_text TEXT NULL,
+        body_html LONGTEXT NULL,
+        provider VARCHAR(50) NOT NULL DEFAULT 'smtp',
+        status ENUM('PENDING', 'ACCEPTED', 'DELIVERED', 'FAILED', 'BOUNCED', 'RETRYING') NOT NULL DEFAULT 'PENDING',
+        attempt_count INT NOT NULL DEFAULT 0,
+        max_attempts INT NOT NULL DEFAULT 3,
+        next_retry_at DATETIME NULL,
+        provider_message_id VARCHAR(255) NULL,
+        provider_response TEXT NULL,
+        error_message TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_recipient (recipient),
+        INDEX idx_status_retry (status, next_retry_at),
+        INDEX idx_created (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    CREATE TABLE IF NOT EXISTS messages (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         sender_id BIGINT UNSIGNED NOT NULL,
         recipient_id BIGINT UNSIGNED NULL,
@@ -777,7 +808,9 @@ const allowedOrigins = [
 const isOriginAllowed = (origin) => {
   if (!origin) return true; // Mobile apps, Postman, curl, server-to-server
 
-  if (allowedOrigins.includes(origin)) return true;
+  const norm = normalizeOrigin(origin);
+  if (allowedOrigins.some(o => normalizeOrigin(o) === norm)) return true;
+  if (norm.endsWith('.vercel.app')) return true;
 
   if (process.env.NODE_ENV !== 'production') {
     try {

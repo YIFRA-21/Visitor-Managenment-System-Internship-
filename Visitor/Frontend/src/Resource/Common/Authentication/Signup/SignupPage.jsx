@@ -458,8 +458,14 @@ export default function SignupPage() {
             localStorage.setItem('registered_visitor_data', JSON.stringify(visitorData));
             sessionStorage.setItem('signup_personal_info', JSON.stringify(visitorData));
 
-            setSuccess('Account created! A 6-digit verification code has been sent to your email.');
-            setOtpTimer(60);
+            const isEmailAccepted = res.data?.data?.emailStatus === 'ACCEPTED' || (!res.data?.data?.emailStatus && res.data?.success);
+            if (isEmailAccepted) {
+                setSuccess('Account created! A 6-digit verification code has been dispatched to your email.');
+            } else {
+                setError(`Account created, but verification email delivery failed: ${res.data?.data?.emailError || 'Provider rejected request'}. Please click Resend OTP below.`);
+            }
+            setOtpTimer(600);
+            setResendCooldown(60);
             setOtpCode(['', '', '', '', '', '']);
             setCurrentStep(2); // Advance to Step 3: Email OTP Verification
         }
@@ -570,14 +576,20 @@ export default function SignupPage() {
         setError('');
         setOtpStatus('idle');
         setOtpCode(['', '', '', '', '', '']);
-        // 2-second debounce prevents accidental double-clicking while allowing quick repeat sends
-        setResendCooldown(2);
+        // Enforce 60-second cooldown matching backend policy
+        setResendCooldown(60);
         try {
-            await authApi.resendVerification(targetEmail);
+            const res = await authApi.resendVerification(targetEmail);
+            const isAccepted = Boolean(res?.data?.success && (res?.data?.data?.emailStatus === 'ACCEPTED' || !res?.data?.data?.emailStatus));
             setResendCount(prev => prev + 1);
-            setResendSuccess(true);
-            setOtpTimer(600); // Reset OTP validity countdown to full 10 minutes
-            setTimeout(() => setResendSuccess(false), 6000);
+            if (isAccepted) {
+                setResendSuccess(true);
+                setError('');
+                setOtpTimer(600); // Reset OTP validity countdown to full 10 minutes
+                setTimeout(() => setResendSuccess(false), 6000);
+            } else {
+                setError(res?.data?.message || `Email provider rejected dispatch: ${res?.data?.data?.emailError || 'Unknown error'}. Please wait for cooldown and retry.`);
+            }
         }
         catch (err) {
             console.error('Resend OTP error:', err);

@@ -612,19 +612,25 @@ class UserManagementService {
       });
 
       // Dispatch Registration Credentials securely via Email (never expose in in-app notification logs)
+      let emailStatus = 'NOT_APPLICABLE';
+      let emailError = null;
       if (emailNorm && isTempPassword) {
         try {
-          await emailService.sendRegistrationCredentials({
+          const emailResult = await emailService.sendRegistrationCredentials({
             to: emailNorm,
             fullName,
             userCode,
             temporaryPassword: rawPassword,
             role: data.role || 'employee',
             accountType: data.role || 'employee',
-            loginUrl: (process.env.CLIENT_URL || 'http://localhost:5173') + '/login',
+            loginUrl: (process.env.CLIENT_URL || 'https://visitor-managenment-system-internsh-rho.vercel.app').replace(/\/+$/, '') + '/login',
           });
+          emailStatus = emailResult.success ? 'ACCEPTED' : 'FAILED';
+          emailError = emailResult.error || null;
         } catch (mailErr) {
           console.warn('[UserManagement] Welcome credentials email failed:', mailErr.message);
+          emailStatus = 'FAILED';
+          emailError = mailErr.message;
         }
       }
 
@@ -1024,58 +1030,25 @@ class UserManagementService {
       ).catch(() => {});
     }
 
-    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').trim();
-    const portalUrl = clientUrl.replace(/\/+$/, '') + '/login';
+    const clientUrl = (process.env.CLIENT_URL || 'https://visitor-managenment-system-internsh-rho.vercel.app').trim().replace(/\/+$/, '');
+    const portalUrl = clientUrl + '/login';
 
-    // Dispatch credentials directly to user's registered email with fast-return promise race
-    let emailStatus = 'sent';
-    let emailMessage = `Credentials email dispatched to ${user.email}.`;
+    // Await provider dispatch
+    const emailResult = await emailService.sendRegistrationCredentials({
+      to: user.email.trim(),
+      fullName: user.full_name || user.username || 'User',
+      userCode: userCode,
+      temporaryPassword: tempPassword,
+      role: user.role || 'user',
+      accountType: user.role || 'user',
+      loginUrl: portalUrl,
+    });
 
-    const sendEmailTask = async () => {
-      try {
-        const emailResult = await emailService.sendRegistrationCredentials({
-          to: user.email.trim(),
-          fullName: user.full_name || user.username || 'User',
-          userCode: userCode,
-          temporaryPassword: tempPassword,
-          role: user.role || 'user',
-          accountType: user.role || 'user',
-          loginUrl: portalUrl,
-        });
-
-        if (emailResult && (emailResult.status === 'error' || emailResult.error || !emailResult.deliveredToInbox)) {
-          console.warn(`[UserManagement] SMTP note for ${user.email}:`, emailResult.error || emailResult.message);
-        } else {
-          console.log(`[UserManagement] Credentials email delivered to inbox: ${user.email}`);
-        }
-        return emailResult;
-      } catch (err) {
-        console.error(`[UserManagement] Background credentials email error for ${user.email}:`, err?.message || err);
-        return { status: 'error', error: err?.message };
-      }
-    };
-
-    try {
-      // Race email dispatch against 2000ms max timeout so HTTP response always returns immediately
-      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), 2000));
-      const emailResult = await Promise.race([sendEmailTask(), timeoutPromise]);
-
-      if (emailResult?.timeout) {
-        // Still sending in background - returns fast to frontend
-        emailStatus = 'sent';
-        emailMessage = `Credentials email dispatched and delivering to ${user.email}.`;
-      } else if (emailResult && (emailResult.status === 'error' || emailResult.error)) {
-        emailStatus = 'sent'; // Account credentials successfully created, delivery running
-        emailMessage = emailResult.error || emailResult.message || `Credentials generated for ${user.email}.`;
-      } else {
-        emailStatus = 'sent';
-        emailMessage = `Credentials email sent successfully to ${user.email}.`;
-      }
-    } catch (mailErr) {
-      console.warn('[UserManagement] Non-fatal credentials mail warning:', mailErr?.message || mailErr);
-      emailStatus = 'sent';
-      emailMessage = `Credentials email dispatched to ${user.email}.`;
-    }
+    const isAccepted = emailResult.success && emailResult.status === 'ACCEPTED';
+    const emailStatus = isAccepted ? 'ACCEPTED' : 'FAILED';
+    const emailMessage = isAccepted
+      ? `Credentials email accepted by provider for ${user.email}.`
+      : `Failed to deliver credentials email: ${emailResult.error || 'Provider rejected message'}. You can click retry.`;
 
     await auditRepository.log({
       userId: operatorUserId,
@@ -1083,20 +1056,20 @@ class UserManagementService {
       module: 'USER_MANAGEMENT',
       entity: 'users',
       recordId: userId,
-      newValues: { email: user.email, userCode, emailStatus, emailMessage }
+      newValues: { email: user.email, userCode, emailStatus, error: emailResult.error }
     }).catch(() => {});
 
     return {
       userId,
       userCode,
       username: user.username,
-      fullName: user.full_name,
       email: user.email,
       temporaryPassword: tempPassword,
-      emailStatus: 'sent',
-      emailMessage,
-      loginUrl: portalUrl,
-      message: `Account credentials sent successfully to ${user.email}.`
+      emailStatus,
+      operationId: emailResult.operationId,
+      deliveredToInbox: isAccepted,
+      message: emailMessage,
+      error: emailResult.error || undefined,
     };
   }
 

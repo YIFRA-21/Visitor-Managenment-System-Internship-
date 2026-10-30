@@ -7,16 +7,22 @@ class AuthController {
     try {
       const initiatorId = req.user ? req.user.id : null;
       const result = await authService.register(req.body, initiatorId);
+      const isAccepted = result.emailStatus === 'ACCEPTED';
       res.status(201).json({
         status: 'success',
         success: true,
-        message: 'Registration successful. A 6-digit verification code has been sent to your email.',
+        message: isAccepted
+          ? 'Registration successful. A 6-digit verification code has been dispatched to your email.'
+          : 'Registration completed. Email delivery could not be confirmed by provider. Please request a resend.',
         data: {
           userId: result.userId,
           profileId: result.profileId,
           userCode: result.userCode,
+          emailStatus: result.emailStatus,
+          emailError: result.emailError,
         },
-        deliveredToInbox: result?.deliveredToInbox,
+        emailStatus: result.emailStatus,
+        deliveredToInbox: isAccepted,
       });
     } catch (err) {
       next(err);
@@ -437,11 +443,13 @@ class AuthController {
       }
       const result = await authService.resendVerification(identifier);
       return res.status(200).json({
-        success: true,
-        message: result.message || 'Verification code sent successfully',
+        success: result.success,
+        emailStatus: result.emailStatus,
+        message: result.message || 'Verification code processed',
         email: result.email,
         maskedEmail: result.maskedEmail,
         deliveredToInbox: result.deliveredToInbox,
+        error: result.error,
       });
     } catch (err) {
       return res.status(400).json({

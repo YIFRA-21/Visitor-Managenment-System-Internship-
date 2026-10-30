@@ -82,4 +82,10 @@ router.get('/audit-logs/:id', checkPermission('AUDIT:READ'), systemController.ge
 // GET /api/system/audit-logs — Browseable audit log with filters and pagination
 router.get('/audit-logs', checkPermission('AUDIT:READ'), systemController.listAuditLogs);
 
+
+// ── Email Diagnostics & Testing (Admin Only) ──────────────────────────────
+router.get('/email-diagnostics', checkRole('admin'), (req, res, next) => systemController.getEmailDiagnostics(req, res, next));
+router.post('/test-email', checkRole('admin'), (req, res, next) => systemController.sendTestEmail(req, res, next));
+
 module.exports = router;
+

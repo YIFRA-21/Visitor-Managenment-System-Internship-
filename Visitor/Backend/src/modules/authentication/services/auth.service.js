@@ -591,17 +591,27 @@ class AuthService {
     });
 
     // 6. Send OTP *AFTER* database transaction commits
-    // Dispatch OTP asynchronously without blocking the response so HTTP returns instantaneously (< 200ms)
-    let otpRes = null;
+    // Await email provider acceptance
+    let emailStatus = 'PENDING';
+    let emailError = null;
+    let operationId = null;
     try {
-      otpRes = await emailService.sendOtp(email, regResult.userId, { sync: false });
+      const otpRes = await emailService.sendOtp(email, regResult.userId, { fullName });
+      emailStatus = otpRes.emailStatus || (otpRes.deliveredToInbox ? 'ACCEPTED' : 'FAILED');
+      emailError = otpRes.error || null;
+      operationId = otpRes.operationId || null;
     } catch (otpErr) {
       console.error('[AuthService] sendOtp error during registration:', otpErr.message);
+      emailStatus = 'FAILED';
+      emailError = otpErr.message;
     }
 
     return {
       ...regResult,
-      deliveredToInbox: Boolean(otpRes?.deliveredToInbox ?? true),
+      emailStatus,
+      emailError,
+      operationId,
+      deliveredToInbox: emailStatus === 'ACCEPTED',
     };
   }
 
@@ -1394,12 +1404,19 @@ class AuthService {
       throw new AppError('Email address or user identity is required', 400);
     }
 
-    const user = await this.resolveUser(identifier);
+    const cleanId = String(identifier).trim();
+    const user = await this.resolveUser(cleanId);
+
+    // Generic response if account is not found to prevent account enumeration
     if (!user || !user.email) {
-      console.log(`[AuthService] Password reset requested for non-existing email/account: "${identifier}"`);
-      const notFoundErr = new AppError('No account found registered with this email address or identifier. Please check your spelling or register a new account.', 404);
-      notFoundErr.code = 'ACCOUNT_NOT_FOUND';
-      throw notFoundErr;
+      console.log(`[AuthService] Password reset requested for unregistered identifier (enumeration shielded)`);
+      return {
+        success: true,
+        status: 'success',
+        emailStatus: 'ACCEPTED',
+        message: 'If an account exists with this identifier, a 6-digit verification code has been dispatched.',
+        deliveredToInbox: true,
+      };
     }
 
     // Verify user account is not blocked, suspended, or deactivated
@@ -1408,100 +1425,51 @@ class AuthService {
                       user.is_active === 0 || user.is_active === false;
 
     if (isBlocked) {
-      console.warn(`[AuthService] Password reset rejected for blocked/suspended account: "${identifier}" (Status: ${statusUpper})`);
-      const blockedErr = new AppError('Your account has been blocked or suspended by the administrator. Password reset is not permitted. Please contact your system administrator.', 403);
+      const blockedErr = new AppError('Your account has been blocked or suspended by the administrator. Password reset is not permitted. Please contact your administrator.', 403);
       blockedErr.code = 'ACCOUNT_BLOCKED';
       blockedErr.isBlocked = true;
       throw blockedErr;
     }
 
-    // Generate cryptographically secure 6-digit OTP
-    const crypto = require('crypto');
-    const otpCode = crypto.randomInt(100000, 1000000).toString();
-    const expiresMs = Date.now() + 15 * 60 * 1000; // 15 minutes
-    const expiresFormatted = new Date(expiresMs).toISOString().slice(0, 19).replace('T', ' ');
+    // Generate hashed OTP and enforce cooldown via central OtpService
+    const otpService = require('../../notifications/services/email/otp.service');
+    const { otpCode, expiryMinutes } = await otpService.createOtp({
+      email: user.email,
+      userId: user.id,
+      purpose: 'PASSWORD_RESET',
+      expiryMinutes: 15,
+    });
 
-    // 1. Invalidate previous active OTPs for this user
-    try {
-      await db.query(
-        `UPDATE user_otp 
-         SET status = 'EXPIRED', is_active = 0 
-         WHERE (user_id = ? OR destination = ?) AND otp_type IN ('PASSWORD_RESET', 'EMAIL_VERIFY') AND status = 'ACTIVE'`,
-        [user.id, user.email.toLowerCase()]
-      );
-    } catch (e) {
-      console.warn('[AuthService] Could not expire old user_otp:', e.message);
-    }
+    // Await provider email dispatch
+    const sendResult = await emailService.sendPasswordResetOtp({
+      to: user.email,
+      fullName: user.full_name || user.fullName || user.username,
+      userCode: user.user_code || user.userCode,
+      otpCode,
+      expiresMinutes: 15,
+    });
 
-    // 2. Insert into user_otp table
-    try {
-      await db.query(
-        `INSERT INTO user_otp 
-         (user_id, otp_code, otp_type, delivery_method, destination, is_verified, attempt_count, max_attempts, requested_at, expires_at, status, is_active)
-         VALUES (?, ?, 'PASSWORD_RESET', 'EMAIL', ?, 0, 0, 5, NOW(), DATE_ADD(NOW(), INTERVAL 15 MINUTE), 'ACTIVE', 1)`,
-        [user.id, otpCode, user.email.toLowerCase()]
-      );
-    } catch (e) {
-      console.warn('[AuthService] Could not insert into user_otp:', e.message);
-    }
-
-    // 3. Update users table with reset token & expiration directly via db.query
-    try {
-      await db.query(
-        `UPDATE users 
-         SET reset_token = ?, reset_token_expires = DATE_ADD(NOW(), INTERVAL 30 MINUTE) 
-         WHERE id = ?`,
-        [otpCode, user.id]
-      );
-    } catch (e) {
-      console.warn('[AuthService] Could not update user resetToken in DB:', e.message);
-    }
-
-    // 4. Record in password_resets table
-    try {
-      await db.query(
-        `INSERT INTO password_resets (user_id, reset_token, reset_code, expires_at, status, is_active) 
-         VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE), 'PENDING', 1)`,
-        [user.id, otpCode, otpCode]
-      );
-    } catch (e) {
-      console.warn('[AuthService] Could not insert into password_resets:', e.message);
-    }
-
-    // 5. Send REAL Email via EmailService with intelligent race window
-    let emailDelivered = true;
-    try {
-      const sendPromise = emailService.sendPasswordResetOtp({
-        to: user.email,
-        fullName: user.full_name || user.fullName || user.username,
-        userCode: user.user_code || user.userCode,
-        otpCode,
-        expiresMinutes: 15
-      });
-      const fastPromise = new Promise(resolve => setTimeout(() => resolve({ deliveredToInbox: true, backgrounded: true }), 3500));
-      const emailResult = await Promise.race([sendPromise, fastPromise]);
-      emailDelivered = Boolean(emailResult?.deliveredToInbox ?? true);
-    } catch (sendErr) {
-      emailDelivered = false;
-      console.error('[AuthService] Password reset email sending note:', sendErr.message);
-    }
-
-    // Mask user's email: ye***@gmail.com
+    // Mask user email (e.g. ye***@gmail.com)
     const [local, domain] = (user.email || '').split('@');
     const maskedEmail = domain ? (local.slice(0, 2) + '***@' + domain) : user.email;
+    const isAccepted = sendResult.success && sendResult.status === 'ACCEPTED';
+    const emailStatus = isAccepted ? 'ACCEPTED' : 'FAILED';
 
-    console.log(`[AuthService] Real Password Reset OTP (${otpCode}) dispatched to: ${user.email} (User: ${user.username}, ID: ${user.id})`);
-
-    return { 
-      success: true,
-      status: 'success', 
-      message: `A 6-digit verification code has been dispatched to ${maskedEmail}.`,
+    return {
+      success: isAccepted,
+      status: isAccepted ? 'success' : 'error',
+      emailStatus,
+      message: isAccepted
+        ? `A 6-digit verification code has been dispatched to ${maskedEmail}.`
+        : `Failed to deliver reset email: ${sendResult.error || 'Provider rejected request'}. Please retry.`,
       email: user.email,
       maskedEmail,
       username: user.username,
       userCode: user.user_code || user.userCode,
       fullName: user.full_name || user.fullName,
-      deliveredToInbox: true
+      deliveredToInbox: isAccepted,
+      operationId: sendResult.operationId,
+      error: sendResult.error || undefined,
     };
   }
 
@@ -1510,81 +1478,37 @@ class AuthService {
       throw new AppError('Identity, verification code, and new password are required', 400);
     }
 
+    const cleanToken = String(token).trim();
+    if (!/^\d{6}$/.test(cleanToken)) {
+      throw new AppError('Verification code must be 6 digits.', 400);
+    }
+
     const user = await this.resolveUser(identifier);
     if (!user) throw new AppError('User account not found', 404);
 
-    // Verify account is not blocked, suspended, or deactivated
     const statusUpper = String(user.account_status || user.status || '').trim().toUpperCase();
     const isBlocked = ['BLOCKED', 'SUSPENDED', 'DEACTIVATED', 'ARCHIVED', 'INACTIVE', 'DISABLED'].includes(statusUpper) ||
                       user.is_active === 0 || user.is_active === false;
 
     if (isBlocked) {
-      const blockedErr = new AppError('Your account has been blocked or suspended by the administrator. Password reset is not permitted. Please contact your system administrator.', 403);
+      const blockedErr = new AppError('Your account has been blocked or suspended. Password reset is not permitted.', 403);
       blockedErr.code = 'ACCOUNT_BLOCKED';
-      blockedErr.isBlocked = true;
       throw blockedErr;
     }
 
-    const cleanToken = String(token).trim();
-    const cleanEmail = user.email.toLowerCase().trim();
-
-    // Check if code matches users.reset_token OR verified user_otp OR test codes in dev
-    let isValidCode = false;
-    const testCodes = ['123456', '000000', '111111', '999999', '123123', '572751'];
-    if (testCodes.includes(cleanToken) || process.env.DEV_BYPASS_AUTH === 'true') {
-      isValidCode = true;
+    // Verify hashed OTP through central OtpService
+    const otpService = require('../../notifications/services/email/otp.service');
+    try {
+      await otpService.verifyOtp({
+        email: user.email,
+        code: cleanToken,
+        purpose: 'PASSWORD_RESET',
+      });
+    } catch (otpErr) {
+      throw new AppError(otpErr.message || 'Invalid or expired verification code.', 400);
     }
 
-    // Check users table token directly from DB
-    if (!isValidCode) {
-      try {
-        const uRows = await db.query('SELECT reset_token FROM users WHERE id = ?', [user.id]);
-        if (uRows && uRows[0] && String(uRows[0].reset_token).trim() === cleanToken) {
-          isValidCode = true;
-        }
-      } catch (e) {}
-    }
-
-    // Check user_otp table
-    if (!isValidCode) {
-      try {
-        const otpRows = await db.query(
-          `SELECT otp_id FROM user_otp 
-           WHERE (user_id = ? OR LOWER(destination) = LOWER(?)) 
-             AND otp_code = ? 
-             AND (is_verified = 1 OR status = 'ACTIVE' OR is_active = 1) 
-             AND requested_at >= NOW() - INTERVAL 120 MINUTE 
-           LIMIT 1`,
-          [user.id, cleanEmail, cleanToken]
-        );
-        if (otpRows && otpRows.length > 0) {
-          isValidCode = true;
-        }
-      } catch (e) {}
-    }
-
-    // Check password_resets table
-    if (!isValidCode) {
-      try {
-        const prRows = await db.query(
-          `SELECT reset_id FROM password_resets 
-           WHERE user_id = ? 
-             AND (reset_token = ? OR reset_code = ?) 
-             AND requested_at >= NOW() - INTERVAL 120 MINUTE 
-           LIMIT 1`,
-          [user.id, cleanToken, cleanToken]
-        );
-        if (prRows && prRows.length > 0) {
-          isValidCode = true;
-        }
-      } catch (e) {}
-    }
-
-    if (!isValidCode) {
-      throw new AppError('Invalid or expired verification code. Please request a new code.', 400);
-    }
-
-    // Hash new password and update users table directly
+    // Hash new password using bcrypt (cost factor 12)
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await db.query(
       `UPDATE users 
@@ -1595,46 +1519,19 @@ class AuthService {
       [passwordHash, user.id]
     );
 
-    // Invalidate reset tokens in password_resets and user_otp
-    try {
-      await db.query(
-        `UPDATE password_resets SET status = 'USED', used_at = CURRENT_TIMESTAMP, is_active = 0 
-         WHERE user_id = ? AND (reset_token = ? OR reset_code = ?)`,
-        [user.id, cleanToken, cleanToken]
-      );
-      await db.query(
-        `UPDATE user_otp SET status = 'EXPIRED', is_active = 0 
-         WHERE (user_id = ? OR destination = ?) AND otp_code = ?`,
-        [user.id, cleanEmail, cleanToken]
-      );
-    } catch (e) {}
+    // Invalidate active sessions
+    await db.query(`DELETE FROM user_sessions WHERE user_id = ?`, [user.id]).catch(() => {});
 
-    // Send confirmation email
-    try {
-      emailService.sendMail({
-        to: user.email,
-        subject: '[VMS] Your Password Has Been Reset Successfully',
-        text: `Hello ${user.full_name || 'User'},\n\nYour account password has been successfully reset. You may now login with your new credentials.\n\nVisitor Management System`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; background: #0b0f17; color: #fff; border-radius: 12px; border: 1px solid #1e293b;">
-            <h2 style="color: #10b981; margin: 0 0 12px 0;">Password Successfully Reset</h2>
-            <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
-              Hello <strong style="color: #fff;">${user.full_name || user.username}</strong>,
-            </p>
-            <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
-              Your Visitor Management account password has been successfully changed. You can now use your new password to sign in.
-            </p>
-          </div>
-        `
-      }).catch(() => {});
-    } catch (e) {}
+    // Send confirmation security alert
+    emailService.sendPasswordChangedConfirmation({
+      to: user.email,
+      fullName: user.full_name || user.username,
+    }).catch(() => {});
 
-    console.log(`[AuthService] Password reset successfully completed for user: ${cleanEmail}`);
-
-    return { 
+    return {
       success: true,
-      status: 'success', 
-      message: 'Your password has been successfully reset. You may now login.' 
+      status: 'success',
+      message: 'Your password has been successfully reset. You may now login.',
     };
   }
 
@@ -1648,86 +1545,28 @@ class AuthService {
       throw new AppError('Please enter a valid 6-digit verification code', 400);
     }
 
-    const user = await this.resolveUser(identifier);
-    if (!user) {
+    const cleanId = String(identifier).trim();
+    const user = await this.resolveUser(cleanId);
+    const targetEmail = (user?.email || (cleanId.includes('@') ? cleanId : null))?.toLowerCase()?.trim();
+
+    if (!targetEmail) {
       throw new AppError('User account not found', 404);
     }
 
-    const cleanEmail = user.email.toLowerCase().trim();
-
-    // 1. Direct check in users table reset_token
-    let isMatch = false;
+    // Verify hashed OTP through central OtpService
+    const otpService = require('../../notifications/services/email/otp.service');
     try {
-      const uRows = await db.query(
-        'SELECT reset_token FROM users WHERE id = ?',
-        [user.id]
-      );
-      if (uRows && uRows[0] && String(uRows[0].reset_token).trim() === cleanToken) {
-        isMatch = true;
-      }
-    } catch (e) {}
-
-    // 2. Check user_otp table
-    let matchingOtp = null;
-    if (!isMatch) {
-      try {
-        const otpRows = await db.query(
-          `SELECT otp_id, otp_code, attempt_count, max_attempts, expires_at, status 
-           FROM user_otp 
-           WHERE (user_id = ? OR LOWER(destination) = LOWER(?)) 
-             AND otp_code = ? 
-             AND (status = 'ACTIVE' OR is_verified = 0 OR is_active = 1) 
-             AND requested_at >= NOW() - INTERVAL 120 MINUTE 
-           ORDER BY requested_at DESC LIMIT 1`,
-          [user.id, cleanEmail, cleanToken]
-        );
-        if (otpRows && otpRows.length > 0) {
-          matchingOtp = otpRows[0];
-          isMatch = true;
-        }
-      } catch (e) {}
+      await otpService.verifyOtp({
+        email: targetEmail,
+        code: cleanToken,
+        purpose: 'EMAIL_VERIFY',
+      });
+    } catch (otpErr) {
+      throw new AppError(otpErr.message || 'Invalid or expired verification code.', 400);
     }
 
-    // 3. Check password_resets table
-    if (!isMatch) {
-      try {
-        const prRows = await db.query(
-          `SELECT reset_id FROM password_resets 
-           WHERE user_id = ? 
-             AND (reset_token = ? OR reset_code = ?) 
-             AND requested_at >= NOW() - INTERVAL 120 MINUTE 
-           LIMIT 1`,
-          [user.id, cleanToken, cleanToken]
-        );
-        if (prRows && prRows.length > 0) {
-          isMatch = true;
-        }
-      } catch (e) {}
-    }
-
-    // 4. Test codes or dev bypass
-    const testCodes = ['123456', '000000', '111111', '999999', '123123', '572751'];
-    if (!isMatch && (testCodes.includes(cleanToken) || process.env.DEV_BYPASS_AUTH === 'true')) {
-      isMatch = true;
-    }
-
-    if (!isMatch) {
-      console.log(`[AuthService] OTP Mismatch for ${cleanEmail}: entered="${cleanToken}"`);
-      throw new AppError('The verification code is incorrect or has expired. Please check your email.', 400);
-    }
-
-    // Mark OTP verified in user_otp
-    try {
-      await db.query(
-        `UPDATE user_otp 
-         SET is_verified = 1, status = 'VERIFIED', verified_at = NOW(), is_active = 0 
-         WHERE otp_id = ? OR (LOWER(destination) = LOWER(?) AND otp_code = ?)`,
-        [matchingOtp ? matchingOtp.otp_id : 0, cleanEmail, cleanToken]
-      );
-    } catch (e) {}
-
-    // Mark user account verified
-    try {
+    // Atomically activate user and visitor accounts
+    if (user?.id) {
       await db.query(
         `UPDATE users 
          SET email_verified = 1, account_status = 'ACTIVE', status = 'active', 
@@ -1735,26 +1574,48 @@ class AuthService {
          WHERE id = ?`,
         [user.id]
       );
-      // Also activate corresponding visitor profile if applicable
       await db.query(
         `UPDATE visitors 
          SET registration_status = 'APPROVED', id_verification_status = 'APPROVED', 
              status = 'ACTIVE', is_active = 1 
          WHERE user_id = ? OR LOWER(email) = LOWER(?)`,
-        [user.id, cleanEmail]
+        [user.id, targetEmail]
       ).catch(() => {});
-    } catch (e) {}
+    } else {
+      await db.query(
+        `UPDATE users 
+         SET email_verified = 1, account_status = 'ACTIVE', status = 'active', 
+             verification_status = 'VERIFIED' 
+         WHERE LOWER(email) = LOWER(?)`,
+        [targetEmail]
+      );
+      await db.query(
+        `UPDATE visitors 
+         SET registration_status = 'APPROVED', id_verification_status = 'APPROVED', 
+             status = 'ACTIVE', is_active = 1 
+         WHERE LOWER(email) = LOWER(?)`,
+        [targetEmail]
+      ).catch(() => {});
+    }
 
-    console.log(`[AuthService] OTP verified successfully for: ${cleanEmail}`);
+    // Send welcome confirmation email
+    emailService.templates && emailService.sendMail({
+      to: targetEmail,
+      ...emailService.templates.templateAccountActivated({
+        fullName: user?.full_name || 'Visitor',
+        loginUrl: (process.env.CLIENT_URL || 'https://visitor-managenment-system-internsh-rho.vercel.app').replace(/\/+$/, '') + '/login',
+      }),
+      purpose: 'ACCOUNT_ACTIVATED',
+    }).catch(() => {});
 
-    return { 
-      status: 'success', 
-      success: true, 
-      verified: true, 
-      message: 'Verification code verified successfully.',
-      email: user.email,
-      username: user.username,
-      userCode: user.user_code
+    return {
+      status: 'success',
+      success: true,
+      verified: true,
+      message: 'Email address verified and account activated successfully.',
+      email: targetEmail,
+      username: user?.username,
+      userCode: user?.user_code,
     };
   }
 
@@ -1778,30 +1639,27 @@ class AuthService {
       throw new AppError('No account or email address found. Please enter a valid email address.', 404);
     }
 
-    let otpRes = null;
-    try {
-      const sendPromise = emailService.sendOtp(targetEmail, user?.id || null, { sync: true });
-      const fastPromise = new Promise(resolve => setTimeout(() => resolve({ deliveredToInbox: true, backgrounded: true }), 3500));
-      otpRes = await Promise.race([sendPromise, fastPromise]);
-    } catch (err) {
-      console.warn('[AuthService] resendVerification note:', err.message);
-    }
+    // Await real email dispatch via central emailService
+    const otpRes = await emailService.sendOtp(targetEmail, user?.id || null, { fullName: user?.full_name });
+    const isAccepted = otpRes.status === 'success' && otpRes.emailStatus === 'ACCEPTED';
 
     const [local, domain] = targetEmail.split('@');
     const maskedEmail = domain ? (local.slice(0, 2) + '***@' + domain) : targetEmail;
 
-    console.log(`[AuthService] Fresh verification OTP dispatched to ${targetEmail} (resend triggered)`);
-
     return {
-      success: true,
-      status: 'success',
-      message: `A fresh 6-digit verification code has been dispatched to ${maskedEmail}.`,
+      success: isAccepted,
+      status: isAccepted ? 'success' : 'error',
+      emailStatus: isAccepted ? 'ACCEPTED' : 'FAILED',
+      message: isAccepted
+        ? `A fresh 6-digit verification code has been dispatched to ${maskedEmail}.`
+        : `Failed to deliver verification code: ${otpRes.error || 'Provider rejected request'}. Please retry.`,
       email: targetEmail,
       maskedEmail,
       userCode: user?.user_code || user?.userCode,
       fullName: user?.full_name || user?.fullName,
-      deliveredToInbox: Boolean(otpRes?.deliveredToInbox ?? true),
-      demoToken: process.env.DEV_BYPASS_AUTH === 'true' ? '123456' : undefined
+      deliveredToInbox: isAccepted,
+      operationId: otpRes.operationId,
+      error: otpRes.error || undefined,
     };
   }
 

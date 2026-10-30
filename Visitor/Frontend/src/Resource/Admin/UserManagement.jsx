@@ -1187,9 +1187,12 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             const sanitizedPayload = sanitizeFormValues(createForm);
             const res = await api.post('/users', sanitizedPayload);
             const created = res.data?.data;
+            const isEmailAccepted = Boolean(created?.emailStatus === 'ACCEPTED' || (!created?.emailStatus && res.data?.success));
             setAlert({
-                type: 'success',
-                message: 'User account created and provisioned successfully.',
+                type: isEmailAccepted ? 'success' : 'warning',
+                message: isEmailAccepted
+                    ? 'User account created and credentials dispatched via email.'
+                    : `User account created, but email delivery failed: ${created?.emailError || 'Provider rejected request'}. Please share the temporary password manually.`,
             });
             // Advance to Finish Step (Step 5) with comprehensive created details
             setCreatedUserSummary({
@@ -1204,6 +1207,8 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 department: deptOptions.find(d => String(d.id) === String(createForm.departmentId))?.departmentName || 'General',
                 temporaryPassword: created?.temporaryPassword || (createForm.credentialMode === 'manual' ? createForm.password : null),
                 credentialMode: createForm.credentialMode,
+                emailStatus: created?.emailStatus || (isEmailAccepted ? 'ACCEPTED' : 'FAILED'),
+                emailError: created?.emailError || null,
             });
             setCreateStep(5);
             fetchStats();
@@ -1508,19 +1513,23 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             const res = await api.post(`/users/${user.id}/send-credentials`, {}, { timeout: 15000 });
             const data = res.data?.data || {};
             const userEmail = user.email;
-            const baseMsg = res.data?.message || `Account credentials sent to ${userEmail}.`;
+            const isAccepted = Boolean(res.data?.success && (data.emailStatus === 'ACCEPTED' || !data.emailStatus));
 
             setAlert({
-                type: 'success',
-                message: `${baseMsg} The user ID and temporary password have been dispatched directly to the recipient's email address and displayed on-screen.`,
+                type: isAccepted ? 'success' : 'warning',
+                message: isAccepted
+                    ? (res.data?.message || `Email accepted by provider for ${userEmail}. User ID and temporary password dispatched.`)
+                    : (res.data?.message || `Credentials generated, but email delivery failed: ${data.error || 'Provider rejected request'}. Please copy credentials manually or retry.`),
             });
             setCredentialsResultModal({
-                title: 'User Credentials Generated & Dispatched',
+                title: isAccepted ? 'User Credentials Generated & Dispatched' : 'Credentials Generated (Email Delivery Failed)',
                 userCode: data.userCode || user.user_code || `USR-${user.id}`,
                 username: data.username || user.username || (user.email ? user.email.split('@')[0] : 'user'),
                 email: data.email || user.email,
                 temporaryPassword: data.temporaryPassword || 'Password123!',
                 recipient: user.full_name || user.email,
+                emailStatus: data.emailStatus || (isAccepted ? 'ACCEPTED' : 'FAILED'),
+                emailError: data.error || null,
             });
             fetchUsers();
         }
@@ -3064,8 +3073,12 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                       </p>
                     </div>) : createdUserSummary.credentialMode === 'manual' ? (<div className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300">
                       🔑 Initial password configured manually by administrator during provisioning.
-                    </div>) : (<div className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 break-words">
-                      📧 Password setup link dispatched to user email ({createdUserSummary.email}).
+                    </div>) : createdUserSummary.emailStatus === 'FAILED' ? (<div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 break-words flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                      <span>Email delivery failed ({createdUserSummary.emailError || 'Provider rejected'}). Share credentials manually or click Resend in User List.</span>
+                    </div>) : (<div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 break-words flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Credentials email accepted by provider for {createdUserSummary.email}.</span>
                     </div>)}
                 </div>
 
@@ -5423,12 +5436,21 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 )}
 
                 {/* Delivery Notice */}
-                <div className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span className="text-[11px] font-medium leading-tight">
-                    Dispatched to email inbox ({credentialsResultModal.email}) and displayed here for testing.
-                  </span>
-                </div>
+                {credentialsResultModal.emailStatus === 'FAILED' ? (
+                  <div className="flex items-center gap-2 p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span className="text-[11px] font-medium leading-tight">
+                      Email delivery failed: {credentialsResultModal.emailError || 'Provider rejected request'}. Please share credentials manually or retry.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span className="text-[11px] font-medium leading-tight">
+                      Email accepted by provider for {credentialsResultModal.email}.
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2">

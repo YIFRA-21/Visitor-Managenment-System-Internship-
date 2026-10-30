@@ -133,8 +133,9 @@ class UserManagementController {
         parseInt(req.params.id),
         req.user ? req.user.id : null
       );
-      res.json({
-        success: true,
+      const isAccepted = result.emailStatus === 'ACCEPTED';
+      res.status(200).json({
+        success: isAccepted,
         message: result.message,
         data: result
       });

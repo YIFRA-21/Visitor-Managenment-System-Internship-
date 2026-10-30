@@ -309,6 +309,35 @@ class SystemController {
       next(err);
     }
   }
+
+  async getEmailDiagnostics(req, res, next) {
+    try {
+      const emailService = require('../../notifications/services/email.service');
+      const diagnostics = await emailService.getDiagnostics();
+      res.json({ success: true, data: diagnostics });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async sendTestEmail(req, res, next) {
+    try {
+      const { targetEmail } = req.body || {};
+      if (!targetEmail) {
+        return res.status(400).json({ success: false, error: 'targetEmail is required' });
+      }
+      const emailService = require('../../notifications/services/email.service');
+      const adminName = req.user?.fullName || req.user?.username || 'Administrator';
+      const result = await emailService.sendTestEmail(targetEmail, adminName);
+      res.json({
+        success: result.success,
+        message: result.message,
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new SystemController();

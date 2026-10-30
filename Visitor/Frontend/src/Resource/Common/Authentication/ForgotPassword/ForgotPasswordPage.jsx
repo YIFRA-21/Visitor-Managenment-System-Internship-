@@ -209,8 +209,11 @@ export default function ForgotPasswordPage() {
             }
             setOtpDigits(['', '', '', '', '', '']);
 
-            setCodeExpiry(900);
-            setResendCooldown(0);
+            setCodeExpiry(data.expiresInSeconds || 900);
+            setResendCooldown(data.cooldownSeconds || 60);
+            if (data.emailStatus === 'FAILED') {
+                setError('Verification code generated, but email delivery provider encountered an issue. If not received shortly, please wait for the cooldown and click Resend Code.');
+            }
             setStep(2);
         } catch (err) {
             const isAccountNotFound =
@@ -325,20 +328,26 @@ export default function ForgotPasswordPage() {
         setError('');
         setSuccessMessage('');
         setLoading(true);
-        // 2-second debounce prevents accidental double-clicking while allowing quick repeat sends
-        setResendCooldown(2);
+        // Enforce 60-second cooldown matching backend policy
+        setResendCooldown(60);
         try {
             const identifier = email || userId;
             const res = await authApi.forgotPassword(identifier);
             const data = res.data?.data || res.data || {};
+            const isAccepted = Boolean(res.data?.success && (data.emailStatus === 'ACCEPTED' || !data.emailStatus));
             if (data.email) setEmail(data.email);
             if (data.maskedEmail) setMaskedEmailAddress(data.maskedEmail);
             setOtpDigits(['', '', '', '', '', '']);
-            setCodeExpiry(900);
+            setCodeExpiry(data.expiresInSeconds || 900);
+            setResendCooldown(data.cooldownSeconds || 60);
             const nextCount = resendAttemptCount + 1;
             setResendAttemptCount(nextCount);
-            setSuccessMessage(`A fresh 6-digit verification code has been dispatched to ${data.maskedEmail || maskedEmailAddress || 'your email'}.${nextCount > 1 ? ` (Attempt #${nextCount})` : ''}`);
-            setTimeout(() => setSuccessMessage(''), 8000);
+            if (isAccepted) {
+                setSuccessMessage(`A fresh 6-digit verification code has been dispatched to ${data.maskedEmail || maskedEmailAddress || 'your email'}.${nextCount > 1 ? ` (Attempt #${nextCount})` : ''}`);
+                setTimeout(() => setSuccessMessage(''), 8000);
+            } else {
+                setError(`Verification code generated, but email delivery provider reported: ${data.emailError || 'Delivery issue'}. Please wait for cooldown and retry.`);
+            }
         } catch (err) {
             setError(err.response?.data?.error || err.response?.data?.message || 'Failed to resend code. Please try again.');
         } finally {

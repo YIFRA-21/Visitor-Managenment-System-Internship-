@@ -2793,13 +2793,41 @@ function handleMockQuery(sql, params) {
   // 42c. UPDATE user_otp
   if (normalizedSql.includes('update user_otp')) {
     if (!mockDb.user_otp) mockDb.user_otp = [];
-    const destParam = params ? params[0] : null;
+    const isAttemptIncrement = normalizedSql.includes('attempt_count = attempt_count + 1');
+    const otpIdParam = params && params.length > 0 ? params[params.length - 1] : null;
+    const destParam = params && params.length >= 2 ? params[0] : null;
+
     mockDb.user_otp.forEach(rec => {
-      if (!destParam || (rec.destination && rec.destination.toLowerCase() === String(destParam).toLowerCase()) || String(rec.otp_id) === String(destParam)) {
-        if (normalizedSql.includes('status = \'expired\'') || normalizedSql.includes('status = "expired"')) rec.status = 'EXPIRED';
-        if (normalizedSql.includes('status = \'verified\'') || normalizedSql.includes('status = "verified"')) { rec.status = 'VERIFIED'; rec.is_verified = 1; }
-        if (normalizedSql.includes('status = \'failed\'') || normalizedSql.includes('status = "failed"')) rec.status = 'FAILED';
-        rec.is_active = 0;
+      const matchesId = otpIdParam && String(rec.otp_id) === String(otpIdParam);
+      const matchesDest = destParam && rec.destination && rec.destination.toLowerCase() === String(destParam).toLowerCase();
+
+      if (matchesId || matchesDest) {
+        if (normalizedSql.includes('attempt_count = ?') && params && typeof params[0] === 'number') {
+          rec.attempt_count = params[0];
+          if (rec.attempt_count >= (rec.max_attempts || 5)) {
+            rec.status = 'REVOKED';
+            rec.is_active = 0;
+          }
+        } else if (isAttemptIncrement) {
+          rec.attempt_count = (rec.attempt_count || 0) + 1;
+          if (rec.attempt_count >= (rec.max_attempts || 5)) {
+            rec.status = 'REVOKED';
+            rec.is_active = 0;
+          }
+        }
+        if (normalizedSql.includes("status = 'expired'") || normalizedSql.includes('status = "expired"')) {
+          rec.status = 'EXPIRED';
+          rec.is_active = 0;
+        }
+        if (normalizedSql.includes("status = 'verified'") || normalizedSql.includes('status = "verified"')) {
+          rec.status = 'VERIFIED';
+          rec.is_verified = 1;
+          rec.is_active = 0;
+        }
+        if (normalizedSql.includes("status = 'failed'") || normalizedSql.includes('status = "failed"')) {
+          rec.status = 'FAILED';
+          rec.is_active = 0;
+        }
       }
     });
     return { affectedRows: 1 };
@@ -2811,27 +2839,45 @@ function handleMockQuery(sql, params) {
     const newId = mockDb.user_otp.length + 1;
     let user_id = null;
     let otp_code = '';
+    let otp_type = 'EMAIL_VERIFY';
     let destination = '';
-    if (params && params.length >= 3) {
+    let max_attempts = 5;
+    let expiry_mins = 10;
+
+    if (params && params.length >= 6) {
       user_id = params[0];
       otp_code = params[1];
-      destination = params[2];
+      otp_type = params[2] || 'EMAIL_VERIFY';
+      destination = params[3] || '';
+      max_attempts = params[4] || 5;
+      expiry_mins = params[5] || 10;
+    } else if (params && params.length >= 5) {
+      otp_code = params[0];
+      otp_type = params[1] || 'EMAIL_VERIFY';
+      destination = params[2] || '';
+      max_attempts = params[3] || 5;
+      expiry_mins = params[4] || 10;
+    } else if (params && params.length >= 3) {
+      user_id = params[0];
+      otp_code = params[1];
+      destination = params[2] || '';
     } else if (params && params.length >= 2) {
       otp_code = params[0];
-      destination = params[1];
+      destination = params[1] || '';
     }
+
     const requested_at = new Date().toISOString();
-    const expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const expires_at = new Date(Date.now() + expiry_mins * 60 * 1000).toISOString();
     mockDb.user_otp.push({
       otp_id: newId,
       user_id,
       otp_code,
-      otp_type: 'EMAIL_VERIFY',
+      otp_type,
       delivery_method: 'EMAIL',
       destination: destination ? destination.toLowerCase().trim() : '',
       is_verified: 0,
       attempt_count: 0,
-      max_attempts: 5,
+      max_attempts,
       requested_at,
       expires_at,
       status: 'ACTIVE',
@@ -2844,22 +2890,27 @@ function handleMockQuery(sql, params) {
   if (normalizedSql.includes('from user_otp')) {
     if (!mockDb.user_otp) mockDb.user_otp = [];
     let matching = mockDb.user_otp;
+
     if (params && params.length > 0) {
-      const pStrings = params.map(p => String(p).toLowerCase().trim());
+      const destParam = params[0] ? String(params[0]).toLowerCase().trim() : null;
+      const typeParam = params.length >= 2 ? String(params[1]).trim() : null;
+
       matching = mockDb.user_otp.filter(r => {
-        const dest = (r.destination || '').toLowerCase();
-        const uId = String(r.user_id || '');
-        return pStrings.includes(dest) || (uId && pStrings.includes(uId));
+        if (destParam && (r.destination || '').toLowerCase() !== destParam) return false;
+        if (typeParam && r.otp_type && r.otp_type !== typeParam) return false;
+        if (normalizedSql.includes("status = 'active'") && r.status !== 'ACTIVE') return false;
+        if (normalizedSql.includes("status = 'verified'") && r.status !== 'VERIFIED') return false;
+        if (normalizedSql.includes("is_active = 1") && r.is_active !== 1) return false;
+        return true;
       });
-      const codeParam = params.find(p => /^\d{6}$/.test(String(p).trim()));
-      if (codeParam) {
-        matching = matching.filter(r => String(r.otp_code).trim() === String(codeParam).trim());
-      }
     }
+
     const sorted = matching.sort((a, b) => new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime());
     return sorted.map(r => ({
       ...r,
+      is_expired: new Date() > new Date(r.expires_at) ? 1 : 0,
       is_expired_db: new Date() > new Date(r.expires_at) ? 1 : 0,
+      elapsed_seconds: Math.floor((Date.now() - new Date(r.requested_at).getTime()) / 1000),
       seconds_since_request: Math.floor((Date.now() - new Date(r.requested_at).getTime()) / 1000)
     }));
   }
