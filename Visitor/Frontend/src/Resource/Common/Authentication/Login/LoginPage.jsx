@@ -140,14 +140,20 @@ export default function LoginPage() {
                 } else if (err.response?.status === 403) {
                     errorMsg = rawMsg || 'Access Denied: Account is restricted. Please contact administrator.';
                 } else if (err.response?.status === 429 || err.response?.data?.code === 'RATE_LIMIT_EXCEEDED') {
-                    errorMsg = t('login.rateLimited');
+                    errorMsg = t('login.rateLimited') || 'Too many attempts. Please wait a moment.';
+                } else if (err.response?.status === 401) {
+                    errorMsg = rawMsg || t('login.invalidCredentials') || 'Invalid credentials. Please verify your User ID/Email and password.';
+                } else if (err.response?.status === 404) {
+                    errorMsg = 'Authentication service is reaching the server. Please check your credentials or retry.';
+                } else if (err.code === 'ERR_NETWORK' || !err.response) {
+                    errorMsg = 'Server is currently waking up or unavailable. Please try again shortly.';
                 } else if (rawMsg) {
                     errorMsg = rawMsg;
                 } else {
-                    errorMsg = t('login.invalidCredentials');
+                    errorMsg = t('login.invalidCredentials') || 'Invalid credentials. Please check your User ID/Email and password.';
                 }
 
-                const finalError = typeof errorMsg === 'string' ? errorMsg : 'This user is blocked. Please call the administrator.';
+                const finalError = typeof errorMsg === 'string' ? errorMsg : 'Invalid credentials. Please check your user ID and password.';
                 setError(finalError);
                 notify.error(finalError);
                 setBackendErrors(err);
@@ -288,20 +294,13 @@ export default function LoginPage() {
 
         <div className="w-full max-w-md space-y-8">
           <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-            {/* Logo Badge & Heading */}
-            <div className="flex flex-col items-center justify-center text-center mb-6">
-              <div className="p-2 bg-white rounded-2xl mb-3 shadow-xl border border-slate-200">
-                <img src={logoUrl || '/logo.png'} alt={`${orgName} Logo`} className="w-14 h-14 object-contain rounded-xl" onError={(e) => {
-            e.target.src = '/logo.png';
-        }}/>
-              </div>
+            {/* Form Header */}
+            <div className="text-center mb-6">
               <h2 className="text-2xl font-extrabold text-white tracking-wide">
                 {t('login.signIn')}
               </h2>
               <p className="mt-1 text-xs text-slate-400">
-                {organization?.shortName
-            ? (language === 'am' ? `ወደ ${organization.name} ይግቡ` : `${t('login.signInTo')} ${organization.name}`)
-            : t('login.enterCredentials')}
+                {t('login.enterCredentials')}
               </p>
             </div>
 
