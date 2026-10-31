@@ -16,7 +16,16 @@ class EmailConfig {
 
   refresh() {
     this.enabled = process.env.EMAIL_ENABLED !== 'false';
-    this.provider = (process.env.EMAIL_PROVIDER || 'smtp').toLowerCase().trim();
+    const explicitProvider = (process.env.EMAIL_PROVIDER || '').toLowerCase().trim();
+    if (explicitProvider) {
+      this.provider = explicitProvider;
+    } else if (process.env.BREVO_API_KEY) {
+      this.provider = 'brevo';
+    } else if (process.env.RESEND_API_KEY) {
+      this.provider = 'resend';
+    } else {
+      this.provider = 'smtp';
+    }
     
     // SMTP Settings
     this.smtp = {
