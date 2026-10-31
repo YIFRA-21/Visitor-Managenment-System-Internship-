@@ -985,6 +985,15 @@ class UserManagementService {
       userCode = await this.generateUserCode(user.role || 'employee');
     }
 
+    // Guard against accidental double-clicks: If credentials were sent in the last 20 seconds, reject duplicate dispatch
+    if (user.temporary_password_created_at) {
+      const elapsedMs = Date.now() - new Date(user.temporary_password_created_at).getTime();
+      if (elapsedMs < 20000 && elapsedMs >= 0) {
+        const remaining = Math.ceil((20000 - elapsedMs) / 1000);
+        throw new AppError(`Credentials were already dispatched moments ago. Please wait ${remaining} seconds before re-sending.`, 429);
+      }
+    }
+
     const tempPassword = `TempPass#${Math.floor(100000 + Math.random() * 900000)}`;
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 

