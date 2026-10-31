@@ -389,6 +389,25 @@ class AuthController {
       const result = await authService.forgotPassword(identifier);
       res.status(200).json(result);
     } catch (err) {
+      if (err.code === 'COOLDOWN_ACTIVE') {
+        return res.status(429).json({
+          success: false,
+          status: 'error',
+          code: 'COOLDOWN_ACTIVE',
+          message: err.message,
+          error: err.message,
+          remainingSeconds: err.remainingSeconds,
+        });
+      }
+      if (err.code === 'ACCOUNT_BLOCKED') {
+        return res.status(403).json({
+          success: false,
+          status: 'error',
+          code: 'ACCOUNT_BLOCKED',
+          message: err.message,
+          error: err.message,
+        });
+      }
       next(err);
     }
   }

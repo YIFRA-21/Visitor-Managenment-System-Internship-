@@ -91,6 +91,7 @@ class OtpService {
     if (cooldown.active) {
       const error = new Error(`Please wait ${cooldown.remainingSeconds} seconds before requesting another verification code.`);
       error.code = 'COOLDOWN_ACTIVE';
+      error.statusCode = 429;
       error.remainingSeconds = cooldown.remainingSeconds;
       throw error;
     }

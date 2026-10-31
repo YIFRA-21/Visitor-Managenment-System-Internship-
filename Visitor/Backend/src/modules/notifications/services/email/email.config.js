@@ -26,9 +26,9 @@ class EmailConfig {
       user: (process.env.SMTP_USER || '').trim(),
       pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''),
       secure: process.env.SMTP_SECURE === 'true' || parseInt(process.env.SMTP_PORT || '587', 10) === 465,
-      connectionTimeout: parseInt(process.env.EMAIL_TIMEOUT_MS || '10000', 10),
-      greetingTimeout: 8000,
-      socketTimeout: 15000,
+      connectionTimeout: parseInt(process.env.EMAIL_TIMEOUT_MS || '25000', 10),
+      greetingTimeout: 15000,
+      socketTimeout: 30000,
     };
 
     // Transactional API Providers Settings

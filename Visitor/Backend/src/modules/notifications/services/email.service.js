@@ -107,7 +107,7 @@ class EmailService {
       html,
       providerName: dispatchResult.provider || this.config.provider,
       status: dispatchResult.status,
-      error: dispatchResult.error,
+      error: dispatchResult.rawError || dispatchResult.error,
       messageId: dispatchResult.messageId,
     });
 
