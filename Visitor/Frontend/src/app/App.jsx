@@ -1,6 +1,7 @@
-import React, { Component } from 'react';
+import React, { Component, useEffect } from 'react';
 import AppRoutes from './routes/AppRoutes';
 import GlobalErrorPage from '../modules/response/GlobalErrorPage';
+import { getApiBaseUrl } from '../utils/apiUrl';
 
 class AppErrorBoundary extends Component {
   constructor(props) {
@@ -30,6 +31,13 @@ class AppErrorBoundary extends Component {
 }
 
 export default function App() {
+  useEffect(() => {
+    // Silent pre-warm ping on initial load to ensure backend is hot
+    try {
+      fetch(`${getApiBaseUrl()}/health`, { method: 'GET', keepalive: true }).catch(() => {});
+    } catch {}
+  }, []);
+
   return (
     <AppErrorBoundary>
       <AppRoutes />

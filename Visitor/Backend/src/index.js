@@ -1129,6 +1129,24 @@ server.listen(PORT, HOST, () => {
     console.log(`  ➜ Network: http://${HOST}:${PORT}`);
   }
   console.log(`==================================================\n`);
+
+  // ── Render Production Keepalive (Prevents Free-Tier Container Sleep) ──
+  const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || 'https://visitor-managenment-system-backend.onrender.com';
+  if (process.env.NODE_ENV === 'production' && keepAliveUrl) {
+    const PING_INTERVAL_MS = 13 * 60 * 1000; // Ping every 13 minutes (Render sleeps at 15)
+    setInterval(() => {
+      try {
+        const pingTarget = `${keepAliveUrl.replace(/\/+$/, '')}/api/health`;
+        const https = require('https');
+        https.get(pingTarget, (res) => {
+          res.resume();
+        }).on('error', () => {});
+      } catch {
+        // Silent error suppression for background keepalive
+      }
+    }, PING_INTERVAL_MS);
+    console.log(`[Keepalive] Background self-ping initialized for ${keepAliveUrl}`);
+  }
 });
 
 module.exports = app;
