@@ -91,7 +91,6 @@ class OtpService {
     if (cooldown.active) {
       const error = new Error(`Please wait ${cooldown.remainingSeconds} seconds before requesting another verification code.`);
       error.code = 'COOLDOWN_ACTIVE';
-      error.statusCode = 429;
       error.remainingSeconds = cooldown.remainingSeconds;
       throw error;
     }
@@ -115,6 +114,18 @@ class OtpService {
       logger.logWarn('OTP_INVALIDATION_WARN', { recipient: cleanEmail, purpose, error: err.message });
     }
 
+    // Verify valid user_id to satisfy foreign key fk_user_otp_user
+    let validUserId = null;
+    if (userId) {
+      try {
+        const u = await db.query('SELECT id FROM users WHERE id = ? LIMIT 1', [userId]);
+        const found = Array.isArray(u) && Array.isArray(u[0]) ? u[0][0] : (Array.isArray(u) ? u[0] : null);
+        if (found && found.id) {
+          validUserId = found.id;
+        }
+      } catch (_) {}
+    }
+
     // Insert new hashed OTP record
     // Store the 64-char hash in otp_code column (and otp_hash if column exists)
     try {
@@ -122,7 +133,7 @@ class OtpService {
         `INSERT INTO user_otp 
          (user_id, otp_code, otp_type, delivery_method, destination, is_verified, attempt_count, max_attempts, requested_at, expires_at, status, is_active)
          VALUES (?, ?, ?, 'EMAIL', ?, 0, 0, ?, NOW(), DATE_ADD(NOW(), INTERVAL ? MINUTE), 'ACTIVE', 1)`,
-        [userId || null, otpHash, purpose, cleanEmail, maxAttempts, expiryMins]
+        [validUserId, otpHash, purpose, cleanEmail, maxAttempts, expiryMins]
       );
     } catch (insertErr) {
       // If table lacks user_id or requires specific schema fallback

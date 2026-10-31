@@ -182,28 +182,9 @@ class EmailProviderService {
       },
     };
 
-    const sendAttempt = async () => {
-      const transporter = this.getSmtpTransporter();
-      return await transporter.sendMail(mailOptions);
-    };
-
     try {
-      let info;
-      try {
-        info = await sendAttempt();
-      } catch (firstErr) {
-        const isRetryable = ['ETIMEDOUT', 'ECONNRESET', 'ESOCKET', 'ENOTFOUND', 'EAI_AGAIN'].includes(firstErr.code) ||
-                            String(firstErr.message || '').toLowerCase().includes('timeout');
-        if (isRetryable) {
-          logger.logWarn('SMTP_RETRYING_AFTER_TIMEOUT', { operationId, recipient: cleanTo, code: firstErr.code });
-          this.resetTransporter();
-          await new Promise(r => setTimeout(r, 1500));
-          info = await sendAttempt();
-        } else {
-          throw firstErr;
-        }
-      }
-
+      const transporter = this.getSmtpTransporter();
+      const info = await transporter.sendMail(mailOptions);
       const durationMs = Date.now() - startTime;
 
       logger.logInfo('EMAIL_ACCEPTED_BY_SMTP', {
