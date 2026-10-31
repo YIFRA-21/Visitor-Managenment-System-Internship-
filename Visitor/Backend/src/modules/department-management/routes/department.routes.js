@@ -11,7 +11,14 @@ const router = Router();
 router.get('/public', async (req, res, next) => {
   try {
     const departmentService = require('../services/department.service');
-    const result = await departmentService.listDepartments({ limit: 100 });
+    const branchId = req.query.branchId || req.query.branch_id;
+    const orgId = req.query.organizationId || req.query.organization_id;
+    const status = req.query.status || 'ACTIVE';
+    const filters = { limit: 100 };
+    if (branchId) filters.branchId = Number(branchId);
+    if (orgId) filters.organizationId = Number(orgId);
+    if (status && status.toUpperCase() !== 'ALL') filters.status = status;
+    const result = await departmentService.listDepartments(filters);
     const departments = Array.isArray(result) ? result : (result.data || []);
     res.json({ data: departments });
   } catch (err) {
@@ -36,12 +43,19 @@ router.post('/', authenticate, authorize('admin'), departmentController.create);
 router.get('/:id/employees', async (req, res, next) => {
   try {
     const employeeRepository = require('../../employee-management/repositories/employee.repository');
-    const result = await employeeRepository.findAll({ department_id: req.params.id, limit: 100 });
+    const deptId = Number(req.params.id);
+    const branchId = req.query.branchId || req.query.branch_id;
+    const orgId = req.query.organizationId || req.query.organization_id;
+    const filters = {
+      department_id: deptId,
+      employment_status: 'Active',
+      is_host_enabled: true,
+      limit: 100
+    };
+    if (branchId) filters.branch_id = Number(branchId);
+    if (orgId) filters.organization_id = Number(orgId);
+    const result = await employeeRepository.findAll(filters);
     let employees = Array.isArray(result) ? result : (result.data || []);
-    if (employees.length === 0) {
-      const allEmployees = await employeeRepository.findAll({ limit: 100 });
-      employees = Array.isArray(allEmployees) ? allEmployees : (allEmployees.data || []);
-    }
     // Filter to only include employee/staff roles (exclude admin, manager, receptionist, security, visitor)
     employees = employees.filter(e => {
       const role = (e.user_role || '').toLowerCase();

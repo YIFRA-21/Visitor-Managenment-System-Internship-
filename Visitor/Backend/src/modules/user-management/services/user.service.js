@@ -163,10 +163,18 @@ class UserManagementService {
              COALESCE(b.branch_name, 'Main Branch') AS branch_name,
              COALESCE(o.name, 'IT park') AS organization_name
       FROM users u
-      LEFT JOIN employees e ON e.user_id = u.id
+      LEFT JOIN (
+        SELECT user_id,
+               MAX(department_id) AS department_id,
+               MAX(branch_id) AS branch_id,
+               MAX(organization_id) AS organization_id
+        FROM employees
+        WHERE deleted_at IS NULL
+        GROUP BY user_id
+      ) e ON e.user_id = u.id
       LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
-      LEFT JOIN organization_branches b ON e.branch_id = b.id
-      LEFT JOIN organizations o ON o.id = COALESCE(e.organization_id, u.organization_id, b.organization_id, 1)
+      LEFT JOIN organization_branches b ON COALESCE(u.branch_id, e.branch_id) = b.id
+      LEFT JOIN organizations o ON o.id = COALESCE(u.organization_id, e.organization_id, b.organization_id, 1)
       WHERE 1=1
     `;
     const params = [];
@@ -241,7 +249,7 @@ class UserManagementService {
     // Total Count Query
     const whereIndex = sql.indexOf('WHERE');
     const whereClause = whereIndex !== -1 ? sql.substring(whereIndex) : 'WHERE 1=1';
-    const countSql = `SELECT COUNT(*) AS total FROM users u LEFT JOIN employees e ON e.user_id = u.id ${whereClause}`;
+    const countSql = `SELECT COUNT(DISTINCT u.id) AS total FROM users u LEFT JOIN (SELECT user_id, MAX(department_id) AS department_id FROM employees WHERE deleted_at IS NULL GROUP BY user_id) e ON e.user_id = u.id ${whereClause}`;
     const countRes = await db.query(countSql, params);
     const countRow = Array.isArray(countRes[0]) ? countRes[0][0] : (Array.isArray(countRes) ? countRes[0] : countRes);
     const total = countRow?.total || 0;
@@ -268,7 +276,15 @@ class UserManagementService {
     params.push(limit, offset);
 
     const usersRes = await db.query(sql, params);
-    const users = Array.isArray(usersRes[0]) ? usersRes[0] : (Array.isArray(usersRes) ? usersRes : []);
+    const rawUsers = Array.isArray(usersRes[0]) ? usersRes[0] : (Array.isArray(usersRes) ? usersRes : []);
+    const seenUserIds = new Set();
+    const users = [];
+    for (const u of rawUsers) {
+      if (!seenUserIds.has(u.id)) {
+        seenUserIds.add(u.id);
+        users.push(u);
+      }
+    }
 
     return {
       data: users,
@@ -543,7 +559,22 @@ class UserManagementService {
         try {
           await conn.query(
             `INSERT INTO employees (user_id, employee_number, first_name, middle_name, last_name, full_name, email, mobile_number, job_title, department_id, organization_id, branch_id, employment_status, is_host_enabled, photo_url)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', 1, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', 1, ?)
+             ON DUPLICATE KEY UPDATE
+               employee_number = VALUES(employee_number),
+               full_name = VALUES(full_name),
+               first_name = VALUES(first_name),
+               middle_name = VALUES(middle_name),
+               last_name = VALUES(last_name),
+               email = VALUES(email),
+               mobile_number = VALUES(mobile_number),
+               job_title = VALUES(job_title),
+               department_id = VALUES(department_id),
+               organization_id = VALUES(organization_id),
+               branch_id = VALUES(branch_id),
+               employment_status = 'Active',
+               is_host_enabled = 1,
+               photo_url = VALUES(photo_url)`,
             [
               userId,
               userCode,

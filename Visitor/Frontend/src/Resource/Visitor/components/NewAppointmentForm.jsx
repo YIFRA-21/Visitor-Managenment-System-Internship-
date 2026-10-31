@@ -29,8 +29,8 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
     // ── Form Hook ──
     const { values, errors, handleChange, handleBlur, handleSubmit, setBackendErrors, isSubmitting, } = useEnterpriseForm({
         initialValues: {
-            organization: '',
-            orgId: '',
+            organization: 'IT park',
+            orgId: '1',
             branch: '',
             branchId: '',
             department: '',
@@ -188,11 +188,15 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
                     // STRICT: Keep ONLY organizations where status === 'ACTIVE'
                     const activeOrgs = orgList.filter((o) => (o.status || '').toUpperCase() === 'ACTIVE');
                     setAllOrganizations(activeOrgs);
-                    // Auto-select if only one active org
-                    if (activeOrgs.length === 1) {
-                        const org = activeOrgs[0];
-                        handleChange('organization', org.name || org.organization_name);
-                        handleChange('orgId', String(org.id));
+                    // DEFAULT: Default to "IT park" as requested
+                    if (activeOrgs.length > 0) {
+                        const itParkOrg = activeOrgs.find((o) =>
+                            (o.name || o.organization_name || '').toLowerCase().includes('it park')
+                        ) || activeOrgs[0];
+                        if (itParkOrg) {
+                            handleChange('organization', itParkOrg.name || itParkOrg.organization_name);
+                            handleChange('orgId', String(itParkOrg.id));
+                        }
                     }
                 }
             }
@@ -249,10 +253,10 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
         return () => { cancelled = true; };
     }, [values.orgId]);
     // ══════════════════════════════════════════════════════════════════════════
-    // STEP 3: When Branch changes → Fetch ACTIVE Departments from DB
+    // STEP 3: When Branch changes → Fetch ACTIVE Departments belonging to THAT Branch
     // ══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
-        if (!values.branch) {
+        if (!values.branch && !values.branchId) {
             setAllDepartments([]);
             return;
         }
@@ -260,18 +264,23 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
         async function loadDepts() {
             setLoadingDepts(true);
             try {
-                const res = await departmentsApi.publicList();
+                const res = await departmentsApi.publicList({
+                    branchId: values.branchId,
+                    organizationId: values.orgId,
+                    status: 'ACTIVE'
+                });
                 const deptList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
                 if (!cancelled) {
-                    // STRICT: Keep ONLY departments where status === 'ACTIVE'
-                    // AND that belong to the selected branch (by branch_name match)
+                    const selectedBranchId = values.branchId ? Number(values.branchId) : null;
                     const selectedBranch = (values.branch || '').toLowerCase();
                     const activeDepts = deptList.filter((d) => {
                         const isActive = (d.status || '').toUpperCase() === 'ACTIVE';
+                        if (!isActive) return false;
+                        if (selectedBranchId && (d.branch_id || d.branchId)) {
+                            return Number(d.branch_id || d.branchId) === selectedBranchId;
+                        }
                         const deptBranch = (d.branch_name || d.branchName || '').toLowerCase();
-                        // If department has branch info, match it; otherwise include it
-                        const branchMatch = !deptBranch || deptBranch.includes(selectedBranch) || selectedBranch.includes(deptBranch);
-                        return isActive && branchMatch;
+                        return deptBranch && (deptBranch.includes(selectedBranch) || selectedBranch.includes(deptBranch));
                     });
                     setAllDepartments(activeDepts);
                 }
@@ -288,12 +297,12 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
         }
         loadDepts();
         return () => { cancelled = true; };
-    }, [values.branch]);
+    }, [values.branch, values.branchId, values.orgId]);
     // ══════════════════════════════════════════════════════════════════════════
-    // STEP 4: When Department changes → Fetch ACTIVE + Host Enabled Employees from DB
+    // STEP 4: When Department changes → Fetch ACTIVE + Host Enabled Employees belonging to THAT Department & Branch
     // ══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
-        if (!values.department) {
+        if (!values.department && !values.departmentId) {
             setAllEmployees([]);
             return;
         }
@@ -301,40 +310,56 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
         async function loadEmployees() {
             setLoadingEmps(true);
             try {
-                // Try department-specific endpoint first
                 let empList = [];
                 if (values.departmentId) {
                     try {
-                        const res = await departmentsApi.employees(Number(values.departmentId));
+                        const res = await departmentsApi.employees(Number(values.departmentId), {
+                            branchId: values.branchId,
+                            organizationId: values.orgId
+                        });
                         empList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
                     }
                     catch {
-                        // fall through to public list
+                        // fall through to public list with query filters
                     }
                 }
-                // Fallback to public employee list
                 if (empList.length === 0) {
-                    const res = await employeesApi.publicList();
+                    const res = await employeesApi.publicList({
+                        department_id: values.departmentId,
+                        branch_id: values.branchId,
+                        organization_id: values.orgId
+                    });
                     empList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
                 }
                 if (!cancelled) {
+                    const selectedDeptId = values.departmentId ? Number(values.departmentId) : null;
                     const selectedDept = (values.department || '').toLowerCase();
-                    // STRICT: Keep ONLY employees where:
-                    //   1. employment_status === 'Active'
-                    //   2. is_host_enabled === true OR host_status contains 'Enable'
-                    //   3. Department matches the selected department
-                    //   4. Role is 'employee' or 'staff' (excludes admin, manager, receptionist, security, visitor)
+                    const selectedBranchId = values.branchId ? Number(values.branchId) : null;
                     const activeHosts = empList.filter((e) => {
                         const empStatus = (e.employment_status || e.status || '').toUpperCase();
                         const isActive = empStatus === 'ACTIVE';
                         const hostEnabled = e.is_host_enabled === true || e.is_host_enabled === 1 ||
                             (e.host_status || '').toUpperCase().includes('ENABLE');
-                        const empDept = (e.department_name || e.department || '').toLowerCase();
-                        const deptMatch = !empDept || empDept.includes(selectedDept) || selectedDept.includes(empDept);
+                        
+                        // Strict Department Filtering
+                        let deptMatch = false;
+                        if (selectedDeptId && (e.department_id || e.departmentId)) {
+                            deptMatch = Number(e.department_id || e.departmentId) === selectedDeptId;
+                        } else {
+                            const empDept = (e.department_name || e.department || '').toLowerCase();
+                            deptMatch = Boolean(empDept && (empDept.includes(selectedDept) || selectedDept.includes(empDept)));
+                        }
+
+                        // Strict Branch Filtering
+                        let branchMatch = true;
+                        if (selectedBranchId && (e.branch_id || e.branchId)) {
+                            branchMatch = Number(e.branch_id || e.branchId) === selectedBranchId;
+                        }
+
                         // Role-based filter: Only show users with 'employee' or 'staff' role
                         const userRole = (e.user_role || e.role || '').toLowerCase();
                         const isEmployeeRole = !userRole || userRole === 'employee' || userRole === 'staff';
-                        return isActive && hostEnabled && deptMatch && isEmployeeRole;
+                        return isActive && hostEnabled && deptMatch && branchMatch && isEmployeeRole;
                     });
                     setAllEmployees(activeHosts);
                 }
@@ -351,7 +376,7 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
         }
         loadEmployees();
         return () => { cancelled = true; };
-    }, [values.department, values.departmentId]);
+    }, [values.department, values.departmentId, values.branchId, values.orgId]);
     // ══════════════════════════════════════════════════════════════════════════
     // STEP 5: On mount → Fetch Real Buildings & Rooms from DB / locationService
     // ══════════════════════════════════════════════════════════════════════════
@@ -401,7 +426,7 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
         return allEmployees.map((e) => {
             const empName = e.full_name || e.fullName || e.name || `${e.first_name || ''} ${e.last_name || ''}`.trim();
             const jobTitle = e.job_title || e.jobTitle || 'Staff';
-            return { id: e.id, name: `${empName} (${jobTitle})` };
+            return { id: e.id, rawName: empName, name: `${empName} (${jobTitle})` };
         });
     }, [allEmployees]);
     // Buildings filtered by selected branch
@@ -636,7 +661,7 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
                 const selectedId = e.target.value;
                 const selectedEmp = activeEmployees.find((emp) => String(emp.id) === selectedId);
                 handleChange('hostId', selectedId);
-                handleChange('hostName', selectedEmp ? selectedEmp.name : '');
+                handleChange('hostName', selectedEmp ? selectedEmp.rawName || selectedEmp.name : '');
             }}>
                   <option value="">
                     {!values.department ? t('appt.selectDeptFirst', 'Select Department First...') : activeEmployees.length === 0 ? t('appt.noHosts', 'No host-enabled employees found') : t('appt.selectHost', 'Select Host / Employee...')}

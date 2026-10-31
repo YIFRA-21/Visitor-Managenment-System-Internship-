@@ -423,25 +423,33 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     };
     const effectiveRoleFilter = isRoleScoped ? defaultRoleFilter : roleFilter;
     const displayedUsers = useMemo(() => {
-        if (!effectiveRoleFilter || effectiveRoleFilter === 'ALL')
-            return usersList;
-        const rf = effectiveRoleFilter.toLowerCase();
-        return usersList.filter(u => {
-            const r = (u.role || u.userType || '').toLowerCase();
-            const c = (u.userCode || u.user_code || '').toUpperCase();
-            if (rf === 'employee')
-                return r === 'employee' || r === 'staff' || c.startsWith('EMP');
-            if (rf === 'visitor')
-                return r === 'visitor' || c.startsWith('VIS');
-            if (rf === 'manager')
-                return r.includes('manager') || c.startsWith('MGR');
-            if (rf === 'security_officer' || rf === 'security')
-                return r.includes('security') || c.startsWith('SEC');
-            if (rf === 'receptionist')
-                return r.includes('reception') || c.startsWith('REC');
-            if (rf === 'admin')
-                return r.includes('admin') || c.startsWith('ADM');
-            return r === rf;
+        let list = usersList;
+        if (effectiveRoleFilter && effectiveRoleFilter !== 'ALL') {
+            const rf = effectiveRoleFilter.toLowerCase();
+            list = usersList.filter(u => {
+                const r = (u.role || u.userType || '').toLowerCase();
+                const c = (u.userCode || u.user_code || '').toUpperCase();
+                if (rf === 'employee')
+                    return r === 'employee' || r === 'staff' || c.startsWith('EMP');
+                if (rf === 'visitor')
+                    return r === 'visitor' || c.startsWith('VIS');
+                if (rf === 'manager')
+                    return r.includes('manager') || c.startsWith('MGR');
+                if (rf === 'security_officer' || rf === 'security')
+                    return r.includes('security') || c.startsWith('SEC');
+                if (rf === 'receptionist')
+                    return r.includes('reception') || c.startsWith('REC');
+                if (rf === 'admin')
+                    return r.includes('admin') || c.startsWith('ADM');
+                return r === rf;
+            });
+        }
+        const seen = new Set();
+        return list.filter(u => {
+            const key = u.id || u.user_code;
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
         });
     }, [usersList, effectiveRoleFilter]);
     // Derived Role Distribution & Percentages
@@ -938,7 +946,15 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             }
             const res = await api.get('/users', { params });
             if (res.data?.data) {
-                setUsersList(res.data.data);
+                const rawList = Array.isArray(res.data.data) ? res.data.data : [];
+                const seenKeys = new Set();
+                const uniqueUsers = rawList.filter((u) => {
+                    const key = u.id || u.user_code;
+                    if (!key || seenKeys.has(key)) return false;
+                    seenKeys.add(key);
+                    return true;
+                });
+                setUsersList(uniqueUsers);
                 if (res.data.pagination) {
                     setPagination(res.data.pagination);
                 }

@@ -11,8 +11,7 @@ const db = require('../../../config/db');
 // STRICT: Only return users with role 'employee' or 'staff' — excludes admin, manager, receptionist, security, visitor
 router.get('/public', async (req, res, next) => {
   try {
-    const result = await db.query(
-      `SELECT e.*, u.full_name as fullName, u.email as userEmail, u.phone as userPhone,
+    let sql = `SELECT e.*, u.full_name as fullName, u.email as userEmail, u.phone as userPhone,
               u.role as user_role,
               d.name as department_name, b.branch_name, r.name as default_room_name,
               m.full_name as manager_name,
@@ -27,10 +26,25 @@ router.get('/public', async (req, res, next) => {
        WHERE e.deleted_at IS NULL
          AND e.archived_at IS NULL
          AND e.employment_status = 'Active'
-         AND (LOWER(u.role) IN ('employee', 'staff') OR u.role IS NULL)
-       ORDER BY e.full_name ASC
-       LIMIT 500`
-    );
+         AND (LOWER(u.role) IN ('employee', 'staff') OR u.role IS NULL)`;
+    const params = [];
+    const deptId = req.query.department_id || req.query.departmentId;
+    if (deptId) {
+      sql += ' AND e.department_id = ?';
+      params.push(Number(deptId));
+    }
+    const branchId = req.query.branch_id || req.query.branchId;
+    if (branchId) {
+      sql += ' AND e.branch_id = ?';
+      params.push(Number(branchId));
+    }
+    const orgId = req.query.organization_id || req.query.organizationId;
+    if (orgId) {
+      sql += ' AND e.organization_id = ?';
+      params.push(Number(orgId));
+    }
+    sql += ' ORDER BY e.full_name ASC LIMIT 500';
+    const result = await db.query(sql, params);
     const employees = Array.isArray(result) ? result : [];
     res.json({ data: employees });
   } catch (err) {

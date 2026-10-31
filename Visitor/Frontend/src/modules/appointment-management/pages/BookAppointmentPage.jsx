@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, CheckCircle, Copy, AlertTriangle, RefreshCw, Camera, Upload, Check, UserCheck, ShieldCheck, FileText } from 'lucide-react';
-import { departmentsApi, employeesApi, roomsApi, appointmentsApi, getErrorMessage } from '../../../services/api';
+import { organizationsApi, departmentsApi, employeesApi, roomsApi, appointmentsApi, getErrorMessage } from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
 import DashboardLayout from '../../../components/DashboardLayout';
 import CountryPhoneInput from '../../../components/common/CountryPhoneInput';
@@ -34,6 +34,8 @@ export default function BookAppointmentPage() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [step, setStep] = useState(0);
+    const [organizations, setOrganizations] = useState([]);
+    const [branches, setBranches] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [employees, setEmployees] = useState([]);
     const [rooms, setRooms] = useState([]);
@@ -48,6 +50,10 @@ export default function BookAppointmentPage() {
         visitorEmail: user?.email || '',
         visitorPhone: '',
         company: '',
+        organization: 'IT park',
+        organizationId: '1',
+        branch: '',
+        branchId: '',
         departmentId: '',
         hostId: '',
         roomId: '',
@@ -123,6 +129,9 @@ export default function BookAppointmentPage() {
                 newErrors.identity = 'You must complete Identity Verification to proceed.';
             }
         } else if (stepIndex === 2) {
+            if (!form.branchId) {
+                newErrors.branchId = 'Branch location is required';
+            }
             if (!form.departmentId) {
                 newErrors.departmentId = 'Target department is required';
             }
@@ -150,24 +159,111 @@ export default function BookAppointmentPage() {
         }
         return newErrors;
     };
-    const loadDepartments = async () => {
-        if (departments.length)
-            return;
+    const loadOrganizations = async () => {
         try {
-            const res = await departmentsApi.list();
-            setDepartments(res.data);
-        }
-        catch (err) {
-            console.error(err);
+            const res = await organizationsApi.list();
+            const orgList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+            const activeOrgs = orgList.filter((o) => (o.status || '').toUpperCase() === 'ACTIVE');
+            setOrganizations(activeOrgs);
+            const defaultOrg = activeOrgs.find((o) => (o.name || o.organization_name || '').toLowerCase().includes('it park')) || activeOrgs[0];
+            if (defaultOrg) {
+                const orgId = String(defaultOrg.id);
+                update('organization', defaultOrg.name || defaultOrg.organization_name);
+                update('organizationId', orgId);
+                loadBranches(orgId);
+            }
+        } catch (err) {
+            console.error('Failed to load organizations:', err);
         }
     };
-    const loadEmployees = async (deptId) => {
-        try {
-            const res = await departmentsApi.employees(parseInt(deptId));
-            setEmployees(res.data);
+    const loadBranches = async (orgId) => {
+        if (!orgId) {
+            setBranches([]);
+            return;
         }
-        catch (err) {
+        try {
+            let list = [];
+            try {
+                const res = await organizationsApi.publicBranches(orgId);
+                list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+            } catch {
+                const res = await organizationsApi.branches(orgId);
+                list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+            }
+            const activeBranches = list.filter((b) => (b.status || '').toUpperCase() === 'ACTIVE');
+            setBranches(activeBranches);
+        } catch (err) {
+            console.error('Failed to load branches:', err);
+            setBranches([]);
+        }
+    };
+    const loadDepartments = async (branchId, orgId) => {
+        try {
+            const bId = branchId || form.branchId;
+            const res = await departmentsApi.publicList({
+                branchId: bId,
+                organizationId: orgId || form.organizationId,
+                status: 'ACTIVE'
+            });
+            const deptList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+            const bIdNum = bId ? Number(bId) : null;
+            const activeDepts = deptList.filter((d) => {
+                const isActive = (d.status || '').toUpperCase() === 'ACTIVE';
+                if (!isActive) return false;
+                if (bIdNum && (d.branch_id || d.branchId)) {
+                    return Number(d.branch_id || d.branchId) === bIdNum;
+                }
+                return true;
+            });
+            setDepartments(activeDepts);
+        } catch (err) {
             console.error(err);
+            setDepartments([]);
+        }
+    };
+    const loadEmployees = async (deptId, branchId) => {
+        if (!deptId) {
+            setEmployees([]);
+            return;
+        }
+        try {
+            const bId = branchId || form.branchId;
+            let list = [];
+            try {
+                const res = await departmentsApi.employees(parseInt(deptId), { branchId: bId });
+                list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+            } catch {
+                // fallback
+            }
+            if (list.length === 0) {
+                const res = await employeesApi.publicList({ department_id: deptId, branch_id: bId });
+                list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+            }
+            const dIdNum = Number(deptId);
+            const bIdNum = bId ? Number(bId) : null;
+            const activeHosts = list.filter((e) => {
+                const status = (e.employment_status || e.status || '').toUpperCase();
+                const isActive = status === 'ACTIVE';
+                const hostEnabled = e.is_host_enabled === true || e.is_host_enabled === 1 ||
+                    (e.host_status || '').toUpperCase().includes('ENABLE');
+                let deptMatch = false;
+                if (dIdNum && (e.department_id || e.departmentId)) {
+                    deptMatch = Number(e.department_id || e.departmentId) === dIdNum;
+                } else {
+                    deptMatch = true;
+                }
+                let branchMatch = true;
+                if (bIdNum && (e.branch_id || e.branchId)) {
+                    branchMatch = Number(e.branch_id || e.branchId) === bIdNum;
+                }
+                const role = (e.user_role || e.role || '').toLowerCase();
+                const isEmpRole = !role || role === 'employee' || role === 'staff';
+                return isActive && hostEnabled && deptMatch && branchMatch && isEmpRole;
+            });
+            setEmployees(activeHosts);
+        } catch (err) {
+            console.error(err);
+            setEmployees([]);
         }
     };
     const loadRooms = async () => {
@@ -578,7 +674,7 @@ export default function BookAppointmentPage() {
         }
 
         if (step === 1) {
-            await loadDepartments();
+            await loadOrganizations();
         } else if (step === 2) {
             await loadRooms();
         } else if (step === 3) {
@@ -610,6 +706,8 @@ export default function BookAppointmentPage() {
                 company: form.company,
                 idType: verificationType,
                 idNumber: idNumber || 'VERIFIED-ID',
+                organization_name: form.organization || 'IT park',
+                branch_name: form.branch || '',
                 hostId: parseInt(form.hostId),
                 departmentId: parseInt(form.departmentId),
                 roomId: form.roomId ? parseInt(form.roomId) : null,
@@ -636,6 +734,7 @@ export default function BookAppointmentPage() {
         }
     };
     useEffect(() => {
+        loadOrganizations();
         return () => {
             stopCamera();
         };
@@ -1089,33 +1188,96 @@ export default function BookAppointmentPage() {
 
               {/* STEP 2: HOST & PURPOSE */}
               {step === 2 && (<div className="grid gap-4 pt-2">
+                  {/* Organization (Default: IT park) */}
+                  <div>
+                    <label className="label">Organization *</label>
+                    <select
+                      className="input font-bold"
+                      value={form.organizationId}
+                      onChange={(e) => {
+                        const org = organizations.find((o) => String(o.id) === e.target.value);
+                        update('organizationId', e.target.value);
+                        update('organization', org?.name || org?.organization_name || '');
+                        update('branchId', '');
+                        update('branch', '');
+                        update('departmentId', '');
+                        update('hostId', '');
+                        setDepartments([]);
+                        setEmployees([]);
+                        loadBranches(e.target.value);
+                      }}
+                    >
+                      {organizations.map((o) => (
+                        <option key={o.id} value={o.id}>{o.name || o.organization_name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Branch / Campus */}
+                  <div>
+                    <label className="label">Branch / Campus *</label>
+                    <select
+                      className={`input ${errors.branchId ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      value={form.branchId}
+                      onChange={(e) => {
+                        const b = branches.find((branch) => String(branch.id) === e.target.value);
+                        update('branchId', e.target.value);
+                        update('branch', b?.branch_name || b?.branchName || b?.name || '');
+                        update('departmentId', '');
+                        update('hostId', '');
+                        setEmployees([]);
+                        loadDepartments(e.target.value);
+                      }}
+                      aria-invalid={Boolean(errors.branchId)}
+                    >
+                      <option value="">{branches.length === 0 ? 'No active branches found' : 'Select Branch...'}</option>
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>{b.branch_name || b.branchName || b.name}</option>
+                      ))}
+                    </select>
+                    <FieldError error={errors.branchId} />
+                  </div>
+
+                  {/* Target Department (Filtered by Branch) */}
                   <div>
                     <label className="label">Target Department *</label>
                     <select
-                      className={`input ${errors.departmentId ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      disabled={!form.branchId}
+                      className={`input ${errors.departmentId ? 'border-2 border-rose-500 bg-rose-950/20' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
                       value={form.departmentId}
                       onChange={(e) => {
                         update('departmentId', e.target.value);
                         update('hostId', '');
-                        loadEmployees(e.target.value);
+                        loadEmployees(e.target.value, form.branchId);
                       }}
                       aria-invalid={Boolean(errors.departmentId)}
                     >
-                      <option value="">Select department</option>
-                      {departments.map((d) => (<option key={d.id} value={d.id}>{d.name}</option>))}
+                      <option value="">
+                        {!form.branchId ? 'Select Branch First...' : departments.length === 0 ? 'No active departments in this branch' : 'Select Department...'}
+                      </option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name || d.department_name || d.departmentName}</option>
+                      ))}
                     </select>
                     <FieldError error={errors.departmentId} />
                   </div>
+
+                  {/* Host Representative (Filtered by Department & Branch) */}
                   <div>
                     <label className="label">Host Representative / Sponsor *</label>
                     <select
-                      className={`input ${errors.hostId ? 'border-2 border-rose-500 bg-rose-950/20' : ''}`}
+                      disabled={!form.departmentId}
+                      className={`input ${errors.hostId ? 'border-2 border-rose-500 bg-rose-950/20' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
                       value={form.hostId}
                       onChange={(e) => update('hostId', e.target.value)}
                       aria-invalid={Boolean(errors.hostId)}
                     >
-                      <option value="">Select host</option>
-                      {(Array.isArray(employees) ? employees : []).map((e) => (<option key={e.id} value={e.id}>{e.full_name} — {e.job_title}</option>))}
+                      <option value="">
+                        {!form.departmentId ? 'Select Department First...' : employees.length === 0 ? 'No host-enabled employees found in this department' : 'Select Host / Employee...'}
+                      </option>
+                      {(Array.isArray(employees) ? employees : []).map((e) => (
+                        <option key={e.id} value={e.id}>{e.full_name || e.fullName || `${e.first_name || ''} ${e.last_name || ''}`.trim()} — {e.job_title || 'Staff'}</option>
+                      ))}
                     </select>
                     <FieldError error={errors.hostId} />
                   </div>

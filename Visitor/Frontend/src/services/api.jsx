@@ -208,10 +208,10 @@ export const authApi = {
     deleteAvatar: () => api.delete('/auth/avatar'),
 };
 export const departmentsApi = {
-    list: () => api.get('/departments'),
-    publicList: () => api.get('/departments/public'),
+    list: (params) => api.get('/departments', { params }),
+    publicList: (params) => api.get('/departments/public', { params }),
     create: (data) => api.post('/departments', data),
-    employees: (id) => api.get(`/departments/${id}/employees`),
+    employees: (id, params) => api.get(`/departments/${id}/employees`, { params }),
     delete: (id) => api.delete(`/departments/${id}`),
 };
 export const organizationsApi = {
@@ -227,7 +227,7 @@ export const branchesApi = {
 };
 export const employeesApi = {
     list: (params) => api.get('/employees', { params }),
-    publicList: () => api.get('/employees/public'),
+    publicList: (params) => api.get('/employees/public', { params }),
     get: (id) => api.get(`/employees/${id}`),
     getMyProfile: () => api.get('/employees/me'),
     create: (data) => api.post('/employees', data),
