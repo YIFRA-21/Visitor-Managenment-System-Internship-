@@ -908,6 +908,17 @@ app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(sanitizeBody);
+const { apiCache, autoInvalidateCache } = require('./middleware/apiCache');
+app.use(autoInvalidateCache);
+
+// High-speed in-memory cache for static reference catalogs (sub-5ms response)
+app.use('/api/roles', apiCache(30));
+app.use('/api/admin/roles', apiCache(30));
+app.use('/api/departments', apiCache(30));
+app.use('/api/organizations', apiCache(30));
+app.use('/api/branches', apiCache(30));
+app.use('/api/rooms', apiCache(30));
+app.use('/api/hierarchy', apiCache(30));
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Access-Control-Allow-Origin', '*');

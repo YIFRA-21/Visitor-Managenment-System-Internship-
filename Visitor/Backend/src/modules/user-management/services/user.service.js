@@ -138,6 +138,7 @@ class UserManagementService {
   // ── 3. List Users with Advanced Search & Filters ────────────────────────
 
   async listUsers(filters = {}) {
+    const backendBaseUrl = process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || (process.env.NODE_ENV === 'production' ? 'https://visitor-managenment-System-backend.onrender.com' : 'http://localhost:5000');
     let sql = `
       SELECT u.id, u.user_code, u.username, u.first_name, u.middle_name, u.last_name,
              u.full_name, u.email, u.phone, u.phone_number, u.role,
@@ -152,13 +153,17 @@ class UserManagementService {
              u.email_verified, u.phone_verified,
              COALESCE(u.department_id, e.department_id) AS department_id,
              u.job_title,
-             u.avatar_url, u.last_login_at, u.failed_login_attempts,
+             CASE
+               WHEN u.avatar_url IS NOT NULL AND u.avatar_url != '' THEN CONCAT('${backendBaseUrl}/api/users/', u.id, '/avatar')
+               ELSE NULL
+             END AS avatar_url,
+             u.last_login_at, u.failed_login_attempts,
              u.created_at, u.updated_at,
              COALESCE(d.department_name, d.name, 'General') AS department_name,
              COALESCE(b.branch_name, 'Main Branch') AS branch_name,
              COALESCE(o.name, 'IT park') AS organization_name
       FROM users u
-      LEFT JOIN employees e ON (e.user_id = u.id OR (u.email IS NOT NULL AND LOWER(e.email) = LOWER(u.email)))
+      LEFT JOIN employees e ON e.user_id = u.id
       LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
       LEFT JOIN organization_branches b ON e.branch_id = b.id
       LEFT JOIN organizations o ON o.id = COALESCE(e.organization_id, u.organization_id, b.organization_id, 1)
@@ -274,6 +279,17 @@ class UserManagementService {
         totalPages: Math.ceil(total / limit) || 1,
       },
     };
+  }
+
+  // ── 3.1 Get User Avatar Directly ──────────────────────────────────────────
+
+  async getAvatar(id) {
+    const userId = parseInt(id, 10);
+    if (isNaN(userId) || userId <= 0) return null;
+    const rows = await db.query('SELECT avatar_url FROM users WHERE id = ? LIMIT 1', [userId]);
+    const user = Array.isArray(rows[0]) ? rows[0][0] : (Array.isArray(rows) ? rows[0] : null);
+    if (!user || !user.avatar_url) return null;
+    return String(user.avatar_url).trim();
   }
 
   // ── 4. Get Single User Details ────────────────────────────────────────────

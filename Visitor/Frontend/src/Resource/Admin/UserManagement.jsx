@@ -13,6 +13,7 @@ import { required, email, phone, passwordStrength } from '../../validation';
 import { sanitizeFormValues } from '../../utils/sanitizer';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useResponseNavigation } from '../../modules/response';
+import { resolveAvatarUrl } from '../../utils/apiUrl';
 
 const maxAllowedDob = (() => {
   const d = new Date();
@@ -371,6 +372,15 @@ export default function UserManagement({ departments = [], initialTab = 'users',
     const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 25, totalPages: 1 });
     // Filters State
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [search]);
+
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [roleFilter, setRoleFilter] = useState(defaultRoleFilter || 'ALL');
     const isRoleScoped = Boolean(defaultRoleFilter && defaultRoleFilter !== 'ALL');
@@ -916,7 +926,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             const params = {
                 page: pagination.page,
                 limit: pagination.limit,
-                search,
+                search: debouncedSearch,
                 status: statusFilter,
                 role: roleFilter,
                 departmentId: deptFilter,
@@ -941,7 +951,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         finally {
             setLoading(false);
         }
-    }, [pagination.page, pagination.limit, search, statusFilter, roleFilter, deptFilter, mfaFilter, sortBy, sortDir]);
+    }, [pagination.page, pagination.limit, debouncedSearch, statusFilter, roleFilter, deptFilter, mfaFilter, sortBy, sortDir]);
     useEffect(() => {
         fetchStats();
         fetchUsers();
@@ -952,12 +962,15 @@ export default function UserManagement({ departments = [], initialTab = 'users',
         if (refreshState === 'loading')
             return;
         setRefreshState('loading');
+        const safetyTimer = setTimeout(() => {
+            setRefreshState(prev => (prev === 'loading' ? 'idle' : prev));
+        }, 4000);
         try {
             await Promise.all([
                 fetchUsers(),
                 fetchStats(),
-                new Promise((resolve) => setTimeout(resolve, 500)),
             ]);
+            clearTimeout(safetyTimer);
             setRefreshState('success');
             const roleLabel = isRoleScoped
                 ? defaultRoleFilter === 'employee'
@@ -978,12 +991,13 @@ export default function UserManagement({ departments = [], initialTab = 'users',
             });
             setTimeout(() => {
                 setRefreshState('idle');
-            }, 2000);
+            }, 1200);
             setTimeout(() => {
                 setAlert(null);
             }, 5000);
         }
         catch (err) {
+            clearTimeout(safetyTimer);
             setRefreshState('idle');
             setAlert({
                 type: 'error',
@@ -2272,11 +2286,36 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {displayedUsers.length === 0 ? (<tr>
+                {loading && displayedUsers.length === 0 ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={`skel-row-${i}`} className="animate-pulse">
+                      <td className="py-3 px-3"><div className="w-4 h-4 bg-slate-800 rounded"></div></td>
+                      <td className="py-3 px-2"><div className="w-8 h-8 rounded-full bg-slate-800"></div></td>
+                      <td className="py-3 px-3"><div className="h-3.5 bg-slate-800 rounded w-24"></div></td>
+                      <td className="py-3 px-3"><div className="h-3.5 bg-slate-800 rounded w-32"></div></td>
+                      <td className="py-3 px-3"><div className="h-3 bg-slate-800/80 rounded w-20"></div></td>
+                      <td className="py-3 px-3"><div className="h-3 bg-slate-800 rounded w-36"></div></td>
+                      <td className="py-3 px-3"><div className="h-3 bg-slate-800 rounded w-24"></div></td>
+                      <td className="py-3 px-3"><div className="h-4 bg-slate-800 rounded w-16"></div></td>
+                      <td className="py-3 px-3"><div className="h-3 bg-slate-800 rounded w-20"></div></td>
+                      <td className="py-3 px-3"><div className="h-3 bg-slate-800 rounded w-20"></div></td>
+                      <td className="py-3 px-3"><div className="h-3 bg-slate-800 rounded w-20"></div></td>
+                      <td className="py-3 px-3"><div className="h-4 bg-slate-800 rounded w-16"></div></td>
+                      <td className="py-3 px-2 text-center"><div className="h-3 bg-slate-800 rounded w-4 mx-auto"></div></td>
+                      <td className="py-3 px-2 text-center"><div className="h-3 bg-slate-800 rounded w-4 mx-auto"></div></td>
+                      <td className="py-3 px-2 text-center"><div className="h-3 bg-slate-800 rounded w-4 mx-auto"></div></td>
+                      <td className="py-3 px-3"><div className="h-3 bg-slate-800 rounded w-20"></div></td>
+                      <td className="py-3 px-3"><div className="h-3 bg-slate-800 rounded w-20"></div></td>
+                      <td className="py-3 px-4 text-right"><div className="h-6 bg-slate-800 rounded w-28 ml-auto"></div></td>
+                    </tr>
+                  ))
+                ) : displayedUsers.length === 0 ? (
+                  <tr>
                     <td colSpan={18} className="py-8 text-center text-slate-500 text-xs font-semibold">
                       {t('table.noRecords', 'No user accounts found matching current query.')}
                     </td>
-                  </tr>) : (displayedUsers.map((user) => (<tr key={user.id} className={`hover:bg-slate-800/40 transition-colors ${selectedUserIds.includes(user.id) ? 'bg-indigo-950/20' : ''}`}>
+                  </tr>
+                ) : (displayedUsers.map((user) => (<tr key={user.id} className={`hover:bg-slate-800/40 transition-colors ${selectedUserIds.includes(user.id) ? 'bg-indigo-950/20' : ''}`}>
                       <td className="py-3 px-3">
                         <input type="checkbox" checked={selectedUserIds.includes(user.id)} onChange={() => toggleSelectUser(user.id)} className="accent-indigo-500 rounded"/>
                       </td>
@@ -2284,7 +2323,7 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                       {/* 1. Profile Photo */}
                       <td className="py-3 px-2">
                         <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-indigo-400 text-xs overflow-hidden shrink-0">
-                          {user.avatar_url ? (<img src={user.avatar_url} alt="" className="w-full h-full object-cover"/>) : (user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U')}
+                          {user.avatar_url ? (<img src={resolveAvatarUrl(user.avatar_url)} alt="" className="w-full h-full object-cover"/>) : (user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U')}
                         </div>
                       </td>
 

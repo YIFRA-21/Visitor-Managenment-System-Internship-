@@ -68,3 +68,22 @@ export function getApiBaseUrl() {
 export function getSocketUrl() {
     return getBackendBaseUrl();
 }
+
+/**
+ * Resolves full avatar URL whether relative, cloud-hosted, or data URI
+ */
+export function resolveAvatarUrl(avatarUrl) {
+    if (!avatarUrl) return null;
+    const clean = String(avatarUrl).trim();
+    if (clean.startsWith('data:') || clean.startsWith('http://') || clean.startsWith('https://')) {
+        return clean;
+    }
+    const backend = getBackendBaseUrl();
+    if (clean.startsWith('/api/')) {
+        return `${backend}${clean}`;
+    }
+    if (clean.startsWith('/')) {
+        return `${backend}/api${clean}`;
+    }
+    return `${backend}/api/${clean}`;
+}

@@ -2,23 +2,27 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../../../middleware/auth');
 const { checkPermission } = require('../../../middleware/rbac');
+const { apiCache } = require('../../../middleware/apiCache');
 const userController = require('../controllers/user.controller');
+
+// Public User Avatar Asset Streaming (Fast, cached by browser, no custom auth headers needed by <img>)
+router.get('/:id/avatar', (req, res, next) => userController.getAvatar(req, res, next));
 
 // Authentication required for all User Management APIs
 router.use(authenticate);
 
-// Real-time KPI Statistics
-router.get('/statistics', checkPermission('USER:READ'), (req, res, next) => userController.getStatistics(req, res, next));
-router.get('/stats', checkPermission('USER:READ'), (req, res, next) => userController.getStatistics(req, res, next));
+// Real-time KPI Statistics (Cached for 10s for fast dashboard/tab switches)
+router.get('/statistics', checkPermission('USER:READ'), apiCache(10), (req, res, next) => userController.getStatistics(req, res, next));
+router.get('/stats', checkPermission('USER:READ'), apiCache(10), (req, res, next) => userController.getStatistics(req, res, next));
 
 // Invitations Lifecycle
 router.post('/invitations', checkPermission('USER:CREATE'), (req, res, next) => userController.createInvitation(req, res, next));
-router.get('/invitations', checkPermission('USER:READ'), (req, res, next) => userController.getInvitations(req, res, next));
+router.get('/invitations', checkPermission('USER:READ'), apiCache(15), (req, res, next) => userController.getInvitations(req, res, next));
 router.post('/invitations/:id/resend', checkPermission('USER:MANAGE'), (req, res, next) => userController.resendInvitation(req, res, next));
 router.delete('/invitations/:id', checkPermission('USER:MANAGE'), (req, res, next) => userController.cancelInvitation(req, res, next));
 
 // Saved Search Presets
-router.get('/saved-searches', checkPermission('USER:READ'), (req, res, next) => userController.getSavedSearches(req, res, next));
+router.get('/saved-searches', checkPermission('USER:READ'), apiCache(30), (req, res, next) => userController.getSavedSearches(req, res, next));
 router.post('/saved-searches', checkPermission('USER:READ'), (req, res, next) => userController.saveSearch(req, res, next));
 router.delete('/saved-searches/:id', checkPermission('USER:READ'), (req, res, next) => userController.deleteSavedSearch(req, res, next));
 

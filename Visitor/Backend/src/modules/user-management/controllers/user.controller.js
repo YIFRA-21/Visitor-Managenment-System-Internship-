@@ -18,6 +18,33 @@ class UserManagementController {
     }
   }
 
+  // ── Stream User Avatar (Public Fast Image) ──────────────────────────────────
+  async getAvatar(req, res, next) {
+    try {
+      const avatarUrl = await userManagementService.getAvatar(req.params.id);
+      if (!avatarUrl) {
+        return res.status(404).end();
+      }
+      if (avatarUrl.startsWith('data:image/')) {
+        const match = avatarUrl.match(/^data:(image\/[a-zA-Z0-9+-]+);base64,(.+)$/s);
+        if (match) {
+          const mimeType = match[1];
+          const imgBuffer = Buffer.from(match[2], 'base64');
+          res.setHeader('Content-Type', mimeType);
+          res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+          res.setHeader('Content-Length', imgBuffer.length);
+          return res.end(imgBuffer);
+        }
+      }
+      if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
+        return res.redirect(avatarUrl);
+      }
+      return res.status(404).end();
+    } catch (err) {
+      next(err);
+    }
+  }
+
   // ── List Users with Search & Filter ──────────────────────────────────────
   async list(req, res, next) {
     try {
