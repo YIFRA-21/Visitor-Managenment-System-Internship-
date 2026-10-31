@@ -921,6 +921,39 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/api/test-email-connectivity', async (_req, res) => {
+  const dns = require('dns').promises;
+  const net = require('net');
+  const results = { timestamp: new Date().toISOString() };
+
+  try {
+    results.dns = await dns.lookup('smtp.gmail.com');
+  } catch (e) {
+    results.dns = { error: e.message };
+  }
+
+  const testPort = (port) => new Promise((resolve) => {
+    const s = new net.Socket();
+    s.setTimeout(4000);
+    s.on('connect', () => { s.destroy(); resolve({ port, open: true }); });
+    s.on('timeout', () => { s.destroy(); resolve({ port, open: false, error: 'TIMEOUT' }); });
+    s.on('error', (err) => { s.destroy(); resolve({ port, open: false, error: err.message }); });
+    s.connect(port, 'smtp.gmail.com');
+  });
+
+  results.port587 = await testPort(587);
+  results.port465 = await testPort(465);
+
+  try {
+    const emailProvider = require('./modules/notifications/services/email/email.provider');
+    results.verifyConnection = await emailProvider.verifyConnection();
+  } catch (e) {
+    results.verifyConnection = { error: e.message };
+  }
+
+  res.json(results);
+});
+
 const {
   getModulesCatalog,
   getAllEndpoints,
