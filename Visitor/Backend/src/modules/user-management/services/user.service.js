@@ -151,7 +151,7 @@ class UserManagementService {
                ELSE COALESCE(u.account_status, 'ACTIVE')
              END AS account_status,
              u.email_verified, u.phone_verified,
-             COALESCE(u.department_id, e.department_id) AS department_id,
+             u.department_id,
              u.job_title,
              CASE
                WHEN u.avatar_url IS NOT NULL AND u.avatar_url != '' THEN CONCAT('${backendBaseUrl}/api/users/', u.id, '/avatar')
@@ -163,19 +163,9 @@ class UserManagementService {
              COALESCE(b.branch_name, 'Main Branch') AS branch_name,
              COALESCE(o.name, 'IT park') AS organization_name
       FROM users u
-      LEFT JOIN (
-        SELECT user_id,
-               MAX(id) AS id,
-               MAX(department_id) AS department_id,
-               MAX(branch_id) AS branch_id,
-               MAX(organization_id) AS organization_id
-        FROM employees
-        WHERE deleted_at IS NULL
-        GROUP BY user_id
-      ) e ON e.user_id = u.id
-      LEFT JOIN departments d ON COALESCE(u.department_id, e.department_id) = d.id
-      LEFT JOIN organization_branches b ON COALESCE(u.branch_id, e.branch_id) = b.id
-      LEFT JOIN organizations o ON o.id = COALESCE(u.organization_id, e.organization_id, b.organization_id, 1)
+      LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN organization_branches b ON u.branch_id = b.id
+      LEFT JOIN organizations o ON o.id = COALESCE(u.organization_id, b.organization_id, 1)
       WHERE 1=1
     `;
     const params = [];
@@ -195,7 +185,7 @@ class UserManagementService {
     if (filters.role && filters.role !== 'ALL') {
       const normRole = String(filters.role).toLowerCase();
       if (normRole === 'employee' || normRole === 'staff') {
-        sql += ` AND (LOWER(COALESCE(u.role, '')) IN ('employee', 'staff', 'host') OR u.user_code LIKE 'EMP%' OR e.id IS NOT NULL)`;
+        sql += ` AND (LOWER(COALESCE(u.role, '')) IN ('employee', 'staff', 'host') OR u.user_code LIKE 'EMP%')`;
       } else if (normRole === 'visitor') {
         sql += ` AND (LOWER(COALESCE(u.role, '')) = 'visitor' OR u.user_code LIKE 'VIS%')`;
       } else if (normRole === 'manager') {
@@ -212,7 +202,7 @@ class UserManagementService {
 
     // Filter by Department
     if (filters.departmentId) {
-      sql += ` AND COALESCE(u.department_id, e.department_id) = ?`;
+      sql += ` AND u.department_id = ?`;
       params.push(parseInt(filters.departmentId));
     }
 
@@ -250,19 +240,10 @@ class UserManagementService {
     // Total Count Query
     const whereIndex = sql.indexOf('WHERE');
     const whereClause = whereIndex !== -1 ? sql.substring(whereIndex) : 'WHERE 1=1';
-    const countSql = `SELECT COUNT(DISTINCT u.id) AS total FROM users u LEFT JOIN (
-      SELECT user_id,
-             MAX(id) AS id,
-             MAX(department_id) AS department_id,
-             MAX(branch_id) AS branch_id,
-             MAX(organization_id) AS organization_id
-      FROM employees
-      WHERE deleted_at IS NULL
-      GROUP BY user_id
-    ) e ON e.user_id = u.id ${whereClause}`;
+    const countSql = `SELECT COUNT(*) AS total FROM users u ${whereClause}`;
     const countRes = await db.query(countSql, params);
-    const countRow = Array.isArray(countRes[0]) ? countRes[0][0] : (Array.isArray(countRes) ? countRes[0] : countRes);
-    const total = countRow?.total || 0;
+    const countRow = Array.isArray(countRes) ? countRes[0] : countRes;
+    const total = Number(countRow?.total || 0);
 
     // Approved Sorting Fields
     const allowedSortFields = {
