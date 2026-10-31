@@ -33,11 +33,18 @@ class EmailProviderService {
       socketTimeout,
     };
 
-    // If configured as service: 'gmail', nodemailer auto-handles Gmail host/port/STARTTLS
+    // If configured for Gmail: force family: 4 (IPv4) to avoid ENETUNREACH on IPv6-only resolution
     if (service === 'gmail' || host === 'smtp.gmail.com') {
       this.smtpTransporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: port || 587,
+        secure: port === 465,
         auth: { user, pass },
+        family: 4,
+        tls: {
+          rejectUnauthorized: false,
+          minVersion: 'TLSv1.2',
+        },
         ...timeoutOpts,
       });
       return this.smtpTransporter;
@@ -49,6 +56,7 @@ class EmailProviderService {
       port,
       secure,
       auth: { user, pass },
+      family: 4,
       tls: {
         rejectUnauthorized: false, // Prevents self-signed or proxy TLS handshakes from crashing on cloud relays
         minVersion: 'TLSv1.2',

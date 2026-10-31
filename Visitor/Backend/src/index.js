@@ -932,17 +932,17 @@ app.get('/api/test-email-connectivity', async (_req, res) => {
     results.dns = { error: e.message };
   }
 
-  const testPort = (port) => new Promise((resolve) => {
+  const testPort = (port, host = 'smtp.gmail.com') => new Promise((resolve) => {
     const s = new net.Socket();
-    s.setTimeout(4000);
+    s.setTimeout(5000);
     s.on('connect', () => { s.destroy(); resolve({ port, open: true }); });
     s.on('timeout', () => { s.destroy(); resolve({ port, open: false, error: 'TIMEOUT' }); });
     s.on('error', (err) => { s.destroy(); resolve({ port, open: false, error: err.message }); });
-    s.connect(port, 'smtp.gmail.com');
+    s.connect({ port, host, family: 4 });
   });
 
-  results.port587 = await testPort(587);
-  results.port465 = await testPort(465);
+  results.port587_ipv4 = await testPort(587);
+  results.port465_ipv4 = await testPort(465);
 
   try {
     const emailProvider = require('./modules/notifications/services/email/email.provider');
