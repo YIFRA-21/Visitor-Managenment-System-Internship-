@@ -120,7 +120,7 @@ class OtpService {
       await db.query(
         `INSERT INTO user_otp 
          (user_id, otp_code, otp_type, delivery_method, destination, is_verified, attempt_count, max_attempts, requested_at, expires_at, status, is_active)
-         VALUES (?, ?, ?, 'EMAIL', ?, 0, 0, NOW(), DATE_ADD(NOW(), INTERVAL ? MINUTE), 'ACTIVE', 1)`,
+         VALUES (?, ?, ?, 'EMAIL', ?, 0, 0, ?, NOW(), DATE_ADD(NOW(), INTERVAL ? MINUTE), 'ACTIVE', 1)`,
         [userId || null, otpHash, purpose, cleanEmail, maxAttempts, expiryMins]
       );
     } catch (insertErr) {
@@ -129,12 +129,12 @@ class OtpService {
         await db.query(
           `INSERT INTO user_otp 
            (otp_code, otp_type, delivery_method, destination, is_verified, attempt_count, max_attempts, requested_at, expires_at, status, is_active)
-           VALUES (?, ?, 'EMAIL', ?, 0, 0, NOW(), DATE_ADD(NOW(), INTERVAL ? MINUTE), 'ACTIVE', 1)`,
+           VALUES (?, ?, 'EMAIL', ?, 0, 0, ?, NOW(), DATE_ADD(NOW(), INTERVAL ? MINUTE), 'ACTIVE', 1)`,
           [otpHash, purpose, cleanEmail, maxAttempts, expiryMins]
         );
       } catch (fatalErr) {
         logger.logError('OTP_INSERT_FAILED', { recipient: cleanEmail, purpose, error: fatalErr.message });
-        throw new Error('Failed to record security verification code.');
+        throw new Error(`Failed to record security verification code: ${fatalErr.message}`);
       }
     }
 
