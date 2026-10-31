@@ -16,11 +16,17 @@ class DepartmentRepository {
       id: row.id,
       department_id: row.department_id || row.id,
       organizationId: row.organization_id || null,
+      organization_id: row.organization_id || null,
       organizationName: row.organization_name || '',
       branchId: row.branch_id || null,
+      branch_id: row.branch_id || null,
       branchName: row.branch_name || '',
+      branch_name: row.branch_name || '',
       departmentName: row.department_name || row.name,
+      department_name: row.department_name || row.name,
+      name: row.department_name || row.name,
       departmentCode: row.department_code || `DEPT-${row.id}`,
+      department_code: row.department_code || `DEPT-${row.id}`,
       departmentType: row.department_type || 'GENERAL',
       officeLocation: row.office_location || row.location || '',
       floor: row.floor || '',
@@ -48,13 +54,15 @@ class DepartmentRepository {
       `;
       const params = [];
 
-      if (filters.organizationId) {
+      const orgId = filters.organizationId || filters.organization_id;
+      if (orgId) {
         sql += ' AND d.organization_id = ?';
-        params.push(Number(filters.organizationId));
+        params.push(Number(orgId));
       }
-      if (filters.branchId) {
+      const branchId = filters.branchId || filters.branch_id;
+      if (branchId) {
         sql += ' AND d.branch_id = ?';
-        params.push(Number(filters.branchId));
+        params.push(Number(branchId));
       }
       if (filters.status && filters.status.toUpperCase() !== 'ALL') {
         sql += ' AND d.status = ?';

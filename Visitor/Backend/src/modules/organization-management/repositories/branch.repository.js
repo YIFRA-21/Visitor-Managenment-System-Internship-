@@ -15,9 +15,13 @@ class BranchRepository {
       id: row.id,
       branch_id: row.branch_id || row.id,
       organizationId: row.organization_id,
+      organization_id: row.organization_id,
       organizationName: row.organization_name || row.organizationName || 'Unknown Organization',
       branchName: row.branch_name || row.branchName,
+      branch_name: row.branch_name || row.branchName,
+      name: row.branch_name || row.branchName,
       branchCode: row.branch_code || row.branchCode,
+      branch_code: row.branch_code || row.branchCode,
       branchType: row.branch_type || row.branchType || 'OFFICE',
       email: row.email || '',
       phone: row.phone || '',
@@ -58,9 +62,9 @@ class BranchRepository {
       `;
       const params = [];
 
-      if (filters.organizationId) {
+      if (filters.organizationId || filters.organization_id) {
         sql += ' AND b.organization_id = ?';
-        params.push(Number(filters.organizationId));
+        params.push(Number(filters.organizationId || filters.organization_id));
       }
       if (filters.status && filters.status.toUpperCase() !== 'ALL') {
         sql += ' AND b.status = ?';

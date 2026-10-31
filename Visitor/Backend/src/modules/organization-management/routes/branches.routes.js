@@ -7,6 +7,23 @@ const branchStatisticsController = require('../controllers/branch-statistics.con
 
 const router = Router();
 
+// ── Public endpoint for visitor bookings / cascading dropdowns (No Auth) ──
+router.get('/public', async (req, res, next) => {
+  try {
+    const branchService = require('../services/branch.service');
+    const orgId = req.query.organizationId || req.query.organization_id;
+    const status = req.query.status || 'ACTIVE';
+    const filters = {};
+    if (orgId) filters.organizationId = Number(orgId);
+    if (status && status.toUpperCase() !== 'ALL') filters.status = status;
+    const branches = await branchService.listBranches(filters);
+    const list = Array.isArray(branches) ? branches : (branches.data || []);
+    res.json({ data: list });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Standalone endpoint routers (Admin Only)
 router.get('/statistics', authenticate, authorize('admin'), branchStatisticsController.getStatistics);
 router.get('/search', authenticate, authorize('admin'), branchSearchController.search);
