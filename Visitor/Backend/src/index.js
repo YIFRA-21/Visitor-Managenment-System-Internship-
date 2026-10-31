@@ -376,7 +376,6 @@ const pool = require('./config/db');
     try { await pool.query(`ALTER TABLE user_otp MODIFY COLUMN destination VARCHAR(255) NOT NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE user_otp ADD COLUMN IF NOT EXISTS user_id BIGINT UNSIGNED NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE user_otp ADD COLUMN IF NOT EXISTS otp_hash VARCHAR(255) NULL`); } catch (e) {}
-    try { await pool.query(`UPDATE organizations SET name = 'IT park', short_name = 'IT park', code = 'ITP01' WHERE name LIKE '%Corporate%' OR name LIKE '%Enterprise VMS%' OR name = 'New Organization'`); } catch (e) {}
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS email_outbox (
@@ -791,8 +790,13 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+const normalizeOrigin = (url) => String(url || '').trim().replace(/\/+$/, '').toLowerCase();
+
 const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:3000',
+  'https://visitor-managenment-system-internsh-rho.vercel.app',
+  'https://visitor-management-system.vercel.app',
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5174',
@@ -803,14 +807,15 @@ const allowedOrigins = [
 
 /**
  * Validates origin for both Express CORS and Socket.io.
- * Allows localhost, configured CLIENT_URL, and private RFC 1918 LAN IPs during development.
+ * Allows localhost, configured CLIENT_URL, Vercel deployments, and private RFC 1918 LAN IPs during development.
  */
 const isOriginAllowed = (origin) => {
   if (!origin) return true; // Mobile apps, Postman, curl, server-to-server
 
   const norm = normalizeOrigin(origin);
   if (allowedOrigins.some(o => normalizeOrigin(o) === norm)) return true;
-  if (norm.endsWith('.vercel.app')) return true;
+  if (norm.endsWith('.vercel.app') || norm.includes('vercel.app')) return true;
+  if (norm.includes('localhost') || norm.includes('127.0.0.1')) return true;
 
   if (process.env.NODE_ENV !== 'production') {
     try {
@@ -837,7 +842,7 @@ const corsOptions = {
     if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
-      callback(new Error(`CORS blocked for origin: ${origin}`));
+      callback(null, false);
     }
   },
   credentials: true,
@@ -899,6 +904,7 @@ const uploadLimiter = rateLimit({
 app.use('/api/appointments/upload', uploadLimiter);
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(sanitizeBody);
