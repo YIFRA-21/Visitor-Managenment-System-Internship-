@@ -110,6 +110,7 @@ function errorHandler(err, req, res, next) {
         success: false,
         status: 'error',
         message: 'Something went wrong on our end. Please try again later.',
+        error: err.message || String(err),
       });
     }
   }
