@@ -165,6 +165,7 @@ class UserManagementService {
       FROM users u
       LEFT JOIN (
         SELECT user_id,
+               MAX(id) AS id,
                MAX(department_id) AS department_id,
                MAX(branch_id) AS branch_id,
                MAX(organization_id) AS organization_id
@@ -249,7 +250,16 @@ class UserManagementService {
     // Total Count Query
     const whereIndex = sql.indexOf('WHERE');
     const whereClause = whereIndex !== -1 ? sql.substring(whereIndex) : 'WHERE 1=1';
-    const countSql = `SELECT COUNT(DISTINCT u.id) AS total FROM users u LEFT JOIN (SELECT user_id, MAX(department_id) AS department_id FROM employees WHERE deleted_at IS NULL GROUP BY user_id) e ON e.user_id = u.id ${whereClause}`;
+    const countSql = `SELECT COUNT(DISTINCT u.id) AS total FROM users u LEFT JOIN (
+      SELECT user_id,
+             MAX(id) AS id,
+             MAX(department_id) AS department_id,
+             MAX(branch_id) AS branch_id,
+             MAX(organization_id) AS organization_id
+      FROM employees
+      WHERE deleted_at IS NULL
+      GROUP BY user_id
+    ) e ON e.user_id = u.id ${whereClause}`;
     const countRes = await db.query(countSql, params);
     const countRow = Array.isArray(countRes[0]) ? countRes[0][0] : (Array.isArray(countRes) ? countRes[0] : countRes);
     const total = countRow?.total || 0;
