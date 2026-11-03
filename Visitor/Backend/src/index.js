@@ -109,11 +109,12 @@ const pool = require('./config/db');
       `);
     } catch (e) {}
     try {
-      await pool.query(`UPDATE meeting_rooms SET building_id = 81 WHERE room_name IN ('Executive Boardroom A', 'Conference Room 614') AND (building_id IS NULL OR building_id = 1)`);
-      await pool.query(`UPDATE meeting_rooms SET building_id = 82 WHERE room_name = 'Innovation Hub 2B' AND (building_id IS NULL OR building_id = 1)`);
-      await pool.query(`UPDATE meeting_rooms SET building_id = 31 WHERE room_name = 'Conference Suite 3C' AND (building_id IS NULL OR building_id = 1)`);
-      await pool.query(`UPDATE meeting_rooms SET building_id = 32 WHERE room_name = 'Creative Studio 4D' AND (building_id IS NULL OR building_id = 1)`);
-      await pool.query(`UPDATE meeting_rooms SET building_id = 21 WHERE room_name = 'VMS Strategy Room 5E' AND (building_id IS NULL OR building_id = 1)`);
+      await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Main QR Tech Complex' SET mr.building_id = b.id WHERE mr.room_name IN ('Executive Boardroom A', 'Conference Room 614')`);
+      await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'QR Innovation Center' SET mr.building_id = b.id WHERE mr.room_name = 'Innovation Hub 2B'`);
+      await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Tulu Dimtu Main Facility' SET mr.building_id = b.id WHERE mr.room_name IN ('Conference Suite 3C', 'Creative Studio 4D')`);
+      await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Debre Berhan Tech Hub' SET mr.building_id = b.id WHERE mr.room_name IN ('VMS Strategy Room 5E', 'Executive Nexus mvaagnj4')`);
+      await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Mangote Facility Center' SET mr.building_id = b.id WHERE mr.room_name = 'Synergy Boardroom 6F'`);
+      await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Central Operations Pavilion' SET mr.building_id = b.id WHERE mr.room_name = 'Conference Room 102'`);
     } catch (e) {}
     try { await pool.query(`INSERT IGNORE INTO floors (id, building_id, floor_name, is_active) VALUES (1, 1, 'Ground Floor', 1)`); } catch (e) {}
     try { await pool.query(`CREATE OR REPLACE VIEW rooms AS SELECT mr.id, mr.room_id, mr.facility_id, mr.room_number, mr.room_name, mr.room_name AS name, mr.building_id, mr.floor_id, mr.department_id, mr.capacity, mr.has_projector, mr.has_tv, mr.has_video_conference, mr.status, mr.is_accessible, mr.location, mr.is_active, mr.is_bookable, mr.created_at, mr.updated_at, mr.deleted_at FROM meeting_rooms mr`); } catch (e) {}

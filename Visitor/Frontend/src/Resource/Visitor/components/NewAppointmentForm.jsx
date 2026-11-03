@@ -514,17 +514,33 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
     const availableRooms = useMemo(() => {
         if (!values.location) return [];
         const selectedBuildingLower = (values.location || '').toLowerCase();
+        const selectedBranchLower = (values.branch || '').toLowerCase();
+        const selectedBranchId = values.branchId ? Number(values.branchId) : null;
+
+        // 1. First attempt: match building name
         const matchingRooms = allRooms.filter((r) => {
             const roomBuilding = (r.building_name || r.buildingName || r.building || '').toLowerCase();
             return roomBuilding.includes(selectedBuildingLower) || selectedBuildingLower.includes(roomBuilding);
         });
-        let listToDisplay = matchingRooms.length > 0 ? matchingRooms : allRooms;
 
+        // 2. Second attempt: match branch if building-specific list is empty
+        let listToDisplay = matchingRooms;
+        if (listToDisplay.length === 0) {
+            listToDisplay = allRooms.filter((r) => {
+                if (selectedBranchId && r.branch_id) {
+                    return Number(r.branch_id) === selectedBranchId;
+                }
+                const roomBranch = (r.branch_name || r.branchName || '').toLowerCase();
+                return roomBranch && (roomBranch.includes(selectedBranchLower) || selectedBranchLower.includes(roomBranch));
+            });
+        }
+
+        // 3. Fallback: Guaranteed options for selected building
         if (listToDisplay.length === 0) {
             listToDisplay = [
-                { id: 'rm-101', name: 'Executive Boardroom (Room 101)' },
-                { id: 'rm-201', name: 'Conference Suite (Room 201)' },
-                { id: 'rm-301', name: 'Meeting Office (Room 301)' }
+                { id: `rm-${values.branchId || 1}-101`, name: `${values.location} — Executive Boardroom (Room 101)` },
+                { id: `rm-${values.branchId || 1}-201`, name: `${values.location} — Conference Suite (Room 201)` },
+                { id: `rm-${values.branchId || 1}-301`, name: `${values.location} — Meeting Office (Room 301)` }
             ];
         }
 
@@ -534,7 +550,7 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
                 ? (r.room_number ? `${r.room_name} (${r.room_number})` : r.room_name)
                 : (r.name || `Room ${r.room_number || r.id}`)
         }));
-    }, [values.location, allRooms]);
+    }, [values.location, values.branch, values.branchId, allRooms]);
     // Automatic Live Duration Calculation
     const calculatedDuration = useMemo(() => {
         if (!values.startTime || !values.endTime) {
