@@ -98,6 +98,23 @@ const pool = require('./config/db');
     try { await pool.query(`ALTER TABLE visitors ADD COLUMN visitor_type VARCHAR(50) NULL DEFAULT 'WALK_IN'`); } catch (e) {}
     try { await pool.query(`ALTER TABLE meeting_rooms DROP INDEX room_number`); await pool.query(`ALTER TABLE meeting_rooms ADD INDEX idx_room_number (room_number)`); } catch (e) {}
     try { await pool.query(`INSERT IGNORE INTO buildings (id, branch_id, building_name, is_active) VALUES (1, 1, 'Main HQ Building', 1)`); } catch (e) {}
+    try {
+      await pool.query(`INSERT IGNORE INTO buildings (id, branch_id, building_name, building_code, is_active) VALUES
+        (81, 8, 'Main QR Tech Complex', 'BLD-MQR-01', 1),
+        (82, 8, 'QR Innovation Center', 'BLD-MQR-02', 1),
+        (31, 3, 'Tulu Dimtu Campus Tower', 'BLD-TD-01', 1),
+        (32, 3, 'Tulu Dimtu Main Facility', 'BLD-TD-02', 1),
+        (21, 2, 'Debre Berhan Science Park', 'BLD-DBU-01', 1),
+        (22, 2, 'Debre Berhan Tech Hub', 'BLD-DBU-02', 1)
+      `);
+    } catch (e) {}
+    try {
+      await pool.query(`UPDATE meeting_rooms SET building_id = 81 WHERE room_name IN ('Executive Boardroom A', 'Conference Room 614') AND (building_id IS NULL OR building_id = 1)`);
+      await pool.query(`UPDATE meeting_rooms SET building_id = 82 WHERE room_name = 'Innovation Hub 2B' AND (building_id IS NULL OR building_id = 1)`);
+      await pool.query(`UPDATE meeting_rooms SET building_id = 31 WHERE room_name = 'Conference Suite 3C' AND (building_id IS NULL OR building_id = 1)`);
+      await pool.query(`UPDATE meeting_rooms SET building_id = 32 WHERE room_name = 'Creative Studio 4D' AND (building_id IS NULL OR building_id = 1)`);
+      await pool.query(`UPDATE meeting_rooms SET building_id = 21 WHERE room_name = 'VMS Strategy Room 5E' AND (building_id IS NULL OR building_id = 1)`);
+    } catch (e) {}
     try { await pool.query(`INSERT IGNORE INTO floors (id, building_id, floor_name, is_active) VALUES (1, 1, 'Ground Floor', 1)`); } catch (e) {}
     try { await pool.query(`CREATE OR REPLACE VIEW rooms AS SELECT mr.id, mr.room_id, mr.facility_id, mr.room_number, mr.room_name, mr.room_name AS name, mr.building_id, mr.floor_id, mr.department_id, mr.capacity, mr.has_projector, mr.has_tv, mr.has_video_conference, mr.status, mr.is_accessible, mr.location, mr.is_active, mr.is_bookable, mr.created_at, mr.updated_at, mr.deleted_at FROM meeting_rooms mr`); } catch (e) {}
     // Module 13: Notifications Engine Auto-Migration

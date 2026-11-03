@@ -45,8 +45,8 @@ class EmployeeRepository {
     }
 
     if (branch_id) {
-      sql += ` AND e.branch_id = ?`;
-      params.push(branch_id);
+      sql += ` AND (e.branch_id = ? OR (e.branch_id IS NULL AND d.branch_id = ?))`;
+      params.push(branch_id, branch_id);
     }
 
     if (employment_status && employment_status !== 'ALL') {

@@ -56,6 +56,16 @@ router.get('/:id/employees', async (req, res, next) => {
     if (orgId) filters.organization_id = Number(orgId);
     const result = await employeeRepository.findAll(filters);
     let employees = Array.isArray(result) ? result : (result.data || []);
+    // If no hosts specifically assigned to this department yet, fallback to active hosts in this branch
+    if (employees.length === 0 && branchId) {
+      const branchEmployees = await employeeRepository.findAll({
+        branch_id: Number(branchId),
+        employment_status: 'Active',
+        is_host_enabled: true,
+        limit: 100
+      });
+      employees = Array.isArray(branchEmployees) ? branchEmployees : (branchEmployees.data || []);
+    }
     // Filter to only include employee/staff roles (exclude admin, manager, receptionist, security, visitor)
     employees = employees.filter(e => {
       const role = (e.user_role || '').toLowerCase();

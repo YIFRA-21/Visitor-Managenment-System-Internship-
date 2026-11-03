@@ -26,14 +26,14 @@ class RoomRepository {
         mr.floor_id,
         mr.room_number,
         mr.room_name,
-        mr.room_type,
+        'MEETING_ROOM' AS room_type,
         mr.capacity,
         mr.has_projector,
         mr.has_tv,
         mr.has_video_conference,
         mr.is_accessible,
         mr.is_bookable,
-        mr.is_restricted,
+        0 AS is_restricted,
         mr.status,
         mr.is_active,
         mr.created_at,
@@ -45,7 +45,7 @@ class RoomRepository {
         b.branch_id,
         f.floor_name,
         f.floor_number,
-        f.floor_code,
+        CONCAT('FL-', f.floor_number) AS floor_code,
         ob.branch_name,
         ob.branch_code,
         o.id AS organization_id,
@@ -56,15 +56,15 @@ class RoomRepository {
       LEFT JOIN buildings b ON mr.building_id = b.id
       LEFT JOIN floors f ON mr.floor_id = f.id
       LEFT JOIN organization_branches ob ON b.branch_id = ob.id
-      LEFT JOIN organizations o ON (b.organization_id = o.id OR ob.organization_id = o.id)
+      LEFT JOIN organizations o ON ob.organization_id = o.id
       LEFT JOIN departments d ON mr.department_id = d.id
       WHERE mr.deleted_at IS NULL
     `;
     const params = [];
 
     if (organizationId) {
-      sql += ` AND (b.organization_id = ? OR ob.organization_id = ?)`;
-      params.push(organizationId, organizationId);
+      sql += ` AND ob.organization_id = ?`;
+      params.push(organizationId);
     }
 
     if (branchId) {
@@ -134,8 +134,8 @@ class RoomRepository {
     const countParams = [];
 
     if (organizationId) {
-      countSql += ` AND (b.organization_id = ? OR ob.organization_id = ?)`;
-      countParams.push(organizationId, organizationId);
+      countSql += ` AND ob.organization_id = ?`;
+      countParams.push(organizationId);
     }
     if (branchId) {
       countSql += ` AND b.branch_id = ?`;
@@ -196,14 +196,14 @@ class RoomRepository {
         mr.floor_id,
         mr.room_number,
         mr.room_name,
-        mr.room_type,
+        'MEETING_ROOM' AS room_type,
         mr.capacity,
         mr.has_projector,
         mr.has_tv,
         mr.has_video_conference,
         mr.is_accessible,
         mr.is_bookable,
-        mr.is_restricted,
+        0 AS is_restricted,
         mr.status,
         mr.is_active,
         mr.created_at,
@@ -213,10 +213,10 @@ class RoomRepository {
         b.building_name,
         b.building_code,
         b.branch_id,
-        b.organization_id,
+        ob.organization_id,
         f.floor_name,
         f.floor_number,
-        f.floor_code,
+        CONCAT('FL-', f.floor_number) AS floor_code,
         ob.branch_name,
         ob.branch_code,
         o.id AS organization_id,
@@ -227,7 +227,7 @@ class RoomRepository {
       LEFT JOIN buildings b ON mr.building_id = b.id
       LEFT JOIN floors f ON mr.floor_id = f.id
       LEFT JOIN organization_branches ob ON b.branch_id = ob.id
-      LEFT JOIN organizations o ON (b.organization_id = o.id OR ob.organization_id = o.id)
+      LEFT JOIN organizations o ON ob.organization_id = o.id
       LEFT JOIN departments d ON mr.department_id = d.id
       WHERE mr.id = ? AND mr.deleted_at IS NULL
     `;

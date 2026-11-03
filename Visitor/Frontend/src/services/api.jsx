@@ -252,8 +252,12 @@ export const employeesApi = {
     resendRegistrationEmail: (id) => api.post(`/employees/${id}/resend-registration-email`),
 };
 export const employeeManagementApi = employeesApi;
+export const buildingsApi = {
+    list: (params) => api.get('/buildings', { params }),
+    get: (id) => api.get(`/buildings/${id}`),
+};
 export const roomsApi = {
-    list: () => api.get('/rooms'),
+    list: (params) => api.get('/rooms', { params }),
     availability: (id, date) => api.get(`/rooms/${id}/availability?date=${date}`),
 };
 export const appointmentsApi = {

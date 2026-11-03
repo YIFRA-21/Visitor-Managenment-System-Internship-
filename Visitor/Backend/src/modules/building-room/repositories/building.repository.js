@@ -9,13 +9,13 @@ class BuildingRepository {
         b.building_code,
         b.building_name,
         b.location,
-        b.description,
+        '' AS description,
         b.max_visitor_capacity,
         b.is_active,
         b.created_at,
         b.updated_at,
         b.branch_id,
-        b.organization_id,
+        ob.organization_id,
         ob.branch_name,
         ob.branch_code,
         o.name AS organization_name,
@@ -25,14 +25,14 @@ class BuildingRepository {
         (SELECT COUNT(*) FROM employees e WHERE e.building_id = b.id AND e.deleted_at IS NULL) AS total_employees
       FROM buildings b
       LEFT JOIN organization_branches ob ON b.branch_id = ob.id
-      LEFT JOIN organizations o ON (b.organization_id = o.id OR ob.organization_id = o.id)
+      LEFT JOIN organizations o ON ob.organization_id = o.id
       WHERE b.deleted_at IS NULL
     `;
     const params = [];
 
     if (organizationId) {
-      sql += ` AND (b.organization_id = ? OR ob.organization_id = ?)`;
-      params.push(organizationId, organizationId);
+      sql += ` AND ob.organization_id = ?`;
+      params.push(organizationId);
     }
 
     if (branchId) {
@@ -66,8 +66,8 @@ class BuildingRepository {
     `;
     const countParams = [];
     if (organizationId) {
-      countSql += ` AND (b.organization_id = ? OR ob.organization_id = ?)`;
-      countParams.push(organizationId, organizationId);
+      countSql += ` AND ob.organization_id = ?`;
+      countParams.push(organizationId);
     }
     if (branchId) {
       countSql += ` AND b.branch_id = ?`;
@@ -98,7 +98,7 @@ class BuildingRepository {
         b.building_code,
         b.building_name,
         b.location,
-        b.description,
+        '' AS description,
         b.max_visitor_capacity,
         b.is_active,
         b.created_at,
