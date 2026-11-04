@@ -4,10 +4,20 @@ class VisitorRepository {
   // ─── Core CRUD ──────────────────────────────────
   async findById(id) {
     const rows = await db.query(
-      `SELECT v.*, vt.type_name as visitorType, vc.company_name as companyName
+      `SELECT v.*, vt.type_name as visitorType, vc.company_name as companyName,
+              o.name as organization_name,
+              ob.branch_name,
+              COALESCE(v.department_name, d.department_name, d.name) as department_name,
+              e.full_name as host_name,
+              e.full_name as host_employee_name,
+              e.full_name as employee_host
        FROM visitors v
        LEFT JOIN visitor_types vt ON v.visitor_type_id = vt.id
        LEFT JOIN visitor_companies vc ON v.visitor_company_id = vc.id
+       LEFT JOIN organizations o ON v.organization_id = o.id
+       LEFT JOIN organization_branches ob ON v.branch_id = ob.id
+       LEFT JOIN departments d ON v.department_id = d.id
+       LEFT JOIN employees e ON v.host_employee_id = e.id
        WHERE v.id = ? AND v.is_active = TRUE`,
       [id]
     );
@@ -16,10 +26,20 @@ class VisitorRepository {
 
   async findByUserId(userId) {
     const rows = await db.query(
-      `SELECT v.*, vt.type_name as visitorType, vc.company_name as companyName
+      `SELECT v.*, vt.type_name as visitorType, vc.company_name as companyName,
+              o.name as organization_name,
+              ob.branch_name,
+              COALESCE(v.department_name, d.department_name, d.name) as department_name,
+              e.full_name as host_name,
+              e.full_name as host_employee_name,
+              e.full_name as employee_host
        FROM visitors v
        LEFT JOIN visitor_types vt ON v.visitor_type_id = vt.id
        LEFT JOIN visitor_companies vc ON v.visitor_company_id = vc.id
+       LEFT JOIN organizations o ON v.organization_id = o.id
+       LEFT JOIN organization_branches ob ON v.branch_id = ob.id
+       LEFT JOIN departments d ON v.department_id = d.id
+       LEFT JOIN employees e ON v.host_employee_id = e.id
        WHERE v.user_id = ? AND v.is_active = TRUE`,
       [userId]
     );

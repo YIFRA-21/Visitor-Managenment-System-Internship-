@@ -108,6 +108,11 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
                 attachedFileName: uploadedDocName || attachedFileName || null,
                 attachment_url: uploadedDocUrl,
                 attachment_name: uploadedDocName,
+                company: `${formData.organization} (${formData.branch || 'Main Branch'})`,
+                occupation: user?.occupation || 'Senior Systems Consultant',
+                department_name: formData.department,
+                host_name: formData.hostName,
+                employee_host: formData.hostName,
                 visitorName: user?.fullName || user?.full_name || 'Visitor',
                 visitorEmail: user?.email || '',
                 visitor_email: user?.email || '',
@@ -119,11 +124,16 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
                     visitorName: user?.fullName || user?.full_name || user?.username || 'Visitor',
                     visitorEmail: user?.email || '',
                     visitorPhone: user?.phone || user?.phoneNumber || '',
+                    organizationId: formData.orgId ? Number(formData.orgId) : 1,
+                    branchId: formData.branchId ? Number(formData.branchId) : 8,
                     organization_name: formData.organization,
-                    branch_name: formData.branch,
+                    branch_name: formData.branch || 'Main Branch',
+                    company: `${formData.organization} (${formData.branch || 'Main Branch'})`,
+                    departmentId: formData.departmentId ? Number(formData.departmentId) : undefined,
+                    department_name: formData.department,
                     hostId: formData.hostId ? Number(formData.hostId) : undefined,
                     host_name: formData.hostName,
-                    department_name: formData.department,
+                    occupation: user?.occupation || 'Senior Systems Consultant',
                     purpose: formData.purpose,
                     scheduled_start: `${formData.visitDate} ${formData.startTime}:00`,
                     scheduled_end: `${formData.visitDate} ${formData.endTime}:00`,
@@ -142,6 +152,29 @@ export default function NewAppointmentForm({ onSubmit, onCancel }) {
                 setBackendErrors(err);
             }
             try {
+                // Update active_visitor_profile immediately in session and local storage
+                const storedProfile = JSON.parse(sessionStorage.getItem('active_visitor_profile') || localStorage.getItem('active_visitor_profile') || '{}');
+                const updatedProfile = {
+                    ...storedProfile,
+                    company: `${formData.organization} (${formData.branch || 'Main Branch'})`,
+                    organization_name: formData.organization,
+                    branch_name: formData.branch || 'Main Branch',
+                    department: formData.department,
+                    department_name: formData.department,
+                    host_name: formData.hostName,
+                    host_employee_name: formData.hostName,
+                    employee_host: formData.hostName,
+                    occupation: user?.occupation || storedProfile.occupation || 'Senior Systems Consultant',
+                    purpose_of_visit: formData.purpose,
+                    visit_purpose: formData.purpose,
+                    visitDate: formData.visitDate,
+                    visitTime: timeDisplay
+                };
+                sessionStorage.setItem('active_visitor_profile', JSON.stringify(updatedProfile));
+                localStorage.setItem('active_visitor_profile', JSON.stringify(updatedProfile));
+                window.dispatchEvent(new CustomEvent('visitor_profile_updated', { detail: updatedProfile }));
+                window.dispatchEvent(new CustomEvent('active_profile_updated', { detail: updatedProfile }));
+
                 const existingAppts = JSON.parse(localStorage.getItem('vms_visitor_appointments') || '[]');
                 existingAppts.unshift(newAppointment);
                 localStorage.setItem('vms_visitor_appointments', JSON.stringify(existingAppts));

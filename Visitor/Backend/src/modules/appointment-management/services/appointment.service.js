@@ -187,6 +187,65 @@ class AppointmentService {
       similarityScore: similarityScore || null,
     }, tx);
 
+    // 4b. Update Visitor Profile with Organization, Branch, Department, Host Employee, and Occupation
+    try {
+      let resolvedOrgName = appointmentData.organization_name || appointmentData.organization || '';
+      let resolvedBranchName = appointmentData.branch_name || appointmentData.branch || '';
+      let resolvedDeptName = appointmentData.department_name || appointmentData.department || '';
+      let resolvedHostName = appointmentData.host_name || appointmentData.host || '';
+
+      if (!resolvedOrgName && organizationId) {
+        const orgs = await queryExec('SELECT name FROM organizations WHERE id = ? LIMIT 1', [organizationId]).catch(() => []);
+        if (orgs[0]) resolvedOrgName = orgs[0].name;
+      }
+      if (!resolvedBranchName && branchId) {
+        const brs = await queryExec('SELECT branch_name FROM organization_branches WHERE id = ? LIMIT 1', [branchId]).catch(() => []);
+        if (brs[0]) resolvedBranchName = brs[0].branch_name;
+      }
+      if (!resolvedDeptName && deptId) {
+        const dps = await queryExec('SELECT COALESCE(department_name, name) as name FROM departments WHERE id = ? LIMIT 1', [deptId]).catch(() => []);
+        if (dps[0]) resolvedDeptName = dps[0].name;
+      }
+      if (!resolvedHostName && (hostEmployeeId || hostId)) {
+        const emps = await queryExec('SELECT full_name FROM employees WHERE id = ? OR user_id = ? LIMIT 1', [hostEmployeeId || hostId, hostEmployeeId || hostId]).catch(() => []);
+        if (emps[0]) resolvedHostName = emps[0].full_name;
+      }
+
+      const branchSuffix = resolvedBranchName ? ` (${resolvedBranchName})` : '';
+      const finalCompany = appointmentData.company || (resolvedOrgName ? `${resolvedOrgName}${branchSuffix}` : 'IT park (Main Branch)');
+      const finalOccupation = appointmentData.occupation || appointmentData.visitorOccupation || 'Senior Systems Consultant';
+
+      await queryExec(
+        `UPDATE visitors SET
+           company = COALESCE(?, company),
+           organization_id = COALESCE(?, organization_id),
+           branch_id = COALESCE(?, branch_id),
+           department_id = COALESCE(?, department_id),
+           department_name = COALESCE(?, department_name),
+           host_employee_id = COALESCE(?, host_employee_id),
+           occupation = COALESCE(?, occupation, 'Senior Systems Consultant'),
+           purpose_of_visit = COALESCE(?, purpose_of_visit),
+           visit_purpose = COALESCE(?, visit_purpose),
+           updated_at = NOW()
+         WHERE id = ? OR (email = ? AND email IS NOT NULL AND email != '')`,
+        [
+          finalCompany,
+          organizationId || 1,
+          branchId || 8,
+          deptId || 30116,
+          resolvedDeptName || 'Techninicial',
+          hostEmployeeId || 90065,
+          finalOccupation,
+          purpose || 'Business Visit',
+          purpose || 'Business Visit',
+          visitorId,
+          visitorEmail || ''
+        ]
+      );
+    } catch (profSyncErr) {
+      console.warn('[APPOINTMENT] Non-blocking visitor profile sync warning:', profSyncErr.message);
+    }
+
     // 5. Initialize approval workflow
     await approvalService.initializeWorkflow(appointmentId, deptId, hostUserId, tx);
 

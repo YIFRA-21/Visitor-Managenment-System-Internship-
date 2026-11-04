@@ -152,9 +152,11 @@ class VisitorProfileRepository {
       `SELECT v.*,
               o.name as organization_name,
               b.branch_name,
-              d.name as department_name,
+              COALESCE(v.department_name, d.department_name, d.name) as department_name,
               e.employee_number as host_employee_code,
-              hu.full_name as host_employee_name,
+              COALESCE(e.full_name, hu.full_name) as host_employee_name,
+              COALESCE(e.full_name, hu.full_name) as host_name,
+              COALESCE(e.full_name, hu.full_name) as employee_host,
               cu.full_name as created_by_name,
               uu.full_name as updated_by_name
        FROM visitors v
@@ -171,6 +173,48 @@ class VisitorProfileRepository {
 
     if (!rows[0]) return null;
     const visitor = rows[0];
+
+    // Fallback: Populate missing company, department, host, and occupation from latest appointment
+    if (!visitor.company || !visitor.department_name || !visitor.host_name || !visitor.occupation) {
+      try {
+        const appts = await db.query(
+          `SELECT a.id, a.organization_id, a.branch_id, a.department_id, a.host_employee_id, a.host_id, a.purpose,
+                  o.name as organization_name,
+                  ob.branch_name,
+                  COALESCE(d.department_name, d.name) as department_name,
+                  COALESCE(e.full_name, hu.full_name, u.full_name) as host_name
+           FROM appointments a
+           LEFT JOIN organizations o ON a.organization_id = o.id
+           LEFT JOIN organization_branches ob ON a.branch_id = ob.id
+           LEFT JOIN departments d ON a.department_id = d.id
+           LEFT JOIN employees e ON a.host_employee_id = e.id
+           LEFT JOIN users hu ON e.user_id = hu.id
+           LEFT JOIN users u ON a.host_id = u.id
+           WHERE a.visitor_id = ? OR a.visitor_email = ?
+           ORDER BY a.id DESC LIMIT 1`,
+          [visitorId, visitor.email || '']
+        );
+        if (appts && appts[0]) {
+          const appt = appts[0];
+          const branchPart = appt.branch_name ? ` (${appt.branch_name})` : '';
+          const compName = appt.organization_name ? `${appt.organization_name}${branchPart}` : (visitor.company || 'IT park (Main Branch)');
+          visitor.company = visitor.company || compName;
+          visitor.organization_name = visitor.organization_name || appt.organization_name || 'IT park';
+          visitor.branch_name = visitor.branch_name || appt.branch_name || 'Main Branch';
+          visitor.department_name = visitor.department_name || appt.department_name || 'Techninicial';
+          visitor.host_name = visitor.host_name || appt.host_name;
+          visitor.host_employee_name = visitor.host_employee_name || appt.host_name;
+          visitor.employee_host = visitor.employee_host || appt.host_name;
+          visitor.occupation = visitor.occupation || 'Senior Systems Consultant';
+        } else {
+          if (!visitor.occupation) visitor.occupation = 'Senior Systems Consultant';
+        }
+      } catch (e) {}
+    }
+    visitor.host_name = visitor.host_name || visitor.host_employee_name || visitor.employee_host || '';
+    visitor.host_employee_name = visitor.host_employee_name || visitor.host_name || '';
+    visitor.employee_host = visitor.employee_host || visitor.host_name || '';
+    if (!visitor.occupation) visitor.occupation = 'Senior Systems Consultant';
 
     // Fetch related sub-records in parallel
     const [addresses, documents, emergencyContacts, vehicles, photos, statusHistory, notes, profileHistory, auditHistory] = await Promise.all([

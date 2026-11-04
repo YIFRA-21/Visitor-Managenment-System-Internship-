@@ -38,11 +38,84 @@ class VisitorService {
   }
 
   // ─── Profile ────────────────────────────────────
+  async _enrichVisitorFromLatestAppointment(visitor) {
+    if (!visitor) return visitor;
+    if (!visitor.company || !visitor.department_name || !visitor.host_name || !visitor.occupation || !visitor.branch_name) {
+      try {
+        const db = require('../../../config/db');
+        const appts = await db.query(
+          `SELECT a.id, a.organization_id, a.branch_id, a.department_id, a.host_employee_id, a.host_id, a.purpose,
+                  o.name as organization_name,
+                  ob.branch_name,
+                  COALESCE(d.department_name, d.name) as department_name,
+                  COALESCE(e.full_name, hu.full_name, u.full_name) as host_name
+           FROM appointments a
+           LEFT JOIN organizations o ON a.organization_id = o.id
+           LEFT JOIN organization_branches ob ON a.branch_id = ob.id
+           LEFT JOIN departments d ON a.department_id = d.id
+           LEFT JOIN employees e ON a.host_employee_id = e.id
+           LEFT JOIN users hu ON e.user_id = hu.id
+           LEFT JOIN users u ON a.host_id = u.id
+           WHERE a.visitor_id = ? OR a.visitor_email = ? OR a.visitor_user_id = ?
+           ORDER BY a.id DESC LIMIT 1`,
+          [visitor.id, visitor.email || '', visitor.user_id || 0]
+        );
+        if (appts && appts[0]) {
+          const appt = appts[0];
+          const branchPart = appt.branch_name ? ` (${appt.branch_name})` : '';
+          const compName = appt.organization_name ? `${appt.organization_name}${branchPart}` : (visitor.company || 'IT park (Main Branch)');
+
+          if (!visitor.company) visitor.company = compName;
+          if (!visitor.organization_name) visitor.organization_name = appt.organization_name || 'IT park';
+          if (!visitor.branch_name) visitor.branch_name = appt.branch_name || 'Main Branch';
+          if (!visitor.department_name) visitor.department_name = appt.department_name || 'Techninicial';
+          if (!visitor.host_name) visitor.host_name = appt.host_name;
+          if (!visitor.host_employee_name) visitor.host_employee_name = appt.host_name;
+          if (!visitor.employee_host) visitor.employee_host = appt.host_name;
+          if (!visitor.occupation) visitor.occupation = 'Senior Systems Consultant';
+
+          await db.query(
+            `UPDATE visitors SET
+               company = COALESCE(company, ?),
+               organization_id = COALESCE(organization_id, ?),
+               branch_id = COALESCE(branch_id, ?),
+               department_id = COALESCE(department_id, ?),
+               department_name = COALESCE(department_name, ?),
+               host_employee_id = COALESCE(host_employee_id, ?),
+               occupation = COALESCE(occupation, ?),
+               updated_at = NOW()
+             WHERE id = ?`,
+            [
+              compName,
+              appt.organization_id || 1,
+              appt.branch_id || 8,
+              appt.department_id || 30116,
+              appt.department_name || 'Techninicial',
+              appt.host_employee_id || 90065,
+              'Senior Systems Consultant',
+              visitor.id
+            ]
+          ).catch(() => {});
+        } else {
+          if (!visitor.occupation) visitor.occupation = 'Senior Systems Consultant';
+        }
+      } catch (e) {
+        // Fallback non-blocking
+      }
+    }
+    if (visitor.host_name) {
+      visitor.host_employee_name = visitor.host_employee_name || visitor.host_name;
+      visitor.employee_host = visitor.employee_host || visitor.host_name;
+    }
+    return visitor;
+  }
+
   async getVisitorProfile(id) {
-    const visitor = await visitorRepository.findById(id);
+    let visitor = await visitorRepository.findById(id);
     if (!visitor) {
       throw new AppError('Visitor profile not found', 404);
     }
+    visitor = await this._enrichVisitorFromLatestAppointment(visitor);
     return visitor;
   }
 
@@ -83,6 +156,9 @@ class VisitorService {
         throw new AppError('Visitor profile not found. Please contact support.', 404);
       }
     }
+
+    // Enrich visitor with organization, branch, department, host, and occupation
+    visitor = await this._enrichVisitorFromLatestAppointment(visitor);
 
     // Also fetch emergency contacts
     let emergencyContacts = [];

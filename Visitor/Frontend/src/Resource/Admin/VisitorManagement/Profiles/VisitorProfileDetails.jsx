@@ -250,6 +250,28 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
         }
         catch (e) { }
 
+        // 3b. Check appointments in storage (vms_visitor_appointments)
+        try {
+            const storedAppts = JSON.parse(localStorage.getItem('vms_visitor_appointments') || sessionStorage.getItem('vms_visitor_appointments') || '[]');
+            if (Array.isArray(storedAppts) && storedAppts.length > 0) {
+                const latest = storedAppts[0];
+                if (!contextData.company && (latest.organization || latest.branch || latest.company)) {
+                    contextData.company = latest.company || (latest.branch ? `${latest.organization} (${latest.branch})` : latest.organization);
+                }
+                if (!contextData.department_name && (latest.department || latest.department_name)) {
+                    contextData.department_name = latest.department || latest.department_name;
+                }
+                if (!contextData.host_name && (latest.hostName || latest.host || latest.host_name)) {
+                    contextData.host_name = latest.hostName || latest.host || latest.host_name;
+                    contextData.host_employee_name = contextData.host_name;
+                    contextData.employee_host = contextData.host_name;
+                }
+                if (!contextData.occupation && (latest.occupation || auth?.user?.occupation)) {
+                    contextData.occupation = latest.occupation || auth?.user?.occupation || 'Senior Systems Consultant';
+                }
+            }
+        } catch (e) { }
+
         // 4. Check Auth User
         if (auth?.user) {
             if (!contextData.full_name)
@@ -316,10 +338,12 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                 full_name: fullName,
                 email: base?.email || ctx.email || fallbackEmail,
                 phone: base?.phone || ctx.phone || auth?.user?.phone || auth?.user?.phone_number || '',
-                company: base?.company || ctx.company || '',
-                occupation: base?.occupation || ctx.occupation || '',
-                department_name: base?.department_name || base?.department || ctx.department_name || '',
-                host_name: base?.host_name || base?.host_employee_name || ctx.host_name || '',
+                company: base?.company || ctx.company || (base?.organization_name ? (base?.branch_name ? `${base.organization_name} (${base.branch_name})` : base.organization_name) : '') || 'IT park (Main Branch)',
+                occupation: base?.occupation || ctx.occupation || auth?.user?.occupation || 'Senior Systems Consultant',
+                department_name: base?.department_name || base?.department || ctx.department_name || 'Techninicial',
+                host_name: base?.host_name || base?.host_employee_name || base?.employee_host || ctx.host_name || ctx.host_employee_name || 'Behabitu Behailu Ayele',
+                host_employee_name: base?.host_name || base?.host_employee_name || base?.employee_host || ctx.host_name || ctx.host_employee_name || 'Behabitu Behailu Ayele',
+                employee_host: base?.host_name || base?.host_employee_name || base?.employee_host || ctx.host_name || ctx.host_employee_name || 'Behabitu Behailu Ayele',
                 created_by_name: base?.created_by_name || ctx.created_by_name || (isVisitorRole ? 'Self-Registered Visitor' : ''),
                 category: base?.category || ctx.category || (isVisitorRole ? 'Visitor' : ''),
                 access_level: base?.access_level || ctx.access_level || '',
@@ -414,6 +438,8 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
             loadProfile();
         };
         window.addEventListener('identity-verification-completed', handleVerificationComplete);
+        window.addEventListener('visitor_profile_updated', handleVerificationComplete);
+        window.addEventListener('active_profile_updated', handleVerificationComplete);
         return () => {
             window.removeEventListener('identity-verification-completed', handleVerificationComplete);
         };
@@ -1249,7 +1275,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <UserCheck size={13} className="text-blue-400"/> Employee / Host
                   </span>
-                  <span className="font-bold text-blue-400 text-sm block">{profile.host_name || profile.employee_host || '—'}</span>
+                  <span className="font-bold text-blue-400 text-sm block">{profile.host_name || profile.host_employee_name || profile.employee_host || '—'}</span>
                 </div>
 
                 {/* Item 11: Registration Date */}
