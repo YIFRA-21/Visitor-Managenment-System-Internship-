@@ -99,9 +99,11 @@ const pool = require('./config/db');
     try { await pool.query(`ALTER TABLE meeting_rooms DROP INDEX room_number`); await pool.query(`ALTER TABLE meeting_rooms ADD INDEX idx_room_number (room_number)`); } catch (e) {}
     try { await pool.query(`INSERT IGNORE INTO buildings (id, branch_id, building_name, is_active) VALUES (1, 1, 'Main HQ Building', 1)`); } catch (e) {}
     try {
+      await pool.query(`UPDATE organization_branches SET branch_name = 'Main Branch', branch_code = 'MB-23456' WHERE id = 8`);
+      await pool.query(`UPDATE organization_branches SET deleted_at = NOW() WHERE id IN (13, 14, 16)`);
       await pool.query(`INSERT IGNORE INTO buildings (id, branch_id, building_name, building_code, is_active) VALUES
-        (81, 8, 'Main QR Tech Complex', 'BLD-MQR-01', 1),
-        (82, 8, 'QR Innovation Center', 'BLD-MQR-02', 1),
+        (81, 8, 'Main Branch Tech Complex', 'BLD-MB-01', 1),
+        (82, 8, 'Main Innovation Center', 'BLD-MB-02', 1),
         (31, 3, 'Tulu Dimtu Campus Tower', 'BLD-TD-01', 1),
         (32, 3, 'Tulu Dimtu Main Facility', 'BLD-TD-02', 1),
         (21, 2, 'Debre Berhan Science Park', 'BLD-DBU-01', 1),
@@ -109,8 +111,8 @@ const pool = require('./config/db');
       `);
     } catch (e) {}
     try {
-      await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Main QR Tech Complex' SET mr.building_id = b.id WHERE mr.room_name IN ('Executive Boardroom A', 'Conference Room 614')`);
-      await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'QR Innovation Center' SET mr.building_id = b.id WHERE mr.room_name = 'Innovation Hub 2B'`);
+      await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Main Branch Tech Complex' SET mr.building_id = b.id WHERE mr.room_name IN ('Executive Boardroom A', 'Conference Room 614')`);
+      await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Main Innovation Center' SET mr.building_id = b.id WHERE mr.room_name = 'Innovation Hub 2B'`);
       await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Tulu Dimtu Main Facility' SET mr.building_id = b.id WHERE mr.room_name IN ('Conference Suite 3C', 'Creative Studio 4D')`);
       await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Debre Berhan Tech Hub' SET mr.building_id = b.id WHERE mr.room_name IN ('VMS Strategy Room 5E', 'Executive Nexus mvaagnj4')`);
       await pool.query(`UPDATE meeting_rooms mr JOIN buildings b ON b.building_name = 'Mangote Facility Center' SET mr.building_id = b.id WHERE mr.room_name = 'Synergy Boardroom 6F'`);
