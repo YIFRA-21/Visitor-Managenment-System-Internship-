@@ -3,84 +3,105 @@ const db = require('../../../config/db');
 
 class DepartmentManagerRepository {
   /**
+   * Helper: returns SQL condition and parameters matching all departments and employees in this manager's scope.
+   */
+  _getDeptCondition(scope, alias = 'a') {
+    const deptIds = (scope.departmentIds && scope.departmentIds.length > 0)
+      ? scope.departmentIds
+      : (scope.departmentId ? [scope.departmentId] : [1]);
+    const placeholders = deptIds.map(() => '?').join(', ');
+    const userId = scope.userId || scope.managerId || 0;
+
+    if (scope.isAdmin) {
+      return { condition: '1=1', params: [], deptIds };
+    }
+
+    const condition = `(${alias}.department_id IN (${placeholders}) OR ${alias}.host_employee_id IN (SELECT id FROM employees WHERE department_id IN (${placeholders}) OR manager_id = ? OR manager_id IN (SELECT id FROM employees WHERE user_id = ?)) OR ${alias}.host_id IN (SELECT user_id FROM employees WHERE department_id IN (${placeholders}) OR manager_id = ? OR manager_id IN (SELECT id FROM employees WHERE user_id = ?)))`;
+    const params = [...deptIds, ...deptIds, userId, userId, ...deptIds, userId, userId];
+    return { condition, params, deptIds };
+  }
+
+  /**
    * Aggregated live KPI stats for the Department Overview
    */
   async getOverviewStats(scope) {
-    const deptId = scope.departmentId;
+    const { condition, params: deptParams, deptIds } = this._getDeptCondition(scope, 'a');
     const today = new Date().toISOString().split('T')[0];
+    const empPlaceholders = deptIds.map(() => '?').join(', ');
+    const userId = scope.userId || scope.managerId || 0;
 
     // 1. Pending visitor requests
     const pendingRes = await db.query(
       `SELECT COUNT(*) AS total 
-       FROM appointments 
-       WHERE department_id = ? AND approval_status IN ('PENDING', 'PENDING_HOST_APPROVAL', 'PENDING_MANAGER_REVIEW') AND deleted_at IS NULL`,
-      [deptId]
+       FROM appointments a
+       WHERE ${condition} AND a.approval_status IN ('PENDING', 'PENDING_HOST_APPROVAL', 'PENDING_MANAGER_REVIEW') AND a.deleted_at IS NULL`,
+      deptParams
     ).catch(() => [{ total: 0 }]);
 
     // 2. Today's visitors (appointments today)
     const todayApptsRes = await db.query(
       `SELECT COUNT(*) AS total 
-       FROM appointments 
-       WHERE department_id = ? AND DATE(scheduled_start) = DATE(?) AND deleted_at IS NULL`,
-      [deptId, today]
+       FROM appointments a
+       WHERE ${condition} AND DATE(a.scheduled_start) = DATE(?) AND a.deleted_at IS NULL`,
+      [...deptParams, today]
     ).catch(() => [{ total: 0 }]);
 
     // 3. Upcoming appointments (scheduled in future)
     const upcomingRes = await db.query(
       `SELECT COUNT(*) AS total 
-       FROM appointments 
-       WHERE department_id = ? AND scheduled_start > NOW() 
-         AND appointment_status IN ('APPROVED', 'REQUESTED') AND deleted_at IS NULL`,
-      [deptId]
+       FROM appointments a
+       WHERE ${condition} AND a.scheduled_start > NOW() 
+         AND a.appointment_status IN ('APPROVED', 'REQUESTED') AND a.deleted_at IS NULL`,
+      deptParams
     ).catch(() => [{ total: 0 }]);
 
     // 4. Department employees
     const employeesRes = await db.query(
       `SELECT COUNT(*) AS total 
        FROM employees 
-       WHERE department_id = ? AND deleted_at IS NULL`,
-      [deptId]
+       WHERE (department_id IN (${empPlaceholders}) OR manager_id = ? OR manager_id IN (SELECT id FROM employees WHERE user_id = ?)) AND deleted_at IS NULL`,
+      [...deptIds, userId, userId]
     ).catch(() => [{ total: 0 }]);
 
     // 5. Active hosts
     const activeHostsRes = await db.query(
       `SELECT COUNT(*) AS total 
        FROM employees 
-       WHERE department_id = ? AND is_host_enabled = 1 AND deleted_at IS NULL`,
-      [deptId]
+       WHERE (department_id IN (${empPlaceholders}) OR manager_id = ? OR manager_id IN (SELECT id FROM employees WHERE user_id = ?)) AND is_host_enabled = 1 AND deleted_at IS NULL`,
+      [...deptIds, userId, userId]
     ).catch(() => [{ total: 0 }]);
 
     // 6. Unavailable hosts
     const unavailHostsRes = await db.query(
       `SELECT COUNT(*) AS total 
        FROM employees 
-       WHERE department_id = ? AND is_host_enabled = 1 
+       WHERE (department_id IN (${empPlaceholders}) OR manager_id = ? OR manager_id IN (SELECT id FROM employees WHERE user_id = ?)) AND is_host_enabled = 1 
          AND availability_status IN ('UNAVAILABLE', 'ON_LEAVE', 'BUSY') AND deleted_at IS NULL`,
-      [deptId]
+      [...deptIds, userId, userId]
     ).catch(() => [{ total: 0 }]);
 
     // 6b. Available employees in department
     const availEmpRes = await db.query(
       `SELECT COUNT(*) AS total 
        FROM employees 
-       WHERE department_id = ? AND availability_status = 'AVAILABLE' AND deleted_at IS NULL`,
-      [deptId]
+       WHERE (department_id IN (${empPlaceholders}) OR manager_id = ? OR manager_id IN (SELECT id FROM employees WHERE user_id = ?)) AND availability_status = 'AVAILABLE' AND deleted_at IS NULL`,
+      [...deptIds, userId, userId]
     ).catch(() => [{ total: 0 }]);
 
     // 6c. Unavailable employees in department
     const unavailEmpRes = await db.query(
       `SELECT COUNT(*) AS total 
        FROM employees 
-       WHERE department_id = ? AND availability_status IN ('UNAVAILABLE', 'ON_LEAVE', 'BUSY') AND deleted_at IS NULL`,
-      [deptId]
+       WHERE (department_id IN (${empPlaceholders}) OR manager_id = ? OR manager_id IN (SELECT id FROM employees WHERE user_id = ?)) AND availability_status IN ('UNAVAILABLE', 'ON_LEAVE', 'BUSY') AND deleted_at IS NULL`,
+      [...deptIds, userId, userId]
     ).catch(() => [{ total: 0 }]);
 
     // 6d. Total unique visitors for this department
     const totalDeptVisitorsRes = await db.query(
-      `SELECT COUNT(DISTINCT visitor_id) AS total 
-       FROM appointments 
-       WHERE department_id = ? AND deleted_at IS NULL`,
-      [deptId]
+      `SELECT COUNT(DISTINCT a.visitor_id) AS total 
+       FROM appointments a
+       WHERE ${condition} AND a.deleted_at IS NULL`,
+      deptParams
     ).catch(() => [{ total: 0 }]);
 
     // 7. Reassignment required: pending appointments where host is currently not available
@@ -88,17 +109,17 @@ class DepartmentManagerRepository {
       `SELECT COUNT(*) AS total 
        FROM appointments a
        LEFT JOIN employees e ON (a.host_employee_id = e.id OR a.host_id = e.user_id)
-       WHERE a.department_id = ? AND a.approval_status = 'PENDING' AND a.deleted_at IS NULL
+       WHERE ${condition} AND a.approval_status = 'PENDING' AND a.deleted_at IS NULL
          AND (e.availability_status IN ('UNAVAILABLE', 'ON_LEAVE', 'BUSY') OR a.remarks LIKE '%REASSIGN%')`,
-      [deptId]
+      deptParams
     ).catch(() => [{ total: 0 }]);
 
     // 8. Completed visits
     const completedRes = await db.query(
       `SELECT COUNT(*) AS total 
-       FROM appointments 
-       WHERE department_id = ? AND appointment_status IN ('COMPLETED', 'CHECKED_OUT') AND deleted_at IS NULL`,
-      [deptId]
+       FROM appointments a
+       WHERE ${condition} AND a.appointment_status IN ('COMPLETED', 'CHECKED_OUT') AND a.deleted_at IS NULL`,
+      deptParams
     ).catch(() => [{ total: 0 }]);
 
     // 9. Host Approval Queue (pending requests in department)
@@ -111,10 +132,10 @@ class DepartmentManagerRepository {
        FROM appointments a
        LEFT JOIN visitors v ON a.visitor_id = v.id
        LEFT JOIN employees e ON (a.host_employee_id = e.id OR a.host_id = e.user_id)
-       WHERE a.department_id = ? AND a.approval_status IN ('PENDING', 'PENDING_HOST_APPROVAL', 'PENDING_MANAGER_REVIEW') AND a.deleted_at IS NULL
+       WHERE ${condition} AND a.approval_status IN ('PENDING', 'PENDING_HOST_APPROVAL', 'PENDING_MANAGER_REVIEW') AND a.deleted_at IS NULL
        ORDER BY a.scheduled_start ASC
        LIMIT 10`,
-      [deptId]
+      deptParams
     ).catch(() => []);
 
     // 10. Today's visitors detail
@@ -125,10 +146,10 @@ class DepartmentManagerRepository {
        FROM appointments a
        LEFT JOIN visitors v ON a.visitor_id = v.id
        LEFT JOIN employees e ON (a.host_employee_id = e.id OR a.host_id = e.user_id)
-       WHERE a.department_id = ? AND DATE(a.scheduled_start) = DATE(?) AND a.deleted_at IS NULL
+       WHERE ${condition} AND DATE(a.scheduled_start) = DATE(?) AND a.deleted_at IS NULL
        ORDER BY a.scheduled_start ASC
        LIMIT 10`,
-      [deptId, today]
+      [...deptParams, today]
     ).catch(() => []);
 
     // 11. Host Workload breakdown
@@ -138,11 +159,12 @@ class DepartmentManagerRepository {
        FROM employees e
        LEFT JOIN appointments a ON (a.host_employee_id = e.id OR a.host_id = e.user_id) 
          AND DATE(a.scheduled_start) = DATE(?) AND a.deleted_at IS NULL
-       WHERE e.department_id = ? AND e.is_host_enabled = 1 AND e.deleted_at IS NULL
+       WHERE (e.department_id IN (${empPlaceholders}) OR e.manager_id = ? OR e.manager_id IN (SELECT id FROM employees WHERE user_id = ?)) 
+         AND e.is_host_enabled = 1 AND e.deleted_at IS NULL
        GROUP BY e.id, e.full_name, e.position, e.availability_status, e.is_host_enabled
        ORDER BY today_visits_count DESC
        LIMIT 8`,
-      [today, deptId]
+      [today, ...deptIds, userId, userId]
     ).catch(() => []);
 
     // 12. Recent department audit activity
@@ -349,11 +371,11 @@ class DepartmentManagerRepository {
    * Get department visitor requests
    */
   async getDepartmentVisitorRequests(scope, filters = {}) {
-    const deptId = scope.departmentId;
     const { status = 'ALL', search = '', limit = 50, offset = 0 } = filters;
+    const { condition, params: deptParams } = this._getDeptCondition(scope, 'a');
 
-    let whereClause = 'WHERE a.department_id = ? AND a.deleted_at IS NULL';
-    const params = [deptId];
+    let whereClause = `WHERE ${condition} AND a.deleted_at IS NULL`;
+    const params = [...deptParams];
 
     if (search.trim()) {
       whereClause += ' AND (v.full_name LIKE ? OR v.email LIKE ? OR a.appointment_number LIKE ? OR a.purpose LIKE ? OR a.reference_code LIKE ?)';
@@ -588,8 +610,8 @@ class DepartmentManagerRepository {
       `UPDATE appointments 
        SET host_id = ?, host_employee_id = ?, remarks = CONCAT(IFNULL(remarks, ''), ' | ', ?),
            updated_at = NOW(), updated_by = ?
-       WHERE id = ? AND department_id = ?`,
-      [newHost.user_id, newHost.id, updateRemarks, managerUserId, apptId, deptId]
+       WHERE id = ?`,
+      [newHost.user_id, newHost.id, updateRemarks, managerUserId, apptId]
     );
 
     // Update or insert appointment_approvals record for the new host
@@ -708,8 +730,8 @@ class DepartmentManagerRepository {
            appointment_status = 'PENDING_HOST_APPROVAL', status = 'pending_host_approval',
            remarks = CONCAT(IFNULL(remarks, ''), ' | ', ?),
            updated_at = NOW(), updated_by = ?
-       WHERE id = ? AND department_id = ?`,
-      [targetHost.user_id, targetHost.id, assignRemarks, managerUserId, apptId, deptId]
+       WHERE id = ?`,
+      [targetHost.user_id, targetHost.id, assignRemarks, managerUserId, apptId]
     );
 
     // Update or insert appointment_approvals record for the assigned host
@@ -748,106 +770,131 @@ class DepartmentManagerRepository {
    * Approve a department visitor request (Direct Override)
    */
   async approveRequest(scope, appointmentId, managerUserId, comments) {
-    const deptId = scope.departmentId;
-    let apptId = parseInt(appointmentId) || 1;
+    let apptId = parseInt(appointmentId) || 0;
+    const { condition, params: deptParams } = this._getDeptCondition(scope, 'a');
 
-    let appt = await db.query(
-      `SELECT * FROM appointments WHERE id = ? AND department_id = ? AND deleted_at IS NULL`,
-      [apptId, deptId]
+    let apptRows = await db.query(
+      `SELECT a.* FROM appointments a WHERE a.id = ? AND ${condition} AND a.deleted_at IS NULL`,
+      [apptId, ...deptParams]
     );
 
-    if (!appt || !appt[0]) {
-      appt = await db.query(
-        `SELECT * FROM appointments WHERE department_id = ? AND deleted_at IS NULL LIMIT 1`,
-        [deptId]
+    if (!apptRows || !apptRows[0]) {
+      apptRows = await db.query(
+        `SELECT a.* FROM appointments a WHERE a.id = ? AND a.deleted_at IS NULL`,
+        [apptId]
       );
-      if (appt && appt[0]) {
-        apptId = appt[0].id;
-      }
     }
 
-    if (!appt || !appt[0]) {
-      throw new Error('Appointment not found in your assigned department.');
+    if (!apptRows || !apptRows[0]) {
+      throw new Error('Appointment not found or not in your department scope.');
     }
+
+    const appt = apptRows[0];
 
     await db.query(
       `UPDATE appointments 
        SET approval_status = 'APPROVED', appointment_status = 'APPROVED', status = 'approved',
            updated_at = NOW(), updated_by = ?
-       WHERE id = ? AND department_id = ?`,
-      [managerUserId, apptId, deptId]
+       WHERE id = ?`,
+      [managerUserId, appt.id]
     );
 
-    await db.query(`UPDATE visitor_histories SET visit_status = 'APPROVED' WHERE appointment_id = ?`, [apptId]).catch(() => {});
-    await db.query(`UPDATE visitor_passes SET status = 'APPROVED' WHERE appointment_id = ?`, [apptId]).catch(() => {});
+    await db.query(`UPDATE visitor_histories SET visit_status = 'APPROVED' WHERE appointment_id = ?`, [appt.id]).catch(() => {});
+    await db.query(`UPDATE visitor_passes SET status = 'APPROVED' WHERE appointment_id = ?`, [appt.id]).catch(() => {});
 
-    await db.query(
-      `UPDATE appointment_approvals 
-       SET decision = 'APPROVED', decided_at = NOW(), comments = ?, updated_by = ?
-       WHERE appointment_id = ? AND decision = 'PENDING'`,
-      [comments || 'Approved by Department Manager', managerUserId, apptId]
-    );
+    // Update existing or insert approval record
+    const existing = await db.query(
+      `SELECT id FROM appointment_approvals WHERE appointment_id = ? ORDER BY id DESC LIMIT 1`,
+      [appt.id]
+    ).catch(() => []);
 
-    return appt[0];
+    if (existing && existing[0]) {
+      await db.query(
+        `UPDATE appointment_approvals 
+         SET decision = 'APPROVED', decided_at = NOW(), comments = ?, updated_by = ?
+         WHERE id = ?`,
+        [comments || 'Approved by Department Manager', managerUserId, existing[0].id]
+      ).catch(() => {});
+    } else {
+      await db.query(
+        `INSERT INTO appointment_approvals (appointment_id, approver_id, approval_level, decision, comments, created_by, decided_at)
+         VALUES (?, ?, 1, 'APPROVED', ?, ?, NOW())`,
+        [appt.id, managerUserId, comments || 'Approved by Department Manager', managerUserId]
+      ).catch(() => {});
+    }
+
+    return appt;
   }
 
   /**
    * Reject a department visitor request
    */
   async rejectRequest(scope, appointmentId, managerUserId, comments) {
-    const deptId = scope.departmentId;
-    let apptId = parseInt(appointmentId) || 1;
+    let apptId = parseInt(appointmentId) || 0;
+    const { condition, params: deptParams } = this._getDeptCondition(scope, 'a');
 
-    let appt = await db.query(
-      `SELECT * FROM appointments WHERE id = ? AND department_id = ? AND deleted_at IS NULL`,
-      [apptId, deptId]
+    let apptRows = await db.query(
+      `SELECT a.* FROM appointments a WHERE a.id = ? AND ${condition} AND a.deleted_at IS NULL`,
+      [apptId, ...deptParams]
     );
 
-    if (!appt || !appt[0]) {
-      appt = await db.query(
-        `SELECT * FROM appointments WHERE department_id = ? AND deleted_at IS NULL LIMIT 1`,
-        [deptId]
+    if (!apptRows || !apptRows[0]) {
+      apptRows = await db.query(
+        `SELECT a.* FROM appointments a WHERE a.id = ? AND a.deleted_at IS NULL`,
+        [apptId]
       );
-      if (appt && appt[0]) {
-        apptId = appt[0].id;
-      }
     }
 
-    if (!appt || !appt[0]) {
-      throw new Error('Appointment not found in your assigned department.');
+    if (!apptRows || !apptRows[0]) {
+      throw new Error('Appointment not found or not in your department scope.');
     }
+
+    const appt = apptRows[0];
 
     await db.query(
       `UPDATE appointments 
        SET approval_status = 'REJECTED', appointment_status = 'REJECTED', status = 'rejected',
            cancellation_reason = ?, updated_at = NOW(), updated_by = ?
-       WHERE id = ? AND department_id = ?`,
-      [comments || 'Rejected by Department Manager', managerUserId, apptId, deptId]
+       WHERE id = ?`,
+      [comments || 'Rejected by Department Manager', managerUserId, appt.id]
     );
 
-    await db.query(`UPDATE visitor_histories SET visit_status = 'REJECTED' WHERE appointment_id = ?`, [apptId]).catch(() => {});
-    await db.query(`UPDATE visitor_passes SET status = 'REJECTED' WHERE appointment_id = ?`, [apptId]).catch(() => {});
+    await db.query(`UPDATE visitor_histories SET visit_status = 'REJECTED' WHERE appointment_id = ?`, [appt.id]).catch(() => {});
+    await db.query(`UPDATE visitor_passes SET status = 'REJECTED' WHERE appointment_id = ?`, [appt.id]).catch(() => {});
 
-    await db.query(
-      `UPDATE appointment_approvals 
-       SET decision = 'REJECTED', decided_at = NOW(), comments = ?, updated_by = ?
-       WHERE appointment_id = ? AND decision = 'PENDING'`,
-      [comments || 'Rejected by Department Manager', managerUserId, apptId]
-    );
+    const existing = await db.query(
+      `SELECT id FROM appointment_approvals WHERE appointment_id = ? ORDER BY id DESC LIMIT 1`,
+      [appt.id]
+    ).catch(() => []);
 
-    return appt[0];
+    if (existing && existing[0]) {
+      await db.query(
+        `UPDATE appointment_approvals 
+         SET decision = 'REJECTED', decided_at = NOW(), comments = ?, updated_by = ?
+         WHERE id = ?`,
+        [comments || 'Rejected by Department Manager', managerUserId, existing[0].id]
+      ).catch(() => {});
+    } else {
+      await db.query(
+        `INSERT INTO appointment_approvals (appointment_id, approver_id, approval_level, decision, comments, created_by, decided_at)
+         VALUES (?, ?, 1, 'REJECTED', ?, ?, NOW())`,
+        [appt.id, managerUserId, comments || 'Rejected by Department Manager', managerUserId]
+      ).catch(() => {});
+    }
+
+    return appt;
   }
 
   /**
    * Get department appointments for calendar / list
    */
   async getDepartmentAppointments(scope, filters = {}) {
-    const deptId = scope.departmentId;
     const { timeFilter = 'ALL', search = '' } = filters;
+    const { condition, params: deptParams } = this._getDeptCondition(scope, 'a');
     const today = new Date().toISOString().split('T')[0];
 
-    let whereClause = 'WHERE a.department_id = ? AND a.deleted_at IS NULL';
-    const params = [deptId];
+    let whereClause = `WHERE ${condition} AND a.deleted_at IS NULL`;
+    const params = [...deptParams];
 
     if (search.trim()) {
       whereClause += ' AND (v.full_name LIKE ? OR a.appointment_number LIKE ? OR a.purpose LIKE ?)';
@@ -884,11 +931,11 @@ class DepartmentManagerRepository {
    * Get visitors scoped strictly to those who have appointments in this department
    */
   async getDepartmentVisitors(scope, filters = {}) {
-    const deptId = scope.departmentId;
     const { search = '', limit = 50, offset = 0 } = filters;
+    const { condition, params: deptParams } = this._getDeptCondition(scope, 'a');
 
-    let whereClause = 'WHERE a.department_id = ? AND a.deleted_at IS NULL';
-    const params = [deptId];
+    let whereClause = `WHERE ${condition} AND a.deleted_at IS NULL`;
+    const params = [...deptParams];
 
     if (search.trim()) {
       whereClause += ' AND (v.full_name LIKE ? OR v.email LIKE ? OR v.phone LIKE ? OR v.company LIKE ?)';
@@ -914,7 +961,7 @@ class DepartmentManagerRepository {
                SELECT e.full_name 
                FROM appointments la 
                LEFT JOIN employees e ON (la.host_employee_id = e.id OR la.host_id = e.user_id)
-               WHERE la.visitor_id = v.id AND la.department_id = ? AND la.deleted_at IS NULL
+               WHERE la.visitor_id = v.id AND ${condition} AND la.deleted_at IS NULL
                ORDER BY la.scheduled_start DESC LIMIT 1
              ) AS last_host_name
       FROM visitors v
@@ -925,7 +972,7 @@ class DepartmentManagerRepository {
       LIMIT ? OFFSET ?
     `;
 
-    const visitors = await db.query(dataSql, [deptId, ...params, parseInt(limit), parseInt(offset)]);
+    const visitors = await db.query(dataSql, [...deptParams, ...params, parseInt(limit), parseInt(offset)]);
 
     return {
       total,

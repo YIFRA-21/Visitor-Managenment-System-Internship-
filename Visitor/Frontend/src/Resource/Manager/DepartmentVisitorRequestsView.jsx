@@ -36,123 +36,11 @@ import { useLanguage } from '../../contexts/LanguageContext';
 
 import MetricCard, { dashboardContainerVariants as containerVariants } from './components/ExecutiveMetricCard';
 
-// Robust default dataset so the table is always populated and interactive even when DB is empty
-const DEFAULT_FALLBACK_REQUESTS = [
-  {
-    id: 101,
-    appointment_number: 'APPT-2026-0891',
-    reference_code: 'VMS-ENG-891',
-    visitor_name: 'Elena Rostova',
-    visitor_company: 'Quantum Dynamics Corp.',
-    visitor_email: 'elena.rostova@quantumdyn.com',
-    visitor_phone: '+1 (555) 382-9102',
-    host_name: 'Sarah Connor',
-    host_position: 'Senior Systems Architect',
-    host_employee_id: 12,
-    host_availability: 'AVAILABLE',
-    purpose: 'Quarterly Technical Architecture Review & Cloud Infrastructure Migration',
-    scheduled_start: new Date(Date.now() + 1000 * 60 * 45).toISOString(),
-    scheduled_end: new Date(Date.now() + 1000 * 60 * 120).toISOString(),
-    approval_status: 'PENDING',
-    priority: 'HIGH'
-  },
-  {
-    id: 102,
-    appointment_number: 'APPT-2026-0894',
-    reference_code: 'VMS-OPS-894',
-    visitor_name: 'Marcus Vance',
-    visitor_company: 'Vance Logistics International',
-    visitor_email: 'marcus.v@vancelogistics.co',
-    visitor_phone: '+1 (555) 749-1188',
-    host_name: 'James Reynolds',
-    host_position: 'Operations Lead',
-    host_employee_id: 15,
-    host_availability: 'AVAILABLE',
-    purpose: 'Enterprise Supplier Contract Renegotiation & SLA Alignment Protocol',
-    scheduled_start: new Date(Date.now() + 1000 * 60 * 120).toISOString(),
-    scheduled_end: new Date(Date.now() + 1000 * 60 * 180).toISOString(),
-    approval_status: 'PENDING_HOST_APPROVAL',
-    priority: 'MEDIUM'
-  },
-  {
-    id: 103,
-    appointment_number: 'APPT-2026-0902',
-    reference_code: 'VMS-SEC-902',
-    visitor_name: 'David K. Mercer',
-    visitor_company: 'Aegis Cyber Defense Group',
-    visitor_email: 'd.mercer@aegiscyber.io',
-    visitor_phone: '+1 (555) 891-2309',
-    host_name: 'Dr. Evelyn Reed',
-    host_position: 'Chief Information Security Officer',
-    host_employee_id: 9,
-    host_availability: 'ON_LEAVE',
-    purpose: 'Annual ISO 27001 Security Audit and Physical Perimeter Access Inspection',
-    scheduled_start: new Date(Date.now() + 1000 * 60 * 240).toISOString(),
-    scheduled_end: new Date(Date.now() + 1000 * 60 * 360).toISOString(),
-    approval_status: 'PENDING',
-    priority: 'URGENT'
-  },
-  {
-    id: 104,
-    appointment_number: 'APPT-2026-0915',
-    reference_code: 'VMS-FIN-915',
-    visitor_name: 'Sophia Chen',
-    visitor_company: 'Apex Innovations Financial',
-    visitor_email: 'sophia.chen@apexinnov.org',
-    visitor_phone: '+1 (555) 624-9011',
-    host_name: 'Michael Chang',
-    host_position: 'Financial Planning Director',
-    host_employee_id: 21,
-    host_availability: 'AVAILABLE',
-    purpose: 'Q4 Budget Allocation, CapEx Feasibility Study, and Treasury Consultation',
-    scheduled_start: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-    scheduled_end: new Date(Date.now() + 1000 * 60 * 60 * 26).toISOString(),
-    approval_status: 'APPROVED',
-    priority: 'NORMAL'
-  },
-  {
-    id: 105,
-    appointment_number: 'APPT-2026-0922',
-    reference_code: 'VMS-LEG-922',
-    visitor_name: 'Arthur Pendelton',
-    visitor_company: 'Pendelton & Vance Legal LLP',
-    visitor_email: 'arthur@pendeltonlaw.com',
-    visitor_phone: '+1 (555) 431-8822',
-    host_name: 'Rachel Sterling',
-    host_position: 'Legal Compliance Officer',
-    host_employee_id: 14,
-    host_availability: 'AVAILABLE',
-    purpose: 'Intellectual Property NDA Discussion and Patent Licensing Briefing',
-    scheduled_start: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    scheduled_end: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
-    approval_status: 'REJECTED',
-    priority: 'LOW'
-  },
-  {
-    id: 106,
-    appointment_number: 'APPT-2026-0930',
-    reference_code: 'VMS-TECH-930',
-    visitor_name: 'Lucas Moreau',
-    visitor_company: 'Hexagon Global Cloud',
-    visitor_email: 'l.moreau@hexagonglobal.net',
-    visitor_phone: '+1 (555) 910-3344',
-    host_name: 'Sarah Connor',
-    host_position: 'Senior Systems Architect',
-    host_employee_id: 12,
-    host_availability: 'AVAILABLE',
-    purpose: 'Data Center Colocation Assessment and High-Throughput Fiber Link Testing',
-    scheduled_start: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString(),
-    scheduled_end: new Date(Date.now() + 1000 * 60 * 60 * 50).toISOString(),
-    approval_status: 'PENDING',
-    priority: 'HIGH'
-  }
-];
-
 export default function DepartmentVisitorRequestsView() {
     const { t } = useLanguage();
     // Maintain full department list for real KPI counts and filtered subset for display
-    const [allRequests, setAllRequests] = useState(DEFAULT_FALLBACK_REQUESTS);
-    const [requests, setRequests] = useState(DEFAULT_FALLBACK_REQUESTS);
+    const [allRequests, setAllRequests] = useState([]);
+    const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
@@ -195,10 +83,9 @@ export default function DepartmentVisitorRequestsView() {
             let fetchedItems = [];
             if (requestsRes.status === 'fulfilled' && requestsRes.value) {
                 const res = requestsRes.value;
-                if (res.requests && Array.isArray(res.requests) && res.requests.length > 0) {
-                    fetchedItems = res.requests;
-                } else if (Array.isArray(res) && res.length > 0) {
-                    fetchedItems = res;
+                const reqList = res?.requests || res?.data?.requests || (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+                if (Array.isArray(reqList) && reqList.length > 0) {
+                    fetchedItems = [...reqList];
                 }
             }
 
@@ -219,18 +106,14 @@ export default function DepartmentVisitorRequestsView() {
                 }
             }
 
-            if (fetchedItems.length > 0) {
-                setAllRequests(fetchedItems);
-                setRequests(fetchedItems);
-            } else {
-                setAllRequests(DEFAULT_FALLBACK_REQUESTS);
-                setRequests(DEFAULT_FALLBACK_REQUESTS);
-            }
+            setAllRequests(fetchedItems);
+            setRequests(fetchedItems);
         }
         catch (err) {
-            console.warn('Backend requests fetch failed, maintaining fallback data:', err);
-            setAllRequests(DEFAULT_FALLBACK_REQUESTS);
-            setRequests(DEFAULT_FALLBACK_REQUESTS);
+            console.error('Backend requests fetch failed:', err);
+            setAllRequests([]);
+            setRequests([]);
+            setError(err?.response?.data?.error || err?.message || 'Unable to load department visitor requests.');
         }
         finally {
             setLoading(false);
@@ -587,8 +470,14 @@ export default function DepartmentVisitorRequestsView() {
                 <tbody className="divide-y divide-slate-800/60 text-slate-300">
                   {filteredRequests.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-16 text-center text-slate-500 italic">
-                        No visitor requests match the search query or status filter.
+                      <td colSpan={6} className="py-16 text-center text-slate-400">
+                        <Inbox className="w-10 h-10 mx-auto mb-3 opacity-30 text-slate-500" />
+                        <p className="text-sm font-semibold text-slate-300">No Visitor Requests Found</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {search || statusFilter !== 'ALL'
+                            ? 'No visitor requests match the search query or status filter.'
+                            : 'There are currently no visitor requests logged for your department.'}
+                        </p>
                       </td>
                     </tr>
                   ) : (
@@ -789,7 +678,18 @@ export default function DepartmentVisitorRequestsView() {
           ) : (
             /* ── RESPONSIVE CARDS VIEW ── */
             <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filteredRequests.map((req) => {
+              {filteredRequests.length === 0 ? (
+                <div className="col-span-full py-16 text-center text-slate-400">
+                  <Inbox className="w-10 h-10 mx-auto mb-3 opacity-30 text-slate-500" />
+                  <p className="text-sm font-semibold text-slate-300">No Visitor Requests Found</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {search || statusFilter !== 'ALL'
+                      ? 'No visitor requests match the search query or status filter.'
+                      : 'There are currently no visitor requests logged for your department.'}
+                  </p>
+                </div>
+              ) : (
+                filteredRequests.map((req) => {
                 const isHostUnavail = req.host_availability !== 'AVAILABLE';
                 const isPending = req.approval_status === 'PENDING';
                 const isAwaitingHost = req.approval_status === 'PENDING_HOST_APPROVAL';
@@ -956,7 +856,7 @@ export default function DepartmentVisitorRequestsView() {
                     </div>
                   </div>
                 );
-              })}
+              }))}
             </div>
           )}
         </div>

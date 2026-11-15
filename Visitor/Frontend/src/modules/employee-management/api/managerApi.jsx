@@ -32,7 +32,7 @@ export const managerApi = {
     // 4. Visitor Requests
     getVisitorRequests: async (params) => {
         const res = await api.get('/manager/visitor-requests', { params });
-        return res.data;
+        return res.data?.data || res.data;
     },
     getRequestDetails: async (id) => {
         const res = await api.get(`/manager/visitor-requests/${id}`);
@@ -63,7 +63,7 @@ export const managerApi = {
     // 5. Appointments & Meetings
     getAppointments: async (params) => {
         const res = await api.get('/manager/appointments', { params });
-        return res.data.data;
+        return res.data?.data || res.data;
     },
     getAppointmentDetails: async (id) => {
         const res = await api.get(`/manager/appointments/${id}`);
@@ -84,7 +84,7 @@ export const managerApi = {
     // 6. Department Visitors
     getVisitors: async (params) => {
         const res = await api.get('/manager/visitors', { params });
-        return res.data;
+        return res.data?.data || res.data;
     },
     // 7. Reports
     getReports: async (type) => {

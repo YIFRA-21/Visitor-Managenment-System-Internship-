@@ -38,109 +38,9 @@ import { managerApi } from '../../modules/employee-management/api/managerApi';
 import { useLanguage } from '../../contexts/LanguageContext';
 import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMetricCard';
 
-// Robust default mock data ensuring table & dashboard are always populated and interactive
-const DEFAULT_FALLBACK_VISITORS = [
-  {
-    id: 101,
-    visitor_code: 'VIS-2026-0891',
-    full_name: 'Elena Rostova',
-    email: 'elena.rostova@quantumdyn.com',
-    phone: '+1 (555) 382-9102',
-    company: 'Quantum Dynamics Corp.',
-    photo_url: '',
-    registration_status: 'ACTIVE',
-    status: 'ACTIVE',
-    department_visits_count: 5,
-    last_visit_date: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-    last_host_name: 'Sarah Connor',
-    is_onsite_today: true,
-    is_vip: true
-  },
-  {
-    id: 102,
-    visitor_code: 'VIS-2026-0894',
-    full_name: 'Marcus Vance',
-    email: 'marcus.v@vancelogistics.co',
-    phone: '+1 (555) 749-1188',
-    company: 'Vance Logistics International',
-    photo_url: '',
-    registration_status: 'ACTIVE',
-    status: 'ACTIVE',
-    department_visits_count: 3,
-    last_visit_date: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // Yesterday
-    last_host_name: 'James Reynolds',
-    is_onsite_today: false,
-    is_vip: false
-  },
-  {
-    id: 103,
-    visitor_code: 'VIS-2026-0902',
-    full_name: 'David K. Mercer',
-    email: 'd.mercer@aegiscyber.io',
-    phone: '+1 (555) 891-2309',
-    company: 'Aegis Cyber Defense Group',
-    photo_url: '',
-    registration_status: 'VERIFIED',
-    status: 'ACTIVE',
-    department_visits_count: 8,
-    last_visit_date: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
-    last_host_name: 'Dr. Evelyn Reed',
-    is_onsite_today: true,
-    is_vip: true
-  },
-  {
-    id: 104,
-    visitor_code: 'VIS-2026-0915',
-    full_name: 'Sophia Chen',
-    email: 'sophia.chen@apexinnov.org',
-    phone: '+1 (555) 624-9011',
-    company: 'Apex Innovations Financial',
-    photo_url: '',
-    registration_status: 'ACTIVE',
-    status: 'ACTIVE',
-    department_visits_count: 4,
-    last_visit_date: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
-    last_host_name: 'Michael Chang',
-    is_onsite_today: false,
-    is_vip: false
-  },
-  {
-    id: 105,
-    visitor_code: 'VIS-2026-0922',
-    full_name: 'Arthur Pendelton',
-    email: 'arthur@pendeltonlaw.com',
-    phone: '+1 (555) 431-8822',
-    company: 'Pendelton & Vance Legal LLP',
-    photo_url: '',
-    registration_status: 'PENDING_REVIEW',
-    status: 'PENDING',
-    department_visits_count: 1,
-    last_visit_date: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),
-    last_host_name: 'Rachel Sterling',
-    is_onsite_today: false,
-    is_vip: false
-  },
-  {
-    id: 106,
-    visitor_code: 'VIS-2026-0930',
-    full_name: 'Lucas Moreau',
-    email: 'l.moreau@hexagonglobal.net',
-    phone: '+1 (555) 910-3344',
-    company: 'Hexagon Global Cloud',
-    photo_url: '',
-    registration_status: 'ACTIVE',
-    status: 'ACTIVE',
-    department_visits_count: 6,
-    last_visit_date: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    last_host_name: 'Sarah Connor',
-    is_onsite_today: true,
-    is_vip: false
-  }
-];
-
 export default function DepartmentVisitorsView() {
     const { t } = useLanguage();
-    const [visitors, setVisitors] = useState(DEFAULT_FALLBACK_VISITORS);
+    const [visitors, setVisitors] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
@@ -161,17 +61,13 @@ export default function DepartmentVisitorsView() {
         setError('');
         try {
             const res = await managerApi.getVisitors({ search });
-            if (res && res.visitors && Array.isArray(res.visitors) && res.visitors.length > 0) {
-                setVisitors(res.visitors);
-            } else if (res && Array.isArray(res) && res.length > 0) {
-                setVisitors(res);
-            } else {
-                setVisitors(DEFAULT_FALLBACK_VISITORS);
-            }
+            const list = res?.visitors || res?.data?.visitors || (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+            setVisitors(Array.isArray(list) ? list : []);
         }
         catch (err) {
-            console.warn('Backend visitors query failed, using department fallback data:', err);
-            setVisitors(DEFAULT_FALLBACK_VISITORS);
+            console.error('Backend visitors query failed:', err);
+            setVisitors([]);
+            setError(err?.response?.data?.error || err?.message || 'Failed to fetch visitors.');
         }
         finally {
             setLoading(false);

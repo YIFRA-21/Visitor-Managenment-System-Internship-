@@ -62,76 +62,9 @@ export default function DepartmentAuditLogsView() {
     fetchLogs();
   }, []);
 
-  // Robust fallback data if DB audit logs are empty
   const activeLogs = useMemo(() => {
     if (logs && logs.length > 0) return logs;
-    return [
-      {
-        id: 1,
-        action: 'APPROVE_VISIT_REQUEST',
-        module: 'APPROVALS',
-        actor_name: 'Sishaw Kefene Elfagd',
-        actor_role: 'MANAGER',
-        entity: 'appointments',
-        record_id: 101,
-        details: 'Manager approved visit request for Elena Rostova (Quantum Dynamics Corp.)',
-        created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-        ip_address: '192.168.1.45',
-        new_values: { status: 'APPROVED', approved_by: 'Sishaw Kefene Elfagd', note: 'Cleared for engineering briefing' }
-      },
-      {
-        id: 2,
-        action: 'HOST_REASSIGNMENT',
-        module: 'DEPARTMENT',
-        actor_name: 'Sishaw Kefene Elfagd',
-        actor_role: 'MANAGER',
-        entity: 'appointments',
-        record_id: 102,
-        details: 'Reassigned appointment VMS-ENG-892 from Dr. Aris to Yirga Mengesha',
-        created_at: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
-        ip_address: '192.168.1.45',
-        new_values: { previous_host_id: 4, new_host_id: 2, reason: 'Duty schedule overlap' }
-      },
-      {
-        id: 3,
-        action: 'SECURITY_BADGE_ISSUED',
-        module: 'APPOINTMENTS',
-        actor_name: 'Security Gate 1',
-        actor_role: 'SECURITY_OFFICER',
-        entity: 'visitor_passes',
-        record_id: 884,
-        details: 'Printed RFID visitor pass VMS-PASS-992 with Zone B access clearance',
-        created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-        ip_address: '10.0.4.12',
-        new_values: { pass_code: 'VMS-PASS-992', clearance: 'ZONE_B', expires_at: '18:00' }
-      },
-      {
-        id: 4,
-        action: 'POLICY_OVERRIDE',
-        module: 'DEPARTMENT',
-        actor_name: 'Sishaw Kefene Elfagd',
-        actor_role: 'MANAGER',
-        entity: 'department_policies',
-        record_id: 1,
-        details: 'Approved temporary visitor duration extension from 2h to 4h',
-        created_at: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-        ip_address: '192.168.1.45',
-        new_values: { max_duration_hours: 4, authorized_by: 'Department Head' }
-      },
-      {
-        id: 5,
-        action: 'DECLINE_VISIT_REQUEST',
-        module: 'APPROVALS',
-        actor_name: 'Sishaw Kefene Elfagd',
-        actor_role: 'MANAGER',
-        entity: 'appointments',
-        record_id: 99,
-        details: 'Declined unverified outside vendor request VMS-SEC-091',
-        created_at: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-        ip_address: '192.168.1.45',
-        new_values: { status: 'REJECTED', reason: 'Missing corporate liability credentials' }
-      },
-    ];
+    return [];
   }, [logs]);
 
   // Dynamic Audit KPI Counts

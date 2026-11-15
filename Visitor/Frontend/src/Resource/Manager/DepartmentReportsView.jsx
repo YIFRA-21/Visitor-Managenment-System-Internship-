@@ -89,29 +89,18 @@ export default function DepartmentReportsView() {
     fetchReports();
   }, [timeRange]);
 
-  // Fallback sample data if DB has empty report records
   const statusCounts = useMemo(() => {
     if (reports?.statusCounts && reports.statusCounts.length > 0) {
       return reports.statusCounts;
     }
-    return [
-      { appointment_status: 'APPROVED', approval_status: 'APPROVED', count: 1 },
-      { appointment_status: 'CANCELLED', approval_status: 'PENDING', count: 6 },
-      { appointment_status: 'CANCELLED', approval_status: 'APPROVED', count: 2 },
-      { appointment_status: 'REQUESTED', approval_status: 'PENDING', count: 7 },
-    ];
+    return [];
   }, [reports]);
 
   const hostWorkloads = useMemo(() => {
     if (reports?.hostWorkloads && reports.hostWorkloads.length > 0) {
       return reports.hostWorkloads;
     }
-    return [
-      { id: 1, full_name: 'System Admin', total_appointments: 9, completed_appointments: 0 },
-      { id: 2, full_name: 'Yirga Mengesha Tesema', total_appointments: 3, completed_appointments: 1 },
-      { id: 3, full_name: 'Mengesh Beletew Asefa', total_appointments: 2, completed_appointments: 1 },
-      { id: 4, full_name: 'Department Manager', total_appointments: 2, completed_appointments: 0 },
-    ];
+    return [];
   }, [reports]);
 
   const recentVolume = useMemo(() => {
@@ -131,16 +120,7 @@ export default function DepartmentReportsView() {
         };
       });
     }
-    // Realistic weekly volume fallback
-    return [
-      { date: 'Sun, 10/11', visits: 1 },
-      { date: 'Mon, 10/12', visits: 2 },
-      { date: 'Tue, 10/13', visits: 0 },
-      { date: 'Wed, 10/14', visits: 1 },
-      { date: 'Thu, 10/15', visits: 4 },
-      { date: 'Fri, 10/16', visits: 3 },
-      { date: 'Sat, 10/17', visits: 5 }
-    ];
+    return [];
   }, [reports]);
 
   // Aggregate KPI Calculations

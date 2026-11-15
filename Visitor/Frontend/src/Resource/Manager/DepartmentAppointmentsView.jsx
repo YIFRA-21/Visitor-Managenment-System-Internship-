@@ -46,134 +46,7 @@ import MetricCard, { dashboardContainerVariants } from './components/ExecutiveMe
 import useResponseNavigation from '../../modules/response/useResponseNavigation';
 import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
 
-// Robust default mock data when database has empty records or offline
-const DEFAULT_FALLBACK_MEETINGS = [
-  {
-    id: 101,
-    appointment_number: 'APPT-2026-0891',
-    reference_code: 'VMS-ENG-891',
-    visitor_name: 'Elena Rostova',
-    visitor_company: 'Quantum Dynamics',
-    visitor_email: 'elena.r@quantumdyn.com',
-    visitor_phone: '+1 (555) 382-9102',
-    host_name: 'Sarah Connor',
-    host_position: 'Senior Systems Architect',
-    host_employee_id: 12,
-    purpose: 'Quarterly Technical Architecture Review & Cloud Migration',
-    meeting_type: 'Technical Review',
-    priority: 'HIGH',
-    room_id: 1,
-    room_name: 'Conference Room Alpha (Floor 3)',
-    room_capacity: 14,
-    scheduled_start: new Date(Date.now() + 1000 * 60 * 30).toISOString(), // starts in 30 mins
-    scheduled_end: new Date(Date.now() + 1000 * 60 * 120).toISOString(),
-    status: 'CONFIRMED',
-    appointment_status: 'CONFIRMED',
-    approval_status: 'APPROVED',
-    is_vip: true,
-    expected_attendees: 4
-  },
-  {
-    id: 102,
-    appointment_number: 'APPT-2026-0894',
-    reference_code: 'VMS-OPS-894',
-    visitor_name: 'Marcus Vance',
-    visitor_company: 'Vance Logistics Ltd.',
-    visitor_email: 'marcus@vancelogistics.co',
-    visitor_phone: '+1 (555) 749-1188',
-    host_name: 'James Reynolds',
-    host_position: 'Operations Lead',
-    host_employee_id: 15,
-    purpose: 'Supplier Contract Renegotiation & SLA Alignment',
-    meeting_type: 'Client & Vendor',
-    priority: 'MEDIUM',
-    room_id: 2,
-    room_name: 'Boardroom Gemini (Floor 4)',
-    room_capacity: 22,
-    scheduled_start: new Date(Date.now() - 1000 * 60 * 20).toISOString(), // currently active
-    scheduled_end: new Date(Date.now() + 1000 * 60 * 40).toISOString(),
-    status: 'IN_PROGRESS',
-    appointment_status: 'IN_PROGRESS',
-    approval_status: 'APPROVED',
-    is_vip: false,
-    expected_attendees: 6
-  },
-  {
-    id: 103,
-    appointment_number: 'APPT-2026-0902',
-    reference_code: 'VMS-SEC-902',
-    visitor_name: 'David K. Mercer',
-    visitor_company: 'Aegis Cyber Defense',
-    visitor_email: 'd.mercer@aegiscyber.io',
-    visitor_phone: '+1 (555) 891-2309',
-    host_name: 'Dr. Evelyn Reed',
-    host_position: 'Chief Information Security Officer',
-    host_employee_id: 9,
-    purpose: 'Annual ISO 27001 Security Audit and Physical Access Inspection',
-    meeting_type: 'Audit & Compliance',
-    priority: 'URGENT',
-    room_id: 3,
-    room_name: 'Executive Briefing Center (Floor 5)',
-    room_capacity: 10,
-    scheduled_start: new Date(Date.now() + 1000 * 60 * 60 * 4).toISOString(), // in 4 hours
-    scheduled_end: new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString(),
-    status: 'CONFIRMED',
-    appointment_status: 'CONFIRMED',
-    approval_status: 'APPROVED',
-    is_vip: true,
-    expected_attendees: 3
-  },
-  {
-    id: 104,
-    appointment_number: 'APPT-2026-0908',
-    reference_code: 'VMS-DEV-908',
-    visitor_name: 'Samantha Wright',
-    visitor_company: 'Apex Design Collective',
-    visitor_email: 'sam@apexdesign.studio',
-    visitor_phone: '+1 (555) 412-8871',
-    host_name: 'Michael Torres',
-    host_position: 'Product Design Lead',
-    host_employee_id: 18,
-    purpose: 'Design System Sprint Kickoff & UX Prototype Walkthrough',
-    meeting_type: 'Sprint Planning',
-    priority: 'STANDARD',
-    room_id: 4,
-    room_name: 'Innovation Hub (Floor 2)',
-    room_capacity: 8,
-    scheduled_start: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // tomorrow
-    scheduled_end: new Date(Date.now() + 1000 * 60 * 60 * 26).toISOString(),
-    status: 'PENDING_HOST_APPROVAL',
-    appointment_status: 'PENDING_HOST_APPROVAL',
-    approval_status: 'PENDING',
-    is_vip: false,
-    expected_attendees: 5
-  },
-  {
-    id: 105,
-    appointment_number: 'APPT-2026-0870',
-    reference_code: 'VMS-FIN-870',
-    visitor_name: 'Jordan Miller',
-    visitor_company: 'Pinnacle Analytics',
-    visitor_email: 'jordan@pinnacle.org',
-    visitor_phone: '+1 (555) 601-3444',
-    host_name: 'Sarah Connor',
-    host_position: 'Senior Systems Architect',
-    host_employee_id: 12,
-    purpose: 'Financial Data Pipeline Integration Review',
-    meeting_type: 'Technical Sync',
-    priority: 'MEDIUM',
-    room_id: 1,
-    room_name: 'Conference Room Alpha (Floor 3)',
-    room_capacity: 14,
-    scheduled_start: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(), // yesterday
-    scheduled_end: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
-    status: 'COMPLETED',
-    appointment_status: 'COMPLETED',
-    approval_status: 'APPROVED',
-    is_vip: false,
-    expected_attendees: 2
-  }
-];
+const DEFAULT_FALLBACK_MEETINGS = [];
 
 const DEFAULT_ROOMS = [
   { id: 1, name: 'Conference Room Alpha', floor: 'Floor 3', capacity: 14, amenities: ['4K Video Bar', 'Dual Screen', 'Whiteboard', 'AirPlay'], status: 'Available' },
@@ -254,13 +127,13 @@ export default function DepartmentAppointmentsView() {
           timeFilter: timeFilter !== 'ALL' ? timeFilter : undefined,
           search
         });
-        if (Array.isArray(data) && data.length > 0) {
-          apptList = data;
-        } else {
-          apptList = DEFAULT_FALLBACK_MEETINGS;
+        const list = Array.isArray(data) ? data : (data?.appointments || data?.data || []);
+        if (Array.isArray(list)) {
+          apptList = list;
         }
       } catch (e) {
-        apptList = DEFAULT_FALLBACK_MEETINGS;
+        console.warn('Failed to load appointments:', e);
+        apptList = [];
       }
       setAppointments(apptList);
 
@@ -277,18 +150,14 @@ export default function DepartmentAppointmentsView() {
       // 3. Fetch department employees/hosts
       try {
         const empData = await managerApi.getEmployees();
-        if (Array.isArray(empData) && empData.length > 0) {
-          setEmployees(empData);
+        const list = Array.isArray(empData) ? empData : (empData?.employees || empData?.data || []);
+        if (Array.isArray(list)) {
+          setEmployees(list);
         } else {
-          setEmployees([
-            { id: 12, full_name: 'Sarah Connor', position: 'Senior Systems Architect', availability_status: 'AVAILABLE' },
-            { id: 15, full_name: 'James Reynolds', position: 'Operations Lead', availability_status: 'BUSY' },
-            { id: 9, full_name: 'Dr. Evelyn Reed', position: 'CISO', availability_status: 'AVAILABLE' },
-            { id: 18, full_name: 'Michael Torres', position: 'Product Design Lead', availability_status: 'AVAILABLE' }
-          ]);
+          setEmployees([]);
         }
       } catch (e) {
-        // fallback employees
+        setEmployees([]);
       }
     } catch (err) {
       setError(err?.message || 'Failed to load meeting management data');
