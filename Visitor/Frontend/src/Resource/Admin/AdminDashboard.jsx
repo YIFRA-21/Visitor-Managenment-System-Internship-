@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Users, Clock, CheckCircle, TrendingUp, Activity, Plus, UserCheck, Shield, FileText, Building, ArrowUpRight, ArrowRight, AlertCircle, RefreshCw, Zap, Sparkles, Layers, Radio, Briefcase, Bell, Cpu, Lock, AlertTriangle, Server, Database, Mail, MessageSquare, Workflow } from 'lucide-react';
+import { Calendar, Users, Clock, CheckCircle, TrendingUp, Activity, Plus, UserCheck, Shield, FileText, Building, ArrowUpRight, ArrowRight, AlertCircle, RefreshCw, Zap, Sparkles, Layers, Radio, Briefcase, Bell, Cpu, Lock, AlertTriangle, Server, Database, Mail, MessageSquare, Workflow, Key, Settings } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../../services/api';
 import { ADMIN_ROUTES } from '../../config/routes';
@@ -767,62 +767,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ───────────────────────────────────────────────────────────────────────
-            ROW 3: REAL-TIME AUDIT TRAIL
-            ─────────────────────────────────────────────────────────────────────── */}
-      <div className="w-full">
-
-        {/* Real-Time Audit Feed */}
-        <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between relative overflow-hidden transition-all duration-300 group">
-          {/* SOLID VERTICAL LEFT BAR WITH GLOW & FILL EXPANSION ON HOVER */}
-          <div style={{
-            backgroundColor: '#06b6d4',
-            boxShadow: '0 0 12px rgba(6, 182, 212, 0.4)',
-        }} className="absolute left-0 top-0 bottom-0 w-[6px] rounded-l-2xl transition-all duration-300 group-hover:w-[10px] z-10"/>
-
-          <div className="border-b border-slate-200 dark:border-slate-800/80 pb-4 mb-4 flex justify-between items-center relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-11 rounded-full border border-slate-300 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-sm shrink-0">
-                <Radio className="h-5 w-5 animate-pulse"/>
-              </div>
-              <div>
-                <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-200">
-                  Real-Time Audit Feed
-                </h3>
-                <p className="text-[10px] text-slate-500 mt-0.5 font-semibold">Active monitor system audit trail</p>
-              </div>
-            </div>
-            <button onClick={() => navigate(ADMIN_ROUTES.AUDIT_LOGS)} className="text-[10px] font-black text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 uppercase tracking-widest flex items-center gap-1 cursor-pointer">
-              <span>Audit Logs</span>
-              <ArrowUpRight className="h-3 w-3"/>
-            </button>
-          </div>
-
-          <div className="space-y-3 flex-1 max-h-[300px] overflow-y-auto pr-1 relative z-10">
-            {Array.isArray(data?.realTimeActivity) && data.realTimeActivity.length > 0 ? (data.realTimeActivity.map((a, i) => (<div key={i} className="flex gap-3 items-start bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800/60">
-                  <div className="mt-1 shrink-0">
-                    <span className={`h-2.5 w-2.5 rounded-full block ${a?.type === 'check-in' ? 'bg-blue-400 animate-pulse' :
-                a?.type === 'check-out' ? 'bg-emerald-400' :
-                    a?.type === 'request' ? 'bg-purple-400' :
-                        'bg-amber-400'}`}/>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-800 dark:text-slate-200 font-semibold mb-0 leading-normal truncate">{a?.message || 'System Action'}</p>
-                    <span className="text-[9px] text-slate-500 font-mono mt-0.5 block">{a?.time || 'Just now'}</span>
-                  </div>
-                </div>))) : (<div className="text-center py-12 text-slate-500 text-xs font-semibold">
-                <Radio className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-500"/>
-                No active audit events recorded.
-              </div>)}
-          </div>
-        </motion.div>
-
-      </div>
-
-      {/* ───────────────────────────────────────────────────────────────────────
-            ROW 5: QUICK ACTION SHORTCUTS (ADMINISTRATOR-AUTHORIZED ONLY)
-            ─────────────────────────────────────────────────────────────────────── */}
-      {/* ───────────────────────────────────────────────────────────────────────
-            ROW 5: QUICK ACTION SHORTCUTS (ADMINISTRATOR-AUTHORIZED ONLY)
+            ROW 3: QUICK ACTION SHORTCUTS (ADMINISTRATOR-AUTHORIZED ONLY)
             ─────────────────────────────────────────────────────────────────────── */}
       <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="bg-[#0b1220] border border-slate-800 hover:border-indigo-500/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden transition-all duration-300 group">
         {/* SOLID VERTICAL LEFT BAR WITH GLOW & FILL EXPANSION ON HOVER */}
@@ -845,9 +790,9 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 relative z-10">
-          <button onClick={() => navigate(ADMIN_ROUTES.USERS)} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 rounded-xl transition-all group text-left">
-            <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-3 relative z-10">
+          <button onClick={() => navigate('/admin/dashboard?view=users')} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 rounded-xl transition-all group text-left">
+            <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform shrink-0">
               <Users className="h-4 w-4"/>
             </div>
             <div className="truncate">
@@ -860,8 +805,8 @@ export default function AdminDashboard() {
             </div>
           </button>
 
-          <button onClick={() => navigate(ADMIN_ROUTES.ROLES)} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 rounded-xl transition-all group text-left">
-            <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+          <button onClick={() => navigate('/admin/dashboard?view=roles')} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 rounded-xl transition-all group text-left">
+            <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform shrink-0">
               <Lock className="h-4 w-4"/>
             </div>
             <div className="truncate">
@@ -869,13 +814,27 @@ export default function AdminDashboard() {
                 {language === 'am' ? 'ሚናዎች & RBAC' : 'Roles & RBAC'}
               </span>
               <span className="text-[9px] text-slate-500 block truncate font-medium">
-                {language === 'am' ? 'ፍቃዶች' : 'Permissions'}
+                {language === 'am' ? 'የሚና ማውጫ' : 'Role Directory'}
               </span>
             </div>
           </button>
 
-          <button onClick={() => navigate(ADMIN_ROUTES.ORGANIZATIONS)} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-purple-500/50 rounded-xl transition-all group text-left">
-            <div className="p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
+          <button onClick={() => navigate('/admin/dashboard?view=permissions')} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 rounded-xl transition-all group text-left">
+            <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform shrink-0">
+              <Key className="h-4 w-4"/>
+            </div>
+            <div className="truncate">
+              <span className="text-[10px] font-black text-slate-900 dark:text-white block uppercase tracking-wider truncate">
+                {language === 'am' ? 'ፍቃዶች' : 'Permissions'}
+              </span>
+              <span className="text-[9px] text-slate-500 block truncate font-medium">
+                {language === 'am' ? 'የፍቃድ ማትሪክስ' : 'Access Matrix'}
+              </span>
+            </div>
+          </button>
+
+          <button onClick={() => navigate('/admin/dashboard?view=organizations')} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-purple-500/50 rounded-xl transition-all group text-left">
+            <div className="p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform shrink-0">
               <Building className="h-4 w-4"/>
             </div>
             <div className="truncate">
@@ -888,8 +847,8 @@ export default function AdminDashboard() {
             </div>
           </button>
 
-          <button onClick={() => navigate(ADMIN_ROUTES.VISITORS)} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 rounded-xl transition-all group text-left">
-            <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+          <button onClick={() => navigate('/admin/dashboard?view=visitors')} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 rounded-xl transition-all group text-left">
+            <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform shrink-0">
               <UserCheck className="h-4 w-4"/>
             </div>
             <div className="truncate">
@@ -902,22 +861,22 @@ export default function AdminDashboard() {
             </div>
           </button>
 
-          <button onClick={() => navigate(ADMIN_ROUTES.SECURITY)} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 rounded-xl transition-all group text-left">
-            <div className="p-2 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-600 dark:text-cyan-400 group-hover:scale-110 transition-transform">
-              <Shield className="h-4 w-4"/>
+          <button onClick={() => navigate('/admin/dashboard?view=employee_management')} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 rounded-xl transition-all group text-left">
+            <div className="p-2 bg-teal-500/10 border border-teal-500/20 rounded-lg text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform shrink-0">
+              <Briefcase className="h-4 w-4"/>
             </div>
             <div className="truncate">
               <span className="text-[10px] font-black text-slate-900 dark:text-white block uppercase tracking-wider truncate">
-                {language === 'am' ? 'የደህንነት ቁጥጥር' : 'Security SOC'}
+                {language === 'am' ? 'ሰራተኞች' : 'Employees'}
               </span>
               <span className="text-[9px] text-slate-500 block truncate font-medium">
-                {language === 'am' ? 'የክትትል ዝርዝር' : 'Watchlists & Alerts'}
+                {language === 'am' ? 'የሰራተኞች ማውጫ' : 'Staff Directory'}
               </span>
             </div>
           </button>
 
-          <button onClick={() => navigate(ADMIN_ROUTES.NOTIFICATIONS)} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-pink-500/50 rounded-xl transition-all group text-left">
-            <div className="p-2 bg-pink-500/10 border border-pink-500/20 rounded-lg text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform">
+          <button onClick={() => navigate('/admin/dashboard?view=notifications')} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-pink-500/50 rounded-xl transition-all group text-left">
+            <div className="p-2 bg-pink-500/10 border border-pink-500/20 rounded-lg text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform shrink-0">
               <Zap className="h-4 w-4"/>
             </div>
             <div className="truncate">
@@ -926,6 +885,20 @@ export default function AdminDashboard() {
               </span>
               <span className="text-[9px] text-slate-500 block truncate font-medium">
                 {language === 'am' ? 'የማሳወቂያ ማዕከል' : 'Engine Center'}
+              </span>
+            </div>
+          </button>
+
+          <button onClick={() => navigate('/admin/dashboard?view=settings')} className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 rounded-xl transition-all group text-left">
+            <div className="p-2 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-600 dark:text-cyan-400 group-hover:scale-110 transition-transform shrink-0">
+              <Settings className="h-4 w-4"/>
+            </div>
+            <div className="truncate">
+              <span className="text-[10px] font-black text-slate-900 dark:text-white block uppercase tracking-wider truncate">
+                {language === 'am' ? 'ቅንብሮች' : 'System Settings'}
+              </span>
+              <span className="text-[9px] text-slate-500 block truncate font-medium">
+                {language === 'am' ? 'የስርዓት ውቅር' : 'Configuration'}
               </span>
             </div>
           </button>

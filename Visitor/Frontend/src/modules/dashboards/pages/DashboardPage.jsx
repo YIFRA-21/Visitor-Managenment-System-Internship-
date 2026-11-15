@@ -269,6 +269,14 @@ export default function DashboardPage() {
             return 'hierarchy_validation';
         if (pathname.includes('/hierarchy-statistics') || pathname.includes('/hierarchy_statistics'))
             return 'hierarchy_statistics';
+        if (pathname.includes('/users'))
+            return 'users';
+        if (pathname.includes('/roles'))
+            return 'roles';
+        if (pathname.includes('/permissions'))
+            return 'permissions';
+        if (pathname.includes('/audit-logs') || pathname.includes('/audit_logs'))
+            return 'audit_logs';
         if (pathname.includes('/organizations'))
             return 'organizations';
         if (pathname.includes('/branches'))
