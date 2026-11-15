@@ -32,6 +32,7 @@ const tabs = [
 ];
 const statusBadgeMap = {
     ACTIVE: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+    APPROVED: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30' },
     VERIFIED: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/30' },
     PENDING: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/30' },
     INACTIVE: { bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/30' },
@@ -41,6 +42,7 @@ const statusBadgeMap = {
 };
 const verificationBadge = {
     VERIFIED: { color: '#22c55e', icon: <ShieldCheck size={14}/>, label: 'Verified' },
+    APPROVED: { color: '#22c55e', icon: <ShieldCheck size={14}/>, label: 'Verified' },
     PENDING: { color: '#f59e0b', icon: <ShieldQuestion size={14}/>, label: 'Pending' },
     UNVERIFIED: { color: '#64748b', icon: <ShieldAlert size={14}/>, label: 'Unverified' },
     REJECTED: { color: '#ef4444', icon: <ShieldX size={14}/>, label: 'Rejected' },
@@ -1035,7 +1037,7 @@ const VisitorProfileDetails = ({ visitorId, onBack, isVisitorRole = false }) => 
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Identity Status</span>
-                <span className={`font-bold ${profile.id_verification_status === 'VERIFIED' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <span className={`font-bold ${['VERIFIED', 'APPROVED'].includes((profile.id_verification_status || '').toUpperCase()) ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {profile.id_verification_status || 'Unverified'}
                 </span>
               </div>

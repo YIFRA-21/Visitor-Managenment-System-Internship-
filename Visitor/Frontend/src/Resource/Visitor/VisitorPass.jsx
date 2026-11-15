@@ -21,8 +21,44 @@ export default function VisitorPass({ passData, onOpenQRScanner }) {
         let cancelled = false;
         async function fetchLiveAppointment() {
             try {
-                const res = await visitorPortalApi.getAppointments();
-                const appts = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+                let appts = [];
+                try {
+                    const res = await visitorPortalApi.getAppointments();
+                    appts = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+                } catch (e) {
+                    console.warn('[VisitorPass] getAppointments failed:', e);
+                }
+
+                if (appts.length === 0) {
+                    try {
+                        const passRes = await visitorPortalApi.getPasses();
+                        const passes = Array.isArray(passRes?.data) ? passRes.data : (passRes?.data?.data || []);
+                        if (passes.length > 0) {
+                            appts = passes;
+                        }
+                    } catch (_) {}
+                }
+
+                if (appts.length === 0) {
+                    try {
+                        const histRes = await visitorPortalApi.getHistory();
+                        const hists = Array.isArray(histRes?.data) ? histRes.data : (histRes?.data?.data || []);
+                        if (hists.length > 0) {
+                            appts = hists.map(h => ({
+                                ...h,
+                                id: h.appointment_id || h.id,
+                                reference_code: h.reference_number || h.history_code,
+                                approval_status: h.visit_status,
+                                appointment_status: h.visit_status,
+                                status: h.visit_status,
+                                hostName: h.host_employee_name || h.hostName,
+                                purpose: h.visit_purpose || h.purpose,
+                                building_name: h.meeting_location || h.location,
+                            }));
+                        }
+                    } catch (_) {}
+                }
+
                 if (appts.length > 0 && !cancelled) {
                     const targetId = passData?.appointmentId || passData?.referenceNo || passData?.reference_code || passData?.id;
                     const matched = targetId

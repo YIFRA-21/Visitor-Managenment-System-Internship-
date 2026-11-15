@@ -116,6 +116,16 @@ class ApprovalService {
           );
         }
 
+        await tx.execute(
+          `UPDATE visitor_histories SET visit_status = 'REJECTED' WHERE appointment_id = ? OR appointment_number = ? OR reference_number = ?`,
+          [appointment.id, appointment.reference_code || '', appointment.reference_code || '']
+        ).catch(() => []);
+
+        await tx.execute(
+          `UPDATE visitor_passes SET status = 'REJECTED' WHERE appointment_id = ?`,
+          [appointment.id]
+        ).catch(() => []);
+
         // Cancel any remaining steps
         await tx.execute(
           `UPDATE appointment_approvals 
@@ -173,6 +183,16 @@ class ApprovalService {
               [appointment.visitor_id]
             );
           }
+
+          await tx.execute(
+            `UPDATE visitor_histories SET visit_status = 'APPROVED' WHERE appointment_id = ? OR appointment_number = ? OR reference_number = ?`,
+            [appointment.id, appointment.reference_code || '', appointment.reference_code || '']
+          ).catch(() => []);
+
+          await tx.execute(
+            `UPDATE visitor_passes SET status = 'APPROVED' WHERE appointment_id = ?`,
+            [appointment.id]
+          ).catch(() => []);
 
           // Generate digital pass & notify visitor
           try {

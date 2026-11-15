@@ -106,6 +106,7 @@ export default function VisitorAppointments({ departments = [], employees = [], 
             month, day, weekDay,
             date: dateDisplay,
             status, tabCategory,
+            reference_code: a.reference_code || a.appointment_number || a.id,
             title: a.title || a.purpose || '—',
             host: a.host || a.hostName || a.host_name || '—',
             hostName: a.hostName || a.host_name || a.host || '—',
@@ -163,11 +164,30 @@ export default function VisitorAppointments({ departments = [], employees = [], 
             catch (e) { }
             setAppointments(dbRecords.map(normalizeAppt));
         }
-        else if (localAppts.length > 0) {
-            setAppointments(localAppts.map(normalizeAppt));
-        }
         else {
-            setAppointments([]);
+            try {
+                const histRes = await visitorPortalApi.getHistory();
+                const histList = Array.isArray(histRes?.data) ? histRes.data : (histRes?.data?.data || []);
+                if (histList.length > 0 && localAppts.length > 0) {
+                    localAppts = localAppts.map(la => {
+                        const match = histList.find(h => 
+                            (h.reference_number && (h.reference_number === la.reference_code || h.reference_number === la.id)) ||
+                            (h.appointment_number && (h.appointment_number === la.reference_code || h.appointment_number === la.id))
+                        );
+                        if (match && match.visit_status) {
+                            return { ...la, status: match.visit_status, approval_status: match.visit_status };
+                        }
+                        return la;
+                    });
+                }
+            } catch (_) {}
+
+            if (localAppts.length > 0) {
+                setAppointments(localAppts.map(normalizeAppt));
+            }
+            else {
+                setAppointments([]);
+            }
         }
     };
     useEffect(() => {
@@ -445,7 +465,7 @@ export default function VisitorAppointments({ departments = [], employees = [], 
                   <td className="p-3.5">
                     <p className="font-bold text-white">{appt.title}</p>
                     <span className="inline-block mt-1 px-2 py-0.5 rounded text-[9px] font-bold font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                      {appt.id}
+                      {appt.reference_code || appt.appointment_number || appt.id}
                     </span>
                   </td>
 

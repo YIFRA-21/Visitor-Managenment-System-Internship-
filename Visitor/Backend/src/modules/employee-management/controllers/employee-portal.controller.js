@@ -256,7 +256,7 @@ class EmployeePortalController {
         if (action === 'APPROVE') {
           await query(`UPDATE appointments SET status = 'APPROVED', approval_status = 'APPROVED', appointment_status = 'APPROVED', remarks = ? WHERE id = ?`, [commentText, apptId]);
           await query(`UPDATE appointment_approvals SET decision = 'APPROVED', comments = ?, decided_at = NOW() WHERE appointment_id = ?`, [commentText, apptId]).catch(() => []);
-          await query(`UPDATE visitor_histories SET visit_status = 'APPROVED' WHERE appointment_id = ?`, [apptId]).catch(() => []);
+          await query(`UPDATE visitor_histories SET visit_status = 'APPROVED' WHERE appointment_id = ? OR appointment_number = ? OR reference_number = ?`, [apptId, appt.reference_code || '', appt.reference_code || '']).catch(() => []);
           await query(`UPDATE visitor_passes SET status = 'APPROVED' WHERE appointment_id = ?`, [apptId]).catch(() => []);
           if (visitorId) {
             await query(`UPDATE visitors SET registration_status = 'APPROVED', status = 'ACTIVE' WHERE id = ?`, [visitorId]).catch(() => []);
@@ -270,7 +270,7 @@ class EmployeePortalController {
         } else if (action === 'REJECT') {
           await query(`UPDATE appointments SET status = 'REJECTED', approval_status = 'REJECTED', appointment_status = 'REJECTED', remarks = ? WHERE id = ?`, [commentText, apptId]);
           await query(`UPDATE appointment_approvals SET decision = 'REJECTED', comments = ?, decided_at = NOW() WHERE appointment_id = ?`, [commentText, apptId]).catch(() => []);
-          await query(`UPDATE visitor_histories SET visit_status = 'REJECTED' WHERE appointment_id = ?`, [apptId]).catch(() => []);
+          await query(`UPDATE visitor_histories SET visit_status = 'REJECTED' WHERE appointment_id = ? OR appointment_number = ? OR reference_number = ?`, [apptId, appt.reference_code || '', appt.reference_code || '']).catch(() => []);
           await query(`UPDATE visitor_passes SET status = 'REJECTED' WHERE appointment_id = ?`, [apptId]).catch(() => []);
           if (visitorId) {
             await query(`UPDATE visitors SET registration_status = 'REJECTED' WHERE id = ?`, [visitorId]).catch(() => []);
@@ -294,7 +294,7 @@ class EmployeePortalController {
             await query(`UPDATE appointments SET approval_status = 'CANCELLED' WHERE id = ?`, [apptId]).catch(() => []);
           });
           await query(`UPDATE appointment_approvals SET decision = 'CANCELLED', comments = ?, decided_at = NOW() WHERE appointment_id = ?`, [commentText, apptId]).catch(() => []);
-          await query(`UPDATE visitor_histories SET visit_status = 'CANCELLED' WHERE appointment_id = ?`, [apptId]).catch(() => []);
+          await query(`UPDATE visitor_histories SET visit_status = 'CANCELLED' WHERE appointment_id = ? OR appointment_number = ? OR reference_number = ?`, [apptId, appt.reference_code || '', appt.reference_code || '']).catch(() => []);
           await query(`UPDATE visitor_passes SET status = 'CANCELLED' WHERE appointment_id = ?`, [apptId]).catch(() => []);
           if (visitorId) {
             await query(`UPDATE visitors SET registration_status = 'CANCELLED' WHERE id = ?`, [visitorId]).catch(() => []);

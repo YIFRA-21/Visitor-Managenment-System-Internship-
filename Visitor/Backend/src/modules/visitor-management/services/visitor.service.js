@@ -50,15 +50,16 @@ class VisitorService {
                   COALESCE(d.department_name, d.name) as department_name,
                   COALESCE(e.full_name, hu.full_name, u.full_name) as host_name
            FROM appointments a
+           LEFT JOIN visitors v ON a.visitor_id = v.id
            LEFT JOIN organizations o ON a.organization_id = o.id
            LEFT JOIN organization_branches ob ON a.branch_id = ob.id
            LEFT JOIN departments d ON a.department_id = d.id
            LEFT JOIN employees e ON a.host_employee_id = e.id
            LEFT JOIN users hu ON e.user_id = hu.id
            LEFT JOIN users u ON a.host_id = u.id
-           WHERE a.visitor_id = ? OR a.visitor_email = ? OR a.visitor_user_id = ?
+           WHERE a.visitor_id = ? OR a.visitor_user_id = ? OR (v.email = ? AND v.email IS NOT NULL AND v.email != '')
            ORDER BY a.id DESC LIMIT 1`,
-          [visitor.id, visitor.email || '', visitor.user_id || 0]
+          [visitor.id, visitor.user_id || 0, visitor.email || '']
         );
         if (appts && appts[0]) {
           const appt = appts[0];

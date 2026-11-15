@@ -805,6 +805,52 @@ class VisitorRepository {
        ORDER BY vp.created_at DESC`,
       [visitorId]
     );
+
+    if (!rows || rows.length === 0) {
+      const apptRows = await db.query(
+        `SELECT a.id as appointment_id, a.id,
+                a.reference_code, a.scheduled_start, a.scheduled_end,
+                a.expected_duration_minutes,
+                COALESCE(a.status, a.approval_status, 'PENDING') as status,
+                a.status as appointment_status,
+                a.approval_status as appointment_approval_status,
+                CONCAT('VP-', a.id) as pass_code,
+                CONCAT('VP-', a.id) as passNumber,
+                a.qr_token,
+                a.purpose,
+                v.full_name as visitor_name, v.full_name as visitorName,
+                v.email as visitor_email, v.phone as visitor_phone,
+                COALESCE(v.photo_url, u_vis.profile_photo, u_vis.avatar_url) as photo_url,
+                COALESCE(v.photo_url, u_vis.profile_photo, u_vis.avatar_url) as profile_photo,
+                COALESCE(v.photo_url, u_vis.profile_photo, u_vis.avatar_url) as visitor_photo,
+                v.visitor_code as visitor_code, v.visitor_code as visitorCode,
+                COALESCE(v.reference_number, a.reference_code) as reference_number,
+                v.category as visitor_category, v.company as visitor_company,
+                u.full_name as host_name, d.name as department_name, r.room_name,
+                COALESCE(r.building, 'Main Building') as building_name,
+                c.checkin_time, vco.checkout_time
+         FROM appointments a
+         LEFT JOIN visitors v ON a.visitor_id = v.id
+         LEFT JOIN users u_vis ON v.user_id = u_vis.id
+         LEFT JOIN users u ON a.host_id = u.id
+         LEFT JOIN departments d ON a.department_id = d.id
+         LEFT JOIN meeting_rooms r ON a.room_id = r.id
+         LEFT JOIN (
+            SELECT appointment_id, MAX(COALESCE(checked_in_at, entry_time)) as checkin_time, MAX(id) as max_id
+            FROM checkins
+            GROUP BY appointment_id
+         ) c ON c.appointment_id = a.id
+         LEFT JOIN visitor_checkouts vco ON vco.checkin_id = c.max_id
+         WHERE (a.visitor_id = ? OR a.visitor_user_id = ?) AND a.deleted_at IS NULL
+         ORDER BY a.id DESC`,
+        [visitorId, visitorId]
+      ).catch(() => []);
+      if (apptRows && apptRows.length > 0) {
+        rows = apptRows;
+      }
+    }
+
+    return rows;
   }
 
   async getPassById(passId, visitorId) {

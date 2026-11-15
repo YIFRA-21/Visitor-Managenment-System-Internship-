@@ -179,18 +179,20 @@ class VisitorProfileRepository {
       try {
         const appts = await db.query(
           `SELECT a.id, a.organization_id, a.branch_id, a.department_id, a.host_employee_id, a.host_id, a.purpose,
+                  a.status as appointment_status, a.approval_status,
                   o.name as organization_name,
                   ob.branch_name,
                   COALESCE(d.department_name, d.name) as department_name,
                   COALESCE(e.full_name, hu.full_name, u.full_name) as host_name
            FROM appointments a
+           LEFT JOIN visitors v ON a.visitor_id = v.id
            LEFT JOIN organizations o ON a.organization_id = o.id
            LEFT JOIN organization_branches ob ON a.branch_id = ob.id
            LEFT JOIN departments d ON a.department_id = d.id
            LEFT JOIN employees e ON a.host_employee_id = e.id
            LEFT JOIN users hu ON e.user_id = hu.id
            LEFT JOIN users u ON a.host_id = u.id
-           WHERE a.visitor_id = ? OR a.visitor_email = ?
+           WHERE a.visitor_id = ? OR (v.email = ? AND v.email IS NOT NULL AND v.email != '')
            ORDER BY a.id DESC LIMIT 1`,
           [visitorId, visitor.email || '']
         );
@@ -206,6 +208,13 @@ class VisitorProfileRepository {
           visitor.host_employee_name = visitor.host_employee_name || appt.host_name;
           visitor.employee_host = visitor.employee_host || appt.host_name;
           visitor.occupation = visitor.occupation || 'Senior Systems Consultant';
+
+          const apptStat = (appt.approval_status || appt.appointment_status || appt.status || '').toUpperCase();
+          if (apptStat === 'APPROVED' || apptStat === 'CONFIRMED') {
+            visitor.registration_status = 'APPROVED';
+            visitor.status = 'ACTIVE';
+            visitor.id_verification_status = 'VERIFIED';
+          }
         } else {
           if (!visitor.occupation) visitor.occupation = 'Senior Systems Consultant';
         }
