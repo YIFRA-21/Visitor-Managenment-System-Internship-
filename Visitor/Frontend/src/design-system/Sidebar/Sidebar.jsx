@@ -11,33 +11,32 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
 export function resolveSidebarRole(userRole, pathname = '') {
     const r = (userRole || '').toLowerCase().trim();
-    const p = pathname.toLowerCase().trim();
-    if (r === 'admin' ||
-        r === 'super_admin' ||
-        r === 'system_admin' ||
-        r === 'developer' ||
-        r === 'org_admin' ||
-        p.startsWith('/admin')) {
+    if (r === 'admin' || r === 'super_admin' || r === 'system_admin' || r === 'developer' || r === 'org_admin') {
         return 'admin';
     }
-    if (r === 'manager' || r.includes('manager') || p.startsWith('/manager')) {
+    if (r === 'manager' || r === 'department_manager' || r.includes('manager')) {
         return 'manager';
     }
-    if (r === 'receptionist' || r.includes('reception') || p.startsWith('/reception')) {
+    if (r === 'receptionist' || r.includes('reception')) {
         return 'receptionist';
     }
-    if (r === 'security' ||
-        r === 'security_officer' ||
-        r.includes('security') ||
-        p.startsWith('/security')) {
+    if (r === 'security' || r === 'security_officer' || r.includes('security')) {
         return 'security';
     }
-    if (r === 'employee' ||
-        r === 'staff' ||
-        r === 'host' ||
-        p.startsWith('/employee')) {
+    if (r === 'employee' || r === 'staff' || r === 'host') {
         return 'employee';
     }
+    if (r === 'visitor') {
+        return 'visitor';
+    }
+
+    // Pathname fallback only if userRole was not specified
+    const p = pathname.toLowerCase().trim();
+    if (p.startsWith('/admin')) return 'admin';
+    if (p.startsWith('/manager')) return 'manager';
+    if (p.startsWith('/reception')) return 'receptionist';
+    if (p.startsWith('/security')) return 'security';
+    if (p.startsWith('/employee')) return 'employee';
     return 'visitor';
 }
 const roleMetaMap = {

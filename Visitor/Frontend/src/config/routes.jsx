@@ -133,6 +133,7 @@ export function normalizeRole(userOrRole) {
         userObject?.role_name ||
         userObject?.roleName ||
         userObject?.userRole ||
+        userObject?.userType ||
         userObject?.identity?.primaryRole ||
         userObject?.identity?.roles?.[0]?.code ||
         userObject?.identity?.roles?.[0]?.role_code ||
@@ -142,6 +143,25 @@ export function normalizeRole(userOrRole) {
         ''
     ).toLowerCase().trim();
 
+    // 1. Authoritative Role Check (Always takes precedence over code artifacts)
+    if (rawRole) {
+        if (isAdminRole(rawRole)) return 'admin';
+        if (rawRole === 'manager' || rawRole === 'department_manager' || rawRole.includes('manager')) return 'manager';
+        if (rawRole === 'receptionist' || rawRole === 'reception' || rawRole.includes('reception')) return 'receptionist';
+        if (rawRole === 'security_officer' || rawRole === 'security' || rawRole.includes('security')) return 'security';
+        if (
+            rawRole === 'staff' ||
+            rawRole === 'employee' ||
+            rawRole === 'host' ||
+            rawRole === 'employee_host' ||
+            (rawRole.includes('employee') && !rawRole.includes('admin')) ||
+            rawRole.includes('staff') ||
+            rawRole.includes('host')
+        ) return 'employee';
+        if (rawRole === 'visitor' || rawRole.includes('visitor')) return 'visitor';
+    }
+
+    // 2. Fallback to user code or identity prefix indicators if role was not provided
     const userCode = String(
         userObject?.userCode ||
         userObject?.user_code ||
@@ -150,7 +170,6 @@ export function normalizeRole(userOrRole) {
         ''
     ).toUpperCase().trim();
 
-    // 1. User code or identity prefix indicators
     if (userCode.startsWith('DEV') || userCode.startsWith('ADM') || userCode === 'ADMIN') {
         return 'admin';
     }
@@ -170,40 +189,7 @@ export function normalizeRole(userOrRole) {
         return 'visitor';
     }
 
-    // 2. Admin verification
-    if (isAdminRole(rawRole)) {
-        return 'admin';
-    }
-
-    // 3. Manager verification
-    if (rawRole === 'manager' || rawRole === 'department_manager' || rawRole.includes('manager')) {
-        return 'manager';
-    }
-
-    // 4. Receptionist verification
-    if (rawRole === 'receptionist' || rawRole === 'reception' || rawRole.includes('reception')) {
-        return 'receptionist';
-    }
-
-    // 5. Security verification
-    if (rawRole === 'security_officer' || rawRole === 'security' || rawRole.includes('security')) {
-        return 'security';
-    }
-
-    // 6. Employee / Staff / Host verification
-    if (
-        rawRole === 'staff' ||
-        rawRole === 'employee' ||
-        rawRole === 'host' ||
-        rawRole === 'employee_host' ||
-        (rawRole.includes('employee') && !rawRole.includes('admin')) ||
-        rawRole.includes('staff') ||
-        rawRole.includes('host')
-    ) {
-        return 'employee';
-    }
-
-    // 7. Visitor fallback
+    // 3. Final fallback
     return 'visitor';
 }
 

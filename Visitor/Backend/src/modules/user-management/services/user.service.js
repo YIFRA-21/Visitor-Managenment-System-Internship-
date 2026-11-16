@@ -756,6 +756,15 @@ class UserManagementService {
         else if (['visitor'].includes(roleLower)) targetCode = 'VISITOR';
         else if (['manager', 'department_manager'].includes(roleLower)) targetCode = 'MANAGER';
 
+        // Auto-synchronize user_code prefix if transitioning from visitor to a staff/security/manager role
+        if (targetCode !== 'VISITOR' && user.user_code && String(user.user_code).toUpperCase().startsWith('VIS-')) {
+          const freshCode = await this.generateNextUserCode(roleLower);
+          if (freshCode) {
+            fields.push('user_code = ?');
+            params.push(freshCode);
+          }
+        }
+
         const roleRes = await db.query(
           `SELECT id FROM roles WHERE (UPPER(role_code) = ? OR LOWER(role_code) = ? OR LOWER(role_name) = ? OR LOWER(name) = ?) AND deleted_at IS NULL LIMIT 1`,
           [targetCode, roleLower, roleLower, roleLower]

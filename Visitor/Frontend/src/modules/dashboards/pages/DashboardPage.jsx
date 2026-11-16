@@ -3,6 +3,7 @@ import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import DashboardLayout from '../../../components/DashboardLayout';
 import { componentRegistry } from '../../../Resource/registry';
+import { normalizeRole } from '../../../config/routes';
 import { MeetingRoomsView, VisitorReportsView, AppointmentReportsView, ChangePasswordView, } from '../../../components/NavViewsMock';
 import { departmentsApi, roomsApi, } from '../../../services/api';
 import api from '../../../services/api';
@@ -196,12 +197,12 @@ export default function DashboardPage() {
     const navigate = useNavigate();
 
     const getRoleDashboardPrefix = () => {
-        const rawRole = (user?.role || '').toLowerCase().trim();
-        if (rawRole === 'visitor') return '/visitor';
-        if (rawRole === 'manager' || rawRole.includes('manager')) return '/manager';
-        if (rawRole === 'employee' || rawRole === 'staff') return '/employee';
-        if (rawRole === 'receptionist' || rawRole.includes('reception')) return '/reception';
-        if (rawRole === 'security_officer' || rawRole === 'security' || rawRole.includes('security')) return '/security';
+        const canonicalRole = normalizeRole(user);
+        if (canonicalRole === 'visitor') return '/visitor';
+        if (canonicalRole === 'manager') return '/manager';
+        if (canonicalRole === 'employee') return '/employee';
+        if (canonicalRole === 'receptionist') return '/reception';
+        if (canonicalRole === 'security') return '/security';
         return '/admin';
     };
 
@@ -210,12 +211,12 @@ export default function DashboardPage() {
         pathToViewMap[r.routeUrl] = r.component;
     });
     const getResolvedView = () => {
+        const role = normalizeRole(user);
         // 1. Explicit query parameter ?view=...
         const paramView = searchParams.get('view');
         if (paramView) {
-            const role = user?.role?.toLowerCase() || 'visitor';
             // Role-specific override for Manager views
-            if (role === 'manager' || role === 'department_manager') {
+            if (role === 'manager') {
                 if (paramView === 'visitors' || paramView === 'department_visitors' || paramView === 'manager_visitors' || paramView === 'visitor-directory') {
                     return 'manager_visitors';
                 }
@@ -228,13 +229,13 @@ export default function DashboardPage() {
             }
 
             if (paramView === 'visitor_portal_dashboard' || paramView === 'visitor-portal-dashboard') {
-                return 'visitor_portal_dashboard';
+                return role === 'visitor' ? 'visitor_portal_dashboard' : 'dashboard';
             }
             if (paramView === 'enterprise_visitor_dashboard' || paramView === 'enterprise-visitor-dashboard' || paramView === 'visitor_management' || paramView === 'visitor-management' || paramView === 'visitor_admin') {
-                return 'enterprise_visitor_dashboard';
+                return role === 'admin' ? 'enterprise_visitor_dashboard' : 'dashboard';
             }
             if (paramView === 'visitor_dashboard' || paramView === 'visitor-dashboard') {
-                return user?.role === 'visitor' ? 'visitor_portal_dashboard' : 'enterprise_visitor_dashboard';
+                return role === 'visitor' ? 'visitor_portal_dashboard' : (role === 'admin' ? 'enterprise_visitor_dashboard' : 'dashboard');
             }
             if (paramView === 'visitor_profile' || paramView === 'visitor-profile' || paramView === 'VisitorProfile' || paramView === 'my_profile' || paramView === 'my-profile') {
                 return 'visitor_profile';
@@ -376,22 +377,22 @@ export default function DashboardPage() {
             return 'visitor_profiles';
         }
         if (pathname.includes('/visitor-management') || pathname.includes('/visitor_management') || pathname.includes('/visitor-admin')) {
-            return 'enterprise_visitor_dashboard';
+            return role === 'admin' ? 'enterprise_visitor_dashboard' : 'dashboard';
         }
         if (pathname === '/visitor/dashboard' || pathname === '/visitor_portal_dashboard') {
-            return 'visitor_portal_dashboard';
+            return role === 'visitor' ? 'visitor_portal_dashboard' : 'dashboard';
         }
         if (pathname.includes('/visitor-dashboard') || pathname.includes('/visitor_dashboard')) {
-            return user?.role === 'visitor' ? 'visitor_portal_dashboard' : 'enterprise_visitor_dashboard';
+            return role === 'visitor' ? 'visitor_portal_dashboard' : (role === 'admin' ? 'enterprise_visitor_dashboard' : 'dashboard');
         }
         // 3. User identity resource map
         if (pathToViewMap[location.pathname]) {
             const mappedComp = pathToViewMap[location.pathname];
             if (mappedComp === 'VisitorDashboard') {
-                return 'visitor_portal_dashboard';
+                return role === 'visitor' ? 'visitor_portal_dashboard' : 'dashboard';
             }
             if (mappedComp === 'EnterpriseVisitorDashboard') {
-                return 'enterprise_visitor_dashboard';
+                return role === 'admin' ? 'enterprise_visitor_dashboard' : 'dashboard';
             }
             return mappedComp;
         }
@@ -435,7 +436,26 @@ export default function DashboardPage() {
     }, []);
     // Render view dispatcher
     const renderMainContent = () => {
-        const role = user?.role?.toLowerCase() || 'visitor';
+        const role = normalizeRole(user);
+
+        const getRoleDashboard = (r) => {
+            switch (r) {
+                case 'admin':
+                    return <AdminDashboard />;
+                case 'manager':
+                    return <ManagerDashboard onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
+                case 'receptionist':
+                    return <ReceptionDashboard />;
+                case 'security':
+                    return <SecurityDashboard />;
+                case 'employee':
+                    return <EmployeeDashboard />;
+                case 'visitor':
+                default:
+                    return <VisitorDashboard />;
+            }
+        };
+
         // Universal Feedback & Support Center for ALL Roles
         if (currentView === 'FeedbackSupportCenter' ||
             currentView === 'feedback-support' ||
@@ -729,12 +749,12 @@ export default function DashboardPage() {
             case 'visitor-category-details':
                 return role === 'visitor' ? <VisitorDashboard /> : <CategoryDetails />;
             case 'visitor_portal_dashboard':
-                return role === 'visitor' ? <VisitorDashboard /> : <EnterpriseVisitorDashboard />;
+                return role === 'visitor' ? <VisitorDashboard /> : getRoleDashboard(role);
             case 'enterprise_visitor_dashboard':
             case 'visitor_management':
-                return role === 'visitor' ? <VisitorDashboard /> : <EnterpriseVisitorDashboard />;
+                return role === 'admin' ? <EnterpriseVisitorDashboard /> : getRoleDashboard(role);
             case 'visitor_dashboard':
-                return role === 'visitor' ? <VisitorDashboard /> : <EnterpriseVisitorDashboard />;
+                return role === 'visitor' ? <VisitorDashboard /> : (role === 'admin' ? <EnterpriseVisitorDashboard /> : getRoleDashboard(role));
             case 'visitor_registration':
             case 'register_visitor':
             case 'registration':
@@ -1119,13 +1139,13 @@ export default function DashboardPage() {
             case 'today_visitors':
                 return role === 'visitor' ? <VisitorDashboard /> : <WalkInVisitors />;
             case 'home':
-                return role === 'visitor' ? <VisitorDashboard /> : <EnterpriseVisitorDashboard />;
+                return getRoleDashboard(role);
             case 'help':
                 return role === 'visitor' ? <VisitorHelpDesk /> : <EmployeePortal />;
             // Department Manager Role Views
             case 'manager_dashboard':
             case 'department_manager_dashboard':
-                return <ManagerDashboard onNavigate={(v) => navigate(`/dashboard?view=${v}`)}/>;
+                return <ManagerDashboard onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
             case 'manager_employees':
             case 'department_employees':
                 return <DepartmentEmployeesView />;
@@ -1184,17 +1204,7 @@ export default function DashboardPage() {
             // Main Fallbacks
             case 'dashboard':
             default:
-                if (role === 'visitor')
-                    return <VisitorDashboard />;
-                if (role === 'staff' || role === 'employee')
-                    return <EmployeeDashboard />;
-                if (role === 'manager' || role === 'department_manager' || role.includes('manager'))
-                    return <ManagerDashboard onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
-                if (role === 'receptionist')
-                    return <ReceptionDashboard />;
-                if (role === 'security_officer' || role === 'security')
-                    return <SecurityDashboard />;
-                return <AdminDashboard />;
+                return getRoleDashboard(role);
         }
     };
     return (<DashboardLayout currentView={currentView}>

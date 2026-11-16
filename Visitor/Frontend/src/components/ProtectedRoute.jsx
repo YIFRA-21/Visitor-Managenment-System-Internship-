@@ -72,7 +72,8 @@ export default function ProtectedRoute({ children, requiredPermission, requiredR
 
         // 4. Role-isolated path prefix gating
         const path = location.pathname.toLowerCase();
-        if (path.startsWith('/admin') && !isAdminRole(userRole)) {
+        const adminPaths = ['/admin', '/buildings', '/floors', '/rooms', '/workplace'];
+        if (adminPaths.some((p) => path.startsWith(p)) && !isAdminRole(userRole)) {
             setRedirectTarget(roleLanding);
             setAllowed(false);
             setChecking(false);
@@ -109,6 +110,23 @@ export default function ProtectedRoute({ children, requiredPermission, requiredR
             return;
         }
 
+        // 5. Strict visitor boundary enforcement
+        if (userRole === 'visitor') {
+            const visitorAllowedPrefixes = [
+                '/visitor', '/notifications', '/feedback-support', '/support-feedback',
+                '/support', '/feedback', '/help-support', '/book', '/track',
+                '/verify-pass', '/response', '/confirm', '/profile', '/mobile-verify',
+                '/unauthorized'
+            ];
+            const isAllowedVisitorPath = visitorAllowedPrefixes.some(prefix => path.startsWith(prefix));
+            if (!isAllowedVisitorPath) {
+                setRedirectTarget(roleLanding);
+                setAllowed(false);
+                setChecking(false);
+                return;
+            }
+        }
+
         // Default: allow
         setAllowed(true);
         setRedirectTarget(null);
@@ -138,6 +156,7 @@ export default function ProtectedRoute({ children, requiredPermission, requiredR
         if (location.pathname.toLowerCase() !== redirectTarget.toLowerCase()) {
             return <Navigate to={dest} replace />;
         }
+        return children;
     }
 
     if (allowed === false) {

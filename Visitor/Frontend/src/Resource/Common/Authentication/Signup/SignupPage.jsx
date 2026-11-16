@@ -20,6 +20,7 @@ import {
     validatePassword as validatePasswordPolicy,
     validatePasswordConfirmation
 } from '../../../../utils/formValidation';
+import { getRoleLanding } from '../../../../config/routes';
 
 export default function SignupPage() {
     const navigate = useNavigate();
@@ -1450,7 +1451,12 @@ export default function SignupPage() {
 
                   {/* ACTION BUTTONS */}
                   <div className="pt-4 space-y-3">
-                    <button type="button" onClick={() => navigate('/visitor/dashboard')} className="btn-primary-vms w-full py-4 rounded-xl text-xs font-extrabold uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all cursor-pointer">
+                    <button type="button" onClick={() => {
+                      const stored = localStorage.getItem('user') || sessionStorage.getItem('user');
+                      const parsed = stored ? JSON.parse(stored) : null;
+                      const dest = parsed ? getRoleLanding(parsed.role, parsed) : '/visitor/dashboard';
+                      navigate(dest);
+                    }} className="btn-primary-vms w-full py-4 rounded-xl text-xs font-extrabold uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all cursor-pointer">
                       <ArrowRight className="h-4 w-4"/> {t('signup.goToDashboard')}
                     </button>
                     

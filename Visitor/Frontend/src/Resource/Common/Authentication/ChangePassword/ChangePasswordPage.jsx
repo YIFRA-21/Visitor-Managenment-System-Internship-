@@ -44,7 +44,9 @@ export default function ChangePasswordPage() {
                 setSuccess(true);
                 // Auto-redirect directly to role portal (Employee Portal for EMP accounts)
                 setTimeout(() => {
-                    const target = user ? getRoleLanding(user.role, user) : ROUTES.PUBLIC.LOGIN;
+                    const stored = localStorage.getItem('user') || sessionStorage.getItem('user');
+                    const freshUser = stored ? JSON.parse(stored) : user;
+                    const target = freshUser ? getRoleLanding(freshUser.role, freshUser) : ROUTES.PUBLIC.LOGIN;
                     navigate(target, { replace: true });
                 }, 1200);
             }
@@ -112,7 +114,9 @@ export default function ChangePasswordPage() {
                     Your password has been changed successfully. Redirecting to your portal...
                   </p>
                   <button onClick={() => {
-                const target = user ? getRoleLanding(user.role, user) : ROUTES.PUBLIC.LOGIN;
+                const stored = localStorage.getItem('user') || sessionStorage.getItem('user');
+                const freshUser = stored ? JSON.parse(stored) : user;
+                const target = freshUser ? getRoleLanding(freshUser.role, freshUser) : ROUTES.PUBLIC.LOGIN;
                 navigate(target, { replace: true });
             }} style={{ backgroundColor: 'var(--accent-purple)' }} className="w-full text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition-all hover:opacity-90 shadow-lg mt-4">
                     Continue to Portal

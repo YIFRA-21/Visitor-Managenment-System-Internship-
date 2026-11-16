@@ -5,7 +5,7 @@ import { Lock, Eye, EyeOff, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Sidebar, Navbar } from '../design-system';
 import { authApi, employeePortalApi, notificationsApi, communicationApi, getErrorMessage } from '../services/api';
-import { isAdminRole } from '../config/routes';
+import { isAdminRole, normalizeRole, getRoleLanding } from '../config/routes';
 import { useSocket } from '../hooks/useSocket';
 import { useLanguage } from '../contexts/LanguageContext';
 import ProfileModal from './profile/ProfileModal';
@@ -531,25 +531,21 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                 queryParamsObj[key] = val;
             });
         }
+        const canonicalRole = normalizeRole(user);
         let rolePrefix = '/visitor';
-        if (isAdminRole(rawRole) ||
-            rawRole === 'admin' ||
-            rawRole === 'developer' ||
-            rawRole === 'super_admin' ||
-            rawRole === 'system_admin' ||
-            rawRole === 'org_admin') {
+        if (canonicalRole === 'admin') {
             rolePrefix = '/admin';
         }
-        else if (rawRole === 'manager' || rawRole.includes('manager')) {
+        else if (canonicalRole === 'manager') {
             rolePrefix = '/manager';
         }
-        else if (rawRole === 'receptionist' || rawRole.includes('reception')) {
+        else if (canonicalRole === 'receptionist') {
             rolePrefix = '/reception';
         }
-        else if (rawRole === 'security_officer' || rawRole === 'security' || rawRole.includes('security')) {
+        else if (canonicalRole === 'security') {
             rolePrefix = '/security';
         }
-        else if (rawRole === 'staff' || rawRole === 'employee' || rawRole === 'host' || userCode.startsWith('EMP')) {
+        else if (canonicalRole === 'employee') {
             rolePrefix = '/employee';
         }
         else {
@@ -570,10 +566,10 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             return true;
         if (!allowedRoles)
             return true;
-        if (!user?.role)
+        if (!user)
             return false;
-        const normUserRole = String(user.role).toLowerCase().trim();
-        if (normUserRole === 'admin' || normUserRole === 'developer' || normUserRole === 'super_admin' || normUserRole === 'system_admin') {
+        const normUserRole = normalizeRole(user);
+        if (normUserRole === 'admin') {
             return true;
         }
         return allowedRoles.some(r => String(r).toLowerCase().trim() === normUserRole);
@@ -594,17 +590,9 @@ export default function DashboardLayout({ children, currentView: propCurrentView
         ],
     };
     const filteredSidebar = (() => {
-        const rawRole = (user?.role || user?.role_name || user?.roleName || '').toLowerCase().trim();
-        const userCode = String(user?.userCode || user?.user_code || user?.user_id || '').toUpperCase().trim();
-        const pathname = (location.pathname || '').toLowerCase();
-        // 1. ADMIN / SUPER ADMIN / DEVELOPER ROLE (OR ADMIN WORKSPACE)
-        if (isAdminRole(rawRole) ||
-            rawRole === 'admin' ||
-            rawRole === 'super_admin' ||
-            rawRole === 'system_admin' ||
-            rawRole === 'developer' ||
-            rawRole === 'org_admin' ||
-            (pathname.startsWith('/admin') && rawRole !== 'visitor' && rawRole !== 'employee' && rawRole !== 'receptionist' && rawRole !== 'security')) {
+        const canonicalRole = normalizeRole(user);
+        // 1. ADMIN / SUPER ADMIN / DEVELOPER ROLE
+        if (canonicalRole === 'admin') {
             return [
                 { key: 'dashboard-item', label: t('sidebar.dashboard'), iconClass: 'bi-speedometer2', view: 'dashboard' },
                 {
@@ -714,7 +702,7 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             ];
         }
         // 2. MANAGER ROLE
-        if (rawRole === 'manager' || rawRole.includes('manager') || pathname.startsWith('/manager')) {
+        if (canonicalRole === 'manager') {
             return [
                 { key: 'dashboard-manager', label: t('sidebar.dashboard'), iconClass: 'bi-speedometer2', view: 'manager_dashboard' },
                 { key: 'manager-requests', label: t('sidebar.visitorRequestsApprovals'), iconClass: 'bi-check-square', view: 'manager_requests' },
@@ -739,7 +727,7 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             ];
         }
         // 3. RECEPTIONIST ROLE
-        if (rawRole === 'receptionist' || rawRole.includes('reception') || pathname.startsWith('/reception')) {
+        if (canonicalRole === 'receptionist') {
             return [
                 { key: 'reception-dashboard', label: t('sidebar.receptionDashboard'), iconClass: 'bi-speedometer2', view: 'reception_management' },
                 { key: 'visitor-arrivals', label: t('sidebar.visitorArrivals'), iconClass: 'bi-person-check', view: 'visitor_arrivals' },
@@ -767,7 +755,7 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             ];
         }
         // 4. SECURITY ROLE
-        if (rawRole === 'security_officer' || rawRole === 'security' || rawRole.includes('security') || pathname.startsWith('/security')) {
+        if (canonicalRole === 'security') {
             return [
                 { key: 'dashboard-security', label: t('sidebar.securityDashboard'), iconClass: 'bi-shield-shaded', view: 'dashboard' },
                 {
@@ -810,11 +798,7 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             ];
         }
         // 5. EMPLOYEE / STAFF ROLE
-        if (rawRole === 'employee' ||
-            rawRole === 'staff' ||
-            rawRole === 'host' ||
-            userCode.startsWith('EMP') ||
-            pathname.startsWith('/employee')) {
+        if (canonicalRole === 'employee') {
             return [
                 { key: 'emp-dashboard', label: t('sidebar.myDashboard'), iconClass: 'bi-speedometer2', view: 'employee_dashboard' },
                 { key: 'emp-requests', label: t('sidebar.visitorRequests'), iconClass: 'bi-envelope-check', view: 'employee_requests', badge: pendingCount > 0 ? pendingCount : null },
