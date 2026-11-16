@@ -48,13 +48,7 @@ import { RESPONSE_TYPES } from '../../modules/response/responseConfig';
 
 const DEFAULT_FALLBACK_MEETINGS = [];
 
-const DEFAULT_ROOMS = [
-  { id: 1, name: 'Conference Room Alpha', floor: 'Floor 3', capacity: 14, amenities: ['4K Video Bar', 'Dual Screen', 'Whiteboard', 'AirPlay'], status: 'Available' },
-  { id: 2, name: 'Boardroom Gemini', floor: 'Floor 4', capacity: 22, amenities: ['Executive Polycom', 'Telepresence', 'Conference Microphones', 'Catering Station'], status: 'In Use' },
-  { id: 3, name: 'Executive Briefing Center', floor: 'Floor 5', capacity: 10, amenities: ['Smart Glass', 'Secured Soundproofing', 'Private Restroom'], status: 'Reserved' },
-  { id: 4, name: 'Innovation Hub', floor: 'Floor 2', capacity: 8, amenities: ['Miro Digital Board', 'Mobile Pods', 'Lounge Seating'], status: 'Available' },
-  { id: 5, name: 'Huddle Room Orion', floor: 'Floor 3', capacity: 4, amenities: ['Webcam', 'Direct HDMI', 'Acoustic Panel'], status: 'Available' }
-];
+const DEFAULT_ROOMS = [];
 
 export default function DepartmentAppointmentsView() {
   const { t } = useLanguage();
@@ -62,7 +56,7 @@ export default function DepartmentAppointmentsView() {
   const { toResponse, toSuccess, toError, toConfirmation } = useResponseNavigation();
   // Primary States
   const [appointments, setAppointments] = useState([]);
-  const [rooms, setRooms] = useState(DEFAULT_ROOMS);
+  const [rooms, setRooms] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -140,11 +134,30 @@ export default function DepartmentAppointmentsView() {
       // 2. Fetch rooms
       try {
         const roomData = await managerApi.getRooms();
-        if (roomData?.rooms && roomData.rooms.length > 0) {
-          setRooms(roomData.rooms);
+        const list = roomData?.rooms || roomData?.data?.rooms || (Array.isArray(roomData) ? roomData : []);
+        if (list.length > 0) {
+          const mapped = list.map(r => ({
+            id: r.id,
+            name: r.room_name || r.name || `Room ${r.room_number}`,
+            floor: r.floor_name || (r.floor ? `Floor ${r.floor}` : 'Level 1'),
+            building: r.building_name || r.building || 'Main Facility',
+            capacity: r.capacity || 10,
+            location: r.location || `${r.building_name || 'Main HQ'}, ${r.floor_name || 'Level 1'}`,
+            status: (r.today_bookings_count > 0) ? 'In Use' : 'Available',
+            amenities: [
+              r.has_video_conference ? 'VC Enabled' : null,
+              r.has_tv ? 'Display Monitor' : null,
+              r.has_projector ? 'Projector' : null,
+              'High-Speed Wi-Fi'
+            ].filter(Boolean)
+          }));
+          setRooms(mapped);
+          setNewMeeting(prev => ({ ...prev, room_id: prev.room_id || mapped[0].id }));
+        } else {
+          setRooms([]);
         }
       } catch (e) {
-        // use default rooms
+        setRooms([]);
       }
 
       // 3. Fetch department employees/hosts
@@ -349,7 +362,7 @@ export default function DepartmentAppointmentsView() {
       meeting_type: newMeeting.meeting_type,
       priority: newMeeting.priority,
       room_id: roomObj ? roomObj.id : 1,
-      room_name: roomObj ? roomObj.name : 'Executive Room',
+      room_name: roomObj ? roomObj.name : 'Meeting Room',
       room_capacity: roomObj ? roomObj.capacity : 10,
       scheduled_start: startIso,
       scheduled_end: endIso,
@@ -363,13 +376,15 @@ export default function DepartmentAppointmentsView() {
     try {
       await managerApi.createAppointment({
         visitor_name: newMeeting.visitor_name,
-        visitor_email: newMeeting.visitor_email,
-        host_employee_id: newMeeting.host_employee_id,
-        room_id: newMeeting.room_id,
+        visitor_email: newMeeting.visitor_email || `visitor_${Date.now()}@vms.local`,
+        host_employee_id: newMeeting.host_employee_id || (hostObj ? hostObj.id : null),
+        room_id: newMeeting.room_id || (roomObj ? roomObj.id : null),
         scheduled_start: startIso,
         scheduled_end: endIso,
         purpose: newMeeting.purpose
       });
+      setShowScheduleModal(false);
+      await fetchData();
       toSuccess({
         type: RESPONSE_TYPES.APPOINTMENT_SUBMISSION_RESULT,
         title: 'Meeting Scheduled Successfully',
@@ -386,9 +401,6 @@ export default function DepartmentAppointmentsView() {
       });
       return;
     }
-
-    setAppointments([createdRecord, ...appointments]);
-    setShowScheduleModal(false);
 
     // Reset Form
     setNewMeeting({
@@ -907,7 +919,7 @@ export default function DepartmentAppointmentsView() {
                           <td className="py-3.5 px-4">
                             <div className="flex items-center space-x-1.5 text-slate-200">
                               <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                              <span className="font-medium">{appt.room_name || 'Conference Room Alpha'}</span>
+                              <span className="font-medium">{appt.room_name || 'Meeting Room / Office'}</span>
                             </div>
                             <span className="text-[10px] text-slate-400 ml-5 block">
                               Max: {appt.room_capacity || 10} pax
@@ -1048,7 +1060,7 @@ export default function DepartmentAppointmentsView() {
                             <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                             <span>Location:</span>
                           </span>
-                          <span className="font-semibold text-slate-200">{appt.room_name || 'Conference Room Alpha'}</span>
+                          <span className="font-semibold text-slate-200">{appt.room_name || 'Meeting Room / Office'}</span>
                         </div>
 
                         {/* Scheduled Time */}
@@ -1163,7 +1175,7 @@ export default function DepartmentAppointmentsView() {
                               </span>
                               <span className="flex items-center space-x-1">
                                 <MapPin className="w-3.5 h-3.5 text-purple-400" />
-                                <span>{appt.room_name || 'Room Alpha'}</span>
+                                <span>{appt.room_name || 'Meeting Space'}</span>
                               </span>
                             </div>
                           </div>
@@ -1214,7 +1226,14 @@ export default function DepartmentAppointmentsView() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {rooms.map((room) => {
+                {rooms.length === 0 ? (
+                  <div className="col-span-full py-12 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
+                    <Building className="w-8 h-8 mx-auto mb-2 opacity-40 text-emerald-400" />
+                    <p className="text-xs font-semibold text-slate-300">No meeting spaces found in this facility</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Contact system administrator or add rooms in Organization Management.</p>
+                  </div>
+                ) : (
+                  rooms.map((room) => {
                   const currentBooking = appointments.find(
                     (a) =>
                       String(a.room_id) === String(room.id) &&
@@ -1305,7 +1324,7 @@ export default function DepartmentAppointmentsView() {
                       </button>
                     </div>
                   );
-                })}
+                }))}
               </div>
             </div>
           )}
@@ -1629,7 +1648,7 @@ export default function DepartmentAppointmentsView() {
                 <div className={`space-y-1 pt-2 text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   <p className="flex items-center space-x-2">
                     <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedMeeting.room_name || 'Conference Room Alpha'}</span>
+                    <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedMeeting.room_name || 'Meeting Room / Office'}</span>
                   </p>
                   <p className="flex items-center space-x-2 text-slate-400">
                     <Users className="w-3.5 h-3.5 text-slate-500" />

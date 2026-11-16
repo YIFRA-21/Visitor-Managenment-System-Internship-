@@ -915,11 +915,25 @@ class DepartmentManagerRepository {
     const sql = `
       SELECT a.id, a.appointment_number, a.reference_code, a.scheduled_start, a.scheduled_end,
              a.purpose, a.priority, a.approval_status, a.appointment_status, a.status,
-             v.id AS visitor_id, v.full_name AS visitor_name, v.company AS visitor_company, v.photo_url AS visitor_photo,
-             e.full_name AS host_name, e.position AS host_position
+             COALESCE(a.room_id, a.meeting_room_id) AS room_id,
+             COALESCE(mr.room_name, mr.room_number) AS room_name,
+             mr.capacity AS room_capacity,
+             b.building_name, f.floor_name,
+             CONCAT(COALESCE(b.building_name, mr.building, 'Main HQ'), ' • ', COALESCE(f.floor_name, CONCAT('Floor ', mr.floor), 'Floor 1'), ' • ', COALESCE(mr.room_name, mr.room_number, '')) AS room_location,
+             v.id AS visitor_id,
+             COALESCE(v.full_name, CONCAT(vu.first_name, ' ', vu.last_name), 'Guest') AS visitor_name,
+             v.company AS visitor_company, v.photo_url AS visitor_photo,
+             COALESCE(e.full_name, CONCAT(hu.first_name, ' ', hu.last_name), 'Host') AS host_name,
+             e.position AS host_position,
+             a.host_employee_id
       FROM appointments a
       LEFT JOIN visitors v ON a.visitor_id = v.id
+      LEFT JOIN users vu ON a.visitor_user_id = vu.id
       LEFT JOIN employees e ON (a.host_employee_id = e.id OR a.host_id = e.user_id)
+      LEFT JOIN users hu ON (a.host_user_id = hu.id OR a.host_id = hu.id)
+      LEFT JOIN meeting_rooms mr ON (a.room_id = mr.id OR a.meeting_room_id = mr.id)
+      LEFT JOIN buildings b ON mr.building_id = b.id
+      LEFT JOIN floors f ON mr.floor_id = f.id
       ${whereClause}
       ORDER BY a.scheduled_start ASC
     `;

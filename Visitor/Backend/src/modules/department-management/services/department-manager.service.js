@@ -298,48 +298,105 @@ class DepartmentManagerService {
    */
   async getRooms(managerScope) {
     const db = require('../../../config/db');
+    // Fetch meeting rooms configured in Admin Organization Management
     let rooms = await db.query(
-      `SELECT mr.id, mr.room_name, mr.room_number, mr.room_name AS name, mr.capacity, mr.is_active, mr.room_type,
-              b.id AS building_id, b.building_name, b.building_code,
+      `SELECT mr.id, mr.room_name, mr.room_number, mr.room_name AS name, mr.capacity, mr.is_active,
+              'MEETING_ROOM' AS room_type,
+              mr.has_projector, mr.has_tv, mr.has_video_conference, mr.is_accessible, mr.is_bookable, mr.status,
+              b.id AS building_id, b.building_name, b.building_code, b.branch_id,
               f.id AS floor_id, f.floor_name, f.floor_number,
-              CONCAT(COALESCE(b.building_name, ''), ' • ', COALESCE(f.floor_name, ''), ' • ', COALESCE(mr.room_name, mr.room_number, '')) AS location,
-              (SELECT COUNT(*) FROM appointments a WHERE a.room_id = mr.id AND (a.department_id = ? OR ? IS NULL) AND DATE(a.scheduled_start) = CURDATE()) as today_bookings_count
+              CONCAT(COALESCE(b.building_name, mr.building, 'Main Building'), ' • ', COALESCE(f.floor_name, CONCAT('Level ', mr.floor), 'Level 1'), ' • ', COALESCE(mr.room_name, mr.room_number, '')) AS location,
+              (SELECT COUNT(*) FROM appointments a WHERE (a.room_id = mr.id OR a.meeting_room_id = mr.id) AND DATE(a.scheduled_start) = CURDATE() AND a.deleted_at IS NULL) as today_bookings_count
        FROM meeting_rooms mr 
        LEFT JOIN buildings b ON mr.building_id = b.id
        LEFT JOIN floors f ON mr.floor_id = f.id
        WHERE mr.deleted_at IS NULL AND (mr.is_active = 1 OR mr.is_active IS NULL)
-       ORDER BY mr.room_name ASC`,
-      [managerScope?.departmentId || null, managerScope?.departmentId || null]
-    ).catch(() => []);
+       ORDER BY mr.room_name ASC`
+    ).catch((err) => {
+      console.error('[getRooms] Error fetching meeting rooms:', err);
+      return [];
+    });
 
     if (!Array.isArray(rooms) || rooms.length === 0) {
       rooms = await db.query(
-        `SELECT r.id, r.name as room_name, r.name, r.capacity, r.location, r.is_active FROM rooms r WHERE r.is_active = 1 ORDER BY r.name ASC`
+        `SELECT r.id, r.name as room_name, r.name, r.capacity, r.location, r.is_active, 0 as today_bookings_count FROM rooms r WHERE r.is_active = 1 ORDER BY r.name ASC`
       ).catch(() => []);
     }
 
+    // Live bookings for meeting spaces
     const bookings = await db.query(
-      `SELECT a.id, a.reference_code, a.scheduled_start, a.scheduled_end, a.purpose, a.status,
-              COALESCE(mr.room_name, mr.room_number, 'Meeting Space') as room_name, a.room_id,
-              v.full_name as visitor_name, e.full_name as host_name
+      `SELECT a.id, a.reference_code, a.scheduled_start, a.scheduled_end, a.purpose, a.status, a.appointment_status,
+              COALESCE(mr.room_name, mr.room_number, 'Meeting Space') as room_name,
+              COALESCE(a.room_id, a.meeting_room_id) as room_id,
+              COALESCE(v.full_name, CONCAT(vu.first_name, ' ', vu.last_name), 'Internal Department Team') as visitor_name,
+              COALESCE(e.full_name, CONCAT(hu.first_name, ' ', hu.last_name), 'Host') as host_name
        FROM appointments a
-       LEFT JOIN meeting_rooms mr ON a.room_id = mr.id
+       LEFT JOIN meeting_rooms mr ON (a.room_id = mr.id OR a.meeting_room_id = mr.id)
        LEFT JOIN visitors v ON a.visitor_id = v.id
+       LEFT JOIN users vu ON a.visitor_user_id = vu.id
        LEFT JOIN employees e ON a.host_employee_id = e.id
-       WHERE (a.department_id = ? OR ? IS NULL) AND a.scheduled_start >= CURDATE()
-       ORDER BY a.scheduled_start ASC LIMIT 20`,
-      [managerScope?.departmentId || null, managerScope?.departmentId || null]
-    ).catch(() => []);
+       LEFT JOIN users hu ON (a.host_user_id = hu.id OR a.host_id = hu.id)
+       WHERE (a.room_id IS NOT NULL OR a.meeting_room_id IS NOT NULL)
+         AND a.deleted_at IS NULL
+       ORDER BY a.scheduled_start DESC LIMIT 50`
+    ).catch((err) => {
+      console.error('[getRooms] Error fetching bookings:', err);
+      return [];
+    });
 
     return { rooms, bookings };
   }
 
   async bookRoom(managerScope, bookingData, userId) {
     const db = require('../../../config/db');
-    const { roomId, appointmentId, notes } = bookingData;
+    const appointmentService = require('../../appointment-management/services/appointment.service');
+    const { roomId, appointmentId, notes, purpose, scheduled_start, scheduled_end, visitor_name, host_employee_id } = bookingData;
+    
+    let bookingResult = null;
     if (appointmentId && roomId) {
-      await db.query(`UPDATE appointments SET room_id = ? WHERE id = ? AND department_id = ?`, [roomId, appointmentId, managerScope.departmentId]);
+      // Link existing appointment to room
+      await db.query(
+        `UPDATE appointments SET room_id = ?, meeting_room_id = ?, remarks = CONCAT_WS('\n', remarks, ?) WHERE id = ?`,
+        [roomId, roomId, notes || null, appointmentId]
+      );
+      bookingResult = { id: appointmentId };
+    } else if (roomId) {
+      // Create new permanent appointment reservation
+      const deptId = managerScope.departmentId || (managerScope.departmentIds ? managerScope.departmentIds[0] : 1);
+      const branchId = managerScope.branchId || 8;
+      const orgId = managerScope.organizationId || 1;
+      
+      const start = scheduled_start || new Date().toISOString().slice(0, 19).replace('T', ' ');
+      const end = scheduled_end || new Date(Date.now() + 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+      
+      bookingResult = await appointmentService.createAppointment({
+        organizationId: orgId,
+        branchId: branchId,
+        facilityId: branchId,
+        departmentId: deptId,
+        hostId: userId,
+        hostUserId: userId,
+        hostEmployeeId: host_employee_id || null,
+        roomId: roomId,
+        visitorName: visitor_name || 'Department Team / Staff Reservation',
+        visitorEmail: managerScope.email || 'manager@vms.local',
+        visitorPhone: '+251911000000',
+        purpose: purpose || notes || 'Department Room Reservation',
+        scheduledStart: start,
+        scheduledEnd: end,
+        expectedDurationMinutes: 60,
+        remarks: notes || ''
+      }, userId);
+
+      // Auto-confirm manager direct room reservations
+      if (bookingResult?.id) {
+        await db.query(
+          `UPDATE appointments SET status = 'CONFIRMED', appointment_status = 'CONFIRMED', approval_status = 'APPROVED' WHERE id = ?`,
+          [bookingResult.id]
+        ).catch(() => {});
+      }
     }
+
     await auditRepository.log({
       userId,
       action: 'ROOM_BOOKING',
@@ -347,9 +404,10 @@ class DepartmentManagerService {
       entity: 'rooms',
       recordId: roomId,
       newValues: bookingData,
-      details: `Manager assigned meeting room #${roomId} for appointment #${appointmentId || 'N/A'}`
+      details: `Manager booked meeting room #${roomId} for appointment #${appointmentId || bookingResult?.id || 'New'}`
     }).catch(() => {});
-    return { success: true, message: 'Room booked successfully' };
+
+    return { success: true, message: 'Room reserved successfully', booking: bookingResult };
   }
 
   /**

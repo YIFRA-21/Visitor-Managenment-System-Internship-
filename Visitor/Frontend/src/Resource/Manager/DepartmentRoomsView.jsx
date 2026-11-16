@@ -18,9 +18,29 @@ export default function DepartmentRoomsView() {
     const [filter, setFilter] = useState('ALL');
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [showBookingModal, setShowBookingModal] = useState(false);
-    const [bookingForm, setBookingForm] = useState({ appointmentId: '', notes: '' });
+    const [bookingForm, setBookingForm] = useState({
+        purpose: '',
+        visitor_name: '',
+        scheduled_date: new Date().toISOString().split('T')[0],
+        start_time: '10:00',
+        end_time: '11:30',
+        appointmentId: '',
+        notes: ''
+    });
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState(null);
+
+    const formatTime = (timeStr) => {
+        if (!timeStr) return '';
+        try {
+            const d = new Date(timeStr);
+            if (isNaN(d.getTime())) return timeStr;
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch {
+            return timeStr;
+        }
+    };
+
     const fetchRoomsData = async () => {
         setLoading(true);
         try {
@@ -73,17 +93,34 @@ export default function DepartmentRoomsView() {
             return;
         setSubmitting(true);
         try {
+            const startIso = `${bookingForm.scheduled_date || new Date().toISOString().split('T')[0]} ${bookingForm.start_time || '10:00'}:00`;
+            const endIso = `${bookingForm.scheduled_date || new Date().toISOString().split('T')[0]} ${bookingForm.end_time || '11:30'}:00`;
+
             await managerApi.bookRoom({
                 roomId: selectedRoom.id,
                 appointmentId: bookingForm.appointmentId ? parseInt(bookingForm.appointmentId, 10) : undefined,
+                purpose: bookingForm.purpose || `Meeting in ${selectedRoom.name || 'Meeting Space'}`,
+                scheduled_start: startIso,
+                scheduled_end: endIso,
+                visitor_name: bookingForm.visitor_name,
                 notes: bookingForm.notes
             });
             setShowBookingModal(false);
+            setBookingForm({
+                purpose: '',
+                visitor_name: '',
+                scheduled_date: new Date().toISOString().split('T')[0],
+                start_time: '10:00',
+                end_time: '11:30',
+                appointmentId: '',
+                notes: ''
+            });
+            await fetchRoomsData();
             toSuccess({
                 type: RESPONSE_TYPES.SUCCESS,
                 title: 'Room Reserved Successfully',
-                message: `Room "${selectedRoom.name}" has been reserved for your department session.`,
-                referenceId: selectedRoom.code || `ROOM-${selectedRoom.id}`,
+                message: `Room "${selectedRoom.name}" has been permanently reserved in the system.`,
+                referenceId: selectedRoom.room_number || `ROOM-${selectedRoom.id}`,
                 entityType: 'Meeting Room',
                 entityName: selectedRoom.name,
                 returnUrl: window.location.pathname + window.location.search,
@@ -151,7 +188,7 @@ export default function DepartmentRoomsView() {
       >
         <MetricCard
           title="Total Meeting Rooms"
-          value={rooms.length || 6}
+          value={rooms.length}
           subtitle="Department managed spaces"
           badge="Assets"
           theme="blue"
@@ -162,7 +199,7 @@ export default function DepartmentRoomsView() {
 
         <MetricCard
           title="Available Now"
-          value={rooms.filter(r => (r.today_bookings_count || 0) === 0).length || 4}
+          value={rooms.filter(r => (r.today_bookings_count || 0) === 0).length}
           subtitle="Free for reservations"
           badge="Ready"
           theme="emerald"
@@ -173,7 +210,7 @@ export default function DepartmentRoomsView() {
 
         <MetricCard
           title="Booked / In Use"
-          value={rooms.filter(r => (r.today_bookings_count || 0) > 0).length || 2}
+          value={rooms.filter(r => (r.today_bookings_count || 0) > 0).length}
           subtitle="Active meeting sessions"
           badge="Occupied"
           theme="amber"
@@ -184,7 +221,7 @@ export default function DepartmentRoomsView() {
 
         <MetricCard
           title="Today's Reservations"
-          value={bookings.length || 3}
+          value={bookings.length}
           subtitle="Scheduled visitor bookings"
           badge="Schedule"
           theme="indigo"
@@ -298,31 +335,40 @@ export default function DepartmentRoomsView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 text-slate-300">
-              {(bookings.length > 0 ? bookings : [
-            { id: 101, room_name: 'Main Conference Room A', visitor_name: 'Dr. Michael Chen', purpose: 'Q4 Innovation Review', host_name: 'yetm Nesgesse melu', scheduled_start: '10:00 AM', scheduled_end: '11:30 AM', status: 'IN_MEETING' },
-            { id: 102, room_name: 'Agile Team Collab Space', visitor_name: 'Sarah Connor', purpose: 'Cybersecurity Audit', host_name: 'Abebe Kebede', scheduled_start: '02:00 PM', scheduled_end: '03:30 PM', status: 'SCHEDULED' },
-            { id: 103, room_name: 'Presentation Theater', visitor_name: 'Amina Yusuf (Gov Delegation)', purpose: 'National Infrastructure Briefing', host_name: 'yetm Nesgesse melu', scheduled_start: '04:00 PM', scheduled_end: '05:00 PM', status: 'PENDING' },
-        ]).map((b, idx) => (<tr key={idx} className="hover:bg-slate-900/40 transition-colors">
-                  <td className="py-3 px-4 font-semibold text-white">{b.room_name}</td>
-                  <td className="py-3 px-4">
-                    <span className="font-semibold text-slate-200 block">{b.visitor_name}</span>
-                    <span className="text-[10px] text-slate-400 block">{b.purpose}</span>
+              {bookings.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-slate-500">
+                    <Calendar className="w-8 h-8 mx-auto mb-2 opacity-40 text-indigo-400" />
+                    <p className="text-xs font-semibold text-slate-300">No meeting room bookings recorded for today</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Click "Reserve Space" on any meeting room above to book a session.</p>
                   </td>
-                  <td className="py-3 px-4 text-slate-300">{b.host_name}</td>
-                  <td className="py-3 px-4 text-indigo-300 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-slate-500"/>
-                    {b.scheduled_start} - {b.scheduled_end}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${b.status === 'IN_MEETING'
-                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                : b.status === 'SCHEDULED'
-                    ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
-                      {b.status}
-                    </span>
-                  </td>
-                </tr>))}
+                </tr>
+              ) : (
+                bookings.map((b, idx) => (
+                  <tr key={b.id || idx} className="hover:bg-slate-900/40 transition-colors">
+                    <td className="py-3 px-4 font-semibold text-white">{b.room_name}</td>
+                    <td className="py-3 px-4">
+                      <span className="font-semibold text-slate-200 block">{b.visitor_name}</span>
+                      <span className="text-[10px] text-slate-400 block">{b.purpose}</span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-300">{b.host_name}</td>
+                    <td className="py-3 px-4 text-indigo-300 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-slate-500"/>
+                      {formatTime(b.scheduled_start)} - {formatTime(b.scheduled_end)}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        (b.status === 'IN_MEETING' || b.status === 'IN_PROGRESS')
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          : (b.status === 'SCHEDULED' || b.status === 'CONFIRMED' || b.status === 'APPROVED')
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'}`}>
+                        {b.status || 'CONFIRMED'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -345,16 +391,88 @@ export default function DepartmentRoomsView() {
             <form onSubmit={handleBookRoom} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                  Meeting Purpose / Agenda *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={bookingForm.purpose}
+                  onChange={(e) => setBookingForm({ ...bookingForm, purpose: e.target.value })}
+                  placeholder="e.g. Q4 Strategy Review, Architecture Sync..."
+                  className="w-full bg-[#05080e] border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5">Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={bookingForm.scheduled_date}
+                    onChange={(e) => setBookingForm({ ...bookingForm, scheduled_date: e.target.value })}
+                    className="w-full bg-[#05080e] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5">Start Time</label>
+                  <input
+                    type="time"
+                    required
+                    value={bookingForm.start_time}
+                    onChange={(e) => setBookingForm({ ...bookingForm, start_time: e.target.value })}
+                    className="w-full bg-[#05080e] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5">End Time</label>
+                  <input
+                    type="time"
+                    required
+                    value={bookingForm.end_time}
+                    onChange={(e) => setBookingForm({ ...bookingForm, end_time: e.target.value })}
+                    className="w-full bg-[#05080e] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                  Guest / Visitor / Team Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={bookingForm.visitor_name}
+                  onChange={(e) => setBookingForm({ ...bookingForm, visitor_name: e.target.value })}
+                  placeholder="e.g. Executive Board, External Delegation..."
+                  className="w-full bg-[#05080e] border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
                   {t('dept_rooms.link_appointment_label', 'Link to Appointment / Visitor Request ID (Optional)')}
                 </label>
-                <input type="number" value={bookingForm.appointmentId} onChange={(e) => setBookingForm({ ...bookingForm, appointmentId: e.target.value })} placeholder={t('dept_rooms.appointment_placeholder', 'e.g. 104')} className="w-full bg-[#05080e] border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"/>
+                <input
+                  type="number"
+                  value={bookingForm.appointmentId}
+                  onChange={(e) => setBookingForm({ ...bookingForm, appointmentId: e.target.value })}
+                  placeholder={t('dept_rooms.appointment_placeholder', 'e.g. 104')}
+                  className="w-full bg-[#05080e] border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"
+                />
               </div>
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
                   {t('dept_rooms.notes_label', 'Meeting Notes / Equipment Requests')}
                 </label>
-                <textarea rows={3} value={bookingForm.notes} onChange={(e) => setBookingForm({ ...bookingForm, notes: e.target.value })} placeholder={t('dept_rooms.notes_placeholder', 'e.g. Whiteboard markers, video conference dial-in setup...')} className="w-full bg-[#05080e] border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"/>
+                <textarea
+                  rows={2}
+                  value={bookingForm.notes}
+                  onChange={(e) => setBookingForm({ ...bookingForm, notes: e.target.value })}
+                  placeholder={t('dept_rooms.notes_placeholder', 'e.g. Whiteboard markers, video conference dial-in setup...')}
+                  className="w-full bg-[#05080e] border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
