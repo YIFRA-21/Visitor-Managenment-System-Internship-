@@ -511,18 +511,118 @@ class FeedbackSupportRepository {
     return mockFeedbacks.find(f => f.id === Number(id)) || null;
   }
 
-  async listFeedbacks({ role, status, category, search, page = 1, limit = 50 }) {
+  async deleteFeedback(id) {
+    await this.ensureTables();
+    const parsedId = Number(id);
+    const pool = db;
+    if (pool && !isMock()) {
+      try {
+        await pool.query(`DELETE FROM user_feedbacks WHERE id = ?`, [parsedId]);
+      } catch (err) {
+        console.error('MySQL deleteFeedback error:', err.message);
+      }
+    }
+    mockFeedbacks = mockFeedbacks.filter(f => f.id !== parsedId);
+    return { success: true, id: parsedId };
+  }
+
+  async deleteTicket(id) {
+    await this.ensureTables();
+    const parsedId = Number(id);
+    const pool = db;
+    if (pool && !isMock()) {
+      try {
+        await pool.query(`DELETE FROM support_ticket_messages WHERE ticket_id = ?`, [parsedId]);
+        await pool.query(`DELETE FROM support_tickets WHERE id = ?`, [parsedId]);
+      } catch (err) {
+        console.error('MySQL deleteTicket error:', err.message);
+      }
+    }
+    mockTickets = mockTickets.filter(t => t.id !== parsedId);
+    return { success: true, id: parsedId };
+  }
+
+  async listFeedbacks({ role, status, category, search, current_role, page = 1, limit = 50 }, currentUser = null) {
     await this.ensureTables();
     const pool = db;
+
+    // Resolve caller identity and permissions
+    let userRole = String(currentUser?.role || currentUser?.role_name || current_role || '').toUpperCase();
+    if (!userRole) {
+      userRole = 'ADMIN';
+    }
+    const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRATOR' || userRole === 'SUPER_ADMIN';
+    const isManager = userRole.includes('MANAGER');
+    const isReceptionist = userRole.includes('RECEPTION');
+    const isSecurity = userRole.includes('SECURITY');
+    const isEmployee = userRole.includes('EMPLOYEE') || userRole === 'HOST';
+    const isVisitor = userRole.includes('VISITOR');
+
     if (pool && !isMock()) {
       try {
         let whereClauses = ['1=1'];
         let params = [];
 
-        if (role && role !== 'ALL') {
+        // Strict role-based isolation:
+        // Admin sees all feedbacks (can filter by role)
+        if (isAdmin) {
+          if (role && role !== 'ALL') {
+            whereClauses.push('role_name = ?');
+            params.push(role);
+          }
+        } else if (isManager) {
+          if (role === 'VISITOR') {
+            whereClauses.push('role_name = ?');
+            params.push('VISITOR');
+          } else if (role === 'DEPARTMENT_MANAGER') {
+            whereClauses.push('role_name = ?');
+            params.push('DEPARTMENT_MANAGER');
+          } else {
+            whereClauses.push('(role_name IN (?, ?) OR user_id = ?)');
+            params.push('DEPARTMENT_MANAGER', 'VISITOR', currentUser?.id || 0);
+          }
+        } else if (isReceptionist) {
+          if (role === 'VISITOR') {
+            whereClauses.push('role_name = ?');
+            params.push('VISITOR');
+          } else if (role === 'RECEPTIONIST') {
+            whereClauses.push('role_name = ?');
+            params.push('RECEPTIONIST');
+          } else {
+            whereClauses.push('(role_name IN (?, ?) OR user_id = ?)');
+            params.push('RECEPTIONIST', 'VISITOR', currentUser?.id || 0);
+          }
+        } else if (isSecurity) {
+          if (role === 'VISITOR') {
+            whereClauses.push('role_name = ?');
+            params.push('VISITOR');
+          } else if (role === 'SECURITY') {
+            whereClauses.push('role_name = ?');
+            params.push('SECURITY');
+          } else {
+            whereClauses.push('(role_name IN (?, ?) OR user_id = ?)');
+            params.push('SECURITY', 'VISITOR', currentUser?.id || 0);
+          }
+        } else if (isEmployee) {
+          if (role === 'VISITOR') {
+            whereClauses.push('role_name = ?');
+            params.push('VISITOR');
+          } else if (role === 'EMPLOYEE') {
+            whereClauses.push('role_name = ?');
+            params.push('EMPLOYEE');
+          } else {
+            whereClauses.push('(role_name IN (?, ?) OR user_id = ?)');
+            params.push('EMPLOYEE', 'VISITOR', currentUser?.id || 0);
+          }
+        } else if (isVisitor) {
           whereClauses.push('role_name = ?');
-          params.push(role);
+          params.push('VISITOR');
+          if (currentUser?.id || currentUser?.email) {
+            whereClauses.push('(user_id = ? OR user_email = ?)');
+            params.push(currentUser.id || 0, currentUser.email || '');
+          }
         }
+
         if (status && status !== 'ALL') {
           whereClauses.push('status = ?');
           params.push(status);
@@ -559,6 +659,21 @@ class FeedbackSupportRepository {
     }
 
     let items = [...mockFeedbacks];
+    // Scoped filtering for mock data
+    if (!isAdmin) {
+      if (isManager) {
+        items = items.filter(i => ['DEPARTMENT_MANAGER', 'VISITOR'].includes(i.role_name.toUpperCase()) || i.user_id === currentUser?.id);
+      } else if (isReceptionist) {
+        items = items.filter(i => ['RECEPTIONIST', 'VISITOR'].includes(i.role_name.toUpperCase()) || i.user_id === currentUser?.id);
+      } else if (isSecurity) {
+        items = items.filter(i => ['SECURITY', 'VISITOR'].includes(i.role_name.toUpperCase()) || i.user_id === currentUser?.id);
+      } else if (isEmployee) {
+        items = items.filter(i => ['EMPLOYEE', 'VISITOR'].includes(i.role_name.toUpperCase()) || i.user_id === currentUser?.id);
+      } else if (isVisitor) {
+        items = items.filter(i => i.role_name.toUpperCase() === 'VISITOR' && (!currentUser?.email || i.user_email === currentUser.email || i.user_id === currentUser.id));
+      }
+    }
+
     if (role && role !== 'ALL') items = items.filter(i => i.role_name.toLowerCase() === role.toLowerCase());
     if (status && status !== 'ALL') items = items.filter(i => i.status === status);
     if (category && category !== 'ALL') items = items.filter(i => i.category === category);
@@ -768,17 +883,27 @@ class FeedbackSupportRepository {
     return mockTickets.find(t => t.id === Number(id)) || null;
   }
 
-  async listTickets({ role, status, priority, search, page = 1, limit = 50 }) {
+  async listTickets({ role, status, priority, search, current_role, page = 1, limit = 50 }, currentUser = null) {
     await this.ensureTables();
     const pool = db;
+
+    let userRole = String(currentUser?.role || currentUser?.role_name || current_role || '').toUpperCase();
+    if (!userRole) userRole = 'ADMIN';
+    const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRATOR' || userRole === 'SUPER_ADMIN';
+
     if (pool && !isMock()) {
       try {
         let whereClauses = ['1=1'];
         let params = [];
 
-        if (role && role !== 'ALL') {
-          whereClauses.push('role_name = ?');
-          params.push(role);
+        if (isAdmin) {
+          if (role && role !== 'ALL') {
+            whereClauses.push('role_name = ?');
+            params.push(role);
+          }
+        } else {
+          whereClauses.push('(role_name = ? OR user_id = ?)');
+          params.push(userRole, currentUser?.id || 0);
         }
         if (status && status !== 'ALL') {
           whereClauses.push('status = ?');
@@ -816,6 +941,9 @@ class FeedbackSupportRepository {
     }
 
     let items = [...mockTickets];
+    if (!isAdmin) {
+      items = items.filter(i => i.role_name.toUpperCase() === userRole || i.user_id === currentUser?.id);
+    }
     if (role && role !== 'ALL') items = items.filter(i => i.role_name.toLowerCase() === role.toLowerCase());
     if (status && status !== 'ALL') items = items.filter(i => i.status === status);
     if (priority && priority !== 'ALL') items = items.filter(i => i.priority === priority);

@@ -26,16 +26,25 @@ class FeedbackSupportService {
     const subject = String(raw.subject || raw.title || raw.topic || raw.summary || 'General Feedback').trim();
     const message = String(raw.message || raw.feedback || raw.comment || raw.content || raw.description || raw.text || raw.notes || 'User provided feedback successfully.').trim();
 
-    const userId = currentUser?.id || raw.user_id || raw.userId || null;
+    const userId = currentUser?.id || null;
     const dbUser = await this._resolveUserDetails(userId);
 
-    const userName = raw.user_name || raw.userName || raw.name || dbUser?.name || currentUser?.name || currentUser?.username || 'System User';
-    const userEmail = raw.user_email || raw.userEmail || raw.email || dbUser?.email || currentUser?.email || 'user@vms.com';
-    const userRole = String(raw.role_name || raw.roleName || raw.role || dbUser?.role || currentUser?.role || 'USER').toUpperCase();
-    const userCode = raw.user_code || raw.userCode || dbUser?.user_code || (userId ? `${userRole.slice(0, 3)}${String(userId).padStart(6, '0')}` : null);
-    const avatarUrl = raw.avatar_url || raw.avatarUrl || dbUser?.avatar_url || currentUser?.avatar_url || null;
-    const phoneNumber = raw.phone_number || raw.phoneNumber || raw.phone || dbUser?.phone_number || currentUser?.phone_number || null;
-    const departmentName = raw.department_name || raw.departmentName || raw.department || dbUser?.department_name || currentUser?.department_name || null;
+    // Security fix: Authenticated user identity and role are strictly enforced from session
+    // Client cannot spoof or choose other roles or emails
+    let userRole = 'VISITOR';
+    let userEmail = String(raw.user_email || raw.email || 'visitor@vms.com').trim();
+    let userName = String(raw.user_name || raw.name || 'Visitor Guest').trim();
+
+    if (currentUser) {
+      userRole = String(currentUser.role || currentUser.role_name || dbUser?.role || 'USER').toUpperCase();
+      userEmail = currentUser.email || dbUser?.email || 'user@vms.com';
+      userName = currentUser.name || currentUser.username || dbUser?.name || 'System User';
+    }
+
+    const userCode = currentUser?.user_code || dbUser?.user_code || (userId ? `${userRole.slice(0, 3)}${String(userId).padStart(6, '0')}` : null);
+    const avatarUrl = currentUser?.avatar_url || dbUser?.avatar_url || null;
+    const phoneNumber = currentUser?.phone_number || currentUser?.phone || dbUser?.phone_number || null;
+    const departmentName = currentUser?.department_name || currentUser?.department || dbUser?.department_name || null;
 
     const payload = {
       user_id: userId,
@@ -92,8 +101,40 @@ class FeedbackSupportService {
     return feedback;
   }
 
-  async listFeedbacks(query) {
-    return repository.listFeedbacks(query);
+  async listFeedbacks(query, currentUser = null) {
+    return repository.listFeedbacks(query, currentUser);
+  }
+
+  async deleteFeedback(id, currentUser = null) {
+    const feedback = await repository.getFeedbackById(id);
+    if (!feedback) {
+      const err = new Error('Feedback not found.');
+      err.statusCode = 404;
+      throw err;
+    }
+    const userRole = String(currentUser?.role || currentUser?.role_name || '').toUpperCase();
+    if (userRole.includes('VISITOR')) {
+      const err = new Error('Visitors are not permitted to delete feedback.');
+      err.statusCode = 403;
+      throw err;
+    }
+    return repository.deleteFeedback(id);
+  }
+
+  async deleteTicket(id, currentUser = null) {
+    const ticket = await repository.getTicketById(id);
+    if (!ticket) {
+      const err = new Error('Ticket not found.');
+      err.statusCode = 404;
+      throw err;
+    }
+    const userRole = String(currentUser?.role || currentUser?.role_name || '').toUpperCase();
+    if (userRole.includes('VISITOR')) {
+      const err = new Error('Visitors are not permitted to delete support tickets.');
+      err.statusCode = 403;
+      throw err;
+    }
+    return repository.deleteTicket(id);
   }
 
   async getFeedbackStats() {
@@ -288,8 +329,8 @@ class FeedbackSupportService {
     return ticket;
   }
 
-  async listTickets(query) {
-    return repository.listTickets(query);
+  async listTickets(query, currentUser = null) {
+    return repository.listTickets(query, currentUser);
   }
 
   async getTicketById(id) {

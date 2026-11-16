@@ -6,6 +6,7 @@ export const feedbackSupportApi = {
     getFeedbackStats: () => api.get('/feedback-support/feedback/stats'),
     acceptFeedback: (id, data) => api.post(`/feedback-support/feedback/${id}/accept`, data),
     updateFeedbackStatus: (id, data) => api.patch(`/feedback-support/feedback/${id}/status`, data),
+    deleteFeedback: (id) => api.delete(`/feedback-support/feedback/${id}`),
     // ── Support Tickets ────────────────────────────────────
     createTicket: (data) => api.post('/feedback-support/tickets', data),
     listTickets: (params) => api.get('/feedback-support/tickets', { params }),
@@ -13,4 +14,5 @@ export const feedbackSupportApi = {
     getTicketStats: () => api.get('/feedback-support/tickets/stats'),
     addTicketMessage: (ticketId, data) => api.post(`/feedback-support/tickets/${ticketId}/messages`, data),
     updateTicketStatus: (id, data) => api.patch(`/feedback-support/tickets/${id}/status`, data),
+    deleteTicket: (id) => api.delete(`/feedback-support/tickets/${id}`),
 };

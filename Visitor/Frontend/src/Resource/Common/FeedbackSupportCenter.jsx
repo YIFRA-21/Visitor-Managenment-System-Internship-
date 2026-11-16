@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, LifeBuoy, Star, CheckCircle2, AlertTriangle, Send, Plus, Search, RefreshCw, Shield, User, Users, Check, X, ShieldAlert, Sparkles, Building, Headphones, HelpCircle, CheckCircle, ChevronDown, Table, LayoutGrid, Eye, Mail, Phone } from 'lucide-react';
+import { MessageSquare, LifeBuoy, Star, CheckCircle2, AlertTriangle, Send, Plus, Search, RefreshCw, Shield, User, Users, Check, X, ShieldAlert, Sparkles, Building, Headphones, HelpCircle, CheckCircle, ChevronDown, Table, LayoutGrid, Eye, Mail, Phone, Trash2 } from 'lucide-react';
 import { feedbackSupportApi } from '../../modules/system-admin/api/feedbackSupportApi';
 import BackButton from '../../components/common/BackButton';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -323,12 +323,83 @@ const DEFAULT_TICKETS = [
 ];
 export default function FeedbackSupportCenter() {
     const { t } = useLanguage();
+
+    // ── Auto-Detect Current User Role & Profile ────────────────────────────────
+    const [currentUser, setCurrentUser] = useState(() => {
+        try {
+            const stored = localStorage.getItem('user');
+            return stored ? JSON.parse(stored) : null;
+        } catch {
+            return null;
+        }
+    });
+
+    const currentUserRole = String(currentUser?.role || currentUser?.role_name || 'EMPLOYEE').toUpperCase();
+    const isAdmin = currentUserRole === 'ADMIN' || currentUserRole === 'ADMINISTRATOR' || currentUserRole === 'SUPER_ADMIN';
+    const isManager = currentUserRole.includes('MANAGER');
+    const isReceptionist = currentUserRole.includes('RECEPTION');
+    const isSecurity = currentUserRole.includes('SECURITY');
+    const isEmployee = currentUserRole.includes('EMPLOYEE') || currentUserRole === 'HOST';
+    const isVisitor = currentUserRole.includes('VISITOR');
+
+    // Scoped role filtering tabs for current user
+    const allowedRoleTabs = useMemo(() => {
+        if (isAdmin) return ALL_ROLES;
+        if (isManager) {
+            return [
+                { id: 'ALL', label: 'All Dept & Visitor Feedback', badge: 'Dept', color: 'text-purple-400' },
+                { id: 'DEPARTMENT_MANAGER', label: 'Dept Manager Submissions', badge: 'Manager', color: 'text-purple-400' },
+                { id: 'VISITOR', label: 'Visitor Feedbacks', badge: 'Guest', color: 'text-amber-400' },
+            ];
+        }
+        if (isReceptionist) {
+            return [
+                { id: 'ALL', label: 'All Front Desk & Visitor Feedback', badge: 'Front Desk', color: 'text-blue-400' },
+                { id: 'RECEPTIONIST', label: 'Reception Submissions', badge: 'Reception', color: 'text-blue-400' },
+                { id: 'VISITOR', label: 'Visitor Feedbacks', badge: 'Guest', color: 'text-amber-400' },
+            ];
+        }
+        if (isSecurity) {
+            return [
+                { id: 'ALL', label: 'All Security & Visitor Feedback', badge: 'Security', color: 'text-rose-400' },
+                { id: 'SECURITY', label: 'Security Submissions', badge: 'Security', color: 'text-rose-400' },
+                { id: 'VISITOR', label: 'Visitor Feedbacks', badge: 'Guest', color: 'text-amber-400' },
+            ];
+        }
+        if (isEmployee) {
+            return [
+                { id: 'ALL', label: 'All Host & Visitor Feedback', badge: 'Host', color: 'text-emerald-400' },
+                { id: 'EMPLOYEE', label: 'My Submissions', badge: 'Employee', color: 'text-emerald-400' },
+                { id: 'VISITOR', label: 'Visitor Feedbacks', badge: 'Guest', color: 'text-amber-400' },
+            ];
+        }
+        if (isVisitor) {
+            return [
+                { id: 'VISITOR', label: 'My Feedback Submissions', badge: 'Visitor', color: 'text-amber-400' },
+            ];
+        }
+        return [{ id: 'ALL', label: 'My Feedbacks', badge: 'Role', color: 'text-indigo-400' }];
+    }, [isAdmin, isManager, isReceptionist, isSecurity, isEmployee, isVisitor]);
+
+    // Initial scoped feedbacks so other role feedbacks never flash or display
+    const initialScopedFeedbacks = useMemo(() => {
+        let list = [...DEFAULT_FEEDBACKS];
+        if (!isAdmin) {
+            if (isManager) list = list.filter(f => ['DEPARTMENT_MANAGER', 'VISITOR'].includes(f.role_name));
+            else if (isReceptionist) list = list.filter(f => ['RECEPTIONIST', 'VISITOR'].includes(f.role_name));
+            else if (isSecurity) list = list.filter(f => ['SECURITY', 'VISITOR'].includes(f.role_name));
+            else if (isEmployee) list = list.filter(f => ['EMPLOYEE', 'VISITOR'].includes(f.role_name));
+            else if (isVisitor) list = list.filter(f => f.role_name === 'VISITOR');
+        }
+        return list;
+    }, [isAdmin, isManager, isReceptionist, isSecurity, isEmployee, isVisitor]);
+
     const [activeTab, setActiveTab] = useState('feedback');
-    const [selectedRole, setSelectedRole] = useState('ALL');
+    const [selectedRole, setSelectedRole] = useState(() => (isVisitor ? 'VISITOR' : 'ALL'));
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
-    // Live Data States (Prefilled with rich defaults so display place is NEVER empty)
-    const [feedbacks, setFeedbacks] = useState(DEFAULT_FEEDBACKS);
+    // Live Data States
+    const [feedbacks, setFeedbacks] = useState(initialScopedFeedbacks);
     const [feedbackStats, setFeedbackStats] = useState(null);
     const [tickets, setTickets] = useState(DEFAULT_TICKETS);
     const [ticketStats, setTicketStats] = useState(null);
@@ -348,24 +419,24 @@ export default function FeedbackSupportCenter() {
         message: '',
         category: 'FEATURE_REQUEST',
         rating: 5,
-        role_name: 'EMPLOYEE',
-        user_name: '',
-        user_email: '',
-        user_code: '',
-        department_name: '',
-        phone_number: '',
+        role_name: currentUserRole,
+        user_name: currentUser?.name || currentUser?.username || '',
+        user_email: currentUser?.email || '',
+        user_code: currentUser?.user_code || '',
+        department_name: currentUser?.department_name || '',
+        phone_number: currentUser?.phone_number || '',
     });
     const [ticketForm, setTicketForm] = useState({
         subject: '',
         description: '',
         category: 'GENERAL_SUPPORT',
         priority: 'MEDIUM',
-        role_name: 'EMPLOYEE',
-        user_name: '',
-        user_email: '',
-        user_code: '',
-        department_name: '',
-        phone_number: '',
+        role_name: currentUserRole,
+        user_name: currentUser?.name || currentUser?.username || '',
+        user_email: currentUser?.email || '',
+        user_code: currentUser?.user_code || '',
+        department_name: currentUser?.department_name || '',
+        phone_number: currentUser?.phone_number || '',
     });
     const [acceptForm, setAcceptForm] = useState({
         admin_notes: '',
@@ -376,7 +447,7 @@ export default function FeedbackSupportCenter() {
     const [feedbackSentSuccess, setFeedbackSentSuccess] = useState(null);
     const [ticketSentSuccess, setTicketSentSuccess] = useState(null);
     const [showInlineTicketForm, setShowInlineTicketForm] = useState(false);
-    const [selectedFaqRole, setSelectedFaqRole] = useState('EMPLOYEE');
+    const [selectedFaqRole, setSelectedFaqRole] = useState(currentUserRole);
     const [openFaqs, setOpenFaqs] = useState({});
     const toggleFaq = (key) => {
         setOpenFaqs(prev => ({
@@ -384,12 +455,13 @@ export default function FeedbackSupportCenter() {
             [key]: !prev[key]
         }));
     };
-    // ── Auto-Detect Current User Role & Profile ────────────────────────────────
+
     useEffect(() => {
         try {
             const stored = localStorage.getItem('user');
             if (stored) {
                 const u = JSON.parse(stored);
+                setCurrentUser(u);
                 const r = (u.role || u.role_name || 'EMPLOYEE').toUpperCase();
                 const code = u.user_code || (u.id ? `${r.slice(0, 3)}${String(u.id).padStart(6, '0')}` : '');
                 const dept = u.department_name || u.department || '';
@@ -412,24 +484,16 @@ export default function FeedbackSupportCenter() {
                     department_name: dept,
                     phone_number: phone,
                 }));
-                if (r.includes('ADMIN'))
-                    setSelectedFaqRole('ADMIN');
-                else if (r.includes('MANAGER'))
-                    setSelectedFaqRole('DEPARTMENT_MANAGER');
-                else if (r.includes('RECEPTION'))
-                    setSelectedFaqRole('RECEPTIONIST');
-                else if (r.includes('SECURITY'))
-                    setSelectedFaqRole('SECURITY');
-                else if (r.includes('VISITOR'))
-                    setSelectedFaqRole('VISITOR');
-                else
-                    setSelectedFaqRole('EMPLOYEE');
+                if (r.includes('ADMIN')) setSelectedFaqRole('ADMIN');
+                else if (r.includes('MANAGER')) setSelectedFaqRole('DEPARTMENT_MANAGER');
+                else if (r.includes('RECEPTION')) setSelectedFaqRole('RECEPTIONIST');
+                else if (r.includes('SECURITY')) setSelectedFaqRole('SECURITY');
+                else if (r.includes('VISITOR')) setSelectedFaqRole('VISITOR');
+                else setSelectedFaqRole('EMPLOYEE');
             }
-        }
-        catch (e) {
-            // ignore JSON parse error
-        }
+        } catch (e) {}
     }, []);
+
     // ── Load Real Feedback & Support Data ──────────────────────────────────────
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -439,6 +503,7 @@ export default function FeedbackSupportCenter() {
                     role: selectedRole,
                     status: statusFilter,
                     search: searchQuery,
+                    current_role: currentUserRole,
                     limit: 100
                 }),
                 feedbackSupportApi.getFeedbackStats(),
@@ -446,30 +511,44 @@ export default function FeedbackSupportCenter() {
                     role: selectedRole,
                     status: statusFilter,
                     search: searchQuery,
+                    current_role: currentUserRole,
                     limit: 100
                 }),
                 feedbackSupportApi.getTicketStats()
             ]);
             const fetchedFeedbacks = fRes.data?.data;
-            if (Array.isArray(fetchedFeedbacks) && fetchedFeedbacks.length > 0) {
-                setFeedbacks(fetchedFeedbacks);
-            }
-            else {
-                // Fallback filter so feedback stream is never left empty
+            if (Array.isArray(fetchedFeedbacks)) {
+                // If records exist from the backend, use them directly
+                if (fetchedFeedbacks.length > 0) {
+                    setFeedbacks(fetchedFeedbacks);
+                } else {
+                    // Empty or offline fallback scoped strictly to user role
+                    let filtered = [...DEFAULT_FEEDBACKS];
+                    if (!isAdmin) {
+                        if (isManager) filtered = filtered.filter(f => ['DEPARTMENT_MANAGER', 'VISITOR'].includes(f.role_name));
+                        else if (isReceptionist) filtered = filtered.filter(f => ['RECEPTIONIST', 'VISITOR'].includes(f.role_name));
+                        else if (isSecurity) filtered = filtered.filter(f => ['SECURITY', 'VISITOR'].includes(f.role_name));
+                        else if (isEmployee) filtered = filtered.filter(f => ['EMPLOYEE', 'VISITOR'].includes(f.role_name));
+                        else if (isVisitor) filtered = filtered.filter(f => f.role_name === 'VISITOR');
+                    }
+                    if (selectedRole && selectedRole !== 'ALL') {
+                        filtered = filtered.filter(f => f.role_name === selectedRole);
+                    }
+                    setFeedbacks(filtered);
+                }
+            } else {
                 let filtered = [...DEFAULT_FEEDBACKS];
+                if (!isAdmin) {
+                    if (isManager) filtered = filtered.filter(f => ['DEPARTMENT_MANAGER', 'VISITOR'].includes(f.role_name));
+                    else if (isReceptionist) filtered = filtered.filter(f => ['RECEPTIONIST', 'VISITOR'].includes(f.role_name));
+                    else if (isSecurity) filtered = filtered.filter(f => ['SECURITY', 'VISITOR'].includes(f.role_name));
+                    else if (isEmployee) filtered = filtered.filter(f => ['EMPLOYEE', 'VISITOR'].includes(f.role_name));
+                    else if (isVisitor) filtered = filtered.filter(f => f.role_name === 'VISITOR');
+                }
                 if (selectedRole && selectedRole !== 'ALL') {
                     filtered = filtered.filter(f => f.role_name === selectedRole);
                 }
-                if (statusFilter && statusFilter !== 'ALL') {
-                    filtered = filtered.filter(f => f.status === statusFilter);
-                }
-                if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    filtered = filtered.filter(f => f.subject.toLowerCase().includes(q) ||
-                        f.message.toLowerCase().includes(q) ||
-                        f.user_name.toLowerCase().includes(q));
-                }
-                setFeedbacks(filtered.length > 0 ? filtered : (fetchedFeedbacks || DEFAULT_FEEDBACKS));
+                setFeedbacks(filtered);
             }
             if (fStatsRes.data?.data) {
                 setFeedbackStats(fStatsRes.data.data);
@@ -477,31 +556,38 @@ export default function FeedbackSupportCenter() {
             const fetchedTickets = tRes.data?.data;
             if (Array.isArray(fetchedTickets) && fetchedTickets.length > 0) {
                 setTickets(fetchedTickets);
-            }
-            else {
+            } else {
                 let filteredT = [...DEFAULT_TICKETS];
+                if (!isAdmin) {
+                    filteredT = filteredT.filter(t => t.role_name === currentUserRole || t.user_id === currentUser?.id);
+                }
                 if (selectedRole && selectedRole !== 'ALL') {
                     filteredT = filteredT.filter(t => t.role_name === selectedRole);
                 }
-                setTickets(filteredT.length > 0 ? filteredT : (fetchedTickets || DEFAULT_TICKETS));
+                setTickets(filteredT);
             }
             if (tStatsRes.data?.data) {
                 setTicketStats(tStatsRes.data.data);
             }
-        }
-        catch (err) {
+        } catch (err) {
             console.warn('Failed to load feedback/support data:', err);
-            // Resilience fallback
             let filtered = [...DEFAULT_FEEDBACKS];
-            if (selectedRole && selectedRole !== 'ALL')
+            if (!isAdmin) {
+                if (isManager) filtered = filtered.filter(f => ['DEPARTMENT_MANAGER', 'VISITOR'].includes(f.role_name));
+                else if (isReceptionist) filtered = filtered.filter(f => ['RECEPTIONIST', 'VISITOR'].includes(f.role_name));
+                else if (isSecurity) filtered = filtered.filter(f => ['SECURITY', 'VISITOR'].includes(f.role_name));
+                else if (isEmployee) filtered = filtered.filter(f => ['EMPLOYEE', 'VISITOR'].includes(f.role_name));
+                else if (isVisitor) filtered = filtered.filter(f => f.role_name === 'VISITOR');
+            }
+            if (selectedRole && selectedRole !== 'ALL') {
                 filtered = filtered.filter(f => f.role_name === selectedRole);
+            }
             setFeedbacks(filtered);
             setTickets(DEFAULT_TICKETS);
-        }
-        finally {
+        } finally {
             setLoading(false);
         }
-    }, [selectedRole, statusFilter, searchQuery]);
+    }, [selectedRole, statusFilter, searchQuery, currentUserRole, isAdmin, isManager, isReceptionist, isSecurity, isEmployee, isVisitor, currentUser]);
     useEffect(() => {
         loadData();
     }, [loadData]);
@@ -514,7 +600,14 @@ export default function FeedbackSupportCenter() {
         }
         setSubmitting(true);
         try {
-            const res = await feedbackSupportApi.submitFeedback(feedbackForm);
+            // Strictly enforce authenticated user identity
+            const payload = {
+                ...feedbackForm,
+                role_name: currentUserRole,
+                user_name: currentUser?.name || currentUser?.username || feedbackForm.user_name || 'System User',
+                user_email: currentUser?.email || feedbackForm.user_email || '',
+            };
+            const res = await feedbackSupportApi.submitFeedback(payload);
             setToast({ type: 'success', message: res.data?.message || 'Feedback submitted successfully!' });
             setFeedbackSentSuccess(`Feedback registered successfully under reference #${res.data?.data?.id || 'NEW'}! Administrators have received your submission.`);
             setShowFeedbackModal(false);
@@ -527,6 +620,32 @@ export default function FeedbackSupportCenter() {
         }
         finally {
             setSubmitting(false);
+        }
+    };
+
+    // ── Handle Delete Feedback (Staff & Admin Only) ───────────────────────────
+    const handleDeleteFeedback = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this feedback entry? This action cannot be undone.')) return;
+        try {
+            await feedbackSupportApi.deleteFeedback(id);
+            setToast({ type: 'success', message: 'Feedback entry deleted successfully.' });
+            setFeedbacks(prev => prev.filter(f => f.id !== id));
+            loadData();
+        } catch (err) {
+            setToast({ type: 'error', message: err.response?.data?.message || 'Failed to delete feedback.' });
+        }
+    };
+
+    // ── Handle Delete Ticket (Staff & Admin Only) ─────────────────────────────
+    const handleDeleteTicket = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this support ticket? This action cannot be undone.')) return;
+        try {
+            await feedbackSupportApi.deleteTicket(id);
+            setToast({ type: 'success', message: 'Support ticket deleted successfully.' });
+            setTickets(prev => prev.filter(t => t.id !== id));
+            loadData();
+        } catch (err) {
+            setToast({ type: 'error', message: err.response?.data?.message || 'Failed to delete support ticket.' });
         }
     };
     // ── Handle Accept Feedback (Admin Workflow) ───────────────────────────────
@@ -689,7 +808,7 @@ export default function FeedbackSupportCenter() {
 
         {/* Role Selector Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          {ALL_ROLES.map(r => (<button key={r.id} onClick={() => setSelectedRole(r.id)} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border ${selectedRole === r.id
+          {allowedRoleTabs.map(r => (<button key={r.id} onClick={() => setSelectedRole(r.id)} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border ${selectedRole === r.id
                 ? 'bg-slate-800 text-white border-indigo-500 shadow-sm'
                 : 'bg-slate-950 text-slate-400 hover:text-slate-200 border-slate-800'}`}>
               {r.label}
@@ -768,21 +887,26 @@ export default function FeedbackSupportCenter() {
                   </div>
                 </div>
 
-                {/* 2. Submitting Role Context */}
+                {/* 2. Authenticated Submitter Identity (Locked - Role Spoofing Prevented) */}
                 <div className="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-2">
-                  <label className="block text-[11px] font-extrabold text-slate-300 uppercase tracking-wider">
-                    Role Context *
-                  </label>
-                  <div className="relative">
-                    <select value={feedbackForm.role_name} onChange={(e) => setFeedbackForm(prev => ({ ...prev, role_name: e.target.value }))} className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer pr-9">
-                      <option value="ADMIN">ADMINISTRATOR</option>
-                      <option value="DEPARTMENT_MANAGER">DEPARTMENT MANAGER</option>
-                      <option value="EMPLOYEE">EMPLOYEE / HOST</option>
-                      <option value="RECEPTIONIST">RECEPTIONIST</option>
-                      <option value="SECURITY">SECURITY OFFICER</option>
-                      <option value="VISITOR">VISITOR / GUEST</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"/>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-extrabold text-slate-300 uppercase tracking-wider">
+                      Submitter Identity (Locked)
+                    </label>
+                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 font-bold">
+                      <Shield className="w-3 h-3" /> Verified
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                      <span className="font-semibold text-white truncate max-w-[120px]">
+                        {currentUser?.name || currentUser?.username || 'You'}
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-indigo-950/80 text-indigo-300 border border-indigo-800/80 shrink-0">
+                      {currentUserRole}
+                    </span>
                   </div>
                 </div>
 
@@ -1011,6 +1135,17 @@ export default function FeedbackSupportCenter() {
                                 <Eye className="w-3.5 h-3.5"/>
                               </button>
 
+                              {!isVisitor && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteFeedback(item.id)}
+                                  className="p-1.5 bg-rose-950/60 hover:bg-rose-900 text-rose-400 hover:text-rose-200 border border-rose-800/60 rounded-lg transition"
+                                  title="Delete Feedback"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
                               {item.status !== 'ACCEPTED' ? (<button type="button" onClick={() => {
                                 setAcceptingFeedback(item);
                                 setAcceptForm({
@@ -1134,6 +1269,17 @@ export default function FeedbackSupportCenter() {
                           <Eye className="w-3 h-3"/> Details
                         </button>
 
+                        {!isVisitor && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFeedback(item.id)}
+                            className="p-1.5 bg-rose-950/60 hover:bg-rose-900 text-rose-400 hover:text-rose-200 border border-rose-800/60 rounded text-[10px] transition"
+                            title="Delete Feedback"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+
                         {item.status !== 'ACCEPTED' ? (<button type="button" onClick={() => {
                                 setAcceptingFeedback(item);
                                 setAcceptForm({
@@ -1193,15 +1339,11 @@ export default function FeedbackSupportCenter() {
               <form onSubmit={handleCreateTicket} className="space-y-3.5 text-xs">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-300 mb-1">Your Role Perspective</label>
-                    <select value={ticketForm.role_name} onChange={(e) => setTicketForm({ ...ticketForm, role_name: e.target.value })} className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:border-indigo-500">
-                      <option value="ADMIN">ADMINISTRATOR</option>
-                      <option value="DEPARTMENT_MANAGER">DEPARTMENT MANAGER</option>
-                      <option value="EMPLOYEE">EMPLOYEE / HOST</option>
-                      <option value="RECEPTIONIST">RECEPTIONIST</option>
-                      <option value="SECURITY">SECURITY OFFICER</option>
-                      <option value="VISITOR">VISITOR / GUEST</option>
-                    </select>
+                    <label className="block font-bold text-slate-300 mb-1">Submitter Identity (Locked)</label>
+                    <div className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono flex items-center justify-between text-xs">
+                      <span className="truncate max-w-[120px] text-slate-300 font-sans font-semibold">{currentUser?.name || currentUser?.username || 'You'}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">{currentUserRole}</span>
+                    </div>
                   </div>
 
                   <div>
@@ -1463,15 +1605,11 @@ export default function FeedbackSupportCenter() {
 
               <form onSubmit={handleSubmitFeedback} className="space-y-3.5 text-xs">
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1">Your Role & Organization Context</label>
-                  <select value={feedbackForm.role_name} onChange={(e) => setFeedbackForm({ ...feedbackForm, role_name: e.target.value })} className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:border-indigo-500">
-                    <option value="ADMIN">ADMINISTRATOR</option>
-                    <option value="DEPARTMENT_MANAGER">DEPARTMENT MANAGER</option>
-                    <option value="EMPLOYEE">EMPLOYEE / HOST</option>
-                    <option value="RECEPTIONIST">RECEPTIONIST</option>
-                    <option value="SECURITY">SECURITY OFFICER</option>
-                    <option value="VISITOR">VISITOR / GUEST</option>
-                  </select>
+                  <label className="block font-bold text-slate-300 mb-1">Submitter Identity (Verified & Locked)</label>
+                  <div className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono flex items-center justify-between text-xs">
+                    <span className="truncate max-w-[200px] text-slate-300 font-sans font-semibold">{currentUser?.name || currentUser?.username || 'Authenticated User'}</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">{currentUserRole}</span>
+                  </div>
                 </div>
 
                 <div>
@@ -1540,15 +1678,11 @@ export default function FeedbackSupportCenter() {
               <form onSubmit={handleCreateTicket} className="space-y-3.5 text-xs">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-300 mb-1">Your Role</label>
-                    <select value={ticketForm.role_name} onChange={(e) => setTicketForm({ ...ticketForm, role_name: e.target.value })} className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:border-indigo-500">
-                      <option value="ADMIN">ADMINISTRATOR</option>
-                      <option value="DEPARTMENT_MANAGER">DEPARTMENT MANAGER</option>
-                      <option value="EMPLOYEE">EMPLOYEE / HOST</option>
-                      <option value="RECEPTIONIST">RECEPTIONIST</option>
-                      <option value="SECURITY">SECURITY OFFICER</option>
-                      <option value="VISITOR">VISITOR / GUEST</option>
-                    </select>
+                    <label className="block font-bold text-slate-300 mb-1">Your Role (Locked)</label>
+                    <div className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono flex items-center justify-between text-xs">
+                      <span className="truncate max-w-[120px] text-slate-300 font-sans font-semibold">{currentUser?.name || currentUser?.username || 'You'}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">{currentUserRole}</span>
+                    </div>
                   </div>
 
                   <div>
@@ -1752,6 +1886,20 @@ export default function FeedbackSupportCenter() {
                 </span>
 
                 <div className="flex items-center gap-2">
+                  {!isVisitor && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetId = viewingFeedbackDetail.id;
+                        setViewingFeedbackDetail(null);
+                        handleDeleteFeedback(targetId);
+                      }}
+                      className="px-3 py-1.5 bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition"
+                      title="Delete Feedback Record"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </button>
+                  )}
                   {viewingFeedbackDetail.status !== 'ACCEPTED' && (<button type="button" onClick={() => {
                     const target = viewingFeedbackDetail;
                     setViewingFeedbackDetail(null);

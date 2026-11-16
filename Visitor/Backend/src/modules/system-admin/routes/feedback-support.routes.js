@@ -20,6 +20,9 @@ router.post('/feedback/:id/accept', optionalAuth, (req, res, next) => controller
 // Update feedback status
 router.patch('/feedback/:id/status', optionalAuth, (req, res, next) => controller.updateFeedbackStatus(req, res, next));
 
+// Delete feedback (Staff and Admin; forbidden for Visitors)
+router.delete('/feedback/:id', optionalAuth, (req, res, next) => controller.deleteFeedback(req, res, next));
+
 // ─── Support Ticket Endpoints ─────────────────────────────────────────────────
 // Open support ticket (All roles)
 router.post('/tickets', optionalAuth, (req, res, next) => controller.createTicket(req, res, next));
@@ -38,5 +41,8 @@ router.post('/tickets/:id/messages', optionalAuth, (req, res, next) => controlle
 
 // Update ticket status / assign technician / resolution notes
 router.patch('/tickets/:id/status', optionalAuth, (req, res, next) => controller.updateTicketStatus(req, res, next));
+
+// Delete ticket (Staff and Admin; forbidden for Visitors)
+router.delete('/tickets/:id', optionalAuth, (req, res, next) => controller.deleteTicket(req, res, next));
 
 module.exports = router;

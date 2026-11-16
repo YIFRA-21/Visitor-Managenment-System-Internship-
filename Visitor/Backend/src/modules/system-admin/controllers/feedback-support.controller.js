@@ -16,10 +16,20 @@ class FeedbackSupportController {
 
   async listFeedbacks(req, res, next) {
     try {
-      const result = await service.listFeedbacks(req.query);
+      const result = await service.listFeedbacks(req.query, req.user);
       res.json({ success: true, ...result });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  async deleteFeedback(req, res, next) {
+    try {
+      const { id } = req.params;
+      const result = await service.deleteFeedback(id, req.user);
+      res.json({ success: true, message: 'Feedback deleted successfully.', data: result });
+    } catch (err) {
+      res.status(err.statusCode || 400).json({ success: false, message: err.message });
     }
   }
 
@@ -79,10 +89,20 @@ class FeedbackSupportController {
 
   async listTickets(req, res, next) {
     try {
-      const result = await service.listTickets(req.query);
+      const result = await service.listTickets(req.query, req.user);
       res.json({ success: true, ...result });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  async deleteTicket(req, res, next) {
+    try {
+      const { id } = req.params;
+      const result = await service.deleteTicket(id, req.user);
+      res.json({ success: true, message: 'Ticket deleted successfully.', data: result });
+    } catch (err) {
+      res.status(err.statusCode || 400).json({ success: false, message: err.message });
     }
   }
 
