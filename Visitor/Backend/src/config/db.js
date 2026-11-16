@@ -182,6 +182,24 @@ try {
         console.warn('DB Migration warning (password_history):', err.message);
       }
 
+      // Permanent file_blobs storage table (prevents attachment loss on ephemeral restarts)
+      try {
+        await pool.query(`CREATE TABLE IF NOT EXISTS file_blobs (
+          filename VARCHAR(255) PRIMARY KEY,
+          original_name VARCHAR(255) NULL,
+          mimetype VARCHAR(100) NULL,
+          file_type VARCHAR(50) NULL,
+          size INT NULL,
+          file_data LONGBLOB NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_mimetype (mimetype),
+          INDEX idx_file_type (file_type)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+      } catch (err) {
+        console.warn('DB Migration warning (file_blobs):', err.message);
+      }
+
       // Blacklist / Watchlist schema & seed
       try {
         await pool.query(`ALTER TABLE visitor_watchlist ADD COLUMN expiry_date DATETIME NULL`);

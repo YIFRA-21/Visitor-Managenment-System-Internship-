@@ -96,6 +96,19 @@ router.post('/avatar', authenticate, upload.single('avatar'), async (req, res, n
       }
     } else {
       avatarUrl = `/uploads/${req.file.filename}`;
+      try {
+        const fileBlobStorage = require('../../../utils/fileBlobStorage');
+        await fileBlobStorage.saveFileBlob({
+          filename: req.file.filename,
+          originalName: req.file.originalname,
+          mimetype: req.file.mimetype,
+          fileType: 'image',
+          filePath: req.file.path,
+          size: req.file.size
+        });
+      } catch (blobErr) {
+        console.warn('Avatar blob save warning:', blobErr.message);
+      }
     }
     const db = require('../../../config/db');
     await db.query('UPDATE users SET avatar_url = ?, profile_photo = ? WHERE id = ?', [avatarUrl, avatarUrl, req.user.id]);

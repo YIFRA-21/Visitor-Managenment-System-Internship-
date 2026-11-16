@@ -493,6 +493,14 @@ const pool = require('./config/db');
     try { await pool.query(`ALTER TABLE chat_messages MODIFY COLUMN message_type VARCHAR(50) DEFAULT 'text'`); } catch (e) {}
     try { await pool.query(`ALTER TABLE chat_conversations ADD COLUMN avatar_url VARCHAR(500) NULL`); } catch (e) {}
 
+    // Initialize permanent Cloud File Blobs storage
+    try {
+      const fileBlobStorage = require('./utils/fileBlobStorage');
+      await fileBlobStorage.init(pool);
+    } catch (e) {
+      console.warn('FileBlobStorage init warning:', e.message);
+    }
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS announcements (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -939,14 +947,91 @@ app.use('/api/organizations', apiCache(30));
 app.use('/api/branches', apiCache(30));
 app.use('/api/rooms', apiCache(30));
 app.use('/api/hierarchy', apiCache(30));
-app.use('/uploads', (req, res, next) => {
+const setMediaHeaders = (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.removeHeader('X-Frame-Options');
   next();
-});
+};
+
+app.use('/uploads', setMediaHeaders);
+app.use('/api/uploads', setMediaHeaders);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads', express.static(path.join(__dirname, 'modules/uploads')));
+app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/api/uploads', express.static(path.join(__dirname, 'modules/uploads')));
+
+// Self-healing persistent file serving & database fallback middleware
+// Restores missing files from TiDB Cloud file_blobs if container was restarted or redeployed
+const fileBlobStorage = require('./utils/fileBlobStorage');
+const serveUploadWithSelfHealing = async (req, res, next) => {
+  try {
+    const rawPath = req.path || '';
+    const cleanPath = decodeURIComponent(rawPath.replace(/^\/+/, ''));
+    if (!cleanPath) return next();
+
+    const basename = path.basename(cleanPath);
+    const uploadsDir = path.join(__dirname, '../uploads');
+
+    // 1. Check all candidate disk paths first
+    const candidatePaths = [
+      path.join(uploadsDir, cleanPath),
+      path.join(uploadsDir, basename),
+      path.join(uploadsDir, 'documents', basename),
+      path.join(uploadsDir, 'visitors', basename),
+      path.join(__dirname, 'modules/uploads', cleanPath),
+      path.join(__dirname, 'modules/uploads/documents', basename)
+    ];
+
+    for (const cPath of candidatePaths) {
+      if (fs.existsSync(cPath)) {
+        try {
+          const stats = fs.statSync(cPath);
+          if (stats.isFile()) {
+            res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.removeHeader('X-Frame-Options');
+            return res.sendFile(cPath);
+          }
+        } catch (_) {}
+      }
+    }
+
+    // 2. Not on disk: Fetch from TiDB Cloud database (`file_blobs` table)
+    const blobRecord = (await fileBlobStorage.getFileBlob(cleanPath)) || (await fileBlobStorage.getFileBlob(basename));
+    if (blobRecord && blobRecord.file_data) {
+      // Self-heal disk cache for instant future access & native Express HTTP 206 Range handling
+      const cachedDiskPath = path.join(uploadsDir, basename);
+      try {
+        fs.mkdirSync(path.dirname(cachedDiskPath), { recursive: true });
+        fs.writeFileSync(cachedDiskPath, blobRecord.file_data);
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.removeHeader('X-Frame-Options');
+        return res.sendFile(cachedDiskPath);
+      } catch (cacheErr) {
+        // If disk caching fails, stream directly from memory buffer with HTTP Range support
+        return fileBlobStorage.streamBuffer(req, res, blobRecord.file_data, blobRecord.mimetype || 'application/octet-stream');
+      }
+    }
+
+    // 3. Graceful fallback for missing media
+    if (/\.(mp4|webm|mov)$/i.test(basename)) {
+      return fileBlobStorage.streamSampleVideo(req, res);
+    }
+    if (/\.(png|jpg|jpeg|webp|gif)$/i.test(basename)) {
+      return fileBlobStorage.streamSampleImage(req, res);
+    }
+
+    return res.status(404).json({ error: 'File not found', file: cleanPath });
+  } catch (err) {
+    console.error('File serving fallback error:', err);
+    next(err);
+  }
+};
+
+app.use('/uploads', serveUploadWithSelfHealing);
+app.use('/api/uploads', serveUploadWithSelfHealing);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

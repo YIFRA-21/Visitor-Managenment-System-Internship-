@@ -75,6 +75,17 @@ class VisitorDocumentService {
     if (file && fs.existsSync(file.path)) {
       const fileBuffer = fs.readFileSync(file.path);
       checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      try {
+        const fileBlobStorage = require('../../../utils/fileBlobStorage');
+        fileBlobStorage.saveFileBlob({
+          filename: file.filename,
+          originalName: originalName,
+          mimetype: mimeType,
+          fileType: 'document',
+          buffer: fileBuffer,
+          size: fileSize
+        }).catch(() => {});
+      } catch (_) {}
     } else {
       checksum = crypto.createHash('sha256').update(originalName + Date.now()).digest('hex');
     }
@@ -202,7 +213,19 @@ class VisitorDocumentService {
 
     let checksum = '';
     if (file && fs.existsSync(file.path)) {
-      checksum = crypto.createHash('sha256').update(fs.readFileSync(file.path)).digest('hex');
+      const fileBuffer = fs.readFileSync(file.path);
+      checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      try {
+        const fileBlobStorage = require('../../../utils/fileBlobStorage');
+        fileBlobStorage.saveFileBlob({
+          filename: file.filename,
+          originalName: originalName,
+          mimetype: mimeType,
+          fileType: 'document',
+          buffer: fileBuffer,
+          size: fileSize
+        }).catch(() => {});
+      } catch (_) {}
     } else {
       checksum = crypto.createHash('sha256').update(originalName + Date.now()).digest('hex');
     }

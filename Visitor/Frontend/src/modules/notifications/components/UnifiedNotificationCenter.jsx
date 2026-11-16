@@ -2060,6 +2060,8 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                                         >
                                           <video
                                             controls
+                                            preload="metadata"
+                                            playsInline
                                             src={resolvePhotoUrl(att.url)}
                                             className="w-full max-h-64 bg-black"
                                           />
@@ -2202,6 +2204,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                     </span>
                     {stagedAttachments.map((att, i) => {
                       const isImg = att.type === 'image' || att.url?.match(/\.(jpeg|jpg|png|gif|webp)$/i);
+                      const isVid = att.type === 'video' || att.url?.match(/\.(mp4|webm|mov)$/i);
                       return (
                         <div
                           key={i}
@@ -2211,6 +2214,8 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                             <div className="w-5 h-5 rounded overflow-hidden shrink-0 border border-indigo-500/40">
                               <img src={resolvePhotoUrl(att.url)} alt={att.name} className="w-full h-full object-cover" />
                             </div>
+                          ) : isVid ? (
+                            <Video className="w-3.5 h-3.5 text-indigo-300 shrink-0" />
                           ) : (
                             <FileText className="w-3.5 h-3.5 text-indigo-300 shrink-0" />
                           )}

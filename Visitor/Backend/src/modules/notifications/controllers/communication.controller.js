@@ -6,6 +6,7 @@
  */
 
 const communicationService = require('../services/communication.service');
+const fileBlobStorage = require('../../../utils/fileBlobStorage');
 
 class CommunicationController {
   // ── Contacts ────────────────────────────────────────────────────────────
@@ -193,6 +194,9 @@ class CommunicationController {
         userId,
         role
       );
+      if (attachmentUrl) {
+        fileBlobStorage.deleteFileBlob(attachmentUrl).catch(() => {});
+      }
       res.json(result);
     } catch (err) {
       next(err);
@@ -307,6 +311,16 @@ class CommunicationController {
       if (file.mimetype.startsWith('image/')) type = 'image';
       else if (file.mimetype.startsWith('video/')) type = 'video';
       else if (file.mimetype.includes('pdf') || file.mimetype.includes('word') || file.mimetype.includes('text')) type = 'document';
+
+      // Persist permanently into TiDB Cloud database so file never disappears on server restart or redeployment
+      await fileBlobStorage.saveFileBlob({
+        filename: file.filename,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        fileType: type,
+        filePath: file.path,
+        size: file.size
+      }).catch(err => console.warn('Warning: Failed to save file blob to database:', err.message));
 
       res.status(201).json({
         success: true,
