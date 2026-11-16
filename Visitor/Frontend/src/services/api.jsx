@@ -726,6 +726,7 @@ export const productionMonitoringApi = {
 export const communicationApi = {
     getContacts: () => api.get('/communication/contacts'),
     getUnreadCounts: () => api.get('/communication/unread-counts'),
+    markAllMessagesRead: () => api.post('/communication/read-all'),
     getConversations: () => api.get('/communication/chat/conversations'),
     updateConversation: (convId, data) => api.put(`/communication/chat/conversations/${convId}`, data),
     deleteConversation: (convId) => api.delete(`/communication/chat/conversations/${convId}`),

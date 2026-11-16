@@ -53,6 +53,8 @@ router.use(authenticate);
 router.get('/contacts', (req, res, next) => communicationController.getContacts(req, res, next));
 router.post('/contacts/manual', (req, res, next) => communicationController.addManualContact(req, res, next));
 router.get('/unread-counts', (req, res, next) => communicationController.getUnreadCounts(req, res, next));
+router.post('/read-all', (req, res, next) => communicationController.markAllMessagesRead(req, res, next));
+router.post('/chat/read-all', (req, res, next) => communicationController.markAllMessagesRead(req, res, next));
 
 // ── Real Chat & Conversations ─────────────────────────────────────────────────
 router.get('/chat/conversations', (req, res, next) => communicationController.getConversations(req, res, next));

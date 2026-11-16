@@ -1262,14 +1262,16 @@ class CommunicationService {
     const notifRows = Array.isArray(rawNotifs[0]) ? rawNotifs[0] : (Array.isArray(rawNotifs) ? rawNotifs : []);
     const unreadNotifications = Number(notifRows[0]?.count || 0);
 
-    // 2. Unread chat messages count across all conversations user belongs to
+    // 2. Unread chat messages count across all active conversations user belongs to
     const chatSql = `
       SELECT COUNT(*) as count
       FROM chat_messages cm
       JOIN chat_participants cp ON cm.conversation_id = cp.conversation_id
+      JOIN chat_conversations cc ON cc.id = cm.conversation_id
       WHERE cp.user_id = ?
         AND cm.sender_id != ?
         AND cm.is_deleted = FALSE
+        AND cc.is_active = 1
         AND (cp.last_read_at IS NULL OR cm.created_at > cp.last_read_at)
     `;
     const rawChat = await db.query(chatSql, [userId, userId]);
@@ -1282,6 +1284,38 @@ class CommunicationService {
       unreadMessages,
       totalUnread: unreadNotifications + unreadMessages
     };
+  }
+
+  /**
+   * Mark all active conversations and direct messages as read for a user
+   */
+  async markAllMessagesRead(userId) {
+    if (!userId) return { success: true };
+    try {
+      await db.query(
+        `UPDATE chat_participants cp
+         JOIN chat_conversations cc ON cc.id = cp.conversation_id
+         SET cp.last_read_at = NOW()
+         WHERE cp.user_id = ? AND cc.is_active = 1`,
+        [userId]
+      );
+    } catch (err) {
+      console.warn('markAllMessagesRead chat_participants update error:', err.message);
+    }
+
+    try {
+      await db.query(
+        `UPDATE messages SET is_read = TRUE, read_at = NOW() WHERE recipient_id = ? AND is_read = FALSE`,
+        [userId]
+      );
+    } catch (err) {}
+
+    try {
+      socketService.sendToUser(userId, 'chat_unread_count', { unreadCount: 0 });
+      socketService.sendToUser(userId, 'chat_unread_updated', { unreadCount: 0 });
+    } catch (err) {}
+
+    return { success: true, unreadCount: 0 };
   }
 }
 

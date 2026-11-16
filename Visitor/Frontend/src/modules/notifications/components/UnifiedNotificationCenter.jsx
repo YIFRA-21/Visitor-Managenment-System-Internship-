@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, MessageSquare, Megaphone, Bell, Send, Paperclip, Check, CheckCheck,
@@ -60,6 +60,7 @@ export const renderSafeAvatar = (url, name = 'Chat', className = 'w-full h-full 
 };
 
 export default function UnifiedNotificationCenter({ initialTab = 'messages', onNavigate }) {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const notifIdFromUrl = searchParams.get('notifId');
   const { user, updateUser } = useAuth();
@@ -98,6 +99,14 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
       setActiveTab(resolveTab(initialTab));
     }
   }, [tabFromUrl, initialTab]);
+
+  // When Message Center tab is active, mark conversations read and clear unread badge immediately
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      communicationApi.markAllMessagesRead().catch(() => {});
+      window.dispatchEvent(new CustomEvent('vms-chat-unread-updated', { detail: { unreadCount: 0 } }));
+    }
+  }, [activeTab]);
 
   // ══════════════════════════════════════════════════════════════════════════
   // Resolve Real-time Message Delivery & Seen Indicators:
@@ -1543,7 +1552,22 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
       {/* Top Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800/80 mb-4 shrink-0">
         <div className="flex items-center gap-3">
-          <BackButton fallbackUrl="/dashboard" />
+          <BackButton
+            onClick={() => {
+              if (typeof onNavigate === 'function') {
+                onNavigate('dashboard');
+              } else {
+                const rawRole = (user?.role || myRole || '').toLowerCase().trim();
+                const prefix = (rawRole === 'admin' || rawRole === 'super_admin' || rawRole === 'system_admin') ? '/admin' :
+                               (rawRole === 'manager' || rawRole.includes('manager')) ? '/manager' :
+                               (rawRole === 'receptionist' || rawRole.includes('reception')) ? '/reception' :
+                               (rawRole === 'security' || rawRole.includes('security')) ? '/security' :
+                               (rawRole === 'employee' || rawRole === 'staff') ? '/employee' : '/visitor';
+                navigate(`${prefix}/dashboard?view=dashboard`);
+              }
+            }}
+            fallbackUrl="/dashboard"
+          />
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">

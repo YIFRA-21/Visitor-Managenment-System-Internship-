@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, ShieldAlert, UserCheck, Calendar, LogIn, LogOut, CreditCard, FileCheck, Eye, Lock, Siren, Users, Compass, HardDrive, Briefcase, Megaphone, History, BarChart3, FileSpreadsheet, Sliders, BookOpen, Settings, Inbox, RefreshCw } from 'lucide-react';
+import BackButton from '../../../components/common/BackButton';
 import SecurityDashboardView from './Views/SecurityDashboardView';
 import SecurityInboxView from './Views/SecurityInboxView';
 import SecurityVisitorNotificationsView from './Views/SecurityVisitorNotificationsView';
@@ -53,6 +54,7 @@ const SecurityNotificationCenter = () => {
       {/* Top Banner Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6 shadow-xl">
         <div className="flex items-center gap-3">
+          <BackButton fallbackUrl="/dashboard" />
           <div className="w-12 h-12 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400">
             <ShieldAlert className="w-6 h-6 animate-pulse"/>
           </div>

@@ -420,9 +420,11 @@ class NotificationService {
           SELECT COUNT(*) as count
           FROM chat_messages cm
           JOIN chat_participants cp ON cm.conversation_id = cp.conversation_id
+          JOIN chat_conversations cc ON cc.id = cm.conversation_id
           WHERE cp.user_id = ?
             AND cm.sender_id != ?
             AND cm.is_deleted = FALSE
+            AND cc.is_active = 1
             AND (cp.last_read_at IS NULL OR cm.created_at > cp.last_read_at)
         `;
         const chatRes = await db.query(chatSql, [userId || 0, userId || 0]);

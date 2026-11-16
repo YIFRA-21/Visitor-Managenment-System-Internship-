@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Sidebar, Navbar } from '../design-system';
-import { authApi, employeePortalApi, notificationsApi, getErrorMessage } from '../services/api';
+import { authApi, employeePortalApi, notificationsApi, communicationApi, getErrorMessage } from '../services/api';
 import { isAdminRole } from '../config/routes';
 import { useSocket } from '../hooks/useSocket';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -1048,6 +1048,9 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             else
                 handleViewClick('notifications?tab=notifications');
         }} onMessagesClick={() => {
+            setUnreadMessageCount(0);
+            window.dispatchEvent(new CustomEvent('vms-chat-unread-updated', { detail: { unreadCount: 0 } }));
+            communicationApi.markAllMessagesRead().catch(() => {});
             const rawRole = (user?.role || user?.role_name || user?.roleName || '').toLowerCase().trim();
             if (rawRole === 'visitor')
                 handleViewClick('visitor_messages?tab=messages');

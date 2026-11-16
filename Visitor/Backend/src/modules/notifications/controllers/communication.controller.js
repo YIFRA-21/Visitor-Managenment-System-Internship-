@@ -282,6 +282,17 @@ class CommunicationController {
     }
   }
 
+  // ── Mark All Chat / Messages Read ─────────────────────────────────────────
+  async markAllMessagesRead(req, res, next) {
+    try {
+      const userId = req.user?.id || req.user?.userId;
+      const result = await communicationService.markAllMessagesRead(userId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   // ── Upload Attachment (Media/Documents) ──────────────────────────────────
   async uploadAttachment(req, res, next) {
     try {
