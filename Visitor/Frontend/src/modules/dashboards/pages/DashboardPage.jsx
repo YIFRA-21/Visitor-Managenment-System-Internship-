@@ -194,6 +194,17 @@ export default function DashboardPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const location = useLocation();
     const navigate = useNavigate();
+
+    const getRoleDashboardPrefix = () => {
+        const rawRole = (user?.role || '').toLowerCase().trim();
+        if (rawRole === 'visitor') return '/visitor';
+        if (rawRole === 'manager' || rawRole.includes('manager')) return '/manager';
+        if (rawRole === 'employee' || rawRole === 'staff') return '/employee';
+        if (rawRole === 'receptionist' || rawRole.includes('reception')) return '/reception';
+        if (rawRole === 'security_officer' || rawRole === 'security' || rawRole.includes('security')) return '/security';
+        return '/admin';
+    };
+
     const pathToViewMap = {};
     user?.identity?.resources?.forEach((r) => {
         pathToViewMap[r.routeUrl] = r.component;
@@ -446,14 +457,14 @@ export default function DashboardPage() {
             'visitor_feedback', 'visitor-feedback', 'feedback',
             'visitor_support', 'visitor-support', 'support',
             'FeedbackSupportCenter', 'feedback-support', 'support-feedback', 'help-support', 'feedback_support', 'visitor-feedback-hub',
-            'system_chat', 'system-chat',
+            'system_chat', 'system-chat', 'chat',
             'visitor_profile', 'visitor-profile', 'profile',
             'visitor_documents', 'visitor-documents', 'my_documents', 'my-documents',
             'visit_history', 'visit-history',
             'my_appointments', 'my-appointments',
             'request_appointment', 'request-appointment',
             'notifications', 'visitor_notifications', 'visitor_communication_center',
-            'visitor_messages', 'visitor-messages',
+            'visitor_messages', 'visitor-messages', 'messages',
             'visitor_announcements', 'visitor-announcements',
             'visitor_master_flow',
             'identity_verification', 'identity-verification',
@@ -531,9 +542,22 @@ export default function DashboardPage() {
                 case 'profile':
                     return <DepartmentManagerProfileView />;
                 case 'notifications':
+                case 'notification_center':
+                case 'manager_notifications':
                 case 'messages':
+                case 'manager_messages':
+                case 'system_chat':
+                case 'system-chat':
+                case 'chat':
                 case 'announcements':
-                    return <UnifiedNotificationCenter initialTab={currentView === 'notifications' ? 'dashboard' : currentView} onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
+                case 'manager_announcements':
+                    return <UnifiedNotificationCenter initialTab={
+                        (currentView === 'notifications' || currentView === 'notification_center' || currentView === 'manager_notifications')
+                            ? 'notifications'
+                            : (currentView === 'announcements' || currentView === 'manager_announcements')
+                                ? 'announcements'
+                                : 'messages'
+                    } onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
                 default:
                     return <ManagerDashboard onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
             }
@@ -968,16 +992,16 @@ export default function DashboardPage() {
             case 'employee_messages':
             case 'emp-messages':
             case 'messages':
-                return <UnifiedNotificationCenter initialTab="messages" onNavigate={(v) => navigate(`/dashboard?view=${v}`)}/>;
+                return <UnifiedNotificationCenter initialTab="messages" onNavigate={(v) => navigate(`${getRoleDashboardPrefix()}/dashboard?view=${v}`)}/>;
             case 'admin_system_chat':
             case 'system_chat':
             case 'system-chat':
-                return <UnifiedNotificationCenter initialTab="system_chat" onNavigate={(v) => navigate(`/dashboard?view=${v}`)}/>;
+                return <UnifiedNotificationCenter initialTab="system_chat" onNavigate={(v) => navigate(`${getRoleDashboardPrefix()}/dashboard?view=${v}`)}/>;
             case 'admin_announcements':
             case 'visitor_announcements':
             case 'employee_announcements':
             case 'announcements':
-                return <UnifiedNotificationCenter initialTab="announcements" onNavigate={(v) => navigate(`/dashboard?view=${v}`)}/>;
+                return <UnifiedNotificationCenter initialTab="announcements" onNavigate={(v) => navigate(`${getRoleDashboardPrefix()}/dashboard?view=${v}`)}/>;
             case 'admin_notification_center':
             case 'enterprise_notification_center':
             case 'notification_admin_center':
@@ -985,17 +1009,17 @@ export default function DashboardPage() {
             case 'admin_notifications':
             case 'enterprise_notification_platform':
             case 'notification_platform':
-                return <UnifiedNotificationCenter initialTab="notification_center" onNavigate={(v) => navigate(`/dashboard?view=${v}`)}/>;
+                return <UnifiedNotificationCenter initialTab="notification_center" onNavigate={(v) => navigate(`${getRoleDashboardPrefix()}/dashboard?view=${v}`)}/>;
             case 'admin_notification_settings':
             case 'notification_settings':
             case 'notification-settings':
-                return <UnifiedNotificationCenter initialTab="settings" onNavigate={(v) => navigate(`/dashboard?view=${v}`)}/>;
+                return <UnifiedNotificationCenter initialTab="settings" onNavigate={(v) => navigate(`${getRoleDashboardPrefix()}/dashboard?view=${v}`)}/>;
             case 'manager_notification_center':
             case 'reception_notification_center':
             case 'reception_notifications':
             case 'security_notification_center':
             case 'emp-notifications':
-                return <UnifiedNotificationCenter initialTab="notification_center" onNavigate={(v) => navigate(`/dashboard?view=${v}`)}/>;
+                return <UnifiedNotificationCenter initialTab="notification_center" onNavigate={(v) => navigate(`${getRoleDashboardPrefix()}/dashboard?view=${v}`)}/>;
             // Reports & Analytics & Security Telemetry
             case 'security_audit_logs':
             case 'security-audit-logs':
@@ -1087,7 +1111,7 @@ export default function DashboardPage() {
             case 'security_notifications':
             case 'visitor_notifications':
             case 'visitor_communication_center':
-                return <UnifiedNotificationCenter initialTab="notification_center" onNavigate={(v) => navigate(`/dashboard?view=${v}`)}/>;
+                return <UnifiedNotificationCenter initialTab="notification_center" onNavigate={(v) => navigate(`${getRoleDashboardPrefix()}/dashboard?view=${v}`)}/>;
             case 'soc_console':
             case 'security_operations_center':
                 return <SecurityNotificationCenter />;

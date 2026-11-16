@@ -1048,7 +1048,13 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             else
                 handleViewClick('notifications?tab=notifications');
         }} onMessagesClick={() => {
-            handleViewClick('system_chat?tab=messages');
+            const rawRole = (user?.role || user?.role_name || user?.roleName || '').toLowerCase().trim();
+            if (rawRole === 'visitor')
+                handleViewClick('visitor_messages?tab=messages');
+            else if (isAdminRole(rawRole) || rawRole === 'admin')
+                handleViewClick('admin_messages?tab=messages');
+            else
+                handleViewClick('messages?tab=messages');
         }} onProfileClick={handleViewClick} onLogout={handleLogout} searchQuery={searchQuery} onSearchChange={setSearchQuery} searchResults={searchResults} onResultClick={handleViewClick}/>
 
         {/* MAIN BODY LAYOUT CONTENT PANE */}
