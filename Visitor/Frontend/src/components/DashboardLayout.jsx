@@ -578,7 +578,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
         key: 'organization-management',
         label: t('sidebar.organizationManagement'),
         iconClass: 'bi-building-gear',
-        view: 'organizations',
         submenus: [
             { key: 'organizations', label: t('sidebar.organizations'), view: 'organizations' },
             { key: 'departments-mgmt', label: t('sidebar.departments'), view: 'departments_mgmt' },
@@ -600,7 +599,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'user-management',
                     label: t('sidebar.userManagement'),
                     iconClass: 'bi-people',
-                    view: 'users',
                     submenus: [
                         { key: 'user-dashboard', label: t('sidebar.dashboard'), view: 'user_dashboard' },
                         { key: 'users', label: t('sidebar.allUsers'), view: 'users' },
@@ -617,7 +615,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'role-management',
                     label: t('sidebar.roleManagement'),
                     iconClass: 'bi-shield-check',
-                    view: 'roles',
                     submenus: [
                         { key: 'role-dashboard', label: t('sidebar.roleDashboard'), view: 'role_dashboard' },
                         { key: 'roles-list', label: t('sidebar.allRolesDirectory'), view: 'roles' },
@@ -629,7 +626,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'permission-management',
                     label: t('sidebar.permissionManagement'),
                     iconClass: 'bi-key',
-                    view: 'permissions',
                     submenus: [
                         { key: 'permission-dashboard', label: t('sidebar.dashboard'), view: 'permission_dashboard' },
                         { key: 'permissions-list', label: t('sidebar.allPermissions'), view: 'permissions' },
@@ -645,7 +641,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'notification-management-admin-group',
                     label: t('sidebar.notificationManagement'),
                     iconClass: 'bi-bell',
-                    view: 'admin_notification_center',
                     submenus: [
                         { key: 'admin-messages', label: t('sidebar.messages'), view: 'admin_messages' },
                         { key: 'admin-system-chat', label: t('sidebar.systemChat'), view: 'admin_system_chat' },
@@ -659,7 +654,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'visitor-management-admin',
                     label: t('sidebar.visitorManagement'),
                     iconClass: 'bi-person-check',
-                    view: 'enterprise_visitor_dashboard',
                     submenus: [
                         { key: 'visitor-management-dashboard', label: t('sidebar.visitorManagementDashboard'), view: 'enterprise_visitor_dashboard' },
                         { key: 'visitor-registration', label: t('sidebar.visitorRegistration'), view: 'visitor_registration' },
@@ -682,7 +676,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'reports-analytics',
                     label: t('sidebar.reportsAuditLogs'),
                     iconClass: 'bi-graph-up',
-                    view: 'reports',
                     submenus: [
                         { key: 'reports-dashboard', label: t('sidebar.dashboardReports'), view: 'reports' },
                         { key: 'audit-logs', label: t('sidebar.auditLogs'), view: 'audit_logs' },
@@ -692,7 +685,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'system-settings',
                     label: t('sidebar.systemSettings'),
                     iconClass: 'bi-gear',
-                    view: 'settings_general',
                     submenus: [
                         { key: 'settings-general', label: t('sidebar.generalFacility'), view: 'settings_general' },
                         { key: 'settings-visitor', label: t('sidebar.visitorAccessRules'), view: 'settings_visitor' },
@@ -725,7 +717,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'notification-management-manager-group',
                     label: t('sidebar.notificationManagement'),
                     iconClass: 'bi-bell',
-                    view: 'notifications',
                     submenus: [
                         { key: 'manager-notifications', label: t('sidebar.notificationCenter'), view: 'notifications' },
                         { key: 'manager-messages', label: t('sidebar.messageCenter'), view: 'messages' },
@@ -748,7 +739,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'notification-management-reception-group',
                     label: t('sidebar.notificationManagement'),
                     iconClass: 'bi-bell',
-                    view: 'notifications',
                     submenus: [
                         { key: 'reception-notifications', label: t('sidebar.notificationCenter'), view: 'notifications' },
                         { key: 'reception-messages', label: t('sidebar.messageCenter'), view: 'messages' },
@@ -772,7 +762,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'security-access',
                     label: t('sidebar.securityAccessControl'),
                     iconClass: 'bi-shield-lock',
-                    view: 'badge_management',
                     submenus: [
                         { key: 'sec-restricted-badges', label: t('sidebar.areaAndAccessBadges', 'Area & Access Level Badges'), view: 'badge_management' },
                         { key: 'security-incidents', label: t('sidebar.securityIncidents'), view: 'security_incidents' },
@@ -790,7 +779,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'security-reports-audit-group',
                     label: t('sidebar.reportsAuditLogs', 'Reports & Audit Logs'),
                     iconClass: 'bi-file-earmark-bar-graph',
-                    view: 'security_reports',
                     submenus: [
                         { key: 'sec-nav-security-reports', label: 'Security Reports', view: 'security_reports' },
                         { key: 'sec-nav-security-audit-logs', label: 'Security Audit Logs', view: 'security_audit_logs' },
@@ -800,7 +788,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'notification-management-security-group',
                     label: t('sidebar.notificationManagement'),
                     iconClass: 'bi-bell',
-                    view: 'notifications',
                     submenus: [
                         { key: 'security-notifications', label: t('sidebar.notificationCenter'), view: 'notifications' },
                         { key: 'security-messages', label: t('sidebar.messageCenter'), view: 'messages' },
@@ -822,7 +809,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                     key: 'notification-management-employee-group',
                     label: t('sidebar.notificationManagement'),
                     iconClass: 'bi-bell',
-                    view: 'employee_notifications',
                     submenus: [
                         { key: 'emp-notifications', label: t('sidebar.notificationCenter'), view: 'employee_notifications' },
                         { key: 'emp-messages', label: t('sidebar.messageCenter'), view: 'messages' },
@@ -846,7 +832,6 @@ export default function DashboardLayout({ children, currentView: propCurrentView
                 key: 'notification-management-visitor-group',
                 label: t('sidebar.notificationManagement'),
                 iconClass: 'bi-bell',
-                view: 'notifications',
                 submenus: [
                     { key: 'visitor-notifications', label: t('sidebar.notificationCenter'), view: 'notifications' },
                     { key: 'visitor-messages-nav', label: t('sidebar.messageCenter'), view: 'visitor_messages' },

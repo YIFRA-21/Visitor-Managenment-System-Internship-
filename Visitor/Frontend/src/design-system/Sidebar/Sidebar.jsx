@@ -63,25 +63,26 @@ export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle
     const activeRole = resolveSidebarRole(user?.role, location.pathname);
     const currentRoleMeta = roleMetaMap[activeRole] || roleMetaMap.visitor;
 
-    // Expanded menus state: automatically drops down the active section upon redirect or navigation
+    // Expanded menus state: only auto-expands if the current view belongs to a submenu
     const [expandedMenus, setExpandedMenus] = useState(() => {
         const initial = {};
-        const activeItem = config.find((item) => item.submenus?.some((sub) => sub.view === currentView) || item.view === currentView);
-        if (activeItem && activeItem.submenus && activeItem.submenus.length > 0) {
+        if (!currentView || currentView === 'dashboard' || currentView === 'employee_dashboard' || currentView.endsWith('_dashboard')) {
+            return initial;
+        }
+        const activeItem = config.find((item) => item.submenus?.some((sub) => sub.view === currentView));
+        if (activeItem) {
             initial[activeItem.key] = true;
-        } else {
-            const firstWithSub = config.find((item) => item.submenus && item.submenus.length > 0);
-            if (firstWithSub) {
-                initial[firstWithSub.key] = true;
-            }
         }
         return initial;
     });
 
-    // Automatically drop down the menu when redirecting/navigating to a role or view
+    // Automatically expand parent menu when navigating to one of its subviews (never on dashboard landing)
     useEffect(() => {
-        const activeItem = config.find((item) => item.submenus?.some((sub) => sub.view === currentView) || item.view === currentView);
-        if (activeItem && activeItem.submenus && activeItem.submenus.length > 0) {
+        if (!currentView || currentView === 'dashboard' || currentView === 'employee_dashboard' || currentView.endsWith('_dashboard')) {
+            return;
+        }
+        const activeItem = config.find((item) => item.submenus?.some((sub) => sub.view === currentView));
+        if (activeItem) {
             setExpandedMenus((prev) => ({
                 ...prev,
                 [activeItem.key]: true,
@@ -147,16 +148,7 @@ export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle
                     <>
                       <button 
                         type="button"
-                        onClick={() => {
-                          setExpandedMenus((prev) => ({
-                            ...prev,
-                            [item.key]: !prev[item.key] || !active
-                          }));
-                          const targetView = item.view || item.submenus[0]?.view;
-                          if (targetView && currentView !== targetView && !item.submenus.some(s => s.view === currentView)) {
-                            onViewClick(targetView);
-                          }
-                        }} 
+                        onClick={() => toggleSubmenu(item.key)} 
                         className={`vms-sidebar__nav-item ${active ? 'active' : ''}`} 
                         aria-expanded={isExpanded}
                       >
@@ -167,13 +159,7 @@ export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle
                           <span className="vms-sidebar__text">{t('menu.' + item.key, item.label)}</span>
                         </span>
                         {!collapsed && (
-                          <span 
-                            className={`vms-sidebar__chevron ${isExpanded ? 'expanded' : ''}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleSubmenu(item.key);
-                            }}
-                          >
+                          <span className={`vms-sidebar__chevron ${isExpanded ? 'expanded' : ''}`}>
                             <i className="bi bi-chevron-right"></i>
                           </span>
                         )}
