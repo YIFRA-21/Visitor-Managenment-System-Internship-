@@ -5,7 +5,7 @@ import {
   Mail, MessageSquare, Megaphone, Bell, Send, Paperclip, Check, CheckCheck,
   Trash2, Edit3, CornerUpRight, Copy, Download, Eye, ExternalLink, Plus,
   Search, Filter, RefreshCw, X, Shield, User, Building, AlertCircle,
-  FileText, Image as ImageIcon, Video as VideoIcon, CheckCircle2,
+  FileText, Image as ImageIcon, Video, Video as VideoIcon, CheckCircle2,
   ChevronRight, ChevronLeft, Lock, ArrowLeft, Upload, Clock, Info,
   Settings, Users, Volume2, VolumeX, Sliders, Share2, Camera
 } from 'lucide-react';
@@ -2250,7 +2250,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                               <img src={resolvePhotoUrl(att.url)} alt={att.name} className="w-full h-full object-cover" />
                             </div>
                           ) : isVid ? (
-                            <Video className="w-3.5 h-3.5 text-indigo-300 shrink-0" />
+                            <VideoIcon className="w-3.5 h-3.5 text-indigo-300 shrink-0" />
                           ) : (
                             <FileText className="w-3.5 h-3.5 text-indigo-300 shrink-0" />
                           )}
@@ -3648,7 +3648,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
               <span className="font-bold truncate">{mediaLightbox.name}</span>
               <div className="flex items-center gap-2">
                 <a
-                  href={mediaLightbox.url}
+                  href={resolvePhotoUrl(mediaLightbox.url)}
                   download={mediaLightbox.name}
                   className="p-1 text-slate-400 hover:text-white"
                   title="Download"
@@ -3666,10 +3666,10 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
 
             <div className="p-4 flex items-center justify-center overflow-auto max-h-[80vh]">
               {mediaLightbox.type === 'video' ? (
-                <video controls src={mediaLightbox.url} className="max-h-[75vh] rounded-lg" autoPlay />
+                <video controls src={resolvePhotoUrl(mediaLightbox.url)} className="max-h-[75vh] rounded-lg" autoPlay />
               ) : (
                 <img
-                  src={mediaLightbox.url}
+                  src={resolvePhotoUrl(mediaLightbox.url)}
                   alt={mediaLightbox.name}
                   className="max-h-[75vh] object-contain rounded-lg"
                 />
