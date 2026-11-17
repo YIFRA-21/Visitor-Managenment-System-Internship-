@@ -71,7 +71,7 @@ class CommunicationService {
 
     // Fetch all active users across the system excluding self
     const sql = `
-      SELECT id, username, email, phone_number, role, full_name, avatar_url, job_title, department_id,
+      SELECT id, username, email, phone_number, role, full_name, COALESCE(avatar_url, profile_photo) as avatar_url, job_title, department_id,
              (SELECT name FROM departments WHERE id = users.department_id) as department_name
       FROM users
       WHERE id != ? AND is_active = TRUE AND status != 'deleted' AND status != 'suspended'
@@ -365,7 +365,7 @@ class CommunicationService {
       conv.created_by = conv.created_by ? Number(conv.created_by) : null;
       conv.is_owner = conv.created_by !== null && Number(conv.created_by) === Number(userId);
       const partSql = `
-        SELECT u.id, u.username, u.full_name, u.email, u.role, u.avatar_url, u.job_title,
+        SELECT u.id, u.username, u.full_name, u.email, u.role, COALESCE(u.avatar_url, u.profile_photo) as avatar_url, u.job_title,
                (SELECT name FROM departments WHERE id = u.department_id) as department_name
         FROM chat_participants cp
         JOIN users u ON cp.user_id = u.id
@@ -395,7 +395,7 @@ class CommunicationService {
         conv.is_group = true;
         // Query all participants for group
         const allPartsSql = `
-          SELECT u.id, u.username, u.full_name, u.email, u.role, u.avatar_url, u.job_title,
+          SELECT u.id, u.username, u.full_name, u.email, u.role, COALESCE(u.avatar_url, u.profile_photo) as avatar_url, u.job_title,
                  (SELECT name FROM departments WHERE id = u.department_id) as department_name,
                  cp.role as group_role
           FROM chat_participants cp
@@ -504,8 +504,9 @@ class CommunicationService {
    */
   async addParticipantToConversation(convId, userIdToAdd) {
     await db.query(
-      `INSERT IGNORE INTO chat_participants (conversation_id, user_id, role, joined_at)
-       VALUES (?, ?, 'member', NOW())`,
+      `INSERT INTO chat_participants (conversation_id, user_id, role, joined_at)
+       VALUES (?, ?, 'member', NOW())
+       ON DUPLICATE KEY UPDATE role = VALUES(role)`,
       [convId, userIdToAdd]
     );
     return { success: true, message: 'Member added to team successfully.' };
@@ -533,7 +534,7 @@ class CommunicationService {
 
     // 1. Fetch Target User
     const targetRows = await db.query(
-      `SELECT id, username, email, role, full_name, avatar_url FROM users WHERE id = ? AND is_active = TRUE LIMIT 1`,
+      `SELECT id, username, email, role, full_name, COALESCE(avatar_url, profile_photo) as avatar_url FROM users WHERE id = ? AND is_active = TRUE LIMIT 1`,
       [targetUserId]
     );
     const targetList = Array.isArray(targetRows[0]) ? targetRows[0] : (Array.isArray(targetRows) ? targetRows : []);
@@ -610,7 +611,7 @@ class CommunicationService {
       SELECT cm.id, cm.conversation_id, cm.sender_id, cm.message_type, cm.message_text,
              cm.attachments_json, cm.is_edited, cm.is_deleted, cm.created_at,
              u.full_name as sender_name, u.username as sender_username, u.email as sender_email,
-             u.avatar_url as sender_avatar, u.role as sender_role
+             COALESCE(u.avatar_url, u.profile_photo) as sender_avatar, u.role as sender_role
       FROM chat_messages cm
       JOIN users u ON cm.sender_id = u.id
       WHERE cm.conversation_id = ? AND cm.is_deleted = FALSE
@@ -774,7 +775,7 @@ class CommunicationService {
     const partList = Array.isArray(otherParts[0]) ? otherParts[0] : (Array.isArray(otherParts) ? otherParts : []);
     const isAnyReceiverOnline = partList.some(p => socketService.getPresence(p.user_id)?.status === 'online');
 
-    const userRes = await db.query(`SELECT full_name, username, email, avatar_url, role FROM users WHERE id = ?`, [senderId]);
+    const userRes = await db.query(`SELECT full_name, username, email, COALESCE(avatar_url, profile_photo) as avatar_url, role FROM users WHERE id = ?`, [senderId]);
     const userList = Array.isArray(userRes[0]) ? userRes[0] : (Array.isArray(userRes) ? userRes : []);
     const sender = userList[0] || {};
 
@@ -1086,7 +1087,7 @@ class CommunicationService {
       SELECT a.id, a.title, a.content_body, a.banner_url, a.priority, a.category,
              a.status, a.publish_at, a.expires_at, a.created_by, a.target_audience_json,
              a.allow_comments, a.allow_reactions, a.views_count, a.likes_count, a.created_at,
-             u.full_name as author_name, u.email as author_email, u.avatar_url as author_avatar
+             u.full_name as author_name, u.email as author_email, COALESCE(u.avatar_url, u.profile_photo) as author_avatar
       FROM announcements a
       LEFT JOIN users u ON a.created_by = u.id
       WHERE a.status = 'published' AND (a.expires_at IS NULL OR a.expires_at > NOW())

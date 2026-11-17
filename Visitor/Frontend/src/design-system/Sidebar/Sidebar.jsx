@@ -174,7 +174,11 @@ export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle
         <div className="vms-sidebar__footer">
           <div className="vms-sidebar__user">
             <div className="vms-sidebar__avatar">
-              {user?.avatarUrl ? (<img src={resolvePhotoUrl(user.avatarUrl)} alt="Profile"/>) : (user?.fullName?.charAt(0).toUpperCase() || 'U')}
+              {(user?.avatarUrl || user?.avatar_url || user?.profile_photo || user?.photo_url || user?.photoUrl || user?.avatar) ? (
+                <img src={resolvePhotoUrl(user?.avatarUrl || user?.avatar_url || user?.profile_photo || user?.photo_url || user?.photoUrl || user?.avatar)} alt="Profile"/>
+              ) : (
+                user?.fullName?.charAt(0).toUpperCase() || 'U'
+              )}
             </div>
             <div className="vms-sidebar__user-info">
               <div className="vms-sidebar__user-name" title={user?.fullName || 'User'}>

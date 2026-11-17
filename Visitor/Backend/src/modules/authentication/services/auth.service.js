@@ -963,7 +963,12 @@ class AuthService {
         role: user.role?.toUpperCase() || 'VISITOR',
         departmentId: user.department_id,
         jobTitle: user.job_title,
-        avatarUrl: user.avatar_url,
+        avatarUrl: user.avatar_url || user.profile_photo || '',
+        avatar_url: user.avatar_url || user.profile_photo || '',
+        avatar: user.avatar_url || user.profile_photo || '',
+        profile_photo: user.profile_photo || user.avatar_url || '',
+        photo_url: user.avatar_url || user.profile_photo || '',
+        photoUrl: user.avatar_url || user.profile_photo || '',
         visitorId: visitorId,
         visitor_id: formattedVisitorId || (visitorId ? `VISIT${String(visitorId).padStart(6, '0')}` : null),
         employeeId: user.employee_id || null,
@@ -1075,7 +1080,7 @@ class AuthService {
     const identity = await this.resolveUserIdentity(userId);
 
     // Resolve avatar across users and role-specific tables
-    let avatarUrl = user.avatarUrl || user.avatar_url || '';
+    let avatarUrl = user.avatarUrl || user.avatar_url || user.profile_photo || '';
     if (!avatarUrl) {
       try {
         const userRole = (user.role || '').toLowerCase();
@@ -1119,6 +1124,14 @@ class AuthService {
           if (Array.isArray(mgrRows) && mgrRows[0]?.photo_url) {
             avatarUrl = mgrRows[0].photo_url;
           }
+        } else if (userRole === 'admin' || userRole === 'superadmin' || userRole === 'system_admin' || userRole === 'administrator') {
+          const admRows = await db.query(
+            `SELECT photo_url FROM administrator_profiles WHERE user_id = ? LIMIT 1`,
+            [user.id]
+          );
+          if (Array.isArray(admRows) && admRows[0]?.photo_url) {
+            avatarUrl = admRows[0].photo_url;
+          }
         }
         if (avatarUrl) {
           await db.query(`UPDATE users SET avatar_url = ?, profile_photo = ? WHERE id = ?`, [avatarUrl, avatarUrl, user.id]).catch(() => {});
@@ -1134,7 +1147,12 @@ class AuthService {
       role: user.role,
       departmentId: user.departmentId || user.department_id,
       jobTitle: user.jobTitle || user.job_title,
-      avatarUrl,
+      avatarUrl: avatarUrl || '',
+      avatar_url: avatarUrl || '',
+      avatar: avatarUrl || '',
+      profile_photo: avatarUrl || '',
+      photo_url: avatarUrl || '',
+      photoUrl: avatarUrl || '',
       accountStatus: user.accountStatus || user.account_status,
       firstLoginRequired: !!user.firstLoginRequired || !!user.first_login_required,
       identity,
@@ -1312,7 +1330,12 @@ class AuthService {
         role: user.role?.toUpperCase() || 'VISITOR',
         departmentId: user.department_id,
         jobTitle: user.job_title,
-        avatarUrl: user.avatar_url,
+        avatarUrl: user.avatar_url || user.profile_photo || '',
+        avatar_url: user.avatar_url || user.profile_photo || '',
+        avatar: user.avatar_url || user.profile_photo || '',
+        profile_photo: user.profile_photo || user.avatar_url || '',
+        photo_url: user.avatar_url || user.profile_photo || '',
+        photoUrl: user.avatar_url || user.profile_photo || '',
         visitorId: user.visitor_id || null,
         employeeId: user.employee_id || null,
       },

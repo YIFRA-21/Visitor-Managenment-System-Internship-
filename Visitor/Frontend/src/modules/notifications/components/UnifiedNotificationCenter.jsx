@@ -1133,22 +1133,52 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
       const fd = new FormData();
       fd.append('avatar', file);
       const res = await profileApi.uploadAvatar(fd);
-      const newUrl = res.data?.avatarUrl;
+      const newUrl = res.data?.avatarUrl || res.data?.avatar_url;
       if (newUrl) {
         setContactProfileModal((prev) => ({
           ...prev,
           formData: { ...prev.formData, avatar_url: newUrl }
         }));
-        if (updateUser && user) {
-          updateUser({ ...user, avatar_url: newUrl, profile_photo: newUrl });
+        const updatedUserData = {
+          ...user,
+          avatarUrl: newUrl,
+          avatar_url: newUrl,
+          avatar: newUrl,
+          profile_photo: newUrl,
+          photo_url: newUrl,
+          photoUrl: newUrl
+        };
+        if (updateUser) {
+          updateUser(updatedUserData);
         }
         try {
           const stored = localStorage.getItem('user');
           if (stored) {
             const u = JSON.parse(stored);
+            u.avatarUrl = newUrl;
             u.avatar_url = newUrl;
+            u.avatar = newUrl;
             u.profile_photo = newUrl;
+            u.photo_url = newUrl;
+            u.photoUrl = newUrl;
             localStorage.setItem('user', JSON.stringify(u));
+          }
+          if (user?.id) {
+            localStorage.setItem(`user_photo_${user.id}`, newUrl);
+            sessionStorage.setItem(`user_photo_${user.id}`, newUrl);
+          }
+          if (myRole.includes('admin')) {
+            localStorage.setItem('admin_profile_photo', newUrl);
+            sessionStorage.setItem('admin_profile_photo', newUrl);
+          } else if (myRole.includes('employee') || myRole.includes('staff')) {
+            localStorage.setItem('employee_uploaded_photo', newUrl);
+            sessionStorage.setItem('employee_uploaded_photo', newUrl);
+          } else if (myRole.includes('reception')) {
+            localStorage.setItem('receptionist_uploaded_photo', newUrl);
+            sessionStorage.setItem('receptionist_uploaded_photo', newUrl);
+          } else if (myRole.includes('security')) {
+            localStorage.setItem('security_uploaded_photo', newUrl);
+            sessionStorage.setItem('security_uploaded_photo', newUrl);
           }
         } catch (_) {}
         showToast('Your profile photo has been updated ✓', 'success');
@@ -1215,6 +1245,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
       showToast('Please select a valid image file (JPG, PNG, WebP).', 'error');
       return;
     }
+    const targetConvId = activeConvId || activeConversation?.id || contactProfileModal.conversation?.id;
     try {
       setUploadingTeamAvatar(true);
       // Instant visual preview so the user immediately sees their photo
@@ -1237,15 +1268,16 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
           formData: {
             ...prev.formData,
             avatar_url: uploadedUrl
-          }
+          },
+          conversation: prev.conversation ? { ...prev.conversation, avatar_url: uploadedUrl } : prev.conversation
         }));
 
         // Immediately update active conversation and conversations list
-        if (activeConversation?.id) {
+        if (targetConvId) {
           try {
-            await communicationApi.updateConversation(activeConversation.id, {
-              title: contactProfileModal.formData?.title || activeConversation.title,
-              description: contactProfileModal.formData?.description || activeConversation.description || '',
+            await communicationApi.updateConversation(targetConvId, {
+              title: contactProfileModal.formData?.title || activeConversation?.title,
+              description: contactProfileModal.formData?.description || activeConversation?.description || '',
               avatar_url: uploadedUrl
             });
           } catch (updateErr) {
@@ -1253,12 +1285,12 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
           }
 
           setConversations((prev) =>
-            prev.map((c) => (c.id === activeConversation.id ? { ...c, avatar_url: uploadedUrl } : c))
+            prev.map((c) => (c.id === targetConvId ? { ...c, avatar_url: uploadedUrl } : c))
           );
-          setActiveConversation((prev) => (prev ? { ...prev, avatar_url: uploadedUrl } : prev));
         }
 
         showToast('Team photo uploaded and saved successfully ✓', 'success');
+        fetchConversations();
       }
     } catch (err) {
       showToast(getErrorMessage(err) || 'Failed to upload photo.', 'error');
@@ -1270,6 +1302,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
 
   // Update Team Information (Name, Description & Avatar) - Instant Snappy UI
   const handleUpdateTeamInfo = async (convId, title, description, avatarUrl) => {
+    const targetConvId = convId || activeConvId || activeConversation?.id || contactProfileModal.conversation?.id;
     if (!title || !title.trim()) {
       showToast('Team / Group name is required.', 'error');
       return;
@@ -1281,7 +1314,6 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
 
     // Snapshot current state for rollback if network fails
     const prevConversations = [...conversations];
-    const prevActiveConversation = activeConversation ? { ...activeConversation } : null;
 
     // 1. Instant Optimistic UI Response (<10ms)
     setContactProfileModal({ visible: false, user: null, conversation: null, isGroup: false, formData: {} });
@@ -1289,7 +1321,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
 
     setConversations((prev) =>
       prev.map((c) =>
-        c.id === convId
+        c.id === targetConvId
           ? {
               ...c,
               title: trimmedTitle,
@@ -1300,35 +1332,25 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
       )
     );
 
-    setActiveConversation((prev) =>
-      prev && prev.id === convId
-        ? {
-            ...prev,
-            title: trimmedTitle,
-            description: trimmedDesc,
-            ...(finalAvatar !== undefined ? { avatar_url: finalAvatar } : {})
-          }
-        : prev
-    );
-
     // 2. Background API Sync (non-blocking)
     try {
-      await communicationApi.updateConversation(convId, {
+      await communicationApi.updateConversation(targetConvId, {
         title: trimmedTitle,
         description: trimmedDesc,
         avatar_url: avatarUrl ?? ''
       });
+      fetchConversations();
     } catch (err) {
       // Revert optimistic update on failure
       setConversations(prevConversations);
-      if (prevActiveConversation) setActiveConversation(prevActiveConversation);
       showToast(getErrorMessage(err) || 'Failed to save team updates.', 'error');
     }
   };
 
   // Delete Team Channel Permanently - Instant Optimistic UI with confirmation
   const handleDeleteConversation = async (convId) => {
-    if (!convId) return;
+    const targetConvId = convId || activeConvId || activeConversation?.id || contactProfileModal.conversation?.id;
+    if (!targetConvId) return;
     const confirmed = window.confirm(
       'Are you sure you want to permanently delete this team channel? All messages and discussions will be deactivated.'
     );
@@ -1340,16 +1362,16 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
 
     // Instant UI dismissal & update
     setContactProfileModal({ visible: false, user: null, conversation: null, isGroup: false, formData: {} });
-    const remaining = conversations.filter((c) => c.id !== convId);
+    const remaining = conversations.filter((c) => c.id !== targetConvId);
     setConversations(remaining);
-    if (activeConvId === convId) {
+    if (activeConvId === targetConvId) {
       setActiveConvId(remaining.length > 0 ? remaining[0].id : null);
     }
     showToast('Team channel deleted successfully ✓', 'success');
 
     // Background API dispatch
     try {
-      await communicationApi.deleteConversation(convId);
+      await communicationApi.deleteConversation(targetConvId);
       window.dispatchEvent(new CustomEvent('vms-chat-unread-updated'));
     } catch (err) {
       // Revert on error
@@ -1361,7 +1383,8 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
 
   // Add Member to Team - Optimistic instant update
   const handleAddMemberToTeam = async (convId, userIdToAdd) => {
-    if (!convId || !userIdToAdd) return;
+    const targetConvId = convId || activeConvId || activeConversation?.id || contactProfileModal.conversation?.id;
+    if (!targetConvId || !userIdToAdd) return;
     try {
       const addedContact = contacts.find((c) => c.id === userIdToAdd);
       if (addedContact) {
@@ -1377,16 +1400,24 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
           is_online: Boolean(addedContact.is_online),
           is_me: Number(addedContact.id) === Number(myUserId)
         };
-        setActiveConversation((prev) => {
-          if (!prev || prev.id !== convId) return prev;
-          const currentMembers = prev.group_members || [];
+        // Update modal conversation immediately so the count and member card appear instantly
+        setContactProfileModal((prev) => {
+          if (!prev.visible) return prev;
+          const currentMembers = prev.conversation?.group_members || [];
           if (currentMembers.some((m) => m.id === userIdToAdd)) return prev;
           const updated = [...currentMembers, newMember];
-          return { ...prev, group_members: updated, participants_count: updated.length };
+          return {
+            ...prev,
+            conversation: {
+              ...prev.conversation,
+              group_members: updated,
+              participants_count: updated.length
+            }
+          };
         });
         setConversations((prev) =>
           prev.map((c) => {
-            if (c.id === convId) {
+            if (c.id === targetConvId) {
               const currentMembers = c.group_members || [];
               if (currentMembers.some((m) => m.id === userIdToAdd)) return c;
               const updated = [...currentMembers, newMember];
@@ -1397,7 +1428,8 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
         );
       }
       showToast('Personnel added to team ✓', 'success');
-      await communicationApi.addParticipant(convId, userIdToAdd);
+      await communicationApi.addParticipant(targetConvId, userIdToAdd);
+      fetchConversations();
     } catch (err) {
       showToast(getErrorMessage(err) || 'Failed to add member to team.', 'error');
       fetchConversations();
@@ -1406,27 +1438,30 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
 
   // Remove Member from Team - Instant Optimistic UI
   const handleRemoveMemberFromTeam = async (convId, userIdToRemove) => {
-    if (!convId || !userIdToRemove) return;
+    const targetConvId = convId || activeConvId || activeConversation?.id || contactProfileModal.conversation?.id;
+    if (!targetConvId || !userIdToRemove) return;
     const confirmed = window.confirm('Are you sure you want to remove this member from the team channel?');
     if (!confirmed) return;
 
     // Snapshot for rollback
-    const prevActiveConversation = activeConversation ? { ...activeConversation } : null;
     const prevConversations = [...conversations];
 
-    // Optimistically remove member from state immediately
-    setActiveConversation((prev) => {
-      if (!prev || prev.id !== convId) return prev;
-      const updatedMembers = (prev.group_members || []).filter((m) => m.id !== userIdToRemove);
+    // Optimistically remove member from modal and conversations state immediately
+    setContactProfileModal((prev) => {
+      if (!prev.visible) return prev;
+      const updatedMembers = (prev.conversation?.group_members || []).filter((m) => m.id !== userIdToRemove);
       return {
         ...prev,
-        group_members: updatedMembers,
-        participants_count: updatedMembers.length
+        conversation: {
+          ...prev.conversation,
+          group_members: updatedMembers,
+          participants_count: updatedMembers.length
+        }
       };
     });
     setConversations((prev) =>
       prev.map((c) => {
-        if (c.id === convId) {
+        if (c.id === targetConvId) {
           const updatedMembers = (c.group_members || []).filter((m) => m.id !== userIdToRemove);
           return {
             ...c,
@@ -1441,10 +1476,10 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
 
     // Background API dispatch
     try {
-      await communicationApi.removeParticipant(convId, userIdToRemove);
+      await communicationApi.removeParticipant(targetConvId, userIdToRemove);
+      fetchConversations();
     } catch (err) {
       // Rollback on error
-      if (prevActiveConversation) setActiveConversation(prevActiveConversation);
       setConversations(prevConversations);
       showToast(getErrorMessage(err) || 'Failed to remove member from team.', 'error');
     }
@@ -4078,9 +4113,13 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
           ══════════════════════════════════════════════════════════════════════ */}
       {contactProfileModal.visible && (() => {
         const isGroup = Boolean(contactProfileModal.isGroup);
+        const modalTeamConv = conversations.find((c) => c.id === (contactProfileModal.conversation?.id || activeConvId)) || contactProfileModal.conversation || activeConversation;
+        const modalTeamConvId = modalTeamConv?.id || contactProfileModal.conversation?.id || activeConvId;
+        const modalMembers = modalTeamConv?.group_members || [];
+        const modalExistingIds = modalMembers.map((m) => m.id);
         const isTeamOwner = isGroup && (
-          (activeConversation?.created_by && Number(activeConversation.created_by) === Number(myUserId)) ||
-          Boolean(activeConversation?.is_owner) ||
+          (modalTeamConv?.created_by && Number(modalTeamConv.created_by) === Number(myUserId)) ||
+          Boolean(modalTeamConv?.is_owner) ||
           isAdmin
         );
         const isOwnProfile = !isGroup && (
@@ -4149,8 +4188,8 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                         <div className="relative group shrink-0">
                           <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 text-indigo-300 border-2 border-indigo-500/40 flex items-center justify-center font-black text-xl uppercase overflow-hidden shadow-lg shadow-indigo-950/50">
                             {renderSafeAvatar(
-                              contactProfileModal.formData.avatar_url || activeConversation?.avatar_url,
-                              contactProfileModal.formData.title || activeConversation?.title || 'Team'
+                              contactProfileModal.formData.avatar_url || modalTeamConv?.avatar_url,
+                              contactProfileModal.formData.title || modalTeamConv?.title || 'Team'
                             )}
                           </div>
 
@@ -4173,14 +4212,14 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                         <div className="flex-1 min-w-0 space-y-1.5">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <h4 className="text-sm font-bold text-white truncate">
-                              {contactProfileModal.formData.title || 'Team Channel'}
+                              {contactProfileModal.formData.title || modalTeamConv?.title || 'Team Channel'}
                             </h4>
                             <div className="px-2.5 py-0.5 rounded-full bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 font-extrabold text-[11px] flex items-center gap-1.5">
-                              <span>{activeConversation?.participants_count || (activeConversation?.group_members?.length || 1)} Members</span>
+                              <span>{modalTeamConv?.participants_count || (modalMembers.length || 1)} Members</span>
                               <span className="text-slate-600">•</span>
                               <span className="text-emerald-400 flex items-center gap-1 font-bold">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-                                {activeConversation?.online_count !== undefined ? activeConversation.online_count : 1} Online
+                                {modalTeamConv?.online_count !== undefined ? modalTeamConv.online_count : 1} Online
                               </span>
                             </div>
                           </div>
@@ -4203,19 +4242,19 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                                   onClick={async () => {
                                     setContactProfileModal((prev) => ({
                                       ...prev,
-                                      formData: { ...prev.formData, avatar_url: '' }
+                                      formData: { ...prev.formData, avatar_url: '' },
+                                      conversation: prev.conversation ? { ...prev.conversation, avatar_url: '' } : prev.conversation
                                     }));
-                                    if (activeConversation?.id) {
+                                    if (modalTeamConv?.id) {
                                       try {
-                                        await communicationApi.updateConversation(activeConversation.id, {
-                                          title: contactProfileModal.formData?.title || activeConversation.title,
-                                          description: contactProfileModal.formData?.description || activeConversation.description || '',
+                                        await communicationApi.updateConversation(modalTeamConv.id, {
+                                          title: contactProfileModal.formData?.title || modalTeamConv.title,
+                                          description: contactProfileModal.formData?.description || modalTeamConv.description || '',
                                           avatar_url: ''
                                         });
                                         setConversations((prev) =>
-                                          prev.map((c) => (c.id === activeConversation.id ? { ...c, avatar_url: '' } : c))
+                                          prev.map((c) => (c.id === modalTeamConv.id ? { ...c, avatar_url: '' } : c))
                                         );
-                                        setActiveConversation((prev) => (prev ? { ...prev, avatar_url: '' } : prev));
                                         showToast('Team photo removed ✓', 'success');
                                       } catch (err) {
                                         console.warn('Remove avatar error:', err);
@@ -4293,7 +4332,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-                          Team Members ({(activeConversation?.group_members || []).length})
+                          Team Members ({modalMembers.length})
                         </span>
                         <span className="text-[10px] text-slate-500">
                           Live socket presence verified
@@ -4301,12 +4340,12 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                       </div>
 
                       <div className="max-h-44 overflow-y-auto divide-y divide-slate-800/60 bg-slate-950/60 rounded-xl p-2 border border-slate-800">
-                        {(activeConversation?.group_members || []).length === 0 ? (
+                        {modalMembers.length === 0 ? (
                           <div className="p-3 text-center text-xs text-slate-500">
                             Creator is currently the sole member. Use the section below to add personnel.
                           </div>
                         ) : (
-                          (activeConversation?.group_members || []).map((member) => (
+                          modalMembers.map((member) => (
                             <div key={member.id} className="p-2 flex items-center justify-between gap-3 hover:bg-slate-800/40 rounded-lg transition-colors">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className="relative w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-indigo-300 uppercase shrink-0 overflow-hidden">
@@ -4337,8 +4376,8 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                                 {(isTeamOwner || member.is_me) && !member.is_me && (
                                   <button
                                     type="button"
-                                    onClick={() => handleRemoveMemberFromTeam(activeConvId, member.id)}
-                                    className="p-1 hover:bg-rose-950 text-slate-500 hover:text-rose-400 rounded transition-colors"
+                                    onClick={() => handleRemoveMemberFromTeam(modalTeamConvId, member.id)}
+                                    className="p-1 hover:bg-rose-950 text-slate-500 hover:text-rose-400 rounded transition-colors cursor-pointer"
                                     title="Remove member from team"
                                   >
                                     <X className="w-3.5 h-3.5" />
@@ -4388,8 +4427,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                           .filter((c) => {
                             const r = (c.role || '').toLowerCase();
                             if (r === 'visitor') return false;
-                            const existingIds = (activeConversation?.group_members || []).map((m) => m.id);
-                            if (existingIds.includes(c.id)) return false; // Already in team
+                            if (modalExistingIds.includes(c.id)) return false; // Already in team
                             if (teamMemberRoleFilter === 'ALL') return true;
                             if (teamMemberRoleFilter === 'receptionist') return r.includes('reception');
                             if (teamMemberRoleFilter === 'security') return r.includes('security');
@@ -4411,7 +4449,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                               </div>
                               <button
                                 type="button"
-                                onClick={() => handleAddMemberToTeam(activeConvId, c.id)}
+                                onClick={() => handleAddMemberToTeam(modalTeamConvId, c.id)}
                                 className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] cursor-pointer shrink-0 transition-all shadow-sm"
                               >
                                 + Add
@@ -4580,7 +4618,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                   isTeamOwner ? (
                     <button
                       type="button"
-                      onClick={() => handleDeleteConversation(activeConvId)}
+                      onClick={() => handleDeleteConversation(modalTeamConvId)}
                       className="px-3 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                       title="Delete this team channel (Owner Only)"
                     >
@@ -4620,7 +4658,7 @@ export default function UnifiedNotificationCenter({ initialTab = 'messages', onN
                         disabled={savingTeamInfo}
                         onClick={() => {
                           handleUpdateTeamInfo(
-                            activeConvId,
+                            modalTeamConvId,
                             contactProfileModal.formData.title || '',
                             contactProfileModal.formData.description || '',
                             contactProfileModal.formData.avatar_url || ''

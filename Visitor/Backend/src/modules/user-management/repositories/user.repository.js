@@ -6,7 +6,10 @@ class UserRepository {
     const rows = await db.query(
       `SELECT id, user_id as userId, user_code as userCode, user_code, username, email, first_name as firstName, 
               middle_name as middleName, last_name as lastName, full_name as fullName, 
-              phone, phone_number as phoneNumber, avatar_url as avatarUrl, 
+              phone, phone_number as phoneNumber, 
+              COALESCE(avatar_url, profile_photo) as avatarUrl,
+              COALESCE(avatar_url, profile_photo) as avatar_url,
+              COALESCE(profile_photo, avatar_url) as profile_photo, 
               account_status as accountStatus, status, role, department_id as departmentId, 
               job_title as jobTitle, failed_login_attempts as failedLoginAttempts, 
               account_locked_until as accountLockedUntil, reset_token as resetToken, 

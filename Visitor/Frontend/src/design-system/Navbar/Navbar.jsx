@@ -138,7 +138,11 @@ export default function Navbar({ collapsed = false, onCollapseToggle = () => { }
         <div ref={profileRef} className="position-relative">
           <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="vms-navbar__profile-btn" aria-label="User menu">
             <div className="vms-navbar__profile-avatar shadow-sm">
-              {user?.avatarUrl ? (<img src={resolvePhotoUrl(user.avatarUrl)} alt="Profile"/>) : (user?.fullName?.charAt(0).toUpperCase() || 'U')}
+              {(user?.avatarUrl || user?.avatar_url || user?.profile_photo || user?.photo_url || user?.photoUrl || user?.avatar) ? (
+                <img src={resolvePhotoUrl(user?.avatarUrl || user?.avatar_url || user?.profile_photo || user?.photo_url || user?.photoUrl || user?.avatar)} alt="Profile"/>
+              ) : (
+                user?.fullName?.charAt(0).toUpperCase() || 'U'
+              )}
             </div>
             <i className="bi bi-chevron-down text-slate-400 ms-1" style={{ fontSize: '0.7rem', opacity: 0.8 }}></i>
           </button>

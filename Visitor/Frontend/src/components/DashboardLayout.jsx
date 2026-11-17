@@ -938,7 +938,7 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             return null;
         const uAny = user;
         // 1. First preference: User's explicit avatar properties
-        const explicitPhoto = uAny.avatarUrl || uAny.avatar || uAny.photo_url || uAny.photoUrl || null;
+        const explicitPhoto = uAny.avatarUrl || uAny.avatar_url || uAny.avatar || uAny.photo_url || uAny.photoUrl || uAny.profile_photo || null;
         // 2. Second preference: User-ID / User Code specific keys
         const idKeys = [user.id, uAny.user_id, uAny.employee_code, uAny.userCode].filter(Boolean);
         let userSpecificPhoto = null;
@@ -1002,7 +1002,11 @@ export default function DashboardLayout({ children, currentView: propCurrentView
             fullName: fullName || user.fullName,
             email: email || user.email,
             avatarUrl: resolvedPhoto,
-            avatar: resolvedPhoto
+            avatar_url: resolvedPhoto,
+            avatar: resolvedPhoto,
+            profile_photo: resolvedPhoto,
+            photo_url: resolvedPhoto,
+            photoUrl: resolvedPhoto
         };
     })();
     const rawRole = (user?.role || user?.role_name || user?.roleName || '').toLowerCase().trim();
