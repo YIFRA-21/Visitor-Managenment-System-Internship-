@@ -19,6 +19,7 @@ import StatusBadge from '../components/StatusBadge';
 import PrivacyConsentModal from '../components/PrivacyConsentModal';
 import identityVerificationApi from '../api/identityVerificationApi';
 import { useToast } from '../../../contexts/ToastContext';
+import IdentityVerificationWizard from '../../../Resource/Admin/VisitorManagement/Profiles/IdentityVerificationWizard';
 
 export default function IdentityVerificationOverviewPage({ hideBackButton = false, isEmbedded = false }) {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ export default function IdentityVerificationOverviewPage({ hideBackButton = fals
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [showConsent, setShowConsent] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
 
   const fetchStatus = async () => {
     setLoading(true);
@@ -46,12 +48,12 @@ export default function IdentityVerificationOverviewPage({ hideBackButton = fals
   }, []);
 
   const handleStartFlow = () => {
-    setShowConsent(true);
+    setShowWizard(true);
   };
 
   const handleConsentAccepted = () => {
     setShowConsent(false);
-    navigate('/identity-verification/select-document');
+    setShowWizard(true);
   };
 
   const status = (data?.overallStatus || 'UNVERIFIED').toUpperCase();
@@ -208,6 +210,25 @@ export default function IdentityVerificationOverviewPage({ hideBackButton = fals
         onClose={() => setShowConsent(false)}
         onAccept={handleConsentAccepted}
       />
+
+      {/* 9-Step Biometric Identity Verification Wizard Modal */}
+      {showWizard && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="relative w-full max-w-5xl my-auto py-6">
+            <IdentityVerificationWizard
+              onClose={() => setShowWizard(false)}
+              onComplete={(result) => {
+                setShowWizard(false);
+                fetchStatus();
+                if (result?.status === 'VERIFIED') {
+                  toast.success('Identity verified successfully! Full visitor privileges unlocked.');
+                  navigate('/visitor');
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

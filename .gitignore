@@ -7,6 +7,11 @@ uploads/
 vite.config.*.timestamp*
 *.timestamp-*.mjs
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
 # Postman local cache & accidental nested exports
 postman/**/postman/
 postman/**/.postman/

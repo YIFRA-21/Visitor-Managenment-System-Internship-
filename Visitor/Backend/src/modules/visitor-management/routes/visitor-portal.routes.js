@@ -2,10 +2,49 @@ const { Router } = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const db = require('../../../config/db');
 const { authenticate, authorize } = require('../../../middleware/auth');
 const controller = require('../controllers/visitor-portal.controller');
 
 const router = Router();
+
+// Middleware: Strict Visitor Verification Gate
+const requireVisitorVerified = async (req, res, next) => {
+  const role = String(req.user?.role || '').toLowerCase();
+  // Only restrict visitor accounts. Staff, security, admins are not blocked.
+  if (role !== 'visitor') {
+    return next();
+  }
+
+  try {
+    const rows = await db.query(
+      `SELECT id, id_verification_status FROM visitors WHERE user_id = ? OR email = ? ORDER BY id DESC LIMIT 1`,
+      [req.user.id || req.user.user_id, req.user.email]
+    );
+
+    const status = rows && rows[0] ? String(rows[0].id_verification_status || '').toUpperCase() : 'UNVERIFIED';
+
+    if (status !== 'VERIFIED') {
+      return res.status(403).json({
+        success: false,
+        code: 'IDENTITY_VERIFICATION_REQUIRED',
+        status,
+        message: 'Identity verification is mandatory for visitor access. Please complete the identity verification process.',
+        redirectTo: '/identity-verification'
+      });
+    }
+
+    next();
+  } catch (err) {
+    console.error('[requireVisitorVerified] Error checking verification status:', err.message);
+    return res.status(403).json({
+      success: false,
+      code: 'IDENTITY_VERIFICATION_REQUIRED',
+      message: 'Identity verification status could not be confirmed.',
+      redirectTo: '/identity-verification'
+    });
+  }
+};
 
 // ─── File Upload Config ───────────────────────────
 const uploadsDir = path.resolve(__dirname, '../../../../uploads');
@@ -51,7 +90,7 @@ router.use(authenticate);
 router.use(authorize('visitor', 'admin'));
 
 // ─── Dashboard ────────────────────────────────────
-router.get('/dashboard', (req, res, next) => controller.getDashboard(req, res, next));
+router.get('/dashboard', requireVisitorVerified, (req, res, next) => controller.getDashboard(req, res, next));
 
 // ─── Profile ──────────────────────────────────────
 router.get('/profile', (req, res, next) => controller.getProfile(req, res, next));
@@ -59,27 +98,26 @@ router.put('/profile', (req, res, next) => controller.updateProfile(req, res, ne
 router.post('/profile/photo', uploadPhoto.single('photo'), (req, res, next) => controller.uploadPhoto(req, res, next));
 
 // ─── Documents ────────────────────────────────────
-router.get('/documents', (req, res, next) => controller.getDocuments(req, res, next));
-router.post('/documents', uploadDoc.single('file'), (req, res, next) => controller.uploadDocument(req, res, next));
-router.post('/documents/submit-to-host', (req, res, next) => controller.submitDocumentsToHost(req, res, next));
-router.put('/documents/:id', uploadDoc.single('file'), (req, res, next) => controller.updateDocument(req, res, next));
-router.delete('/documents/:id', (req, res, next) => controller.deleteDocument(req, res, next));
-
+router.get('/documents', requireVisitorVerified, (req, res, next) => controller.getDocuments(req, res, next));
+router.post('/documents', requireVisitorVerified, uploadDoc.single('file'), (req, res, next) => controller.uploadDocument(req, res, next));
+router.post('/documents/submit-to-host', requireVisitorVerified, (req, res, next) => controller.submitDocumentsToHost(req, res, next));
+router.put('/documents/:id', requireVisitorVerified, uploadDoc.single('file'), (req, res, next) => controller.updateDocument(req, res, next));
+router.delete('/documents/:id', requireVisitorVerified, (req, res, next) => controller.deleteDocument(req, res, next));
 
 // ─── Appointments ─────────────────────────────────
-router.get('/appointments', (req, res, next) => controller.getAppointments(req, res, next));
-router.get('/appointments/:id', (req, res, next) => controller.getAppointmentDetail(req, res, next));
-router.post('/appointments', (req, res, next) => controller.createAppointment(req, res, next));
-router.patch('/appointments/:id/cancel', (req, res, next) => controller.cancelAppointment(req, res, next));
-router.delete('/appointments/:id', (req, res, next) => controller.deleteAppointment(req, res, next));
-router.patch('/appointments/:id/reschedule', (req, res, next) => controller.rescheduleAppointment(req, res, next));
+router.get('/appointments', requireVisitorVerified, (req, res, next) => controller.getAppointments(req, res, next));
+router.get('/appointments/:id', requireVisitorVerified, (req, res, next) => controller.getAppointmentDetail(req, res, next));
+router.post('/appointments', requireVisitorVerified, (req, res, next) => controller.createAppointment(req, res, next));
+router.patch('/appointments/:id/cancel', requireVisitorVerified, (req, res, next) => controller.cancelAppointment(req, res, next));
+router.delete('/appointments/:id', requireVisitorVerified, (req, res, next) => controller.deleteAppointment(req, res, next));
+router.patch('/appointments/:id/reschedule', requireVisitorVerified, (req, res, next) => controller.rescheduleAppointment(req, res, next));
 
 // ─── Passes ───────────────────────────────────────
-router.get('/passes', (req, res, next) => controller.getPasses(req, res, next));
-router.get('/passes/:id/qr', (req, res, next) => controller.getPassQR(req, res, next));
+router.get('/passes', requireVisitorVerified, (req, res, next) => controller.getPasses(req, res, next));
+router.get('/passes/:id/qr', requireVisitorVerified, (req, res, next) => controller.getPassQR(req, res, next));
 
 // ─── History ──────────────────────────────────────
-router.get('/history', (req, res, next) => controller.getHistory(req, res, next));
+router.get('/history', requireVisitorVerified, (req, res, next) => controller.getHistory(req, res, next));
 
 // ─── Notifications ────────────────────────────────
 router.get('/notifications', (req, res, next) => controller.getNotifications(req, res, next));

@@ -231,6 +231,30 @@ class IdentityVerificationController {
       res.json({ success: true, data: session });
     } catch (err) { next(err); }
   }
+
+  // GET /api/identity-verification/admin/visitor/:visitorId/documents
+  async getVisitorDocumentsForAdmin(req, res, next) {
+    try {
+      const result = await identityVerificationService.getVisitorDocumentsForAdmin(
+        req.params.visitorId,
+        req.user?.id || req.user?.userId || 1
+      );
+      res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+  }
+
+  // POST /api/identity-verification/admin/visitor/:visitorId/review
+  async reviewVisitorIdentity(req, res, next) {
+    try {
+      const { decision, reviewNotes } = req.body || {};
+      const result = await identityVerificationService.reviewVisitorIdentity(
+        req.params.visitorId,
+        req.user?.id || req.user?.userId || 1,
+        { decision, reviewNotes }
+      );
+      res.json({ success: true, message: `Visitor verification status updated to ${result.newStatus}.`, data: result });
+    } catch (err) { next(err); }
+  }
 }
 
 module.exports = new IdentityVerificationController();

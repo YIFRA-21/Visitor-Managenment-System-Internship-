@@ -22,7 +22,9 @@
     "mysql2": "^3.11.0",
     "nodemailer": "^9.0.3",
     "qrcode": "^1.5.4",
+    "sharp": "^0.35.5",
     "socket.io": "^4.7.5",
+    "tesseract.js": "^7.0.0",
     "uuid": "^10.0.0"
   }
 }

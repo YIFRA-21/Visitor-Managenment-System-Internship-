@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { authenticate, optionalAuth } = require('../../../middleware/auth');
+const { authenticate, optionalAuth, authorize } = require('../../../middleware/auth');
 const controller = require('../controllers/identity-verification.controller');
 
 const router = Router();
@@ -14,6 +14,10 @@ router.post('/mobile/:token/complete', optionalAuth, (req, res, next) => control
 
 // Protected via JWT Auth
 router.use(authenticate);
+
+// Admin Document Viewer & Manual Review (Restricted to Authorized Administrators & Officers)
+router.get('/admin/visitor/:visitorId/documents', authorize('admin', 'security', 'auditor', 'receptionist'), (req, res, next) => controller.getVisitorDocumentsForAdmin(req, res, next));
+router.post('/admin/visitor/:visitorId/review', authorize('admin', 'security'), (req, res, next) => controller.reviewVisitorIdentity(req, res, next));
 
 // Start verification session & Mobile Session
 router.post('/start', (req, res, next) => controller.start(req, res, next));

@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, User, Mail, Phone, Building2, ShieldCheck,
   ShieldAlert, ShieldX, ShieldQuestion, AlertTriangle, Archive, Loader2,
-  Edit3, Trash2, Copy, Check, ExternalLink, QrCode, Sparkles, UserCheck
+  Edit3, Trash2, Copy, Check, ExternalLink, QrCode, Sparkles, UserCheck,
+  CreditCard, Eye
 } from 'lucide-react';
 import { visitorProfileApi } from '../../../../modules/visitor-management/api/visitorProfileApi';
 import { resolvePhotoUrl } from '../../../../utils/photoUtils';
+import AdminVisitorDocumentModal from './AdminVisitorDocumentModal';
 
 // Status badge color themes
 const statusColors = {
@@ -78,6 +80,7 @@ const VisitorDirectory = ({
 }) => {
   const { page, total, totalPages } = pagination;
   const [visitorToDelete, setVisitorToDelete] = useState(null);
+  const [documentViewerVisitorId, setDocumentViewerVisitorId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
@@ -242,6 +245,19 @@ const VisitorDirectory = ({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        setDocumentViewerVisitorId(visitor.id);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-600 border border-emerald-500/20 hover:border-emerald-500 transition-all shadow-sm"
+                      title="View Identity Documents"
+                    >
+                      <CreditCard size={12} />
+                      <span>ID Docs</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setVisitorToDelete(visitor);
                         setDeleteError(null);
                       }}
@@ -379,6 +395,19 @@ const VisitorDirectory = ({
 
                   {/* Actions */}
                   <div className="text-right flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDocumentViewerVisitorId(visitor.id);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-600 border border-emerald-500/20 hover:border-emerald-500 transition-all shadow-sm"
+                      title="View Identity Documents"
+                    >
+                      <CreditCard size={12} />
+                      <span>ID Docs</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={(e) => {
@@ -532,6 +561,18 @@ const VisitorDirectory = ({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Admin Identity Document Inspection Modal */}
+      <AdminVisitorDocumentModal
+        visitorId={documentViewerVisitorId}
+        isOpen={Boolean(documentViewerVisitorId)}
+        onClose={() => setDocumentViewerVisitorId(null)}
+        onStatusUpdated={() => {
+          if (typeof onRefresh === 'function') {
+            onRefresh();
+          }
+        }}
+      />
     </div>
   );
 };

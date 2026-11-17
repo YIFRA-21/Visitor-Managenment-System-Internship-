@@ -1,10 +1,17 @@
 /**
  * VerificationDecisionService
- * Combines Document Quality, OCR, Liveness, Face Matching, Duplicate Check,
- * Blacklist & Watchlist results to render the final verification decision verdict.
+ * Enterprise Decision Engine:
+ * Separates Image Quality, OCR extraction, Facial Similarity, Liveness, and Security checks
+ * into distinct independent validations.
+ * Returns honest VERIFIED, MANUAL_REVIEW_REQUIRED, or REJECTED verdict.
  */
 
 class VerificationDecisionService {
+  /**
+   * Evaluate session metrics to render final decision
+   * @param {Object} sessionData - Verification session outcomes
+   * @returns {Object} Comprehensive verdict and component validations
+   */
   evaluateFinalDecision(sessionData) {
     const {
       qualityAnalysis,
@@ -19,61 +26,91 @@ class VerificationDecisionService {
 
     let finalStatus = 'VERIFIED';
     const issues = [];
+    const reviewReasons = [];
 
-    // Blacklist rule
-    if (blacklistCheck && blacklistCheck.isBlacklisted) {
+    // 1. Blacklist Check (Fatal)
+    const isBlacklisted = Boolean(blacklistCheck && blacklistCheck.isBlacklisted);
+    if (isBlacklisted) {
       finalStatus = 'REJECTED';
-      issues.push('Visitor is flagged on System Blacklist.');
+      issues.push('Visitor is flagged on Enterprise Security Blacklist.');
     }
 
-    // Watchlist rule
-    if (watchlistCheck && watchlistCheck.isWatchlisted) {
-      finalStatus = 'MANUAL_REVIEW_REQUIRED';
-      issues.push('Visitor matched an entry on Enterprise Watchlist.');
+    // 2. Watchlist Check (Requires Review)
+    const isWatchlisted = Boolean(watchlistCheck && watchlistCheck.isWatchlisted);
+    if (isWatchlisted) {
+      if (finalStatus !== 'REJECTED') finalStatus = 'MANUAL_REVIEW_REQUIRED';
+      reviewReasons.push('Visitor identity matches entry on Enterprise Security Watchlist.');
     }
 
-    // Duplicate check
-    if (duplicateCheck && duplicateCheck.hasDuplicate) {
-      finalStatus = 'MANUAL_REVIEW_REQUIRED';
-      issues.push('Duplicate ID number found on another visitor record.');
-    }
-
-    // Expiry check
-    if (expiryCheck && expiryCheck.isExpired) {
+    // 3. Document Expiration Check (Fatal)
+    const isExpired = Boolean(expiryCheck && expiryCheck.isExpired);
+    if (isExpired) {
       finalStatus = 'REJECTED';
-      issues.push('Identity document is expired.');
+      issues.push('Identity document has expired and cannot be accepted.');
     }
 
-    // Face match score rule
-    if (faceMatchResult) {
-      if (faceMatchResult.matchScore < 80) {
-        finalStatus = 'REJECTED';
-        issues.push(`Face match score (${faceMatchResult.matchScore}%) below minimum required threshold (80%).`);
-      } else if (faceMatchResult.matchScore < 90 && finalStatus !== 'REJECTED') {
-        finalStatus = 'MANUAL_REVIEW_REQUIRED';
-        issues.push(`Face match score (${faceMatchResult.matchScore}%) requires manual security review.`);
-      }
+    // 4. Duplicate ID Check (Requires Review)
+    const hasDuplicate = Boolean(duplicateCheck && duplicateCheck.hasDuplicate);
+    if (hasDuplicate) {
+      if (finalStatus !== 'REJECTED') finalStatus = 'MANUAL_REVIEW_REQUIRED';
+      reviewReasons.push('Duplicate ID number or biometric identity registered under another visitor record.');
     }
 
-    // Visual liveness rule
-    if (livenessResult && !livenessResult.livenessPassed) {
+    // 5. Active & Passive Liveness Check (Fatal)
+    const livenessPassed = Boolean(livenessResult && livenessResult.livenessPassed);
+    const spoofDetected = Boolean(livenessResult && livenessResult.replayAttackDetected);
+    if (!livenessPassed || spoofDetected) {
       finalStatus = 'REJECTED';
-      issues.push('Visual liveness challenge was not completed successfully.');
+      issues.push('Facial liveness verification failed or presentation attack detected.');
     }
+
+    // 6. Face Match Score Check
+    const matchScore = faceMatchResult ? (parseFloat(faceMatchResult.similarityScore || faceMatchResult.matchScore) || 0) : 0;
+    const faceStatus = faceMatchResult?.status || 'REJECTED';
+
+    if (matchScore < 68.0 || faceStatus === 'REJECTED') {
+      finalStatus = 'REJECTED';
+      issues.push(`Biometric facial similarity (${matchScore}%) is below the minimum threshold (68%).`);
+    } else if (matchScore < 80.0 || faceStatus === 'MANUAL_REVIEW_REQUIRED') {
+      if (finalStatus !== 'REJECTED') finalStatus = 'MANUAL_REVIEW_REQUIRED';
+      reviewReasons.push(`Biometric similarity (${matchScore}%) requires manual security review.`);
+    }
+
+    // 7. OCR Extraction Check
+    const ocrSuccess = Boolean(ocrData && (ocrData.ocrStatus === 'SUCCESS' || ocrData.ocrStatus === 'PARTIAL'));
+    if (!ocrSuccess) {
+      if (finalStatus !== 'REJECTED') finalStatus = 'MANUAL_REVIEW_REQUIRED';
+      reviewReasons.push('Document OCR extraction confidence was inconclusive. Security review required.');
+    }
+
+    // 8. Image Quality Check
+    const qualityScore = qualityAnalysis ? (qualityAnalysis.overallScore || 0) : 0;
+    if (qualityAnalysis && qualityScore < 50.0) {
+      if (finalStatus !== 'REJECTED') finalStatus = 'MANUAL_REVIEW_REQUIRED';
+      reviewReasons.push('Document image quality score is below standard resolution/clarity requirements.');
+    }
+
+    const rejectionReason = issues.length > 0
+      ? issues.join(' ')
+      : (reviewReasons.length > 0 ? reviewReasons.join(' ') : null);
 
     return {
       finalStatus,
       summary: {
-        documentValid: !expiryCheck?.isExpired,
-        ocrSuccessful: Boolean(ocrData && ocrData.ocrStatus === 'SUCCESS'),
-        faceMatchScore: faceMatchResult ? faceMatchResult.matchScore : 0,
-        faceMatchConfidence: faceMatchResult ? faceMatchResult.confidenceLevel : 'N/A',
-        visualLivenessPassed: Boolean(livenessResult && livenessResult.livenessPassed),
-        blacklistPassed: !blacklistCheck?.isBlacklisted,
-        watchlistPassed: !watchlistCheck?.isWatchlisted,
-        duplicateCheckPassed: !duplicateCheck?.hasDuplicate
+        documentValid: !isExpired,
+        ocrSuccessful: ocrSuccess,
+        ocrConfidence: ocrData?.confidenceScore || 0,
+        faceMatchScore: matchScore,
+        faceMatchConfidence: faceMatchResult?.confidenceLevel || 'N/A',
+        faceMatchStatus: faceStatus,
+        visualLivenessPassed: livenessPassed,
+        imageQualityScore: qualityScore,
+        blacklistPassed: !isBlacklisted,
+        watchlistPassed: !isWatchlisted,
+        duplicateCheckPassed: !hasDuplicate
       },
-      rejectionReason: issues.length > 0 ? issues.join(' ') : null,
+      rejectionReason,
+      requiresManualReview: finalStatus === 'MANUAL_REVIEW_REQUIRED',
       evaluatedAt: new Date().toISOString()
     };
   }

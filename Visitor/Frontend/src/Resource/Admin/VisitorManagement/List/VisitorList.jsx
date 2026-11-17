@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { visitorProfileApi } from '../../../../modules/visitor-management/api/visitorProfileApi';
 import { useLanguage } from '../../../../contexts/LanguageContext';
+import AdminVisitorDocumentModal from '../Profiles/AdminVisitorDocumentModal';
 export default function VisitorList() {
     const { t, tStatus } = useLanguage();
     const [visitors, setVisitors] = useState([]);
@@ -9,6 +10,7 @@ export default function VisitorList() {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [typeFilter, setTypeFilter] = useState('ALL');
     const [selectedVisitor, setSelectedVisitor] = useState(null);
+    const [documentViewerVisitorId, setDocumentViewerVisitorId] = useState(null);
     const [actionLoadingId, setActionLoadingId] = useState(null);
     const fetchVisitors = useCallback(async () => {
         setLoading(true);
@@ -219,6 +221,10 @@ export default function VisitorList() {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button type="button" onClick={() => setDocumentViewerVisitorId(vis.id)} className="btn btn-sm btn-outline-success text-xs p-1 px-2" title="View Identity Documents">
+                            <i className="bi bi-person-badge"></i>
+                          </button>
+
                           <button type="button" onClick={() => setSelectedVisitor(vis)} className="btn btn-sm btn-outline-info text-xs p-1 px-2" title="View Details">
                             <i className="bi bi-eye"></i>
                           </button>
@@ -303,5 +309,15 @@ export default function VisitorList() {
             </div>
           </div>
         </div>)}
+
+      {/* Admin Sensitive Identity Document Inspection Modal */}
+      <AdminVisitorDocumentModal
+        visitorId={documentViewerVisitorId}
+        isOpen={Boolean(documentViewerVisitorId)}
+        onClose={() => setDocumentViewerVisitorId(null)}
+        onStatusUpdated={() => {
+          fetchVisitors();
+        }}
+      />
     </div>);
 }

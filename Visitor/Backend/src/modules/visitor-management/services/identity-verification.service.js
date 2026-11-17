@@ -168,13 +168,13 @@ class IdentityVerificationService {
     const image = frontImagePayload || 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD_front_id_mock';
 
     // AI Front/Back Side Classification
-    let classification = documentClassificationService.classifySide(image, session.doc_type || 'National ID', 'FRONT');
+    let classification = await documentClassificationService.classifySide(image, session.doc_type || 'National ID', 'FRONT');
     if (!classification.isValid) {
       classification = { detectedSide: 'FRONT', confidence: 98.2, isValid: true };
     }
 
     // AI Quality Analysis
-    const qualityAnalysis = documentAnalysisService.analyzeImageQuality(image, session.doc_type || 'National ID');
+    const qualityAnalysis = await documentAnalysisService.analyzeImageQuality(image, session.doc_type || 'National ID');
 
     await db.query(
       `UPDATE visitor_identity_verifications
@@ -201,13 +201,13 @@ class IdentityVerificationService {
     const image = backImagePayload || 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD_back_id_mock';
 
     // AI Front/Back Side Classification
-    let classification = documentClassificationService.classifySide(image, session.doc_type || 'National ID', 'BACK');
+    let classification = await documentClassificationService.classifySide(image, session.doc_type || 'National ID', 'BACK');
     if (!classification.isValid) {
       classification = { detectedSide: 'BACK', confidence: 97.5, isValid: true };
     }
 
     // Quality Analysis
-    const qualityAnalysis = documentAnalysisService.analyzeImageQuality(image, session.doc_type || 'National ID');
+    const qualityAnalysis = await documentAnalysisService.analyzeImageQuality(image, session.doc_type || 'National ID');
 
     // Document Consistency Check
     const ocrData = safeJsonParse(session.ocr_data_json, null);
@@ -244,9 +244,9 @@ class IdentityVerificationService {
     const visitors = await db.query(`SELECT * FROM visitors WHERE id = ?`, [session.visitor_id]);
     const visitor = visitors[0] || {};
     const frontUrl = session.front_image_url || 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD_front_id_mock';
-    const ocrResult = ocrService.extractDocumentData(session.doc_type || 'National ID', frontUrl, visitor);
+    const ocrResult = await ocrService.extractDocumentData(session.doc_type || 'National ID', frontUrl, visitor);
 
-    const qualityAnalysis = safeJsonParse(session.image_quality_json, null) || documentAnalysisService.analyzeImageQuality(frontUrl, session.doc_type || 'National ID');
+    const qualityAnalysis = safeJsonParse(session.image_quality_json, null) || await documentAnalysisService.analyzeImageQuality(frontUrl, session.doc_type || 'National ID');
 
     const analysisChecklist = [
       { key: 'DOC_DETECTED', label: 'Document detected', passed: true },
@@ -282,7 +282,7 @@ class IdentityVerificationService {
     const visitors = await db.query(`SELECT * FROM visitors WHERE id = ?`, [session.visitor_id]);
     const visitor = visitors[0] || {};
     const frontUrl = session.front_image_url || 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD_front_id_mock';
-    const ocrResult = ocrService.extractDocumentData(session.doc_type || 'National ID', frontUrl, visitor);
+    const ocrResult = await ocrService.extractDocumentData(session.doc_type || 'National ID', frontUrl, visitor);
 
     await db.query(
       `UPDATE visitor_identity_verifications
@@ -308,7 +308,7 @@ class IdentityVerificationService {
     const session = await this.getSession(sessionId);
 
     // Evaluate Passive Anti-Spoofing
-    const passiveLiveness = passiveLivenessService.evaluatePassiveLiveness(selfieImagePayload);
+    const passiveLiveness = await passiveLivenessService.evaluatePassiveLiveness(selfieImagePayload);
 
     await db.query(
       `UPDATE visitor_identity_verifications
@@ -330,7 +330,7 @@ class IdentityVerificationService {
   }
 
   // ── 7. Run Visual Liveness ──
-  async runVisualLiveness(sessionId, completedChallenges = [], actorId = 1) {
+  async runVisualLiveness(sessionId, completedChallenges = [], challengeFrames = [], actorId = 1) {
     const session = await this.getSession(sessionId);
     let challenges = completedChallenges;
     if (!challenges || challenges.length === 0) {
@@ -341,7 +341,7 @@ class IdentityVerificationService {
         { challengeType: 'TURN_RIGHT', completed: true, confidence: 97.0 }
       ];
     }
-    const livenessResult = visualLivenessService.verifyLivenessResults(challenges);
+    const livenessResult = await visualLivenessService.verifyLivenessResults(challenges, challengeFrames);
 
     await db.query(
       `UPDATE visitor_identity_verifications
@@ -364,16 +364,23 @@ class IdentityVerificationService {
     const selfieUrl = session.selfie_image_url || 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD_selfie_mock';
     const frontUrl = session.front_image_url || 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD_front_id_mock';
 
-    const matchResult = faceMatchingService.compareSelfieWithFrontDoc(
+    const matchResult = await faceMatchingService.compareSelfieWithFrontDoc(
       selfieUrl,
       frontUrl
     );
 
     await db.query(
       `UPDATE visitor_identity_verifications
-       SET face_match_score = ?, face_match_confidence = ?, document_portrait_url = ?
+       SET face_match_score = ?, face_match_confidence = ?, document_portrait_url = ?, front_portrait_url = ?
        WHERE verification_session_id = ? OR id = ?`,
-      [matchResult.overallVerificationScore, matchResult.confidenceLevel, matchResult.extractedPortrait?.documentPortraitUrl || null, session.verification_session_id, session.id]
+      [
+        matchResult.overallVerificationScore,
+        matchResult.confidenceLevel,
+        matchResult.extractedPortrait?.documentPortraitUrl || null,
+        matchResult.extractedPortrait?.documentPortraitUrl || null,
+        session.verification_session_id,
+        session.id
+      ]
     ).catch(() => {});
 
     await auditService.logVerificationStep(actorId, session.visitor_id, 'FACE_MATCHING_COMPLETED', {
@@ -648,6 +655,156 @@ class IdentityVerificationService {
       [visitorId]
     );
     return rows || [];
+  }
+
+  // ── 11. Admin Sensitive Document Retrieval with Audit Logging ──
+  async getVisitorDocumentsForAdmin(visitorId, actorId) {
+    if (!visitorId) {
+      throw new AppError('Visitor ID is required.', 400);
+    }
+
+    const visitors = await db.query(
+      `SELECT v.*, u.email as user_email
+       FROM visitors v
+       LEFT JOIN users u ON v.user_id = u.id
+       WHERE v.id = ?`,
+      [visitorId]
+    );
+
+    if (!visitors || !visitors[0]) {
+      throw new AppError('Visitor record not found.', 404);
+    }
+    const visitor = visitors[0];
+
+    // Get latest verification record
+    const verifications = await db.query(
+      `SELECT viv.*, u.full_name as verified_by_name
+       FROM visitor_identity_verifications viv
+       LEFT JOIN users u ON viv.verified_by = u.id
+       WHERE viv.visitor_id = ?
+       ORDER BY viv.id DESC LIMIT 1`,
+      [visitorId]
+    );
+    const verification = verifications && verifications[0] ? verifications[0] : null;
+
+    // Get archived document files from visitor_documents table
+    let docFiles = [];
+    try {
+      docFiles = await db.query(
+        `SELECT id, document_type, document_number, file_name, mime_type, file_size, document_url, created_at
+         FROM visitor_documents
+         WHERE visitor_id = ?
+         ORDER BY id DESC`,
+        [visitorId]
+      );
+    } catch (_) {}
+
+    // Get verification history
+    const history = await this.getVisitorVerificationHistory(visitorId);
+
+    // Strict Audit Log entry
+    try {
+      await db.query(
+        `INSERT INTO audit_logs (user_id, action, module, entity_name, entity_id, details)
+         VALUES (?, 'VIEW_IDENTITY_DOCUMENTS', 'IDENTITY_VERIFICATION', 'visitors', ?, ?)`,
+        [
+          actorId || 1,
+          visitorId,
+          `Authorized Administrator (#${actorId || 1}) accessed sensitive identity verification documents for visitor ${visitor.full_name} (${visitor.visitor_code || visitorId})`
+        ]
+      );
+    } catch (auditErr) {
+      console.warn('Audit log write error:', auditErr.message);
+    }
+
+    return {
+      visitor: {
+        id: visitor.id,
+        fullName: visitor.full_name || `${visitor.first_name || ''} ${visitor.last_name || ''}`,
+        visitorCode: visitor.visitor_code || `VIS-${visitor.id}`,
+        email: visitor.email,
+        phone: visitor.phone,
+        company: visitor.company,
+        verificationStatus: visitor.id_verification_status || 'UNVERIFIED',
+        status: visitor.status,
+        idType: visitor.id_type || verification?.doc_type || 'National ID',
+        idNumber: visitor.id_number
+      },
+      verification: verification ? {
+        id: verification.id,
+        sessionId: verification.verification_session_id,
+        docType: verification.doc_type,
+        country: verification.country,
+        finalStatus: verification.final_status,
+        rejectionReason: verification.rejection_reason,
+        verifiedByName: verification.verified_by_name,
+        verifiedAt: verification.verified_at,
+        faceMatchScore: verification.face_match_score,
+        faceMatchConfidence: verification.face_match_confidence,
+        livenessPassed: Boolean(verification.liveness_passed),
+        ocrData: safeJsonParse(verification.ocr_data_json, null),
+        imageQuality: safeJsonParse(verification.image_quality_json, null),
+        securityChecks: safeJsonParse(verification.security_checks_json, null),
+        frontImageUrl: verification.front_image_url,
+        backImageUrl: verification.back_image_url,
+        selfieImageUrl: verification.selfie_image_url,
+        documentPortraitUrl: verification.document_portrait_url || verification.front_portrait_url || null,
+        createdAt: verification.created_at
+      } : null,
+      documents: docFiles || [],
+      history: history || []
+    };
+  }
+
+  // ── 12. Admin Manual Review Decision (Approve / Reject) ──
+  async reviewVisitorIdentity(visitorId, actorId, { decision, reviewNotes }) {
+    if (!visitorId) throw new AppError('Visitor ID is required.', 400);
+    if (!['APPROVED', 'REJECTED'].includes(decision)) {
+      throw new AppError('Valid decision of APPROVED or REJECTED is required.', 400);
+    }
+
+    const newVerificationStatus = decision === 'APPROVED' ? 'VERIFIED' : 'REJECTED';
+    const newVisitorStatus = decision === 'APPROVED' ? 'ACTIVE' : 'REJECTED';
+
+    await db.query(
+      `UPDATE visitors
+       SET id_verification_status = ?,
+           status = CASE WHEN ? = 'VERIFIED' AND status = 'PENDING' THEN 'ACTIVE' ELSE status END,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [newVerificationStatus, newVerificationStatus, visitorId]
+    );
+
+    await db.query(
+      `UPDATE visitor_identity_verifications
+       SET final_status = ?,
+           rejection_reason = ?,
+           verified_by = ?,
+           verified_at = CURRENT_TIMESTAMP
+       WHERE visitor_id = ?
+       ORDER BY id DESC LIMIT 1`,
+      [newVerificationStatus, reviewNotes || (decision === 'APPROVED' ? 'Approved by Administrator' : 'Rejected by Administrator'), actorId, visitorId]
+    );
+
+    // Audit log
+    try {
+      await db.query(
+        `INSERT INTO audit_logs (user_id, action, module, entity_name, entity_id, details)
+         VALUES (?, 'IDENTITY_MANUAL_REVIEW_DECISION', 'IDENTITY_VERIFICATION', 'visitors', ?, ?)`,
+        [
+          actorId,
+          visitorId,
+          `Administrator (#${actorId}) manually reviewed visitor #${visitorId}. Decision: ${decision}. Reason: ${reviewNotes || 'N/A'}`
+        ]
+      );
+    } catch (_) {}
+
+    return {
+      visitorId,
+      decision,
+      newStatus: newVerificationStatus,
+      reviewNotes
+    };
   }
 }
 
