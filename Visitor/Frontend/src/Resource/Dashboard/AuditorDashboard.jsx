@@ -371,14 +371,14 @@ export default function AuditorDashboard({ onNavigate }) {
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 sm:pb-6 border-b border-slate-800/80"
+        className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 sm:pb-6 border-b border-slate-800/80"
       >
         <div>
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <BackButton fallbackUrl="/dashboard" title="Back to Dashboard" />
-            <div>
-              <div className="flex items-center gap-2 sm:gap-2.5">
-                <div className="p-1.5 sm:p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
+            <BackButton fallbackUrl="/dashboard" title="Back to Dashboard" className="shrink-0 mt-1"/>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                <div className="p-1.5 sm:p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 shrink-0">
                   <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight uppercase">
@@ -393,38 +393,38 @@ export default function AuditorDashboard({ onNavigate }) {
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0">
           {/* Live Polling Toggle */}
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition ${
+            className={`flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition ${
               autoRefresh 
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
             }`}
             title="Auto-refresh live database events every 15 seconds"
           >
-            <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}`} />
-            Live Stream
+            <span className={`w-2 h-2 rounded-full shrink-0 ${autoRefresh ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}`} />
+            <span>Live Stream</span>
           </button>
 
           {/* Export CSV */}
           <button
             onClick={exportCSV}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-xl text-xs font-bold shadow-sm transition active:scale-95"
+            className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-xl text-xs font-bold shadow-sm transition active:scale-95"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-400" />
-            Export Audit CSV
+            <Download className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>Export Audit CSV</span>
           </button>
 
           {/* Refresh Button */}
           <button
             onClick={() => fetchAuditData(true)}
             disabled={refreshing || loading}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 disabled:opacity-50"
+            className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh Trail'}
+            <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>{refreshing ? 'Refreshing...' : 'Refresh Trail'}</span>
           </button>
         </div>
       </motion.div>

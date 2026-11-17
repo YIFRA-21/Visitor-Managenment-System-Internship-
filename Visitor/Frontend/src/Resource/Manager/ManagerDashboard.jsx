@@ -431,7 +431,7 @@ export default function ManagerDashboard({ onNavigate }) {
     ];
     return (<motion.div variants={containerVariants} initial="hidden" animate="visible" className="p-6 space-y-6 text-slate-900 dark:text-slate-100 font-sans transition-colors">
       {/* Top Header */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800/80">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800/80">
         <div className="flex items-center space-x-4">
           <BackButton />
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -439,9 +439,9 @@ export default function ManagerDashboard({ onNavigate }) {
           </h1>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <button onClick={() => fetchOverview(false)} disabled={refreshing} className="flex items-center space-x-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-xl text-xs font-semibold text-slate-200 transition-all shadow-sm active:scale-95 disabled:opacity-50" title={t('form.refresh', 'Refresh Dashboard')}>
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-slate-400'}`}/>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+          <button onClick={() => fetchOverview(false)} disabled={refreshing} className="flex-1 sm:flex-initial justify-center whitespace-nowrap flex items-center space-x-2 px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-xl text-xs font-semibold text-slate-200 transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer" title={t('form.refresh', 'Refresh Dashboard')}>
+            <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${refreshing ? 'animate-spin text-indigo-400' : 'text-slate-400'}`}/>
             <span>{refreshing ? t('form.loading', 'Refreshing...') : t('form.refresh', 'Refresh')}</span>
           </button>
         </div>

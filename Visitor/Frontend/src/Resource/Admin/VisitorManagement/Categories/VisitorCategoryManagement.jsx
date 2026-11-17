@@ -1787,8 +1787,8 @@ export default function VisitorCategoryManagement() {
               </svg>
             </div>
 
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 my-2">
-              <div className="space-y-2.5">
+            <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5 my-2">
+              <div className="space-y-2.5 min-w-0">
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold shadow-sm">
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -1797,9 +1797,9 @@ export default function VisitorCategoryManagement() {
                   Visitor Governance • Classification Console
                 </div>
 
-                <h1 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
-                  Visitor Categories & Access Classes
-                  <Sparkles className="w-6 h-6 text-amber-400 animate-pulse"/>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3 flex-wrap">
+                  <span>Visitor Categories & Access Classes</span>
+                  <Sparkles className="w-6 h-6 text-amber-400 animate-pulse shrink-0"/>
                 </h1>
                 <p className="text-slate-400 text-sm max-w-xl font-medium leading-relaxed">
                   Configure visitor classifications, duration thresholds, multi-step verification policies, required documentation, and security clearance zones.
@@ -1807,22 +1807,23 @@ export default function VisitorCategoryManagement() {
               </div>
 
               {/* Action Buttons with Admin Dashboard hover, scale & micro-animations */}
-              <div className="flex flex-wrap items-center gap-3">
-                <motion.button type="button" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => handleOpenAdd()} className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer group">
-                  <Plus className="w-4 h-4 transition-transform duration-300 group-hover:rotate-90"/>
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0">
+                <motion.button type="button" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => handleOpenAdd()} className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer group">
+                  <Plus className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:rotate-90"/>
                   <span>Add New Category</span>
                 </motion.button>
 
-                <motion.button type="button" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={handleExportCSV} className="px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/60 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all shadow-md cursor-pointer group" title="Export categories to CSV">
-                  <Download className="w-4 h-4 text-blue-400 transition-transform duration-300 group-hover:translate-y-0.5"/>
+                <motion.button type="button" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={handleExportCSV} className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/60 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all shadow-md cursor-pointer group" title="Export categories to CSV">
+                  <Download className="w-4 h-4 shrink-0 text-blue-400 transition-transform duration-300 group-hover:translate-y-0.5"/>
                   <span>Export</span>
                 </motion.button>
 
-                <motion.button type="button" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => fetchCategories()} disabled={loading} className="p-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/60 text-slate-300 hover:text-white rounded-2xl transition-all shadow-md cursor-pointer group disabled:opacity-50" title="Refresh Data">
-                  <RefreshCw className={`h-4 w-4 text-blue-400 transition-transform duration-500 ${loading ? 'animate-spin' : 'group-hover:rotate-180'}`}/>
+                <motion.button type="button" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => fetchCategories()} disabled={loading} className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 p-2.5 sm:p-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/60 text-slate-300 hover:text-white rounded-2xl transition-all shadow-md cursor-pointer group disabled:opacity-50 flex items-center gap-2" title="Refresh Data">
+                  <RefreshCw className={`h-4 w-4 shrink-0 text-blue-400 transition-transform duration-500 ${loading ? 'animate-spin' : 'group-hover:rotate-180'}`}/>
+                  <span className="sm:hidden text-xs font-bold">Refresh</span>
                 </motion.button>
 
-                <motion.button type="button" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handlePrint} className="p-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/60 text-slate-300 hover:text-white rounded-2xl transition-all shadow-md cursor-pointer group hidden sm:flex" title="Print view">
+                <motion.button type="button" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handlePrint} className="p-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/60 text-slate-300 hover:text-white rounded-2xl transition-all shadow-md cursor-pointer group hidden sm:flex shrink-0" title="Print view">
                   <Printer className="h-4 w-4 text-slate-400 group-hover:text-blue-400 transition-colors"/>
                 </motion.button>
               </div>

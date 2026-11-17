@@ -377,8 +377,8 @@ export default function VisitorDashboard() {
         {/* Decorative background ambient glows */}
         <div className="absolute -top-20 -right-20 w-80 h-80 bg-blue-500/10 dark:bg-blue-600/15 rounded-full blur-3xl pointer-events-none"/>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5 my-1">
-          <div className="space-y-2">
+        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5 my-1">
+          <div className="space-y-2 min-w-0">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-extrabold shadow-sm">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -396,14 +396,14 @@ export default function VisitorDashboard() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto">
-            <button onClick={() => setSearchParams({ view: 'request_appointment' })} className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto">
-              <Plus className="w-4 h-4"/>
-              {t('visitorDash.bookAppt')}
+          <div className="flex flex-wrap sm:flex-nowrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0">
+            <button onClick={() => setSearchParams({ view: 'request_appointment' })} className="flex-1 sm:flex-initial justify-center whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
+              <Plus className="w-4 h-4 shrink-0"/>
+              <span>{t('visitorDash.bookAppt')}</span>
             </button>
-            <button onClick={() => setQrModalOpen(true)} className="px-5 py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/60 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 backdrop-blur-md transition-all hover:scale-[1.02] shadow-none w-full sm:w-auto">
-              <QrCode className="w-4 h-4 text-blue-400"/>
-              {t('visitorDash.digitalPassQR')}
+            <button onClick={() => setQrModalOpen(true)} className="flex-1 sm:flex-initial justify-center whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/60 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all hover:scale-[1.02] shadow-none">
+              <QrCode className="w-4 h-4 text-blue-400 shrink-0"/>
+              <span>{t('visitorDash.digitalPassQR')}</span>
             </button>
           </div>
         </div>

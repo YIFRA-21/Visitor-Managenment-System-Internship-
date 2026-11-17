@@ -198,9 +198,8 @@ export default function EnterpriseVisitorDashboard() {
     }
     return (<div className="p-6 md:p-8 bg-[#070b12] min-h-screen text-slate-100 font-sans space-y-6">
       {/* ─── 1. BREADCRUMB & HEADER ──────────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
         <div>
-
           <div className="flex items-center gap-3">
             <BackButton fallbackUrl="/dashboard" title="Back to Dashboard"/>
             <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight uppercase">
@@ -210,8 +209,7 @@ export default function EnterpriseVisitorDashboard() {
         </div>
 
         {/* Live Clock & Quick Actions */}
-        <div className="flex items-center gap-3 flex-wrap">
-
+        <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
           <RefreshButton onRefresh={() => loadDashboardData(true)}/>
         </div>
       </div>

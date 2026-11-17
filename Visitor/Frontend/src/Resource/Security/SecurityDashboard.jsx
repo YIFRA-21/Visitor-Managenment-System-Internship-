@@ -180,10 +180,10 @@ export default function SecurityDashboard() {
           </svg>
         </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 my-2">
-          <div className="flex items-start gap-4">
-            <BackButton fallbackUrl="/dashboard" title={language === 'am' ? 'ወደ ዳሽቦርድ ተመለስ' : 'Back to Dashboard'} className="mt-1"/>
-            <div className="space-y-2.5">
+        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5 my-2">
+          <div className="flex items-start gap-4 min-w-0">
+            <BackButton fallbackUrl="/dashboard" title={language === 'am' ? 'ወደ ዳሽቦርድ ተመለስ' : 'Back to Dashboard'} className="shrink-0 mt-1"/>
+            <div className="space-y-2.5 min-w-0">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 dark:bg-rose-500/20 border border-rose-500/30 text-rose-700 dark:text-rose-400 text-xs font-extrabold shadow-sm">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -192,9 +192,9 @@ export default function SecurityDashboard() {
                 {language === 'am' ? 'የደህንነት መቆጣጠሪያ ማዕከል • SOC ኮንሶል ንቁ' : 'Security Command Center • SOC Console Active'}
               </div>
 
-              <h1 className="text-2xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-                {language === 'am' ? 'የደህንነት እና መግቢያ ቁጥጥር ማዕከል' : (data?.welcomeMessage || 'Perimeter Security Console')}
-                <Sparkles className="w-6 h-6 text-rose-500 dark:text-rose-400 animate-pulse"/>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3 flex-wrap">
+                <span>{language === 'am' ? 'የደህንነት እና መግቢያ ቁጥጥር ማዕከል' : (data?.welcomeMessage || 'Perimeter Security Console')}</span>
+                <Sparkles className="w-6 h-6 text-rose-500 dark:text-rose-400 animate-pulse shrink-0"/>
               </h1>
               <p className="text-slate-600 dark:text-slate-300 text-sm max-w-xl font-medium leading-relaxed">
                 {t('securityDash.subtitle')}
@@ -202,20 +202,20 @@ export default function SecurityDashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl text-xs font-black text-emerald-700 dark:text-emerald-400 shadow-sm">
-              <span className="h-2.5 w-2.5 bg-emerald-500 rounded-full animate-pulse"/>
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0">
+            <div className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl text-xs font-black text-emerald-700 dark:text-emerald-400 shadow-sm">
+              <span className="h-2.5 w-2.5 bg-emerald-500 rounded-full animate-pulse shrink-0"/>
               <span className="uppercase tracking-widest">{language === 'am' ? 'የስጋት ደረጃ: ዝቅተኛ' : 'Threat Level: Low'}</span>
             </div>
 
-            <a href="?view=badge_management" className="px-5 py-3.5 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-xs tracking-wide shadow-lg shadow-red-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
-              <ShieldAlert className="w-4 h-4 text-amber-300"/>
-              {language === 'am' ? 'የተከለከሉ ቦታዎች ባጆች' : 'Restricted Area Badges'}
+            <a href="?view=badge_management" className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-xs tracking-wide shadow-lg shadow-red-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
+              <ShieldAlert className="w-4 h-4 text-amber-300 shrink-0"/>
+              <span>{language === 'am' ? 'የተከለከሉ ቦታዎች ባጆች' : 'Restricted Area Badges'}</span>
             </a>
 
-            <a href="?view=security_scanner" className="px-5 py-3.5 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 border border-slate-700 text-white font-bold text-xs tracking-wide shadow-md flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
-              <Scan className="w-4 h-4 text-rose-400"/>
-              {language === 'am' ? 'የበር ስካነር SOC' : 'Gate Scanner SOC'}
+            <a href="?view=security_scanner" className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 border border-slate-700 text-white font-bold text-xs tracking-wide shadow-md flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
+              <Scan className="w-4 h-4 text-rose-400 shrink-0"/>
+              <span>{language === 'am' ? 'የበር ስካነር SOC' : 'Gate Scanner SOC'}</span>
             </a>
           </div>
         </div>

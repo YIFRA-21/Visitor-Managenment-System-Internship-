@@ -282,10 +282,10 @@ export default function EmployeeDashboard() {
           </svg>
         </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 my-2">
-          <div className="flex items-start gap-4">
-            <BackButton fallbackUrl="/dashboard"/>
-            <div className="space-y-2.5">
+        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5 my-2">
+          <div className="flex items-start gap-4 min-w-0">
+            <BackButton fallbackUrl="/dashboard" className="shrink-0 mt-1"/>
+            <div className="space-y-2.5 min-w-0">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-extrabold shadow-sm">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -294,9 +294,9 @@ export default function EmployeeDashboard() {
                 {t('sidebar.staffPortal', 'Employee Portal • Access Console Active')}
               </div>
 
-            <h1 className="text-2xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-              {t('empDash.title', data?.welcomeMessage || 'Employee & Host Portal')}
-              <Sparkles className="w-6 h-6 text-amber-500 dark:text-amber-400 animate-pulse"/>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3 flex-wrap">
+              <span>{t('empDash.title', data?.welcomeMessage || 'Employee & Host Portal')}</span>
+              <Sparkles className="w-6 h-6 text-amber-500 dark:text-amber-400 animate-pulse shrink-0"/>
             </h1>
             <p className="text-slate-600 dark:text-slate-300 text-sm max-w-xl font-medium leading-relaxed">
               {t('empDash.subtitle', 'Manage host appointments, approve incoming visitor requests, send digital entry invitations, and track visitor logs.')}
@@ -304,14 +304,14 @@ export default function EmployeeDashboard() {
           </div>
         </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <button onClick={() => handleActionClick('employee_create')} className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
-              <Plus className="w-4 h-4"/>
-              {t('empDash.inviteVisitor', 'Invite Visitor')}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0">
+            <button onClick={() => handleActionClick('employee_create')} className="flex-1 sm:flex-initial justify-center whitespace-nowrap px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
+              <Plus className="w-4 h-4 shrink-0"/>
+              <span>{t('empDash.inviteVisitor', 'Invite Visitor')}</span>
             </button>
-            <button onClick={() => fetchStats(true)} className="px-6 py-3.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 hover:border-blue-500/60 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all hover:scale-[1.03] shadow-md dark:shadow-none">
-              <RefreshCw className={`w-4 h-4 text-blue-600 dark:text-blue-400 ${loading ? 'animate-spin' : ''}`}/>
-              {t('form.refresh', 'Refresh Data')}
+            <button onClick={() => fetchStats(true)} className="flex-1 sm:flex-initial justify-center whitespace-nowrap px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 hover:border-blue-500/60 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all hover:scale-[1.03] shadow-md dark:shadow-none">
+              <RefreshCw className={`w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 ${loading ? 'animate-spin' : ''}`}/>
+              <span>{t('form.refresh', 'Refresh Data')}</span>
             </button>
           </div>
         </div>

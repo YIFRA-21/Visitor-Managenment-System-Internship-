@@ -276,10 +276,10 @@ export default function ReceptionDashboard({ onNavigate }) {
                     </svg>
                 </div>
 
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 my-1">
-                    <div className="flex items-start gap-4">
-                        <BackButton fallbackUrl="/dashboard" title={language === 'am' ? 'ወደ ዳሽቦርድ ተመለስ' : 'Back to Dashboard'} className="mt-1"/>
-                        <div className="space-y-2">
+                <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5 my-1">
+                    <div className="flex items-start gap-4 min-w-0">
+                        <BackButton fallbackUrl="/dashboard" title={language === 'am' ? 'ወደ ዳሽቦርድ ተመለስ' : 'Back to Dashboard'} className="shrink-0 mt-1"/>
+                        <div className="space-y-2 min-w-0">
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold shadow-sm">
                                 <span className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -288,9 +288,9 @@ export default function ReceptionDashboard({ onNavigate }) {
                                 {language === 'am' ? 'የእንግዳ መቀበያ ዴስክ • ንቁ ዴስክ' : 'Reception Lobby Console • Active Station'}
                             </div>
 
-                            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-                                {language === 'am' ? 'የእንግዳ መቀበያ መቆጣጠሪያ ማዕከል' : (data?.welcomeMessage || 'Lobby Command Center')}
-                                <Sparkles className="w-5 h-5 text-amber-400 animate-pulse"/>
+                            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5 flex-wrap">
+                                <span>{language === 'am' ? 'የእንግዳ መቀበያ መቆጣጠሪያ ማዕከል' : (data?.welcomeMessage || 'Lobby Command Center')}</span>
+                                <Sparkles className="w-5 h-5 text-amber-400 animate-pulse shrink-0"/>
                             </h1>
                             <p className="text-slate-300 text-xs sm:text-sm max-w-xl font-medium leading-relaxed">
                                 {t('receptionDash.subtitle')}
@@ -298,22 +298,22 @@ export default function ReceptionDashboard({ onNavigate }) {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0">
                         <button 
                             type="button"
                             onClick={() => handleAction('walkin_management')} 
-                            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                            className="flex-1 sm:flex-initial justify-center whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                         >
-                            <Plus className="w-4 h-4"/>
-                            {language === 'am' ? 'ያለ ቀጠሮ የመጡ ምዝገባ' : 'Register Walk-In'}
+                            <Plus className="w-4 h-4 shrink-0"/>
+                            <span>{language === 'am' ? 'ያለ ቀጠሮ የመጡ ምዝገባ' : 'Register Walk-In'}</span>
                         </button>
                         <button 
                             type="button"
                             onClick={() => handleAction('passes')} 
-                            className="px-5 py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/60 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all hover:scale-[1.02] cursor-pointer"
+                            className="flex-1 sm:flex-initial justify-center whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/60 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all hover:scale-[1.02] cursor-pointer"
                         >
-                            <QrCode className="w-4 h-4 text-blue-400"/>
-                            {language === 'am' ? 'የባጅ ማለፊያ ስጥ' : 'Issue Badge Pass'}
+                            <QrCode className="w-4 h-4 text-blue-400 shrink-0"/>
+                            <span>{language === 'am' ? 'የባጅ ማለፊያ ስጥ' : 'Issue Badge Pass'}</span>
                         </button>
                     </div>
                 </div>

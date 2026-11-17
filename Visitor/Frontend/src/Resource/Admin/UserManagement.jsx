@@ -1810,8 +1810,8 @@ export default function UserManagement({ departments = [], initialTab = 'users',
               </svg>
             </div>
 
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 my-1">
-              <div className="flex items-start gap-4">
+            <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5 my-1">
+              <div className="flex items-start gap-4 min-w-0">
                 <BackButton onClick={() => {
                 if (window.history.state && window.history.state.idx > 0) {
                     navigate(-1);
@@ -1822,8 +1822,8 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 else {
                     navigate('/dashboard');
                 }
-            }} title="Back to Admin Dashboard" className="mt-1"/>
-                <div className="space-y-2">
+            }} title="Back to Admin Dashboard" className="shrink-0 mt-1"/>
+                <div className="space-y-2 min-w-0">
                   <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold shadow-sm">
                     <span className="relative flex h-2.5 w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -1832,9 +1832,9 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                     Identity & Access Management • Security Command
                   </div>
 
-                  <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                    User Lifecycle & Account Governance
-                    <Sparkles className="w-6 h-6 text-amber-400 animate-pulse"/>
+                  <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-3 flex-wrap">
+                    <span>User Lifecycle & Account Governance</span>
+                    <Sparkles className="w-6 h-6 text-amber-400 animate-pulse shrink-0"/>
                   </h1>
                   <p className="text-slate-300 text-xs sm:text-sm max-w-xl font-medium leading-relaxed">
                     Surveil user accounts, credential provisioning, role access segregation, multi-factor authorization, and real-time security postures.
@@ -1842,21 +1842,22 @@ export default function UserManagement({ departments = [], initialTab = 'users',
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <button type="button" onClick={handleOpenAddUser} className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
-                  <Plus className="w-4 h-4"/>
-                  Provision User
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0">
+                <button type="button" onClick={handleOpenAddUser} className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
+                  <Plus className="w-4 h-4 shrink-0"/>
+                  <span>Provision User</span>
                 </button>
                 <button type="button" onClick={() => {
                 setRoleFilter('ALL');
                 setStatusFilter('ALL');
                 handleSubViewChange('users');
-            }} className="px-5 py-3 rounded-2xl bg-slate-900/90 border border-slate-700/80 hover:border-blue-500/60 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all hover:scale-[1.03]">
-                  <Users className="w-4 h-4 text-blue-400"/>
-                  Accounts Directory
+            }} className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-slate-900/90 border border-slate-700/80 hover:border-blue-500/60 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all hover:scale-[1.03]">
+                  <Users className="w-4 h-4 text-blue-400 shrink-0"/>
+                  <span>Accounts Directory</span>
                 </button>
-                <button type="button" onClick={handleRefresh} disabled={refreshState === 'loading'} className="p-3 bg-slate-900/90 border border-slate-700/80 hover:border-blue-500/60 text-slate-200 rounded-2xl transition-all shadow-md" title="Sync User Stats">
-                  <RefreshCw className={`h-4 w-4 ${refreshState === 'loading' ? 'animate-spin text-blue-400' : ''}`}/>
+                <button type="button" onClick={handleRefresh} disabled={refreshState === 'loading'} className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 p-2.5 sm:p-3 bg-slate-900/90 border border-slate-700/80 hover:border-blue-500/60 text-slate-200 rounded-2xl transition-all shadow-md flex items-center gap-2" title="Sync User Stats">
+                  <RefreshCw className={`h-4 w-4 shrink-0 ${refreshState === 'loading' ? 'animate-spin text-blue-400' : ''}`}/>
+                  <span className="sm:hidden text-xs font-bold">Refresh</span>
                 </button>
               </div>
             </div>

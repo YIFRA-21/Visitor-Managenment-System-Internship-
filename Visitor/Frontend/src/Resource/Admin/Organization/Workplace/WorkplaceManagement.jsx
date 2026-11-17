@@ -445,8 +445,8 @@ export default function WorkplaceManagement() {
                     </svg>
                 </div>
 
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 my-2">
-                    <div className="space-y-2.5">
+                <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5 my-2">
+                    <div className="space-y-2.5 min-w-0">
                         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-400 text-xs font-extrabold shadow-sm">
                             <span className="relative flex h-2.5 w-2.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
@@ -455,24 +455,24 @@ export default function WorkplaceManagement() {
                             <span>Personnel Hierarchy • Workplace Allocation Console</span>
                         </div>
 
-                        <h1 className="!text-white text-2xl md:text-4xl font-extrabold tracking-tight flex items-center gap-3">
+                        <h1 className="!text-white text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-3 flex-wrap">
                             <span>Workplace Desks & Personnel Allocations</span>
-                            <Sparkles className="w-6 h-6 text-amber-400 animate-pulse" />
+                            <Sparkles className="w-6 h-6 text-amber-400 animate-pulse shrink-0" />
                         </h1>
                         <p className="!text-slate-300 text-sm max-w-2xl font-medium leading-relaxed">
                             Map staff members across organizational tiers (Branch &rarr; Building &rarr; Floor &rarr; Desk/Office) with real-time occupancy telemetry and audit trails.
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0">
                         <motion.button
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
                             onClick={handleRefresh}
                             disabled={refreshing}
-                            className="px-4 py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80 text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer backdrop-blur-md"
+                            className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 py-2.5 sm:py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80 text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer backdrop-blur-md"
                         >
-                            <RefreshCw className={`w-4 h-4 text-indigo-400 ${refreshing ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`w-4 h-4 text-indigo-400 shrink-0 ${refreshing ? 'animate-spin' : ''}`} />
                             <span>{refreshing ? 'Syncing...' : 'Sync Workplace'}</span>
                         </motion.button>
                     </div>

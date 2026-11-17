@@ -281,10 +281,10 @@ export default function ReviewerQueuePage() {
           </svg>
         </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-start gap-4">
-            <BackButton fallbackUrl="/dashboard" title="Back to Dashboard" className="mt-1" />
-            <div className="space-y-2.5">
+        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+          <div className="flex items-start gap-4 min-w-0">
+            <BackButton fallbackUrl="/dashboard" title="Back to Dashboard" className="shrink-0 mt-1" />
+            <div className="space-y-2.5 min-w-0">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-black tracking-wide">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -293,9 +293,9 @@ export default function ReviewerQueuePage() {
                 Identity Review Queue • Biometric SOC Engine Active
               </div>
 
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight flex items-center gap-3">
-                Identity Verification Queue
-                <Sparkles className="w-6 h-6 text-amber-400 animate-pulse" />
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight flex items-center gap-3 flex-wrap">
+                <span>Identity Verification Queue</span>
+                <Sparkles className="w-6 h-6 text-amber-400 animate-pulse shrink-0" />
               </h1>
               <p className="text-slate-400 text-xs sm:text-sm max-w-2xl font-medium leading-relaxed">
                 Audit visitor identity submissions, inspect automated OCR extractions, compare facial biometrics, and approve or reject access credentials.
@@ -303,15 +303,15 @@ export default function ReviewerQueuePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap relative z-10">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0 relative z-10">
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => fetchQueue()}
               disabled={loading}
-              className="flex items-center space-x-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white text-xs font-black tracking-wide border border-slate-700 transition shadow-lg"
+              className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 flex items-center space-x-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white text-xs font-black tracking-wide border border-slate-700 transition shadow-lg cursor-pointer"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : 'text-slate-300'}`} />
+              <RefreshCw className={`w-4 h-4 shrink-0 ${loading ? 'animate-spin text-amber-400' : 'text-slate-300'}`} />
               <span>Refresh Queue</span>
             </motion.button>
           </div>
