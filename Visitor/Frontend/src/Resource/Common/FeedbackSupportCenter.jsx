@@ -84,15 +84,6 @@ const ROLE_FAQS = {
         ]
     }
 };
-const ALL_ROLES = [
-    { id: 'ALL', label: 'All Roles', badge: 'Global', color: 'text-indigo-400' },
-    { id: 'ADMIN', label: 'Administrators', badge: 'Root Auth', color: 'text-cyan-400' },
-    { id: 'DEPARTMENT_MANAGER', label: 'Dept Managers', badge: 'Approvers', color: 'text-purple-400' },
-    { id: 'EMPLOYEE', label: 'Employees / Hosts', badge: 'Meeting Hosts', color: 'text-emerald-400' },
-    { id: 'RECEPTIONIST', label: 'Receptionists', badge: 'Front Desk', color: 'text-blue-400' },
-    { id: 'SECURITY', label: 'Security Officers', badge: 'Gate & Patrol', color: 'text-rose-400' },
-    { id: 'VISITOR', label: 'Visitors & Guests', badge: 'External', color: 'text-amber-400' },
-];
 // ─────────────────────────────────────────────────────────────────────────────
 // REAL FEEDBACK DATASET (EMPTY BY DEFAULT; POPULATED ONLY BY REAL SUBMISSIONS)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -203,44 +194,15 @@ export default function FeedbackSupportCenter() {
     const isEmployee = currentUserRole.includes('EMPLOYEE') || currentUserRole === 'HOST';
     const isVisitor = currentUserRole.includes('VISITOR');
 
-    // Scoped role filtering tabs for current user
-    const allowedRoleTabs = useMemo(() => {
-        if (isAdmin) return ALL_ROLES;
-        if (isManager) {
-            return [
-                { id: 'ALL', label: 'All Dept & Visitor Feedback', badge: 'Dept', color: 'text-purple-400' },
-                { id: 'DEPARTMENT_MANAGER', label: 'Dept Manager Submissions', badge: 'Manager', color: 'text-purple-400' },
-                { id: 'VISITOR', label: 'Visitor Feedbacks', badge: 'Guest', color: 'text-amber-400' },
-            ];
-        }
-        if (isReceptionist) {
-            return [
-                { id: 'ALL', label: 'All Front Desk & Visitor Feedback', badge: 'Front Desk', color: 'text-blue-400' },
-                { id: 'RECEPTIONIST', label: 'Reception Submissions', badge: 'Reception', color: 'text-blue-400' },
-                { id: 'VISITOR', label: 'Visitor Feedbacks', badge: 'Guest', color: 'text-amber-400' },
-            ];
-        }
-        if (isSecurity) {
-            return [
-                { id: 'ALL', label: 'All Security & Visitor Feedback', badge: 'Security', color: 'text-rose-400' },
-                { id: 'SECURITY', label: 'Security Submissions', badge: 'Security', color: 'text-rose-400' },
-                { id: 'VISITOR', label: 'Visitor Feedbacks', badge: 'Guest', color: 'text-amber-400' },
-            ];
-        }
-        if (isEmployee) {
-            return [
-                { id: 'ALL', label: 'All Host & Visitor Feedback', badge: 'Host', color: 'text-emerald-400' },
-                { id: 'EMPLOYEE', label: 'My Submissions', badge: 'Employee', color: 'text-emerald-400' },
-                { id: 'VISITOR', label: 'Visitor Feedbacks', badge: 'Guest', color: 'text-amber-400' },
-            ];
-        }
-        if (isVisitor) {
-            return [
-                { id: 'VISITOR', label: 'My Feedback Submissions', badge: 'Visitor', color: 'text-amber-400' },
-            ];
-        }
-        return [{ id: 'ALL', label: 'My Feedbacks', badge: 'Role', color: 'text-indigo-400' }];
-    }, [isAdmin, isManager, isReceptionist, isSecurity, isEmployee, isVisitor]);
+    // Strict role FAQ resolution: Each role page displays ONLY its own role FAQ guide
+    const userFaqRole = useMemo(() => {
+        if (isAdmin) return 'ADMIN';
+        if (isManager) return 'DEPARTMENT_MANAGER';
+        if (isReceptionist) return 'RECEPTIONIST';
+        if (isSecurity) return 'SECURITY';
+        if (isVisitor) return 'VISITOR';
+        return 'EMPLOYEE';
+    }, [isAdmin, isManager, isReceptionist, isSecurity, isVisitor]);
 
     // Initial scoped feedbacks starts empty (only real submitted data is loaded)
     const initialScopedFeedbacks = useMemo(() => {
@@ -300,7 +262,6 @@ export default function FeedbackSupportCenter() {
     const [feedbackSentSuccess, setFeedbackSentSuccess] = useState(null);
     const [ticketSentSuccess, setTicketSentSuccess] = useState(null);
     const [showInlineTicketForm, setShowInlineTicketForm] = useState(false);
-    const [selectedFaqRole, setSelectedFaqRole] = useState(currentUserRole);
     const [openFaqs, setOpenFaqs] = useState({});
     const toggleFaq = (key) => {
         setOpenFaqs(prev => ({
@@ -337,12 +298,6 @@ export default function FeedbackSupportCenter() {
                     department_name: dept,
                     phone_number: phone,
                 }));
-                if (r.includes('ADMIN')) setSelectedFaqRole('ADMIN');
-                else if (r.includes('MANAGER')) setSelectedFaqRole('DEPARTMENT_MANAGER');
-                else if (r.includes('RECEPTION')) setSelectedFaqRole('RECEPTIONIST');
-                else if (r.includes('SECURITY')) setSelectedFaqRole('SECURITY');
-                else if (r.includes('VISITOR')) setSelectedFaqRole('VISITOR');
-                else setSelectedFaqRole('EMPLOYEE');
             }
         } catch (e) {}
     }, []);
@@ -625,17 +580,8 @@ export default function FeedbackSupportCenter() {
           </button>
         </div>
 
-        {/* Role Selector Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          {ALL_ROLES.map(r => (<button key={r.id} onClick={() => setSelectedRole(r.id)} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border ${selectedRole === r.id
-                ? 'bg-slate-800 text-white border-indigo-500 shadow-sm'
-                : 'bg-slate-950 text-slate-400 hover:text-slate-200 border-slate-800'}`}>
-              {r.label}
-            </button>))}
-        </div>
-
         {/* Search Input */}
-        <div className="relative min-w-[200px]">
+        <div className="relative min-w-[200px] md:min-w-[280px]">
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"/>
           <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search feedback or tickets..." className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"/>
         </div>
@@ -1298,13 +1244,13 @@ export default function FeedbackSupportCenter() {
         </div>)}
 
       {/* ────────────────────────────────────────────────────────────────────────── */}
-      {/* TAB 3: ROLE-SPECIFIC FAQ ACCORDION (DROPDOWN WAY - NOT DISTRACTING)       */}
+      {/* TAB 3: ROLE-SPECIFIC FAQ ACCORDION (SHOWS OWN ROLE FAQ ONLY)               */}
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === 'faqs' && (() => {
-            const currentFaqData = ROLE_FAQS[selectedFaqRole] || ROLE_FAQS.EMPLOYEE;
+            const currentFaqData = ROLE_FAQS[userFaqRole] || ROLE_FAQS.EMPLOYEE;
             const FaqIcon = currentFaqData.icon;
             return (<div className="space-y-4 max-w-4xl mx-auto">
-            {/* Header with Role Dropdown Selector */}
+            {/* Header displaying only the active role's FAQ guide */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700">
@@ -1320,33 +1266,26 @@ export default function FeedbackSupportCenter() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Role-tailored answers in dropdown format to assist daily workflows without cluttering the screen.
+                    Frequently asked questions and operational instructions tailored specifically for your role.
                   </p>
                 </div>
               </div>
 
-              {/* Role Dropdown Selector */}
+              {/* Role Indicator Badge (Locked to User's Own Role - No other roles selectable) */}
               <div className="flex items-center gap-2 shrink-0">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Select Role FAQ:
-                </label>
-                <select value={selectedFaqRole} onChange={(e) => setSelectedFaqRole(e.target.value)} className="px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-indigo-500 font-mono shadow-inner">
-                  <option value="DEPARTMENT_MANAGER">Department Managers</option>
-                  <option value="EMPLOYEE">Employees & Meeting Hosts</option>
-                  <option value="RECEPTIONIST">Front Desk & Receptionists</option>
-                  <option value="SECURITY">Security Officers</option>
-                  <option value="VISITOR">Visitors & External Guests</option>
-                  <option value="ADMIN">Administrators & SecOps</option>
-                </select>
+                <span className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5 shadow-inner">
+                  <Shield className="w-3.5 h-3.5 text-indigo-400"/>
+                  <span>Role: {currentFaqData.roleName}</span>
+                </span>
               </div>
             </div>
 
             {/* Accordion List (Dropdown Way) */}
             <div className="space-y-2.5">
               {currentFaqData.faqs.map((faq, idx) => {
-                    const isOpen = !!openFaqs[`${selectedFaqRole}_${idx}`];
+                    const isOpen = !!openFaqs[`${userFaqRole}_${idx}`];
                     return (<div key={idx} className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-lg transition hover:border-slate-700">
-                    <button type="button" onClick={() => toggleFaq(`${selectedFaqRole}_${idx}`)} className="w-full p-4 text-left flex items-center justify-between gap-3 transition hover:bg-slate-800/40">
+                    <button type="button" onClick={() => toggleFaq(`${userFaqRole}_${idx}`)} className="w-full p-4 text-left flex items-center justify-between gap-3 transition hover:bg-slate-800/40">
                       <div className="flex items-center gap-3">
                         <span className="w-6 h-6 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black text-indigo-400 font-mono shrink-0">
                           Q{idx + 1}
