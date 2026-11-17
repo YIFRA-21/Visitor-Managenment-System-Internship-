@@ -22,9 +22,47 @@ body[data-theme="light"],
 [data-theme="light"] {
 
   // Universal catch for ALL Tailwind arbitrary dark hex background classes (bg-[#...])
-  [class*='bg-[#'] {
+  [class*='bg-[#']:not(.login-right-panel):not(.auth-outer-panel):not(.login-page-root):not(.login-form-card):not(.auth-form-card):not(.login-field-input):not(.login-left-card) {
     background-color: var(--vms-bg-card) !important;
     color: var(--vms-text-primary) !important;
+  }
+
+  // Auth Outer Panels in Light Mode (Soft neutral contrast with elevated white cards)
+  .login-right-panel,
+  .auth-outer-panel {
+    background-color: #EEF2F6 !important;
+    background-image: radial-gradient(ellipse 80% 80% at 50% -15%, rgba(99, 102, 241, 0.08), transparent 65%), radial-gradient(ellipse 60% 60% at 80% 90%, rgba(168, 85, 247, 0.05), transparent 60%) !important;
+    color: var(--vms-text-primary) !important;
+  }
+
+  // Auth Form Cards in Light Mode (Crisp elevated white card popping out from outer background)
+  .login-form-card,
+  .auth-form-card {
+    background-color: #FFFFFF !important;
+    background-image: none !important;
+    border: 1px solid #CBD5E1 !important;
+    box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.12), 0 8px 20px -6px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+    color: var(--vms-text-primary) !important;
+  }
+
+  .login-field-input {
+    background-color: #F8FAFC !important;
+    border-color: #CBD5E1 !important;
+    color: #0F172A !important;
+    &::placeholder {
+      color: #94A3B8 !important;
+    }
+    &:focus {
+      background-color: #FFFFFF !important;
+      border-color: #4F46E5 !important;
+    }
+  }
+
+  .login-left-card {
+    background-color: rgba(255, 255, 255, 0.92) !important;
+    border-color: #CBD5E1 !important;
+    box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.15) !important;
+    color: #0F172A !important;
   }
 
   // Catch outer page wrappers / min-h-screen dark backgrounds
@@ -211,9 +249,46 @@ body[data-theme="dark"],
   color: var(--vms-text-primary, #F8FAFC) !important;
 
   // Arbitrary hex backgrounds in dark mode → card dark
-  [class*='bg-[#'] {
+  [class*='bg-[#']:not(.login-right-panel):not(.auth-outer-panel):not(.login-page-root):not(.login-form-card):not(.auth-form-card):not(.login-field-input):not(.login-left-card) {
     background-color: var(--vms-bg-card, #1E293B) !important;
     color: var(--vms-text-primary, #F8FAFC) !important;
+  }
+
+  // Auth Outer Panels in Dark Mode
+  .login-right-panel,
+  .auth-outer-panel {
+    background-color: #070B14 !important;
+    background-image: radial-gradient(ellipse 80% 80% at 50% -15%, rgba(99, 102, 241, 0.18), transparent 65%), radial-gradient(ellipse 60% 60% at 80% 90%, rgba(168, 85, 247, 0.12), transparent 60%) !important;
+    color: var(--vms-text-primary, #F8FAFC) !important;
+  }
+
+  // Auth Form Cards in Dark Mode (Elevated navy/slate card with distinct depth from #070B14)
+  .login-form-card,
+  .auth-form-card {
+    background: linear-gradient(180deg, #141d33 0%, #0f172a 60%, #0a1020 100%) !important;
+    border: 1px solid rgba(148, 163, 184, 0.25) !important;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+    color: var(--vms-text-primary, #F8FAFC) !important;
+  }
+
+  .login-field-input {
+    background-color: #080E1C !important;
+    border-color: rgba(148, 163, 184, 0.25) !important;
+    color: #F8FAFC !important;
+    &::placeholder {
+      color: #64748B !important;
+    }
+    &:focus {
+      background-color: #0C1428 !important;
+      border-color: #818CF8 !important;
+    }
+  }
+
+  .login-left-card {
+    background-color: rgba(15, 23, 42, 0.82) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7) !important;
+    color: #FFFFFF !important;
   }
 
   // Prevent any container or card with bg-white from remaining blinding white in dark mode

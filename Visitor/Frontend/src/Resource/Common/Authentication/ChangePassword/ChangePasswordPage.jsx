@@ -8,8 +8,10 @@ import { ValidationRules } from '../../../../services/validationService';
 import FieldError from '../../../../components/common/FieldError';
 import PasswordStrengthMeter from '../../../../components/common/PasswordStrengthMeter';
 import ThemeToggle from '../../../../components/ThemeToggle/ThemeToggle';
+import { useTheme } from '../../../../theme/ThemeContext';
 import { getRoleLanding, ROUTES } from '../../../../config/routes';
 export default function ChangePasswordPage() {
+    const { isDark } = useTheme();
     const { user, token, completePasswordChange, logout } = useAuth();
     const [showCurrentPw, setShowCurrentPw] = useState(false);
     const [showNewPw, setShowNewPw] = useState(false);
@@ -70,30 +72,35 @@ export default function ChangePasswordPage() {
     if (!token) {
         return <Navigate to={ROUTES.PUBLIC.LOGIN} replace/>;
     }
-    return (<div className="flex min-h-screen bg-[#070b14] text-slate-100 font-sans relative overflow-hidden">
-      {/* Background Orbs & Ambient Radial Lighting */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-15%,rgba(99,102,241,0.18),transparent_65%),radial-gradient(ellipse_60%_60%_at_80%_90%,rgba(168,85,247,0.12),transparent_60%)] pointer-events-none" />
+    return (<div className={`flex min-h-screen ${isDark ? 'bg-[#070b14] text-slate-100' : 'bg-[#EEF2F6] text-slate-800'} font-sans relative overflow-hidden auth-outer-panel`} style={{ backgroundColor: isDark ? '#070b14' : '#EEF2F6' }}>
+      {/* Background Orbs & Ambient Radial Lighting (Grid pattern overlay removed) */}
+      <div className={`absolute inset-0 pointer-events-none ${
+        isDark
+          ? 'bg-[radial-gradient(ellipse_80%_80%_at_50%_-15%,rgba(99,102,241,0.18),transparent_65%),radial-gradient(ellipse_60%_60%_at_80%_90%,rgba(168,85,247,0.12),transparent_60%)]'
+          : 'bg-[radial-gradient(ellipse_80%_80%_at_50%_-15%,rgba(99,102,241,0.08),transparent_65%),radial-gradient(ellipse_60%_60%_at_80%_90%,rgba(168,85,247,0.05),transparent_60%)]'
+      }`} />
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-indigo-900/15 rounded-full blur-[160px] pointer-events-none"/>
       <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-purple-900/15 rounded-full blur-[140px] pointer-events-none"/>
 
-      {/* Grid Pattern overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_40%,#000_70%,transparent_100%)] opacity-20 pointer-events-none"/>
-
       <div className="flex flex-col min-h-screen w-full relative z-10">
         {/* Top Navbar */}
-        <header className="px-4 py-4 sm:px-6 lg:px-12 flex items-center justify-between border-b border-slate-800/80 backdrop-blur-xl bg-[#070b14]/70">
+        <header className={`px-4 py-4 sm:px-6 lg:px-12 flex items-center justify-between border-b backdrop-blur-xl ${
+          isDark ? 'border-slate-800/80 bg-[#070b14]/70 text-white' : 'border-slate-200 bg-white/80 text-slate-900 shadow-sm'
+        }`}>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl font-bold text-white shadow-lg" style={{ backgroundColor: 'var(--accent-purple)' }}>
               <Shield className="h-5 w-5 text-white"/>
             </div>
-            <span className="text-xs sm:text-sm font-extrabold tracking-wider text-white uppercase">
+            <span className={`text-xs sm:text-sm font-extrabold tracking-wider uppercase ${isDark ? 'text-white' : 'text-slate-900'}`}>
               Visitor Management System
             </span>
           </div>
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <button type="button" onClick={handleLogout} className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer">
+            <button type="button" onClick={handleLogout} className={`flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${
+              isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+            }`}>
               <LogOut className="h-4 w-4"/>
               Sign Out
             </button>
@@ -104,17 +111,27 @@ export default function ChangePasswordPage() {
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6 my-auto">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="w-full max-w-[480px] relative">
             {/* Ambient Back Glow for Elevation */}
-            <div className="absolute -inset-1.5 rounded-3xl bg-gradient-to-tr from-indigo-500/25 via-purple-500/20 to-blue-500/20 blur-xl opacity-75 pointer-events-none" />
+            <div className={`absolute -inset-1.5 rounded-3xl blur-xl pointer-events-none ${
+              isDark
+                ? 'bg-gradient-to-tr from-indigo-500/25 via-purple-500/20 to-blue-500/20 opacity-75'
+                : 'bg-gradient-to-tr from-indigo-500/15 via-purple-500/10 to-blue-500/10 opacity-55'
+            }`} />
 
-            <div className="relative bg-gradient-to-b from-[#141d33] via-[#0f172a] to-[#0a1020] border border-slate-700/80 rounded-3xl p-6 sm:p-9 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-2xl overflow-hidden transition-all duration-300 hover:border-indigo-500/40">
-              <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-indigo-400/70 to-transparent rounded-full"/>
+            <div className={`relative rounded-3xl p-6 sm:p-9 backdrop-blur-2xl overflow-hidden transition-all duration-300 auth-form-card ${
+              isDark
+                ? 'bg-gradient-to-b from-[#141d33] via-[#0f172a] to-[#0a1020] border border-slate-700/80 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.06)] hover:border-indigo-500/40'
+                : 'bg-white border border-slate-300/90 shadow-[0_20px_45px_-10px_rgba(15,23,42,0.12),0_8px_20px_-6px_rgba(15,23,42,0.06),0_0_0_1px_rgba(15,23,42,0.04)] hover:border-indigo-400'
+            }`}>
+              <div className={`absolute top-0 left-8 right-8 h-[2px] rounded-full ${
+                isDark ? 'bg-gradient-to-r from-transparent via-indigo-400/70 to-transparent' : 'bg-gradient-to-r from-transparent via-indigo-600/70 to-transparent'
+              }`}/>
 
               {success ? (<div className="text-center py-6 space-y-4">
                   <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto">
                     <CheckCircle className="w-8 h-8 text-emerald-400"/>
                   </div>
-                  <h3 className="text-xl font-extrabold text-white">Password Updated!</h3>
-                  <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+                  <h3 className={`text-xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900 font-black'}`}>Password Updated!</h3>
+                  <p className={`text-xs max-w-sm mx-auto leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600 font-medium'}`}>
                     Your password has been changed successfully. Redirecting to your portal...
                   </p>
                   <button onClick={() => {
@@ -132,10 +149,10 @@ export default function ChangePasswordPage() {
                     </div>
                   </div>
 
-                  <h2 className="text-2xl font-extrabold text-white text-center">
+                  <h2 className={`text-2xl font-extrabold text-center ${isDark ? 'text-white' : 'text-slate-900 font-black'}`}>
                     Change Your Password
                   </h2>
-                  <p className="text-xs text-slate-300 text-center mt-1 mb-5 font-medium">
+                  <p className={`text-xs text-center mt-1 mb-5 font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     {isFirstLogin
                 ? 'Set your new secure password to access the VMS.'
                 : 'Update your account password.'}
@@ -149,7 +166,7 @@ export default function ChangePasswordPage() {
                   <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
                     {/* Current Password — Only shown for non-first-login requests */}
                     {!isFirstLogin && (<div>
-                        <label htmlFor="cp-current" className="block text-[11px] font-bold text-slate-300 mb-2">
+                        <label htmlFor="cp-current" className={`block text-[11px] font-bold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
                           Current Password <span className="text-rose-500">*</span>
                         </label>
                         <div className="relative group">
@@ -159,16 +176,20 @@ export default function ChangePasswordPage() {
                             type={showCurrentPw ? 'text' : 'password'}
                             data-invalid={Boolean(errors.currentPassword)}
                             aria-invalid={Boolean(errors.currentPassword)}
-                            className={`w-full bg-[#080e1c] border rounded-xl pl-4 pr-11 py-3 text-sm text-slate-100 placeholder-slate-500 shadow-inner focus:outline-none transition-all duration-200 ${errors.currentPassword
-                              ? 'border-rose-500 bg-rose-950/25 text-rose-100 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/20'
-                              : 'border-slate-700/80 hover:border-slate-600 focus:border-indigo-400 focus:bg-[#0c1428] focus:ring-4 focus:ring-indigo-500/20'}`}
+                            className={`login-field-input w-full border rounded-xl pl-4 pr-11 py-3 text-sm shadow-inner focus:outline-none transition-all duration-200 ${
+                              isDark
+                                ? 'bg-[#080e1c] text-slate-100 placeholder-slate-500 border-slate-700/80 hover:border-slate-600 focus:border-indigo-400 focus:bg-[#0c1428] focus:ring-4 focus:ring-indigo-500/20'
+                                : 'bg-slate-50 text-slate-900 placeholder-slate-400 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white focus:ring-4 focus:ring-indigo-500/20'
+                            } ${errors.currentPassword ? '!border-rose-500 !bg-rose-950/20 !text-rose-600' : ''}`}
                             value={values.currentPassword}
                             onChange={(e) => handleChange('currentPassword', e.target.value)}
                             onBlur={() => handleBlur('currentPassword')}
                             placeholder="Enter your current password"
                             autoComplete="current-password"
                           />
-                          <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-lg transition-colors">
+                          <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors ${
+                            isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+                          }`}>
                             {showCurrentPw ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
                           </button>
                         </div>
@@ -177,7 +198,7 @@ export default function ChangePasswordPage() {
 
                     {/* New Password */}
                     <div>
-                      <label htmlFor="cp-new" className="block text-[11px] font-bold text-slate-300 mb-2">
+                      <label htmlFor="cp-new" className={`block text-[11px] font-bold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
                         New Password <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative group">
@@ -187,16 +208,20 @@ export default function ChangePasswordPage() {
                           type={showNewPw ? 'text' : 'password'}
                           data-invalid={Boolean(errors.newPassword)}
                           aria-invalid={Boolean(errors.newPassword)}
-                          className={`w-full bg-[#080e1c] border rounded-xl pl-4 pr-11 py-3 text-sm text-slate-100 placeholder-slate-500 shadow-inner focus:outline-none transition-all duration-200 ${errors.newPassword
-                            ? 'border-rose-500 bg-rose-950/25 text-rose-100 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/20'
-                            : 'border-slate-700/80 hover:border-slate-600 focus:border-indigo-400 focus:bg-[#0c1428] focus:ring-4 focus:ring-indigo-500/20'}`}
+                          className={`login-field-input w-full border rounded-xl pl-4 pr-11 py-3 text-sm shadow-inner focus:outline-none transition-all duration-200 ${
+                            isDark
+                              ? 'bg-[#080e1c] text-slate-100 placeholder-slate-500 border-slate-700/80 hover:border-slate-600 focus:border-indigo-400 focus:bg-[#0c1428] focus:ring-4 focus:ring-indigo-500/20'
+                              : 'bg-slate-50 text-slate-900 placeholder-slate-400 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white focus:ring-4 focus:ring-indigo-500/20'
+                          } ${errors.newPassword ? '!border-rose-500 !bg-rose-950/20 !text-rose-600' : ''}`}
                           value={values.newPassword}
                           onChange={(e) => handleChange('newPassword', e.target.value)}
                           onBlur={() => handleBlur('newPassword')}
                           placeholder="Minimum 8 characters"
                           autoComplete="new-password"
                         />
-                        <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-lg transition-colors">
+                        <button type="button" onClick={() => setShowNewPw(!showNewPw)} className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors ${
+                          isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+                        }`}>
                           {showNewPw ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
                         </button>
                       </div>
@@ -206,7 +231,7 @@ export default function ChangePasswordPage() {
 
                     {/* Confirm Password */}
                     <div>
-                      <label htmlFor="cp-confirm" className="block text-[11px] font-bold text-slate-300 mb-2">
+                      <label htmlFor="cp-confirm" className={`block text-[11px] font-bold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
                         Confirm New Password <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative group">
@@ -216,9 +241,11 @@ export default function ChangePasswordPage() {
                           type={showConfirmPw ? 'text' : 'password'}
                           data-invalid={Boolean(errors.confirmPassword)}
                           aria-invalid={Boolean(errors.confirmPassword)}
-                          className={`w-full bg-[#080e1c] border rounded-xl pl-4 pr-11 py-3 text-sm text-slate-100 placeholder-slate-500 shadow-inner focus:outline-none transition-all duration-200 ${errors.confirmPassword
-                            ? 'border-rose-500 bg-rose-950/25 text-rose-100 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/20'
-                            : 'border-slate-700/80 hover:border-slate-600 focus:border-indigo-400 focus:bg-[#0c1428] focus:ring-4 focus:ring-indigo-500/20'}`}
+                          className={`login-field-input w-full border rounded-xl pl-4 pr-11 py-3 text-sm shadow-inner focus:outline-none transition-all duration-200 ${
+                            isDark
+                              ? 'bg-[#080e1c] text-slate-100 placeholder-slate-500 border-slate-700/80 hover:border-slate-600 focus:border-indigo-400 focus:bg-[#0c1428] focus:ring-4 focus:ring-indigo-500/20'
+                              : 'bg-slate-50 text-slate-900 placeholder-slate-400 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white focus:ring-4 focus:ring-indigo-500/20'
+                          } ${errors.confirmPassword ? '!border-rose-500 !bg-rose-950/20 !text-rose-600' : ''}`}
                           value={values.confirmPassword}
                           onChange={(e) => handleChange('confirmPassword', e.target.value)}
                           onBlur={() => handleBlur('confirmPassword')}

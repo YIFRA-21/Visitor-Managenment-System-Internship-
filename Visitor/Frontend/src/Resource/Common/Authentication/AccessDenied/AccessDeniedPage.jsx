@@ -3,7 +3,6 @@ import { Ban, ArrowLeft } from 'lucide-react';
 export default function AccessDeniedPage() {
     return (<div className="flex min-h-screen items-center justify-center bg-[#070b13] text-slate-100 font-sans relative overflow-hidden px-4">
       <div className="absolute top-[-20%] left-[-10%] h-[500px] w-[500px] rounded-full bg-red-950/10 blur-[130px] pointer-events-none"/>
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0c1524_1px,transparent_1px),linear-gradient(to_bottom,#0c1524_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-20 pointer-events-none"/>
 
       <div className="w-full max-w-md relative z-10 text-center">
         <div className="bg-[#0b101b]/95 border border-slate-800 rounded-2xl p-8 md:p-10 shadow-[0_0_40px_rgba(0,0,0,0.5)] relative overflow-hidden backdrop-blur-xl">

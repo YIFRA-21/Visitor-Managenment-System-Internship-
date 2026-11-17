@@ -77,7 +77,6 @@ export default function UnauthorizedPage() {
             {/* Background ambient lighting */}
             <div className="absolute top-[-20%] left-[-10%] h-[550px] w-[550px] rounded-full bg-rose-950/20 blur-[140px] pointer-events-none" />
             <div className="absolute bottom-[-20%] right-[-10%] h-[500px] w-[500px] rounded-full bg-indigo-950/25 blur-[140px] pointer-events-none" />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#0c1524_1px,transparent_1px),linear-gradient(to_bottom,#0c1524_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-25 pointer-events-none" />
 
             <div className="w-full max-w-lg relative z-10 text-center">
                 <div className="bg-[#0b101b]/95 border border-slate-800/90 rounded-2xl p-7 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.65)] relative overflow-hidden backdrop-blur-2xl">
