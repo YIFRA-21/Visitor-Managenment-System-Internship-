@@ -285,21 +285,32 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════════════════════
             RIGHT LOGIN FORM PANEL
            ═══════════════════════════════════════════════════ */}
-      <div className="w-full lg:w-[48%] flex items-center justify-center p-4 sm:p-8 lg:p-12 z-10 bg-[#070b13] relative">
+      <div className="w-full lg:w-[48%] flex items-center justify-center p-4 sm:p-8 lg:p-12 z-10 bg-[#070b14] relative overflow-hidden">
+        {/* Subtle Ambient Radial Lighting for Visual Depth */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-15%,rgba(99,102,241,0.18),transparent_65%),radial-gradient(ellipse_60%_60%_at_80%_90%,rgba(168,85,247,0.12),transparent_60%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 pointer-events-none" />
+
         {/* Theme Toggle & Language Dropdown Selector */}
         <div className="absolute top-6 right-6 z-20 flex items-center gap-2.5">
           <ThemeToggle />
           <LanguageDropdown variant="dark"/>
         </div>
 
-        <div className="w-full max-w-md space-y-8">
-          <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="w-full max-w-md relative z-10 space-y-8">
+          {/* Subtle Ambient Back-Glow for Elevated Depth */}
+          <div className="absolute -inset-1.5 rounded-3xl bg-gradient-to-tr from-indigo-500/25 via-purple-500/20 to-blue-500/20 blur-xl opacity-75 pointer-events-none" />
+
+          {/* Elevated Inner Card with Distinct Background & Tactile Surface */}
+          <div className="relative rounded-3xl bg-gradient-to-b from-[#141d33] via-[#0f172a] to-[#0a1020] border border-slate-700/80 p-6 sm:p-9 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/40 hover:shadow-[0_30px_70px_-15px_rgba(0,0,0,0.9),0_0_35px_rgba(99,102,241,0.2)]">
+            {/* Top Luminous Accent Edge */}
+            <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-indigo-400/70 to-transparent rounded-full" />
+
             {/* Form Header */}
-            <div className="text-center mb-6">
+            <div className="text-center mb-6 pt-1">
               <h2 className="text-2xl font-extrabold text-white tracking-wide">
                 {t('login.signIn')}
               </h2>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-300 font-medium">
                 {t('login.enterCredentials')}
               </p>
             </div>
@@ -346,11 +357,26 @@ export default function LoginPage() {
                 </label>
                 <div className="group relative">
                   <div className="absolute left-4 inset-y-0 flex items-center pointer-events-none z-10">
-                    <UserIcon className="h-5 w-5 text-slate-500 transition-colors duration-200 group-focus-within:text-[#7F77DD]"/>
+                    <UserIcon className="h-5 w-5 text-slate-400 transition-colors duration-200 group-hover:text-slate-300 group-focus-within:text-indigo-400"/>
                   </div>
-                  <input id="login-identifier" name="vms_user_identity" type="text" data-invalid={Boolean(errors.identifier)} aria-invalid={Boolean(errors.identifier)} className={`w-full bg-[#05080e] border rounded-xl pl-12 pr-4 py-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none transition-all duration-200 ${errors.identifier
-            ? 'border-rose-500 bg-rose-950/20 text-rose-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20'
-            : 'border-slate-800 focus:border-[#7F77DD] focus:ring-1 focus:ring-[#7F77DD]/20'}`} value={values.identifier} onChange={(e) => handleChange('identifier', e.target.value)} onBlur={() => handleBlur('identifier')} placeholder={t('login.enterUserId')} autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}/>
+                  <input
+                    id="login-identifier"
+                    name="vms_user_identity"
+                    type="text"
+                    data-invalid={Boolean(errors.identifier)}
+                    aria-invalid={Boolean(errors.identifier)}
+                    className={`w-full bg-[#080e1c] border rounded-xl pl-12 pr-4 py-3.5 text-sm text-slate-100 placeholder-slate-500 shadow-inner focus:outline-none transition-all duration-200 ${errors.identifier
+                      ? 'border-rose-500 bg-rose-950/25 text-rose-100 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/20'
+                      : 'border-slate-700/80 hover:border-slate-600 focus:border-indigo-400 focus:bg-[#0c1428] focus:ring-4 focus:ring-indigo-500/20'}`}
+                    value={values.identifier}
+                    onChange={(e) => handleChange('identifier', e.target.value)}
+                    onBlur={() => handleBlur('identifier')}
+                    placeholder={t('login.enterUserId')}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                  />
                 </div>
                 <FieldError error={errors.identifier} id="login-identifier-error"/>
               </div>
@@ -362,13 +388,30 @@ export default function LoginPage() {
                 </label>
                 <div className="group relative">
                   <div className="absolute left-4 inset-y-0 flex items-center pointer-events-none z-10">
-                    <Lock className="h-5 w-5 text-slate-500 transition-colors duration-200 group-focus-within:text-[#7F77DD]"/>
+                    <Lock className="h-5 w-5 text-slate-400 transition-colors duration-200 group-hover:text-slate-300 group-focus-within:text-indigo-400"/>
                   </div>
-                  <input id="login-password" name="vms_user_password" type={showPassword ? 'text' : 'password'} data-invalid={Boolean(errors.password)} aria-invalid={Boolean(errors.password)} className={`w-full bg-[#05080e] border rounded-xl pl-12 pr-12 py-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none transition-all duration-200 ${errors.password
-            ? 'border-rose-500 bg-rose-950/20 text-rose-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20'
-            : 'border-slate-800 focus:border-[#7F77DD] focus:ring-1 focus:ring-[#7F77DD]/20'}`} value={values.password} onChange={(e) => handleChange('password', e.target.value)} onBlur={() => handleBlur('password')} onKeyDown={handleKeyDown} onKeyUp={handleKeyDown} placeholder={t('login.enterPassword')} autoComplete="new-password" autoCorrect="off" autoCapitalize="none" spellCheck={false}/>
+                  <input
+                    id="login-password"
+                    name="vms_user_password"
+                    type={showPassword ? 'text' : 'password'}
+                    data-invalid={Boolean(errors.password)}
+                    aria-invalid={Boolean(errors.password)}
+                    className={`w-full bg-[#080e1c] border rounded-xl pl-12 pr-12 py-3.5 text-sm text-slate-100 placeholder-slate-500 shadow-inner focus:outline-none transition-all duration-200 ${errors.password
+                      ? 'border-rose-500 bg-rose-950/25 text-rose-100 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/20'
+                      : 'border-slate-700/80 hover:border-slate-600 focus:border-indigo-400 focus:bg-[#0c1428] focus:ring-4 focus:ring-indigo-500/20'}`}
+                    value={values.password}
+                    onChange={(e) => handleChange('password', e.target.value)}
+                    onBlur={() => handleBlur('password')}
+                    onKeyDown={handleKeyDown}
+                    onKeyUp={handleKeyDown}
+                    placeholder={t('login.enterPassword')}
+                    autoComplete="new-password"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                  />
                   <div className="absolute right-4 inset-y-0 flex items-center z-10">
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="flex items-center justify-center text-slate-500 hover:text-slate-200 transition-colors duration-200" aria-label={showPassword ? 'Show password' : 'Hide password'}>
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="flex items-center justify-center text-slate-400 hover:text-white transition-colors duration-200 p-1 rounded-lg hover:bg-slate-800/60" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? (<Eye className="h-5 w-5"/>) : (<EyeOff className="h-5 w-5"/>)}
                     </button>
                   </div>
@@ -381,22 +424,22 @@ export default function LoginPage() {
 
               {/* Remember Me + Forgot Password */}
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-slate-300 transition-colors select-none">
-                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="rounded bg-[#05080e] border-slate-700 text-[#7F77DD] focus:ring-[#7F77DD] focus:ring-offset-[#0b101b] h-3.5 w-3.5"/>
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors select-none">
+                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="rounded bg-[#080e1c] border-slate-600 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-[#0f172a] h-4 w-4 transition-colors cursor-pointer"/>
                   {t('login.rememberMe')}
                 </label>
-                <Link to="/forgot-password" state={{ identifier: values.identifier }} style={{ color: 'var(--accent-purple)' }} className="text-xs font-semibold hover:opacity-80 transition-opacity">
+                <Link to="/forgot-password" state={{ identifier: values.identifier }} className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">
                   {t('login.forgotPassword')}
                 </Link>
               </div>
 
-              {/* Sign In Button */}
+              {/* Sign In Button with Tactile Interaction */}
               <button
                 type="submit"
                 disabled={loading || isSubmitting}
                 id="login-submit-btn"
-                style={{ backgroundColor: 'var(--accent-purple)' }}
-                className="w-full h-12 min-h-[48px] text-white text-sm font-bold px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-[0_0_20px_rgba(127,119,221,0.2)] hover:shadow-[0_0_30px_rgba(127,119,221,0.35)] hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                style={{ backgroundColor: 'var(--accent-purple, #6366f1)' }}
+                className="w-full h-12 min-h-[48px] text-white text-sm font-extrabold tracking-wide px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-[0_4px_20px_rgba(99,102,241,0.35)] hover:shadow-[0_6px_28px_rgba(99,102,241,0.55)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
               >
                 {loading || isSubmitting ? (
                   <>
@@ -416,30 +459,30 @@ export default function LoginPage() {
                 <span className="text-xs text-slate-400">
                   {t('login.noAccount')}{' '}
                 </span>
-                <Link to="/signup" className="text-xs font-bold text-blue-400 hover:text-blue-300 hover:underline transition-colors">
+                <Link to="/signup" className="text-xs font-extrabold text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">
                   {t('login.signUp')}
                 </Link>
               </div>
             </form>
 
             {/* Contact Footer */}
-            <div className="mt-7 pt-5 border-t border-slate-800/60">
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[10px] text-slate-400">
+            <div className="mt-7 pt-5 border-t border-slate-700/60">
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[10px] text-slate-300">
                 <span>{t('login.needHelp')}</span>
-                {orgPhone && (<a href={`tel:${orgPhone}`} className="flex items-center gap-1 hover:text-cyan-400 transition-colors">
+                {orgPhone && (<a href={`tel:${orgPhone}`} className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 hover:scale-105 transition-all">
                     <Phone className="h-3 w-3 text-cyan-400"/>
                     {orgPhone}
                   </a>)}
                 {orgEmail && (<>
-                    <span className="text-slate-700">|</span>
-                    <a href={`mailto:${orgEmail}`} className="flex items-center gap-1 hover:text-cyan-400 transition-colors">
+                    <span className="text-slate-600">|</span>
+                    <a href={`mailto:${orgEmail}`} className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 hover:scale-105 transition-all">
                       <Mail className="h-3 w-3 text-cyan-400"/>
                       {orgEmail}
                     </a>
                   </>)}
                 {orgWebsite && (<>
-                    <span className="text-slate-700">|</span>
-                    <a href={orgWebsite.startsWith('http') ? orgWebsite : `https://${orgWebsite}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-cyan-400 transition-colors">
+                    <span className="text-slate-600">|</span>
+                    <a href={orgWebsite.startsWith('http') ? orgWebsite : `https://${orgWebsite}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 hover:scale-105 transition-all">
                       <Globe className="h-3 w-3 text-cyan-400"/>
                       {t('login.website')}
                     </a>
@@ -447,8 +490,6 @@ export default function LoginPage() {
               </div>
             </div>
           </div>
-
-
         </div>
       </div>
     </div>);

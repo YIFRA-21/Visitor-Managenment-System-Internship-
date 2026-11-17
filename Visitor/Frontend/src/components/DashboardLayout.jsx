@@ -1050,12 +1050,13 @@ export default function DashboardLayout({ children, currentView: propCurrentView
       </div>
 
       {showChangePasswordModal && createPortal(<div className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5 text-slate-900 dark:text-white relative animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="relative bg-white dark:bg-gradient-to-b dark:from-[#141d33] dark:via-[#0f172a] dark:to-[#0a1020] border border-slate-200/90 dark:border-slate-700/80 w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 text-slate-900 dark:text-white animate-in fade-in zoom-in-95 backdrop-blur-2xl overflow-hidden">
+            <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-indigo-400/60 to-transparent rounded-full" />
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
               <h3 className="text-sm font-extrabold uppercase tracking-wider flex items-center gap-2">
                 <Lock className="h-4 w-4 text-indigo-500"/> {t('changePassword.title')}
               </h3>
-              <button onClick={() => setShowChangePasswordModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors">
+              <button onClick={() => setShowChangePasswordModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer">
                 <X className="h-5 w-5"/>
               </button>
             </div>
@@ -1121,7 +1122,7 @@ function ChangePasswordForm({ onClose }) {
       <div>
         <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">{t('changePassword.currentPassword')} *</label>
         <div className="relative flex items-center">
-          <input type={showCurrent ? 'text' : 'password'} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder={t('changePassword.enterCurrent')}/>
+          <input type={showCurrent ? 'text' : 'password'} className="w-full bg-slate-50 dark:bg-[#080e1c] border border-slate-200 dark:border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder={t('changePassword.enterCurrent')}/>
           <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-white">
             {showCurrent ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
           </button>
@@ -1131,7 +1132,7 @@ function ChangePasswordForm({ onClose }) {
       <div>
         <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">{t('changePassword.newPassword')} *</label>
         <div className="relative flex items-center">
-          <input type={showNew ? 'text' : 'password'} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t('changePassword.enterNew')}/>
+          <input type={showNew ? 'text' : 'password'} className="w-full bg-slate-50 dark:bg-[#080e1c] border border-slate-200 dark:border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t('changePassword.enterNew')}/>
           <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-white">
             {showNew ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
           </button>
@@ -1141,7 +1142,7 @@ function ChangePasswordForm({ onClose }) {
       <div>
         <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">{t('changePassword.confirmNewPassword')} *</label>
         <div className="relative flex items-center">
-          <input type={showConfirm ? 'text' : 'password'} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t('changePassword.reEnterNew')}/>
+          <input type={showConfirm ? 'text' : 'password'} className="w-full bg-slate-50 dark:bg-[#080e1c] border border-slate-200 dark:border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t('changePassword.reEnterNew')}/>
           <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-white">
             {showConfirm ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
           </button>
@@ -1149,10 +1150,10 @@ function ChangePasswordForm({ onClose }) {
       </div>
 
       <div className="flex items-center justify-end gap-3 pt-2">
-        <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
+        <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
           {t('changePassword.cancel')}
         </button>
-        <button type="submit" disabled={loading} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2">
+        <button type="submit" disabled={loading} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2 transition-all">
           {loading ? t('changePassword.updating') : t('changePassword.update')}
         </button>
       </div>

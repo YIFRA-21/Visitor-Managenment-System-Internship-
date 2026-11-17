@@ -475,8 +475,10 @@ export default function ForgotPasswordPage() {
                 <StepIndicator current={step} />
 
                 {/* Form Card Container */}
-                <div className="bg-[#0b101b]/95 backdrop-blur-xl border border-slate-800/90 rounded-2xl p-6 sm:p-7 shadow-2xl shadow-indigo-950/20 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600" />
+                <div className="relative">
+                    <div className="absolute -inset-1.5 rounded-3xl bg-gradient-to-tr from-indigo-500/25 via-purple-500/20 to-blue-500/20 blur-xl opacity-75 pointer-events-none" />
+                    <div className="relative bg-gradient-to-b from-[#141d33] via-[#0f172a] to-[#0a1020] backdrop-blur-2xl border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.06)] overflow-hidden transition-all duration-300 hover:border-indigo-500/40">
+                        <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-indigo-400/70 to-transparent rounded-full" />
 
                     <AnimatePresence mode="wait">
                         {/* ═══════ STEP 1: VERIFY IDENTITY ═══════ */}
@@ -491,12 +493,12 @@ export default function ForgotPasswordPage() {
                                 <h3 className="text-base font-extrabold text-white mb-1">
                                     Step 1: Verify Your Identity
                                 </h3>
-                                <p className="text-xs text-slate-400 mb-5 font-medium">
+                                <p className="text-xs text-slate-300 mb-5 font-medium">
                                     Enter your registered email address or user ID to receive a verification code.
                                 </p>
 
                                 {/* Toggle: By Email / By User ID */}
-                                <div className="flex mb-5 bg-[#070b13] rounded-xl p-1 border border-slate-800/80">
+                                <div className="flex mb-5 bg-[#080e1c] rounded-xl p-1 border border-slate-700/80">
                                     {['email', 'userid'].map((mode) => (
                                         <button
                                             key={mode}
@@ -1033,6 +1035,7 @@ export default function ForgotPasswordPage() {
                         )}
                     </AnimatePresence>
                 </div>
+            </div>
 
                 {/* Support Help Footer */}
                 {(orgPhone || orgEmail) && (

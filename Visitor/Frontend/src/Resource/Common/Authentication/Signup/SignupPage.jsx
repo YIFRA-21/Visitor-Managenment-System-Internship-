@@ -695,14 +695,18 @@ export default function SignupPage() {
           background-color: #f8fafc !important;
           border: 1px solid #cbd5e1 !important;
           color: #0f172a !important;
+          transition: all 0.2s ease !important;
         }
         .signup-field-input::placeholder {
           color: #64748b !important;
         }
+        .signup-field-input:hover {
+          border-color: #94a3b8 !important;
+        }
         .signup-field-input:focus {
           background-color: #ffffff !important;
-          border-color: #2563eb !important;
-          box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15) !important;
+          border-color: #4f46e5 !important;
+          box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15) !important;
         }
 
         .otp-input-error {
@@ -721,23 +725,28 @@ export default function SignupPage() {
 
         [data-theme="dark"] .signup-field-input,
         .dark .signup-field-input {
-          background-color: #131d31 !important;
+          background-color: #080e1c !important;
           border: 1px solid #334155 !important;
           color: #ffffff !important;
+          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4) !important;
         }
         [data-theme="dark"] .signup-field-input::placeholder,
         .dark .signup-field-input::placeholder {
           color: #94a3b8 !important;
         }
+        [data-theme="dark"] .signup-field-input:hover,
+        .dark .signup-field-input:hover {
+          border-color: #475569 !important;
+        }
         [data-theme="dark"] .signup-field-input:focus,
         .dark .signup-field-input:focus {
-          background-color: #16223b !important;
-          border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25) !important;
+          background-color: #0c1428 !important;
+          border-color: #818cf8 !important;
+          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25) !important;
         }
         [data-theme="dark"] option,
         .dark option {
-          background-color: #131d31 !important;
+          background-color: #0f172a !important;
           color: #ffffff !important;
         }
 
@@ -756,13 +765,19 @@ export default function SignupPage() {
         }
 
         .btn-primary-vms {
-          background-color: #2563eb !important;
+          background-color: #4f46e5 !important;
           color: #ffffff !important;
           border: none !important;
+          transition: all 0.2s ease !important;
         }
         .btn-primary-vms:hover {
-          background-color: #1d4ed8 !important;
+          background-color: #4338ca !important;
           color: #ffffff !important;
+          transform: translateY(-1.5px);
+          box-shadow: 0 4px 16px rgba(79, 70, 229, 0.4) !important;
+        }
+        .btn-primary-vms:active {
+          transform: translateY(0) scale(0.98) !important;
         }
       `}</style>
 
@@ -897,6 +912,12 @@ export default function SignupPage() {
                 <CheckCircle className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"/>
                 <span>{success}</span>
               </div>)}
+
+            {/* Elevated Form Steps Card Container */}
+            <div className="relative my-4">
+              <div className="absolute -inset-1.5 rounded-3xl bg-gradient-to-tr from-indigo-500/20 via-purple-500/15 to-blue-500/20 blur-xl opacity-75 pointer-events-none" />
+              <div className="relative rounded-3xl bg-white dark:bg-gradient-to-b dark:from-[#141d33] dark:via-[#0f172a] dark:to-[#0a1020] border border-slate-200/90 dark:border-slate-700/80 p-6 sm:p-10 shadow-xl dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-2xl transition-all">
+                <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-indigo-400/60 to-transparent rounded-full" />
 
             <AnimatePresence mode="wait">
               
@@ -1467,6 +1488,8 @@ export default function SignupPage() {
                 </motion.div>)}
 
             </AnimatePresence>
+              </div>
+            </div>
           </div>
           </div>
         </div>
