@@ -227,8 +227,11 @@ export default function RoleManagement({ initialSubView = 'dashboard' }) {
         }
     };
     const handleDeleteRole = (role) => {
-        if (role.is_system_role) {
-            showToast('Cannot delete a protected system role.', 'error');
+        const CORE_ROLES = ['ADMIN', 'EMPLOYEE', 'RECEPTIONIST', 'SECURITY', 'VISITOR', 'MANAGER'];
+        const code = String(role?.role_code || '').trim().toUpperCase();
+        const isCore = CORE_ROLES.includes(code);
+        if (isCore) {
+            showToast(`Cannot delete protected core system role (${role.role_name}).`, 'error');
             return;
         }
         setRoleToDelete(role);
@@ -271,7 +274,7 @@ export default function RoleManagement({ initialSubView = 'dashboard' }) {
         }
     };
     if (showCreateWizard) {
-        return (<div className="p-6 bg-slate-950 min-h-screen text-slate-100 font-sans space-y-6">
+        return (<div className="p-3 sm:p-6 bg-slate-950 min-h-screen text-slate-100 font-sans space-y-6">
         {/* Toast Notification */}
         <AnimatePresence>
           {toast && (<motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-xl shadow-2xl font-bold text-xs border flex items-center gap-2 ${toast.type === 'success'
@@ -291,7 +294,7 @@ export default function RoleManagement({ initialSubView = 'dashboard' }) {
             }}/>
       </div>);
     }
-    return (<div className="p-6 bg-slate-950 min-h-screen text-slate-100 space-y-6 font-mono">
+    return (<div className="p-3 sm:p-6 bg-slate-950 min-h-screen text-slate-100 space-y-6 font-mono">
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (<motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-xl shadow-2xl font-bold text-xs border flex items-center gap-2 ${toast.type === 'success'
@@ -305,7 +308,7 @@ export default function RoleManagement({ initialSubView = 'dashboard' }) {
       {/* Navigation Header */}
       <div className="pb-6 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap sm:flex-nowrap">
             <BackButton onClick={handleBack} title="Go back to previous page"/>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white whitespace-nowrap">{t('roleMgmt.title', 'Enterprise Role Management')}</h1>
             <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 whitespace-nowrap shrink-0">
@@ -317,12 +320,12 @@ export default function RoleManagement({ initialSubView = 'dashboard' }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 self-start md:self-center">
-          <button onClick={() => { loadStatistics(); loadRoles(); }} className="h-[42px] px-4 py-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-slate-300 hover:text-white transition-all shadow-sm flex items-center gap-2 text-xs font-bold shrink-0 cursor-pointer" title="Refresh Data">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0 self-start md:self-center">
+          <button onClick={() => { loadStatistics(); loadRoles(); }} className="h-[40px] sm:h-[42px] px-3 sm:px-4 py-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-slate-300 hover:text-white transition-all shadow-sm flex items-center gap-2 text-xs font-bold shrink-0 cursor-pointer" title="Refresh Data">
             <RefreshCw className={`h-4 w-4 text-indigo-400 ${loading ? 'animate-spin' : ''}`}/>
             <span>{t('form.refresh', 'Refresh')}</span>
           </button>
-          <button onClick={() => { setEditingRole(null); setShowCreateWizard(true); }} className="h-[42px] px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 shrink-0 cursor-pointer">
+          <button onClick={() => { setEditingRole(null); setShowCreateWizard(true); }} className="h-[40px] sm:h-[42px] px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 shrink-0 cursor-pointer">
             <PlusCircle className="h-4 w-4"/>
             <span>{t('roleMgmt.createRole', 'Create Custom Role')}</span>
           </button>

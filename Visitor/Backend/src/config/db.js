@@ -162,7 +162,8 @@ try {
           role_id INT NOT NULL,
           permission_id INT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`
+        )`,
+        `UPDATE roles SET is_system_role = 0 WHERE UPPER(role_code) NOT IN ('ADMIN', 'EMPLOYEE', 'RECEPTIONIST', 'SECURITY', 'VISITOR', 'MANAGER')`
       ];
       for (const q of rbacAlters) {
         try { await originalQuery(q); } catch { /* ignore */ }

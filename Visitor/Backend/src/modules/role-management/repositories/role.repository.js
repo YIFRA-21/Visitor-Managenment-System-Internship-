@@ -251,7 +251,7 @@ class RoleRepository {
              r.parent_role_id, pr.role_name AS parent_role_name,
              r.organization_id, org.name AS organization_name,
              r.created_at, r.updated_at, r.deleted_at,
-             cb.full_name AS created_by_name,
+             cb.username AS created_by_name,
              COUNT(DISTINCT rp.permission_id) AS permission_count,
              COUNT(DISTINCT u.id) AS user_count
       FROM roles r
@@ -299,9 +299,9 @@ class RoleRepository {
           SELECT id, id AS role_id, role_name, role_code, description,
                  COALESCE(status, 'ACTIVE') AS status,
                  created_at,
-                 1 AS is_system_role,
+                 CASE WHEN UPPER(COALESCE(role_code, '')) IN ('ADMIN', 'EMPLOYEE', 'RECEPTIONIST', 'SECURITY', 'VISITOR', 'MANAGER') THEN 1 ELSE 0 END AS is_system_role,
                  'GLOBAL' AS scope_type,
-                 'STANDARD' AS role_type,
+                 CASE WHEN UPPER(COALESCE(role_code, '')) IN ('ADMIN', 'EMPLOYEE', 'RECEPTIONIST', 'SECURITY', 'VISITOR', 'MANAGER') THEN 'SYSTEM' ELSE 'CUSTOM' END AS role_type,
                  'LOW' AS risk_level,
                  0 AS user_count,
                  0 AS permission_count
