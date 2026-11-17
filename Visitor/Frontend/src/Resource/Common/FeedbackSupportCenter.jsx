@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, LifeBuoy, Star, CheckCircle2, AlertTriangle, Send, Plus, Search, RefreshCw, Shield, User, Users, Check, X, ShieldAlert, Sparkles, Building, Headphones, HelpCircle, CheckCircle, ChevronDown, Table, LayoutGrid, Eye, Mail, Phone, Trash2 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { normalizeRole } from '../../config/routes';
 import { feedbackSupportApi } from '../../modules/system-admin/api/feedbackSupportApi';
 import BackButton from '../../components/common/BackButton';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -175,24 +178,48 @@ const DEFAULT_TICKETS = [
 ];
 export default function FeedbackSupportCenter() {
     const { t } = useLanguage();
+    const location = useLocation();
+    const { user: authUser } = useAuth();
 
     // ── Auto-Detect Current User Role & Profile ────────────────────────────────
     const [currentUser, setCurrentUser] = useState(() => {
         try {
-            const stored = localStorage.getItem('user');
-            return stored ? JSON.parse(stored) : null;
+            const stored = localStorage.getItem('user') || sessionStorage.getItem('user');
+            return stored ? JSON.parse(stored) : (authUser || null);
         } catch {
-            return null;
+            return authUser || null;
         }
     });
 
-    const currentUserRole = String(currentUser?.role || currentUser?.role_name || 'EMPLOYEE').toUpperCase();
-    const isAdmin = currentUserRole === 'ADMIN' || currentUserRole === 'ADMINISTRATOR' || currentUserRole === 'SUPER_ADMIN';
-    const isManager = currentUserRole.includes('MANAGER');
-    const isReceptionist = currentUserRole.includes('RECEPTION');
-    const isSecurity = currentUserRole.includes('SECURITY');
-    const isEmployee = currentUserRole.includes('EMPLOYEE') || currentUserRole === 'HOST';
-    const isVisitor = currentUserRole.includes('VISITOR');
+    // Authoritative role detection:
+    // 1. URL Pathname prefix always guarantees the active page identity (/admin, /manager, /reception, /security, /visitor, /employee)
+    // 2. AuthContext user or stored user object via normalizeRole
+    const canonicalRole = useMemo(() => {
+        const path = (location?.pathname || '').toLowerCase();
+        if (path.startsWith('/admin')) return 'admin';
+        if (path.startsWith('/manager')) return 'manager';
+        if (path.startsWith('/reception')) return 'receptionist';
+        if (path.startsWith('/security')) return 'security';
+        if (path.startsWith('/visitor')) return 'visitor';
+        if (path.startsWith('/employee')) return 'employee';
+        return normalizeRole(currentUser || authUser);
+    }, [location?.pathname, currentUser, authUser]);
+
+    const isAdmin = canonicalRole === 'admin';
+    const isManager = canonicalRole === 'manager';
+    const isReceptionist = canonicalRole === 'receptionist';
+    const isSecurity = canonicalRole === 'security';
+    const isVisitor = canonicalRole === 'visitor';
+    const isEmployee = canonicalRole === 'employee';
+
+    const currentUserRole = useMemo(() => {
+        if (isAdmin) return 'ADMIN';
+        if (isManager) return 'DEPARTMENT_MANAGER';
+        if (isReceptionist) return 'RECEPTIONIST';
+        if (isSecurity) return 'SECURITY';
+        if (isVisitor) return 'VISITOR';
+        return 'EMPLOYEE';
+    }, [isAdmin, isManager, isReceptionist, isSecurity, isVisitor]);
 
     // Strict role FAQ resolution: Each role page displays ONLY its own role FAQ guide
     const userFaqRole = useMemo(() => {
@@ -272,17 +299,16 @@ export default function FeedbackSupportCenter() {
 
     useEffect(() => {
         try {
-            const stored = localStorage.getItem('user');
-            if (stored) {
-                const u = JSON.parse(stored);
+            const stored = localStorage.getItem('user') || sessionStorage.getItem('user');
+            const u = stored ? JSON.parse(stored) : (authUser || null);
+            if (u) {
                 setCurrentUser(u);
-                const r = (u.role || u.role_name || 'EMPLOYEE').toUpperCase();
-                const code = u.user_code || (u.id ? `${r.slice(0, 3)}${String(u.id).padStart(6, '0')}` : '');
+                const code = u.user_code || (u.id ? `${currentUserRole.slice(0, 3)}${String(u.id).padStart(6, '0')}` : '');
                 const dept = u.department_name || u.department || '';
                 const phone = u.phone_number || u.phone || '';
                 setFeedbackForm(prev => ({
                     ...prev,
-                    role_name: r,
+                    role_name: currentUserRole,
                     user_name: u.name || u.username || '',
                     user_email: u.email || '',
                     user_code: code,
@@ -291,7 +317,7 @@ export default function FeedbackSupportCenter() {
                 }));
                 setTicketForm(prev => ({
                     ...prev,
-                    role_name: r,
+                    role_name: currentUserRole,
                     user_name: u.name || u.username || '',
                     user_email: u.email || '',
                     user_code: code,
@@ -300,7 +326,7 @@ export default function FeedbackSupportCenter() {
                 }));
             }
         } catch (e) {}
-    }, []);
+    }, [authUser, currentUserRole]);
 
     // ── Load Real Feedback & Support Data ──────────────────────────────────────
     const loadData = useCallback(async () => {
