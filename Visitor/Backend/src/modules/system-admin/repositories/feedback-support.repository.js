@@ -1,147 +1,8 @@
 const db = require('../../../config/db');
 const isMock = () => db?.useMock || (typeof db?.getUseMock === 'function' && db.getUseMock());
 
-// In-memory fallback dataset for seamless offline / demo resilience
-let mockFeedbacks = [
-  {
-    id: 1,
-    user_id: 2,
-    user_name: 'David Miller',
-    user_email: 'emily.d@visitor.com',
-    user_code: 'MGR000001',
-    avatar_url: null,
-    phone_number: '+1 555-0104',
-    role_name: 'DEPARTMENT_MANAGER',
-    department_name: 'Engineering',
-    category: 'FEATURE_REQUEST',
-    rating: 5,
-    subject: 'Batch approval option for visiting engineering contractors',
-    message: 'It would be fantastic to have a multi-select batch approval button on the manager dashboard so we can approve multiple team visitors in one click.',
-    status: 'ACCEPTED',
-    admin_notes: 'Great operational optimization proposal. Approved for next release sprint.',
-    admin_response: 'Thank you David! Our engineering team has accepted your request and queued it for the next scheduled sprint release.',
-    responded_by: 1,
-    responded_by_name: 'System Admin',
-    responded_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-    created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
-    updated_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-  },
-  {
-    id: 2,
-    user_id: 3,
-    user_name: 'Lisa Thompson',
-    user_email: 'lisa.t@visitor.com',
-    user_code: 'REC000001',
-    avatar_url: null,
-    phone_number: '+1 555-0106',
-    role_name: 'RECEPTIONIST',
-    department_name: 'Front Desk Operations',
-    category: 'UI_UX_DESIGN',
-    rating: 4,
-    subject: 'QR Scanner Auto-Focus Speed on Check-in Kiosk',
-    message: 'The check-in camera sometimes takes 2-3 seconds to focus when visitors hold up mobile phones at an angle. The new high-contrast UI is amazing though!',
-    status: 'UNDER_REVIEW',
-    admin_notes: 'Testing camera ISO adjustments in kiosk settings.',
-    admin_response: 'Under active testing with our device hardware lab.',
-    responded_by: 1,
-    responded_by_name: 'System Admin',
-    responded_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-    updated_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-  },
-  {
-    id: 3,
-    user_id: 4,
-    user_name: 'Robert Garcia',
-    user_email: 'robert.g@visitor.com',
-    user_code: 'SEC000001',
-    avatar_url: null,
-    phone_number: '+1 555-0107',
-    role_name: 'SECURITY',
-    department_name: 'Corporate Security',
-    category: 'SECURITY_POLICY',
-    rating: 5,
-    subject: 'Watchlist immediate acoustic tone notification',
-    message: 'The live alert sound when a flagged visitor scans at Gate 2 helped our officers react in under 15 seconds. Outstanding security feature!',
-    status: 'ACCEPTED',
-    admin_notes: 'Security validation confirmed.',
-    admin_response: 'Glad to hear the emergency audio alert worked effectively during perimeter verification.',
-    responded_by: 1,
-    responded_by_name: 'System Admin',
-    responded_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
-    updated_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-  },
-  {
-    id: 4,
-    user_id: 5,
-    user_name: 'Sarah Johnson',
-    user_email: 'sarah.j@visitor.com',
-    user_code: 'EMP000001',
-    avatar_url: null,
-    phone_number: '+1 555-0102',
-    role_name: 'EMPLOYEE',
-    department_name: 'Human Resources',
-    category: 'GENERAL_FEEDBACK',
-    rating: 5,
-    subject: 'Host notification via SMS arrived instantly',
-    message: 'My interview candidates checked in at reception and I received the SMS notice before I even opened my laptop. Saved 10 minutes of wait time!',
-    status: 'ACCEPTED',
-    admin_notes: 'Positive feedback recorded.',
-    admin_response: 'Thank you Sarah, we are optimizing carrier route latency across all employee notification channels.',
-    responded_by: 1,
-    responded_by_name: 'System Admin',
-    responded_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
-    updated_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-  {
-    id: 5,
-    user_id: 12,
-    user_name: 'John Smith',
-    user_email: 'john.smith@email.com',
-    user_code: 'VIS000001',
-    avatar_url: null,
-    phone_number: '+1 555-0199',
-    role_name: 'VISITOR',
-    department_name: 'Guest Services',
-    category: 'UI_UX_DESIGN',
-    rating: 5,
-    subject: 'Self-Service Pass with Dynamic QR made entry effortless',
-    message: 'I generated my visitor pass from the email link on my smartphone before arriving. The receptionist scanned the QR code in 2 seconds and printed my badge!',
-    status: 'ACCEPTED',
-    admin_notes: 'Visitor digital journey verified.',
-    admin_response: 'Thank you John! We are glad the contactless pre-registration experience made your arrival effortless.',
-    responded_by: 1,
-    responded_by_name: 'System Admin',
-    responded_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-    created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-    updated_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-  },
-  {
-    id: 6,
-    user_id: 1,
-    user_name: 'System Administrator',
-    user_email: 'admin@visitor.com',
-    user_code: 'ADM000001',
-    avatar_url: null,
-    phone_number: '+1 555-0101',
-    role_name: 'ADMIN',
-    department_name: 'Executive & IT Operations',
-    category: 'SYSTEM_PERFORMANCE',
-    rating: 5,
-    subject: 'LAN and WebSocket telemetry performance is outstanding',
-    message: 'High availability connection pooling and sub-50ms query response times under high-concurrency check-in volume verified.',
-    status: 'ACCEPTED',
-    admin_notes: 'System benchmarks verified.',
-    admin_response: 'Telemetry confirmed optimal across all LAN and multi-branch nodes.',
-    responded_by: 1,
-    responded_by_name: 'System Admin',
-    responded_at: new Date().toISOString(),
-    created_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-];
+// In-memory fallback dataset for seamless offline / demo resilience (mock feedbacks disabled - only real user feedback is stored)
+let mockFeedbacks = [];
 
 let mockTickets = [
   {
@@ -388,25 +249,8 @@ class FeedbackSupportRepository {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
       `);
 
-      // Seed mock feedbacks if not yet present in user_feedbacks
-      for (const item of mockFeedbacks) {
-        const existing = await pool.query(
-          `SELECT id FROM user_feedbacks WHERE subject = ? OR (role_name = ? AND user_name = ?) LIMIT 1`,
-          [item.subject, item.role_name, item.user_name]
-        );
-        if (toRows(existing).length === 0) {
-          await pool.query(`
-            INSERT INTO user_feedbacks 
-            (user_id, user_code, avatar_url, phone_number, user_name, user_email, role_name, department_name, category, rating, subject, message, status, admin_notes, admin_response, responded_by, responded_by_name, responded_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `, [
-            item.user_id, item.user_code || null, item.avatar_url || null, item.phone_number || null,
-            item.user_name, item.user_email, item.role_name, item.department_name, item.category, item.rating,
-            item.subject, item.message, item.status, item.admin_notes, item.admin_response, item.responded_by,
-            item.responded_by_name, item.responded_at, item.created_at
-          ]);
-        }
-      }
+      // Safety cleanup: Ensure legacy mock feedback records are permanently removed from database
+      await pool.query(`DELETE FROM user_feedbacks WHERE subject IN ('LAN and WebSocket telemetry performance is outstanding', 'Batch approval option for visiting engineering contractors', 'QR Scanner Auto-Focus Speed on Check-in Kiosk', 'Watchlist immediate acoustic tone notification', 'Host notification via SMS arrived instantly', 'Self-Service Pass with Dynamic QR made entry effortless') OR user_email LIKE '%@visitor.com' OR user_email = 'john.smith@email.com'`).catch(() => {});
 
       // Seed mock tickets if not yet present in support_tickets
       for (const t of mockTickets) {

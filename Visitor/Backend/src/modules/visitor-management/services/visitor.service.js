@@ -387,6 +387,32 @@ class VisitorService {
 
     const feedbackId = await visitorRepository.submitFeedback(data);
 
+    // Also mirror to user_feedbacks so System Admin immediately sees it in the Feedback & Support Center
+    try {
+      const feedbackSupportRepo = require('../../system-admin/repositories/feedback-support.repository');
+      let visitorName = 'Visitor Guest';
+      let visitorEmail = 'visitor@vms.local';
+      if (data.visitorId) {
+        const v = await visitorRepository.findById(data.visitorId);
+        if (v) {
+          visitorName = v.full_name || v.name || visitorName;
+          visitorEmail = v.email || visitorEmail;
+        }
+      }
+      await feedbackSupportRepo.createFeedback({
+        user_id: data.visitorId || operatorUserId || null,
+        user_name: visitorName,
+        user_email: visitorEmail,
+        role_name: 'VISITOR',
+        category: data.complaints ? 'BUG_REPORT' : 'GENERAL_FEEDBACK',
+        rating: Number(data.overallRating) || 5,
+        subject: data.complaints ? 'Visitor Complaint / Concern' : `Visitor Experience Feedback (${Number(data.overallRating)}/5)`,
+        message: [data.suggestions, data.complaints].filter(Boolean).join(' | ') || 'Visitor submitted overall visit rating.',
+      });
+    } catch (mirrorErr) {
+      console.warn('Failed to mirror checkout feedback to user_feedbacks:', mirrorErr.message);
+    }
+
     await auditRepository.log({
       userId: operatorUserId,
       action: 'VISITOR_FEEDBACK_SUBMITTED',

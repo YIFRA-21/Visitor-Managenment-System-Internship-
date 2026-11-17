@@ -94,148 +94,9 @@ const ALL_ROLES = [
     { id: 'VISITOR', label: 'Visitors & Guests', badge: 'External', color: 'text-amber-400' },
 ];
 // ─────────────────────────────────────────────────────────────────────────────
-// RICH SAMPLE FEEDBACK & TICKETS DATA (ENSURES DISPLAY PLACE IS NEVER EMPTY)
+// REAL FEEDBACK DATASET (EMPTY BY DEFAULT; POPULATED ONLY BY REAL SUBMISSIONS)
 // ─────────────────────────────────────────────────────────────────────────────
-const DEFAULT_FEEDBACKS = [
-    {
-        id: 101,
-        user_id: 2,
-        user_name: 'David Miller',
-        user_email: 'emily.d@visitor.com',
-        user_code: 'MGR000001',
-        avatar_url: null,
-        phone_number: '+1 555-0104',
-        role_name: 'DEPARTMENT_MANAGER',
-        department_name: 'Engineering',
-        category: 'FEATURE_REQUEST',
-        rating: 5,
-        subject: 'Batch approval option for visiting engineering contractors',
-        message: 'It would be fantastic to have a multi-select batch approval button on the manager dashboard so we can approve multiple team visitors in one click.',
-        status: 'ACCEPTED',
-        admin_notes: 'Great operational optimization proposal. Approved for next release sprint.',
-        admin_response: 'Thank you David! Our engineering team has accepted your request and queued it for the next scheduled sprint release.',
-        responded_by: 1,
-        responded_by_name: 'System Admin',
-        responded_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-        created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
-        updated_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-    },
-    {
-        id: 102,
-        user_id: 3,
-        user_name: 'Lisa Thompson',
-        user_email: 'lisa.t@visitor.com',
-        user_code: 'REC000001',
-        avatar_url: null,
-        phone_number: '+1 555-0106',
-        role_name: 'RECEPTIONIST',
-        department_name: 'Front Desk Operations',
-        category: 'UI_UX_DESIGN',
-        rating: 4,
-        subject: 'QR Scanner Auto-Focus Speed on Check-in Kiosk',
-        message: 'The check-in camera sometimes takes 2-3 seconds to focus when visitors hold up mobile phones at an angle. The new high-contrast UI is amazing though!',
-        status: 'UNDER_REVIEW',
-        admin_notes: 'Testing camera ISO adjustments in kiosk settings.',
-        admin_response: 'Under active testing with our device hardware lab.',
-        responded_by: 1,
-        responded_by_name: 'System Admin',
-        responded_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-        created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-        updated_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-    },
-    {
-        id: 103,
-        user_id: 4,
-        user_name: 'Robert Garcia',
-        user_email: 'robert.g@visitor.com',
-        user_code: 'SEC000001',
-        avatar_url: null,
-        phone_number: '+1 555-0107',
-        role_name: 'SECURITY',
-        department_name: 'Corporate Security',
-        category: 'SECURITY_POLICY',
-        rating: 5,
-        subject: 'Watchlist immediate acoustic tone notification',
-        message: 'The live alert sound when a flagged visitor scans at Gate 2 helped our officers react in under 15 seconds. Outstanding security feature!',
-        status: 'ACCEPTED',
-        admin_notes: 'Security validation confirmed.',
-        admin_response: 'Glad to hear the emergency audio alert worked effectively during perimeter verification.',
-        responded_by: 1,
-        responded_by_name: 'System Admin',
-        responded_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-        created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
-        updated_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    },
-    {
-        id: 104,
-        user_id: 5,
-        user_name: 'Sarah Johnson',
-        user_email: 'sarah.j@visitor.com',
-        user_code: 'EMP000001',
-        avatar_url: null,
-        phone_number: '+1 555-0102',
-        role_name: 'EMPLOYEE',
-        department_name: 'Human Resources',
-        category: 'GENERAL_FEEDBACK',
-        rating: 5,
-        subject: 'Host notification via SMS arrived instantly',
-        message: 'My interview candidates checked in at reception and I received the SMS notice before I even opened my laptop. Saved 10 minutes of wait time!',
-        status: 'ACCEPTED',
-        admin_notes: 'Positive feedback recorded.',
-        admin_response: 'Thank you Sarah, we are optimizing carrier route latency across all employee notification channels.',
-        responded_by: 1,
-        responded_by_name: 'System Admin',
-        responded_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-        created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
-        updated_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    },
-    {
-        id: 105,
-        user_id: 12,
-        user_name: 'John Smith',
-        user_email: 'john.smith@email.com',
-        user_code: 'VIS000001',
-        avatar_url: null,
-        phone_number: '+1 555-0199',
-        role_name: 'VISITOR',
-        department_name: 'Guest Services',
-        category: 'UI_UX_DESIGN',
-        rating: 5,
-        subject: 'Self-Service Pass with Dynamic QR made entry effortless',
-        message: 'I generated my visitor pass from the email link on my smartphone before arriving. The receptionist scanned the QR code in 2 seconds and printed my badge!',
-        status: 'ACCEPTED',
-        admin_notes: 'Visitor digital journey verified.',
-        admin_response: 'Thank you John! We are glad the contactless pre-registration experience made your arrival effortless.',
-        responded_by: 1,
-        responded_by_name: 'System Admin',
-        responded_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-        created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-        updated_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-    },
-    {
-        id: 106,
-        user_id: 1,
-        user_name: 'System Administrator',
-        user_email: 'admin@visitor.com',
-        user_code: 'ADM000001',
-        avatar_url: null,
-        phone_number: '+1 555-0101',
-        role_name: 'ADMIN',
-        department_name: 'Executive & IT Operations',
-        category: 'SYSTEM_PERFORMANCE',
-        rating: 5,
-        subject: 'LAN and WebSocket telemetry performance is outstanding',
-        message: 'High availability connection pooling and sub-50ms query response times under high-concurrency check-in volume verified.',
-        status: 'ACCEPTED',
-        admin_notes: 'System benchmarks verified.',
-        admin_response: 'Telemetry confirmed optimal across all LAN and multi-branch nodes.',
-        responded_by: 1,
-        responded_by_name: 'System Admin',
-        responded_at: new Date().toISOString(),
-        created_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-        updated_at: new Date().toISOString(),
-    }
-];
+const DEFAULT_FEEDBACKS = [];
 const DEFAULT_TICKETS = [
     {
         id: 201,
@@ -381,18 +242,10 @@ export default function FeedbackSupportCenter() {
         return [{ id: 'ALL', label: 'My Feedbacks', badge: 'Role', color: 'text-indigo-400' }];
     }, [isAdmin, isManager, isReceptionist, isSecurity, isEmployee, isVisitor]);
 
-    // Initial scoped feedbacks so other role feedbacks never flash or display
+    // Initial scoped feedbacks starts empty (only real submitted data is loaded)
     const initialScopedFeedbacks = useMemo(() => {
-        let list = [...DEFAULT_FEEDBACKS];
-        if (!isAdmin) {
-            if (isManager) list = list.filter(f => ['DEPARTMENT_MANAGER', 'VISITOR'].includes(f.role_name));
-            else if (isReceptionist) list = list.filter(f => ['RECEPTIONIST', 'VISITOR'].includes(f.role_name));
-            else if (isSecurity) list = list.filter(f => ['SECURITY', 'VISITOR'].includes(f.role_name));
-            else if (isEmployee) list = list.filter(f => ['EMPLOYEE', 'VISITOR'].includes(f.role_name));
-            else if (isVisitor) list = list.filter(f => f.role_name === 'VISITOR');
-        }
-        return list;
-    }, [isAdmin, isManager, isReceptionist, isSecurity, isEmployee, isVisitor]);
+        return [];
+    }, []);
 
     const [activeTab, setActiveTab] = useState('feedback');
     const [selectedRole, setSelectedRole] = useState(() => (isVisitor ? 'VISITOR' : 'ALL'));
@@ -518,37 +371,9 @@ export default function FeedbackSupportCenter() {
             ]);
             const fetchedFeedbacks = fRes.data?.data;
             if (Array.isArray(fetchedFeedbacks)) {
-                // If records exist from the backend, use them directly
-                if (fetchedFeedbacks.length > 0) {
-                    setFeedbacks(fetchedFeedbacks);
-                } else {
-                    // Empty or offline fallback scoped strictly to user role
-                    let filtered = [...DEFAULT_FEEDBACKS];
-                    if (!isAdmin) {
-                        if (isManager) filtered = filtered.filter(f => ['DEPARTMENT_MANAGER', 'VISITOR'].includes(f.role_name));
-                        else if (isReceptionist) filtered = filtered.filter(f => ['RECEPTIONIST', 'VISITOR'].includes(f.role_name));
-                        else if (isSecurity) filtered = filtered.filter(f => ['SECURITY', 'VISITOR'].includes(f.role_name));
-                        else if (isEmployee) filtered = filtered.filter(f => ['EMPLOYEE', 'VISITOR'].includes(f.role_name));
-                        else if (isVisitor) filtered = filtered.filter(f => f.role_name === 'VISITOR');
-                    }
-                    if (selectedRole && selectedRole !== 'ALL') {
-                        filtered = filtered.filter(f => f.role_name === selectedRole);
-                    }
-                    setFeedbacks(filtered);
-                }
+                setFeedbacks(fetchedFeedbacks);
             } else {
-                let filtered = [...DEFAULT_FEEDBACKS];
-                if (!isAdmin) {
-                    if (isManager) filtered = filtered.filter(f => ['DEPARTMENT_MANAGER', 'VISITOR'].includes(f.role_name));
-                    else if (isReceptionist) filtered = filtered.filter(f => ['RECEPTIONIST', 'VISITOR'].includes(f.role_name));
-                    else if (isSecurity) filtered = filtered.filter(f => ['SECURITY', 'VISITOR'].includes(f.role_name));
-                    else if (isEmployee) filtered = filtered.filter(f => ['EMPLOYEE', 'VISITOR'].includes(f.role_name));
-                    else if (isVisitor) filtered = filtered.filter(f => f.role_name === 'VISITOR');
-                }
-                if (selectedRole && selectedRole !== 'ALL') {
-                    filtered = filtered.filter(f => f.role_name === selectedRole);
-                }
-                setFeedbacks(filtered);
+                setFeedbacks([]);
             }
             if (fStatsRes.data?.data) {
                 setFeedbackStats(fStatsRes.data.data);
@@ -571,18 +396,7 @@ export default function FeedbackSupportCenter() {
             }
         } catch (err) {
             console.warn('Failed to load feedback/support data:', err);
-            let filtered = [...DEFAULT_FEEDBACKS];
-            if (!isAdmin) {
-                if (isManager) filtered = filtered.filter(f => ['DEPARTMENT_MANAGER', 'VISITOR'].includes(f.role_name));
-                else if (isReceptionist) filtered = filtered.filter(f => ['RECEPTIONIST', 'VISITOR'].includes(f.role_name));
-                else if (isSecurity) filtered = filtered.filter(f => ['SECURITY', 'VISITOR'].includes(f.role_name));
-                else if (isEmployee) filtered = filtered.filter(f => ['EMPLOYEE', 'VISITOR'].includes(f.role_name));
-                else if (isVisitor) filtered = filtered.filter(f => f.role_name === 'VISITOR');
-            }
-            if (selectedRole && selectedRole !== 'ALL') {
-                filtered = filtered.filter(f => f.role_name === selectedRole);
-            }
-            setFeedbacks(filtered);
+            setFeedbacks([]);
             setTickets(DEFAULT_TICKETS);
         } finally {
             setLoading(false);
@@ -600,12 +414,17 @@ export default function FeedbackSupportCenter() {
         }
         setSubmitting(true);
         try {
-            // Strictly enforce authenticated user identity
             const payload = {
-                ...feedbackForm,
-                role_name: currentUserRole,
-                user_name: currentUser?.name || currentUser?.username || feedbackForm.user_name || 'System User',
-                user_email: currentUser?.email || feedbackForm.user_email || '',
+                subject: feedbackForm.subject.trim(),
+                message: feedbackForm.message.trim(),
+                category: feedbackForm.category || 'GENERAL_FEEDBACK',
+                rating: feedbackForm.rating || 5,
+                role_name: currentUserRole || 'USER',
+                user_name: currentUser?.name || currentUser?.full_name || currentUser?.username || 'User',
+                user_email: currentUser?.email || '',
+                user_code: currentUser?.user_code || '',
+                department_name: currentUser?.department_name || '',
+                phone_number: currentUser?.phone_number || '',
             };
             const res = await feedbackSupportApi.submitFeedback(payload);
             setToast({ type: 'success', message: res.data?.message || 'Feedback submitted successfully!' });
@@ -808,7 +627,7 @@ export default function FeedbackSupportCenter() {
 
         {/* Role Selector Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          {allowedRoleTabs.map(r => (<button key={r.id} onClick={() => setSelectedRole(r.id)} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border ${selectedRole === r.id
+          {ALL_ROLES.map(r => (<button key={r.id} onClick={() => setSelectedRole(r.id)} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border ${selectedRole === r.id
                 ? 'bg-slate-800 text-white border-indigo-500 shadow-sm'
                 : 'bg-slate-950 text-slate-400 hover:text-slate-200 border-slate-800'}`}>
               {r.label}
@@ -868,8 +687,8 @@ export default function FeedbackSupportCenter() {
               </motion.div>)}
 
             <form onSubmit={handleSubmitFeedback} className="space-y-4">
-              {/* Rating + Submitter Role Context + Feedback Category */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Rating + Feedback Category */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* 1. Star Rating Selector */}
                 <div className="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-2">
                   <label className="block text-[11px] font-extrabold text-slate-300 uppercase tracking-wider">
@@ -887,30 +706,7 @@ export default function FeedbackSupportCenter() {
                   </div>
                 </div>
 
-                {/* 2. Authenticated Submitter Identity (Locked - Role Spoofing Prevented) */}
-                <div className="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-[11px] font-extrabold text-slate-300 uppercase tracking-wider">
-                      Submitter Identity (Locked)
-                    </label>
-                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 font-bold">
-                      <Shield className="w-3 h-3" /> Verified
-                    </span>
-                  </div>
-                  <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                      <span className="font-semibold text-white truncate max-w-[120px]">
-                        {currentUser?.name || currentUser?.username || 'You'}
-                      </span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-indigo-950/80 text-indigo-300 border border-indigo-800/80 shrink-0">
-                      {currentUserRole}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 3. Feedback Category Drop Down Select */}
+                {/* 2. Feedback Category Drop Down Select */}
                 <div className="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-2">
                   <label className="block text-[11px] font-extrabold text-slate-300 uppercase tracking-wider">
                     Feedback Category *
@@ -993,16 +789,13 @@ export default function FeedbackSupportCenter() {
 
           {feedbacks.length === 0 ? (<div className="py-16 bg-slate-900 border border-slate-800 rounded-2xl text-center text-slate-400 space-y-3">
               <MessageSquare className="w-10 h-10 mx-auto text-slate-600 mb-2"/>
-              <div className="font-bold text-sm text-slate-300">No feedback entries found matching current filter.</div>
+              <div className="font-bold text-sm text-slate-300">No feedback submissions yet.</div>
               <div className="text-xs text-slate-500 max-w-md mx-auto">
-                No submissions were found for the selected filter or search query. You can reset filters to view all feedback across the organization.
+                Feedback submitted by visitors and system users will appear here in real time.
               </div>
               <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
                 <button type="button" onClick={() => { setSelectedRole('ALL'); setStatusFilter('ALL'); setSearchQuery(''); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-sm">
                   Clear Filters & Show All
-                </button>
-                <button type="button" onClick={() => setFeedbacks(DEFAULT_FEEDBACKS)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition">
-                  Load Sample Feedback
                 </button>
               </div>
             </div>) : feedbackViewMode === 'table' ? (
@@ -1135,17 +928,6 @@ export default function FeedbackSupportCenter() {
                                 <Eye className="w-3.5 h-3.5"/>
                               </button>
 
-                              {!isVisitor && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteFeedback(item.id)}
-                                  className="p-1.5 bg-rose-950/60 hover:bg-rose-900 text-rose-400 hover:text-rose-200 border border-rose-800/60 rounded-lg transition"
-                                  title="Delete Feedback"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-
                               {item.status !== 'ACCEPTED' ? (<button type="button" onClick={() => {
                                 setAcceptingFeedback(item);
                                 setAcceptForm({
@@ -1157,6 +939,12 @@ export default function FeedbackSupportCenter() {
                                 </button>) : (<span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1 px-1.5 py-1 rounded bg-emerald-950/40 border border-emerald-900/40">
                                   <CheckCircle className="w-3 h-3"/> Accepted
                                 </span>)}
+
+                              {!isVisitor && (
+                                <button type="button" onClick={() => handleDeleteFeedback(item.id)} className="p-1.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/40 text-rose-400 hover:text-rose-200 rounded-lg transition" title="Delete Feedback Entry">
+                                  <Trash2 className="w-3.5 h-3.5"/>
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>);
@@ -1269,17 +1057,6 @@ export default function FeedbackSupportCenter() {
                           <Eye className="w-3 h-3"/> Details
                         </button>
 
-                        {!isVisitor && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteFeedback(item.id)}
-                            className="p-1.5 bg-rose-950/60 hover:bg-rose-900 text-rose-400 hover:text-rose-200 border border-rose-800/60 rounded text-[10px] transition"
-                            title="Delete Feedback"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        )}
-
                         {item.status !== 'ACCEPTED' ? (<button type="button" onClick={() => {
                                 setAcceptingFeedback(item);
                                 setAcceptForm({
@@ -1291,6 +1068,12 @@ export default function FeedbackSupportCenter() {
                           </button>) : (<span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
                             <CheckCircle className="w-3.5 h-3.5"/> Accepted by Admin
                           </span>)}
+
+                        {!isVisitor && (
+                          <button type="button" onClick={() => handleDeleteFeedback(item.id)} className="px-2 py-1 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/40 text-rose-400 hover:text-rose-200 rounded text-[10px] font-bold uppercase transition flex items-center gap-1" title="Delete Feedback Entry">
+                            <Trash2 className="w-3 h-3"/> Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>);
@@ -1339,11 +1122,15 @@ export default function FeedbackSupportCenter() {
               <form onSubmit={handleCreateTicket} className="space-y-3.5 text-xs">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-300 mb-1">Submitter Identity (Locked)</label>
-                    <div className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono flex items-center justify-between text-xs">
-                      <span className="truncate max-w-[120px] text-slate-300 font-sans font-semibold">{currentUser?.name || currentUser?.username || 'You'}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">{currentUserRole}</span>
-                    </div>
+                    <label className="block font-bold text-slate-300 mb-1">Your Role Perspective</label>
+                    <select value={ticketForm.role_name} onChange={(e) => setTicketForm({ ...ticketForm, role_name: e.target.value })} className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:border-indigo-500">
+                      <option value="ADMIN">ADMINISTRATOR</option>
+                      <option value="DEPARTMENT_MANAGER">DEPARTMENT MANAGER</option>
+                      <option value="EMPLOYEE">EMPLOYEE / HOST</option>
+                      <option value="RECEPTIONIST">RECEPTIONIST</option>
+                      <option value="SECURITY">SECURITY OFFICER</option>
+                      <option value="VISITOR">VISITOR / GUEST</option>
+                    </select>
                   </div>
 
                   <div>
@@ -1605,14 +1392,6 @@ export default function FeedbackSupportCenter() {
 
               <form onSubmit={handleSubmitFeedback} className="space-y-3.5 text-xs">
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1">Submitter Identity (Verified & Locked)</label>
-                  <div className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono flex items-center justify-between text-xs">
-                    <span className="truncate max-w-[200px] text-slate-300 font-sans font-semibold">{currentUser?.name || currentUser?.username || 'Authenticated User'}</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">{currentUserRole}</span>
-                  </div>
-                </div>
-
-                <div>
                   <label className="block font-bold text-slate-300 mb-1">Feedback Category</label>
                   <select value={feedbackForm.category} onChange={(e) => setFeedbackForm({ ...feedbackForm, category: e.target.value })} className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500">
                     <option value="FEATURE_REQUEST">💡 Feature Request</option>
@@ -1678,11 +1457,15 @@ export default function FeedbackSupportCenter() {
               <form onSubmit={handleCreateTicket} className="space-y-3.5 text-xs">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-300 mb-1">Your Role (Locked)</label>
-                    <div className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono flex items-center justify-between text-xs">
-                      <span className="truncate max-w-[120px] text-slate-300 font-sans font-semibold">{currentUser?.name || currentUser?.username || 'You'}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">{currentUserRole}</span>
-                    </div>
+                    <label className="block font-bold text-slate-300 mb-1">Your Role</label>
+                    <select value={ticketForm.role_name} onChange={(e) => setTicketForm({ ...ticketForm, role_name: e.target.value })} className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:border-indigo-500">
+                      <option value="ADMIN">ADMINISTRATOR</option>
+                      <option value="DEPARTMENT_MANAGER">DEPARTMENT MANAGER</option>
+                      <option value="EMPLOYEE">EMPLOYEE / HOST</option>
+                      <option value="RECEPTIONIST">RECEPTIONIST</option>
+                      <option value="SECURITY">SECURITY OFFICER</option>
+                      <option value="VISITOR">VISITOR / GUEST</option>
+                    </select>
                   </div>
 
                   <div>
@@ -1886,20 +1669,6 @@ export default function FeedbackSupportCenter() {
                 </span>
 
                 <div className="flex items-center gap-2">
-                  {!isVisitor && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const targetId = viewingFeedbackDetail.id;
-                        setViewingFeedbackDetail(null);
-                        handleDeleteFeedback(targetId);
-                      }}
-                      className="px-3 py-1.5 bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition"
-                      title="Delete Feedback Record"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </button>
-                  )}
                   {viewingFeedbackDetail.status !== 'ACCEPTED' && (<button type="button" onClick={() => {
                     const target = viewingFeedbackDetail;
                     setViewingFeedbackDetail(null);
