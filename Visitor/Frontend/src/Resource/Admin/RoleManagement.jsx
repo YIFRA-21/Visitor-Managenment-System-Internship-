@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, PlusCircle, RefreshCw } from 'lucide-react';
+import { Shield, PlusCircle, RefreshCw, LayoutDashboard, GitFork, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import BackButton from '../../components/common/BackButton';
@@ -330,6 +330,58 @@ export default function RoleManagement({ initialSubView = 'dashboard' }) {
             <span>{t('roleMgmt.createRole', 'Create Custom Role')}</span>
           </button>
         </div>
+      </div>
+
+      {/* Role Management Sub-Navigation Tabs */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveSubView('roles_list')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeSubView === 'roles_list'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+          }`}
+        >
+          <Shield className="h-3.5 w-3.5" />
+          <span>{t('roleMgmt.allRoles', 'All Roles Directory')}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubView('dashboard')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeSubView === 'dashboard'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+          }`}
+        >
+          <LayoutDashboard className="h-3.5 w-3.5" />
+          <span>{t('roleMgmt.dashboard', 'Role Dashboard')}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubView('hierarchy_graph')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeSubView === 'hierarchy_graph'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+          }`}
+        >
+          <GitFork className="h-3.5 w-3.5" />
+          <span>{t('roleMgmt.hierarchy', 'Hierarchy Graph')}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubView('conflicts')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeSubView === 'conflicts'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+          }`}
+        >
+          <AlertTriangle className="h-3.5 w-3.5" />
+          <span>{t('roleMgmt.conflicts', 'Conflicts & SoD')}</span>
+        </button>
       </div>
 
 

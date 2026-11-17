@@ -1,14 +1,15 @@
 /**
  * VMS Design System — Sidebar Component
  * ──────────────────────────────────────
- * Collapsible sidebar with role-based navigation, multi-level submenu support,
+ * Clean, non-collapsing sidebar navigation with direct content access
  * and distinctive background color themes for all roles.
  */
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { resolvePhotoUrl } from '../../utils/photoUtils';
+
 export function resolveSidebarRole(userRole, pathname = '') {
     const r = (userRole || '').toLowerCase().trim();
     if (r === 'admin' || r === 'super_admin' || r === 'system_admin' || r === 'developer' || r === 'org_admin') {
@@ -39,6 +40,7 @@ export function resolveSidebarRole(userRole, pathname = '') {
     if (p.startsWith('/employee')) return 'employee';
     return 'visitor';
 }
+
 const roleMetaMap = {
     admin: { labelKey: 'sidebar.administrator', badgeKey: 'sidebar.adminPortal' },
     manager: { labelKey: 'sidebar.deptManager', badgeKey: 'sidebar.managerPortal' },
@@ -47,6 +49,7 @@ const roleMetaMap = {
     employee: { labelKey: 'sidebar.staffHost', badgeKey: 'sidebar.staffPortal' },
     visitor: { labelKey: 'sidebar.visitor', badgeKey: 'sidebar.visitorPortal' },
 };
+
 export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle, mobileOpen, onMobileClose, user, config, currentView, onViewClick, }) {
     const location = useLocation();
     const { organization, logoUrl: orgLogoUrl, orgName } = useOrganization();
@@ -58,43 +61,15 @@ export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle
             ? organization.name
             : 'IT park');
     const activeRole = resolveSidebarRole(user?.role, location.pathname);
-    const currentRoleMeta = roleMetaMap[activeRole];
-    const [expandedMenus, setExpandedMenus] = useState(() => {
-        const initial = {};
-        const activeItem = config.find((item) => item.submenus?.some((sub) => sub.view === currentView));
-        if (activeItem) {
-            initial[activeItem.key] = true;
-        }
-        else {
-            const firstWithSub = config.find((item) => item.submenus && item.submenus.length > 0);
-            if (firstWithSub) {
-                initial[firstWithSub.key] = true;
-            }
-        }
-        return initial;
-    });
-    useEffect(() => {
-        const activeItem = config.find((item) => item.submenus?.some((sub) => sub.view === currentView));
-        if (activeItem) {
-            setExpandedMenus({ [activeItem.key]: true });
-        }
-    }, [currentView, config]);
-    // Accordion toggle: When opening a menu, automatically collapse all others
-    const toggleSubmenu = (key) => {
-        setExpandedMenus((prev) => {
-            const isCurrentlyExpanded = !!prev[key];
-            if (isCurrentlyExpanded) {
-                return {};
-            }
-            return { [key]: true };
-        });
-    };
+    const currentRoleMeta = roleMetaMap[activeRole] || roleMetaMap.visitor;
+
     const isItemActive = (item) => {
-        if (item.view) {
-            return currentView === item.view;
+        if (item.view && currentView === item.view) {
+            return true;
         }
         return item.submenus?.some((sub) => currentView === sub.view);
     };
+
     return (<>
       {/* Mobile Drawer Overlay Backdrop */}
       {mobileOpen && (<div className="vms-sidebar-overlay" onClick={onMobileClose} aria-hidden="true"/>)}
@@ -123,50 +98,38 @@ export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle
           </div>
         </div>
 
-        {/* Scrollable Navigation */}
+        {/* Scrollable Navigation - Clean, Non-Relaxed / Direct Links */}
         <nav className="vms-sidebar__nav">
           <div className="vms-sidebar__section">
             {!collapsed && <div className="vms-sidebar__section-label">{t('sidebar.mainNavigation')}</div>}
             
             {config.map((item) => {
-            const hasSub = !!item.submenus && item.submenus.length > 0;
-            const isExpanded = !!expandedMenus[item.key];
-            const active = isItemActive(item);
-            return (<div key={item.key} className="w-100 mb-1">
-                  {hasSub ? (<>
-                      <button onClick={() => toggleSubmenu(item.key)} className={`vms-sidebar__nav-item ${active ? 'active' : ''}`} aria-expanded={isExpanded}>
-                        <span className="vms-sidebar__nav-item__left">
-                          <span className="vms-sidebar__icon">
-                            <i className={`bi ${item.iconClass}`}></i>
-                          </span>
-                          <span className="vms-sidebar__text">{t('menu.' + item.key, item.label)}</span>
-                        </span>
-                        {!collapsed && (<span className={`vms-sidebar__chevron ${isExpanded ? 'expanded' : ''}`}>
-                            <i className="bi bi-chevron-right"></i>
-                          </span>)}
-                      </button>
+              const active = isItemActive(item);
+              const targetView = item.view || (item.submenus && item.submenus.length > 0 ? item.submenus[0].view : null);
 
-                      <div className={`vms-sidebar__submenu ${isExpanded && !collapsed ? 'expanded' : 'collapsed'}`}>
-                        {item.submenus?.map((sub) => {
-                        const subActive = currentView === sub.view;
-                        return (<button key={sub.key} onClick={() => onViewClick(sub.view)} className={`vms-sidebar__sub-item ${subActive ? 'active' : ''}`}>
-                              {t('submenu.' + sub.key, sub.label)}
-                            </button>);
-                    })}
-                      </div>
-                    </>) : (<button onClick={() => item.view && onViewClick(item.view)} className={`vms-sidebar__nav-item ${active ? 'active' : ''}`}>
-                      <span className="vms-sidebar__nav-item__left">
-                        <span className="vms-sidebar__icon">
-                          <i className={`bi ${item.iconClass}`}></i>
-                        </span>
-                        <span className="vms-sidebar__text">{t('menu.' + item.key, item.label)}</span>
+              return (
+                <div key={item.key} className="w-100 mb-1">
+                  <button 
+                    type="button"
+                    onClick={() => targetView && onViewClick(targetView)} 
+                    className={`vms-sidebar__nav-item ${active ? 'active' : ''}`}
+                    title={t('menu.' + item.key, item.label)}
+                  >
+                    <span className="vms-sidebar__nav-item__left">
+                      <span className="vms-sidebar__icon">
+                        <i className={`bi ${item.iconClass}`}></i>
                       </span>
-                      {item.badge !== undefined && item.badge !== null && item.badge !== '' && (<span className="vms-sidebar__badge badge rounded-pill bg-amber-500 text-slate-950 font-extrabold ms-auto px-2 py-0.5 shadow-sm" style={{ fontSize: '10px' }}>
-                          {item.badge}
-                        </span>)}
-                    </button>)}
-                </div>);
-        })}
+                      <span className="vms-sidebar__text">{t('menu.' + item.key, item.label)}</span>
+                    </span>
+                    {item.badge !== undefined && item.badge !== null && item.badge !== '' && (
+                      <span className="vms-sidebar__badge badge rounded-pill bg-amber-500 text-slate-950 font-extrabold ms-auto px-2 py-0.5 shadow-sm" style={{ fontSize: '10px' }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </nav>
 
