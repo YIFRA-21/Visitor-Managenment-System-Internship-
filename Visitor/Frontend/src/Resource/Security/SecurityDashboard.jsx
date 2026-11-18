@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
     Users, Shield, AlertTriangle, Scan, ShieldAlert, UserX, Sparkles, 
@@ -97,7 +98,15 @@ function KpiCard({ title, value, subtitle, badge, icon, theme, onClick }) {
       </div>
     </motion.div>);
 }
-export default function SecurityDashboard() {
+export default function SecurityDashboard({ onNavigate }) {
+    const navigate = useNavigate();
+    const handleAction = (view) => {
+        if (typeof onNavigate === 'function') {
+            onNavigate(view);
+        } else {
+            navigate(view.startsWith('?') || view.startsWith('/') ? view : `?view=${view}`);
+        }
+    };
     const { t, tStatus, language } = useLanguage();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -208,30 +217,38 @@ export default function SecurityDashboard() {
               <span className="uppercase tracking-widest">{language === 'am' ? 'የስጋት ደረጃ: ዝቅተኛ' : 'Threat Level: Low'}</span>
             </div>
 
-            <a href="?view=badge_management" className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-xs tracking-wide shadow-lg shadow-red-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
+            <button
+              type="button"
+              onClick={() => handleAction('badge_management')}
+              className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-xs tracking-wide shadow-lg shadow-red-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer border-0"
+            >
               <ShieldAlert className="w-4 h-4 text-amber-300 shrink-0"/>
               <span>{language === 'am' ? 'የተከለከሉ ቦታዎች ባጆች' : 'Restricted Area Badges'}</span>
-            </a>
+            </button>
 
-            <a href="?view=security_scanner" className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 border border-slate-700 text-white font-bold text-xs tracking-wide shadow-md flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98]">
+            <button
+              type="button"
+              onClick={() => handleAction('security_scanner')}
+              className="flex-1 sm:flex-initial justify-center whitespace-nowrap shrink-0 px-4 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 border border-slate-700 text-white font-bold text-xs tracking-wide shadow-md flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer"
+            >
               <Scan className="w-4 h-4 text-rose-400 shrink-0"/>
               <span>{language === 'am' ? 'የበር ስካነር SOC' : 'Gate Scanner SOC'}</span>
-            </a>
+            </button>
           </div>
         </div>
       </div>
 
       {/* ── KPI METRIC CARDS (5-METRIC HIGH-SECURITY GRID) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <KpiCard title={t('securityDash.activeOnsite')} value={occupantsCount} subtitle={language === 'am' ? 'በአሁኑ ሰዓት በቦታው ያሉ ጎብኚዎች' : 'Visitors currently on-site'} badge={<span className="text-xs text-blue-400 font-extrabold">{language === 'am' ? 'ንቁ' : 'Active'}</span>} icon={<Users className="w-5 h-5"/>} theme="blue" onClick={() => window.location.search = '?view=occupants_list'}/>
+        <KpiCard title={t('securityDash.activeOnsite')} value={occupantsCount} subtitle={language === 'am' ? 'በአሁኑ ሰዓት በቦታው ያሉ ጎብኚዎች' : 'Visitors currently on-site'} badge={<span className="text-xs text-blue-400 font-extrabold">{language === 'am' ? 'ንቁ' : 'Active'}</span>} icon={<Users className="w-5 h-5"/>} theme="blue" onClick={() => handleAction('occupants_list')}/>
 
-        <KpiCard title={language === 'am' ? 'የተከለከሉ ባጆች' : 'Restricted Badges'} value="24" subtitle={language === 'am' ? 'ንቁ የተከለከሉ ዞኖች ፈቃድ' : 'Active high-security credentials'} badge={<span className="text-xs text-red-400 font-extrabold">Zone A-E</span>} icon={<ShieldAlert className="w-5 h-5 text-red-400"/>} theme="rose" onClick={() => window.location.search = '?view=badge_management'}/>
+        <KpiCard title={language === 'am' ? 'የተከለከሉ ባጆች' : 'Restricted Badges'} value="24" subtitle={language === 'am' ? 'ንቁ የተከለከሉ ዞኖች ፈቃድ' : 'Active high-security credentials'} badge={<span className="text-xs text-red-400 font-extrabold">Zone A-E</span>} icon={<ShieldAlert className="w-5 h-5 text-red-400"/>} theme="rose" onClick={() => handleAction('badge_management')}/>
 
-        <KpiCard title={t('securityDash.watchlistHits')} value={blacklistedCount} subtitle={language === 'am' ? 'የተከለከሉ እና የታገዱ መግቢያዎች' : 'Flagged & denied entries'} badge={<span className="text-xs text-rose-400 font-extrabold">{language === 'am' ? 'የታገዱ' : 'Denied'}</span>} icon={<UserX className="w-5 h-5"/>} theme="rose" onClick={() => window.location.search = '?view=blacklist_monitor'}/>
+        <KpiCard title={t('securityDash.watchlistHits')} value={blacklistedCount} subtitle={language === 'am' ? 'የተከለከሉ እና የታገዱ መግቢያዎች' : 'Flagged & denied entries'} badge={<span className="text-xs text-rose-400 font-extrabold">{language === 'am' ? 'የታገዱ' : 'Denied'}</span>} icon={<UserX className="w-5 h-5"/>} theme="rose" onClick={() => handleAction('blacklist_monitor')}/>
 
-        <KpiCard title={language === 'am' ? 'ንቁ ማስጠንቀቂያዎች' : 'Active Alerts'} value={alertsCount} subtitle={language === 'am' ? 'የደህንነት ማስጠንቀቂያዎች' : 'Open security alerts'} badge={<span className="text-xs text-amber-400 font-extrabold">{language === 'am' ? 'ከፍተኛ ቅድሚያ' : 'High Priority'}</span>} icon={<AlertTriangle className="w-5 h-5"/>} theme="amber" onClick={() => window.location.search = '?view=security_notifications'}/>
+        <KpiCard title={language === 'am' ? 'ንቁ ማስጠንቀቂያዎች' : 'Active Alerts'} value={alertsCount} subtitle={language === 'am' ? 'የደህንነት ማስጠንቀቂያዎች' : 'Open security alerts'} badge={<span className="text-xs text-amber-400 font-extrabold">{language === 'am' ? 'ከፍተኛ ቅድሚያ' : 'High Priority'}</span>} icon={<AlertTriangle className="w-5 h-5"/>} theme="amber" onClick={() => handleAction('security_notifications')}/>
 
-        <KpiCard title={language === 'am' ? 'የተመዘገቡ ክስተቶች' : 'Incidents Logged'} value={incidentsCount} subtitle={language === 'am' ? 'የዛሬ የደህንነት ክስተቶች' : 'Security incidents today'} badge={<span className="text-xs text-purple-400 font-extrabold">{language === 'am' ? 'የተመዘገቡ' : 'Logged'}</span>} icon={<ShieldAlert className="w-5 h-5"/>} theme="purple" onClick={() => window.location.search = '?view=incidents_log'}/>
+        <KpiCard title={language === 'am' ? 'የተመዘገቡ ክስተቶች' : 'Incidents Logged'} value={incidentsCount} subtitle={language === 'am' ? 'የዛሬ የደህንነት ክስተቶች' : 'Security incidents today'} badge={<span className="text-xs text-purple-400 font-extrabold">{language === 'am' ? 'የተመዘገቡ' : 'Logged'}</span>} icon={<ShieldAlert className="w-5 h-5"/>} theme="purple" onClick={() => handleAction('incidents_log')}/>
       </div>
 
       {/* ── RESTRICTED AREA ACCESS BADGES & ZONE AUTHORIZATION CONSOLE ── */}
@@ -260,14 +277,15 @@ export default function SecurityDashboard() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
-            <a
-              href="?view=badge_management"
-              className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-wide flex items-center gap-2 shadow-lg shadow-red-900/30 transition-all hover:scale-[1.02]"
+            <button
+              type="button"
+              onClick={() => handleAction('badge_management')}
+              className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-wide flex items-center gap-2 shadow-lg shadow-red-900/30 transition-all hover:scale-[1.02] cursor-pointer border-0"
             >
               <CreditCard className="w-4 h-4" />
               <span>{language === 'am' ? 'ባጅ ስቱዲዮ ክፈት' : 'Open Restricted Badge Studio'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+            </button>
           </div>
         </div>
 

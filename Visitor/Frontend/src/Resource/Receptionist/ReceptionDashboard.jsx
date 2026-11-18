@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
     Calendar, Users, TrendingUp, Plus, UserCheck, Shield, ArrowUpRight, 
@@ -123,11 +124,12 @@ export default function ReceptionDashboard({ onNavigate }) {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState(null);
 
+    const navigate = useNavigate();
     const handleAction = (view) => {
         if (typeof onNavigate === 'function') {
             onNavigate(view);
         } else {
-            window.location.search = `?view=${view}`;
+            navigate(view.startsWith('?') || view.startsWith('/') ? view : `?view=${view}`);
         }
     };
 

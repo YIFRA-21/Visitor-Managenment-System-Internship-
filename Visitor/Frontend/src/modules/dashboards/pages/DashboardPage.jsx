@@ -439,20 +439,23 @@ export default function DashboardPage() {
         const role = normalizeRole(user);
 
         const getRoleDashboard = (r) => {
+            const navHandler = (v) => navigate(v.startsWith('?') || v.startsWith('/') ? v : `?view=${v}`);
             switch (r) {
                 case 'admin':
-                    return <AdminDashboard />;
+                    return <AdminDashboard onNavigate={navHandler} />;
                 case 'manager':
-                    return <ManagerDashboard onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
+                    return <ManagerDashboard onNavigate={navHandler}/>;
                 case 'receptionist':
-                    return <ReceptionDashboard />;
+                    return <ReceptionDashboard onNavigate={navHandler} />;
                 case 'security':
-                    return <SecurityDashboard />;
+                case 'security_officer':
+                    return <SecurityDashboard onNavigate={navHandler} />;
                 case 'employee':
-                    return <EmployeeDashboard />;
+                case 'staff':
+                    return <EmployeeDashboard onNavigate={navHandler} />;
                 case 'visitor':
                 default:
-                    return <VisitorDashboard />;
+                    return <VisitorDashboard onNavigate={navHandler} />;
             }
         };
 
@@ -577,9 +580,9 @@ export default function DashboardPage() {
                             : (currentView === 'announcements' || currentView === 'manager_announcements')
                                 ? 'announcements'
                                 : 'messages'
-                    } onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
+                    } onNavigate={(v) => navigate(v.startsWith('?') || v.startsWith('/') ? v : `?view=${v}`)}/>;
                 default:
-                    return <ManagerDashboard onNavigate={(v) => navigate(`/manager/dashboard?view=${v}`)}/>;
+                    return <ManagerDashboard onNavigate={(v) => navigate(v.startsWith('?') || v.startsWith('/') ? v : `?view=${v}`)}/>;
             }
         }
         const RegistryComponent = componentRegistry[currentView];
@@ -588,8 +591,30 @@ export default function DashboardPage() {
         }
         switch (currentView) {
             // User Management
+            case 'manage_users':
+            case 'all_users':
+            case 'user_management':
             case 'users':
-                return role === 'admin' ? <UserManagement key={currentView} departments={departments} initialTab="users"/> : <AdminDashboard />;
+                return role === 'admin' ? (
+                    <UserManagement
+                        key={currentView + (searchParams.get('role') || '')}
+                        departments={departments}
+                        initialTab="users"
+                        defaultRoleFilter={searchParams.get('role') || 'ALL'}
+                    />
+                ) : <AdminDashboard />;
+            case 'add_system_user':
+            case 'add_user':
+            case 'create_user':
+            case 'user_create':
+                return role === 'admin' ? (
+                    <UserManagement
+                        key={currentView}
+                        departments={departments}
+                        initialTab="create"
+                        defaultRoleFilter={searchParams.get('role') || 'ALL'}
+                    />
+                ) : <AdminDashboard />;
             case 'user_employees':
             case 'user_staff':
                 return role === 'admin' ? <UserManagement key={currentView} departments={departments} initialTab="users" defaultRoleFilter="employee"/> : <AdminDashboard />;
@@ -617,8 +642,6 @@ export default function DashboardPage() {
                 return role === 'admin' ? <UserManagement departments={departments} initialTab="user_activity"/> : <AdminDashboard />;
             case 'user_dashboard':
                 return role === 'admin' ? <UserManagement departments={departments} initialTab="dashboard"/> : <AdminDashboard />;
-            case 'user_create':
-                return role === 'admin' ? <UserManagement departments={departments} initialTab="create"/> : <AdminDashboard />;
             case 'user_invitations':
                 return role === 'admin' ? <UserManagement departments={departments} initialTab="invitations"/> : <AdminDashboard />;
             case 'user_import_export':
@@ -628,6 +651,7 @@ export default function DashboardPage() {
             case 'role_dashboard':
                 return role === 'admin' ? <RoleManagement initialSubView="dashboard"/> : <AdminDashboard />;
             case 'roles':
+            case 'roles_permissions':
                 return role === 'admin' ? <RoleManagement initialSubView="roles_list"/> : <AdminDashboard />;
             case 'hierarchy_graph':
             case 'role_hierarchy':
@@ -654,6 +678,7 @@ export default function DashboardPage() {
             // Employee Role Portal
             case 'employee_portal':
             case 'employee_dashboard':
+            case 'employee_create':
             case 'employee_requests':
             case 'employee_appointments':
             case 'employee_calendar':
@@ -1022,6 +1047,7 @@ export default function DashboardPage() {
             case 'employee_announcements':
             case 'announcements':
                 return <UnifiedNotificationCenter initialTab="announcements" onNavigate={(v) => navigate(`${getRoleDashboardPrefix()}/dashboard?view=${v}`)}/>;
+            case 'notification_center':
             case 'admin_notification_center':
             case 'enterprise_notification_center':
             case 'notification_admin_center':
@@ -1041,11 +1067,16 @@ export default function DashboardPage() {
             case 'emp-notifications':
                 return <UnifiedNotificationCenter initialTab="notification_center" onNavigate={(v) => navigate(`${getRoleDashboardPrefix()}/dashboard?view=${v}`)}/>;
             // Reports & Analytics & Security Telemetry
+            case 'security_gateways':
+                return role === 'security_officer' || role === 'admin' ? <SecurityDashboard onNavigate={(v) => navigate(v.startsWith('?') || v.startsWith('/') ? v : `?view=${v}`)} /> : <AdminDashboard />;
             case 'security_audit_logs':
             case 'security-audit-logs':
             case 'security_audit':
             case 'audit_trail':
                 return <SecurityAuditLogsView />;
+            case 'analytics_reports':
+            case 'audit_reports':
+            case 'reports_analytics':
             case 'reports':
             case 'reporting':
             case 'reports_dashboard':

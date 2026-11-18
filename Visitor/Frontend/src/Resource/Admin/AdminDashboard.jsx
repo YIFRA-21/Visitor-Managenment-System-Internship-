@@ -169,8 +169,15 @@ const DEFAULT_DASHBOARD_DATA = {
     systemAnnouncements: [],
     role: 'admin',
 };
-export default function AdminDashboard() {
+export default function AdminDashboard({ onNavigate }) {
     const navigate = useNavigate();
+    const handleNavigate = useCallback((pathOrView) => {
+        if (typeof onNavigate === 'function') {
+            onNavigate(pathOrView);
+        } else {
+            navigate(pathOrView.startsWith('?') || pathOrView.startsWith('/') ? pathOrView : `?view=${pathOrView}`);
+        }
+    }, [onNavigate, navigate]);
     const { t, tStatus, language } = useLanguage();
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
@@ -342,7 +349,8 @@ export default function AdminDashboard() {
 
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0">
             <button
-              onClick={() => navigate('?view=manage_users')}
+              type="button"
+              onClick={() => handleNavigate('?view=user_create')}
               style={{ color: '#ffffff' }}
               className="flex-1 sm:flex-initial justify-center whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 !text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer border-0"
             >
@@ -350,7 +358,8 @@ export default function AdminDashboard() {
               <span className="!text-white font-bold">{language === 'am' ? 'አዲስ ተጠቃሚ መዝግብ' : 'Add System User'}</span>
             </button>
             <button
-              onClick={() => navigate('?view=analytics_reports')}
+              type="button"
+              onClick={() => handleNavigate('?view=analytics_reports')}
               style={{ color: '#ffffff', backgroundColor: 'rgba(30, 41, 59, 0.85)' }}
               className="flex-1 sm:flex-initial justify-center whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/60 !text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all hover:scale-[1.03] shadow-md cursor-pointer group"
             >
@@ -358,6 +367,7 @@ export default function AdminDashboard() {
               <span className="!text-white font-bold">{language === 'am' ? 'የኦዲት ሪፖርቶች' : 'Audit Reports'}</span>
             </button>
             <button
+              type="button"
               onClick={() => fetchStats(false)}
               disabled={refreshing}
               style={{ color: '#ffffff', backgroundColor: 'rgba(30, 41, 59, 0.85)' }}
@@ -388,48 +398,48 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4.5">
         {/* ROW 1 */}
         {/* Card 1: Total Users */}
-        <KpiCard title={language === 'am' ? 'ጠቅላላ ተጠቃሚዎች' : 'Total Users'} value={totalUsers} subtitle={<><span className="text-blue-400 font-bold">{language === 'am' ? 'የተመዘገቡ' : 'Registered'}</span> {language === 'am' ? 'በዳታቤዝ ያሉ ተጠቃሚዎች' : 'users in database'}</>} icon={<Users className="h-5 w-5"/>} theme="blue" onClick={() => navigate('?view=manage_users')}/>
+        <KpiCard title={language === 'am' ? 'ጠቅላላ ተጠቃሚዎች' : 'Total Users'} value={totalUsers} subtitle={<><span className="text-blue-400 font-bold">{language === 'am' ? 'የተመዘገቡ' : 'Registered'}</span> {language === 'am' ? 'በዳታቤዝ ያሉ ተጠቃሚዎች' : 'users in database'}</>} icon={<Users className="h-5 w-5"/>} theme="blue" onClick={() => handleNavigate('?view=manage_users')}/>
 
         {/* Card 2: Total Employees */}
-        <KpiCard title={language === 'am' ? 'ጠቅላላ ሰራተኞች' : 'Total Employees'} value={totalEmployees} subtitle={<><span className="text-cyan-400 font-bold">{language === 'am' ? 'ንቁ' : 'Active'}</span> {language === 'am' ? 'የስርዓት ሰራተኞች' : 'system staff'}</>} icon={<Briefcase className="h-5 w-5"/>} theme="cyan" onClick={() => navigate('?view=manage_users&role=employee')}/>
+        <KpiCard title={language === 'am' ? 'ጠቅላላ ሰራተኞች' : 'Total Employees'} value={totalEmployees} subtitle={<><span className="text-cyan-400 font-bold">{language === 'am' ? 'ንቁ' : 'Active'}</span> {language === 'am' ? 'የስርዓት ሰራተኞች' : 'system staff'}</>} icon={<Briefcase className="h-5 w-5"/>} theme="cyan" onClick={() => handleNavigate('?view=manage_users&role=employee')}/>
 
         {/* Card 3: Total Roles */}
-        <KpiCard title={language === 'am' ? 'ጠቅላላ ሚናዎች' : 'Total Roles'} value={totalRoles} subtitle={<><span className="text-purple-400 font-bold">{language === 'am' ? 'የስርዓቱ' : 'System'}</span> {language === 'am' ? 'የተገለጹ ሚናዎች' : 'defined roles'}</>} icon={<Shield className="h-5 w-5"/>} theme="purple" onClick={() => navigate('?view=roles_permissions')}/>
+        <KpiCard title={language === 'am' ? 'ጠቅላላ ሚናዎች' : 'Total Roles'} value={totalRoles} subtitle={<><span className="text-purple-400 font-bold">{language === 'am' ? 'የስርዓቱ' : 'System'}</span> {language === 'am' ? 'የተገለጹ ሚናዎች' : 'defined roles'}</>} icon={<Shield className="h-5 w-5"/>} theme="purple" onClick={() => handleNavigate('?view=roles_permissions')}/>
 
         {/* Card 4: Organizations */}
-        <KpiCard title={language === 'am' ? 'ድርጅቶች' : 'Organizations'} value={organizationsCount} subtitle={<span className="text-emerald-400 font-bold">{language === 'am' ? 'ንቁ የተቋም ድርጅቶች' : 'Active enterprise orgs'}</span>} icon={<Building className="h-5 w-5"/>} theme="emerald" onClick={() => navigate('?view=organization_tree')}/>
+        <KpiCard title={language === 'am' ? 'ድርጅቶች' : 'Organizations'} value={organizationsCount} subtitle={<span className="text-emerald-400 font-bold">{language === 'am' ? 'ንቁ የተቋም ድርጅቶች' : 'Active enterprise orgs'}</span>} icon={<Building className="h-5 w-5"/>} theme="emerald" onClick={() => handleNavigate('?view=organization_tree')}/>
 
         {/* Card 5: Branches */}
-        <KpiCard title={language === 'am' ? 'ቅርንጫፎች' : 'Branches'} value={branchesCount} subtitle={<span className="text-amber-400 font-bold">{language === 'am' ? 'ንቁ የተቋም ቅርንጫፎች' : 'Active facility branches'}</span>} icon={<Layers className="h-5 w-5"/>} theme="amber" onClick={() => navigate('?view=organization_tree')}/>
+        <KpiCard title={language === 'am' ? 'ቅርንጫፎች' : 'Branches'} value={branchesCount} subtitle={<span className="text-amber-400 font-bold">{language === 'am' ? 'ንቁ የተቋም ቅርንጫፎች' : 'Active facility branches'}</span>} icon={<Layers className="h-5 w-5"/>} theme="amber" onClick={() => handleNavigate('?view=organization_tree')}/>
 
         {/* ROW 2 */}
         {/* Card 6: Total Visitors */}
-        <KpiCard title={t('dash.totalVisitors')} value={totalVisitors} subtitle={<><span className="text-blue-400 font-bold">{language === 'am' ? 'ጠቅላላ' : 'Total'}</span> {language === 'am' ? 'የተመዘገቡ እንግዶች' : 'registered guests'}</>} icon={<UserCheck className="h-5 w-5"/>} theme="blue" onClick={() => navigate('?view=manage_users&role=visitor')}/>
+        <KpiCard title={t('dash.totalVisitors')} value={totalVisitors} subtitle={<><span className="text-blue-400 font-bold">{language === 'am' ? 'ጠቅላላ' : 'Total'}</span> {language === 'am' ? 'የተመዘገቡ እንግዶች' : 'registered guests'}</>} icon={<UserCheck className="h-5 w-5"/>} theme="blue" onClick={() => handleNavigate('?view=manage_users&role=visitor')}/>
 
         {/* Card 7: Appointments */}
-        <KpiCard title={language === 'am' ? 'ቀጠሮዎች' : 'Appointments'} value={activeAppointments} subtitle={<><span className="text-purple-400 font-bold">{language === 'am' ? 'ጠቅላላ' : 'Total'}</span> {language === 'am' ? 'የተያዙ ቀጠሮዎች' : 'system bookings'}</>} icon={<Calendar className="h-5 w-5"/>} theme="purple" onClick={() => navigate(ADMIN_ROUTES.APPOINTMENTS)}/>
+        <KpiCard title={language === 'am' ? 'ቀጠሮዎች' : 'Appointments'} value={activeAppointments} subtitle={<><span className="text-purple-400 font-bold">{language === 'am' ? 'ጠቅላላ' : 'Total'}</span> {language === 'am' ? 'የተያዙ ቀጠሮዎች' : 'system bookings'}</>} icon={<Calendar className="h-5 w-5"/>} theme="purple" onClick={() => handleNavigate(ADMIN_ROUTES.APPOINTMENTS)}/>
 
         {/* Card 8: Inside Now */}
-        <KpiCard title={t('dash.checkedIn')} value={checkedInVisitors} subtitle={<span className="text-emerald-400 font-bold">{language === 'am' ? 'በቦታው ያሉ' : 'Live on premises'}</span>} icon={<Activity className="h-5 w-5"/>} theme="emerald" onClick={() => navigate(`${ADMIN_ROUTES.VISITORS}?status=INSIDE`)}/>
+        <KpiCard title={t('dash.checkedIn')} value={checkedInVisitors} subtitle={<span className="text-emerald-400 font-bold">{language === 'am' ? 'በቦታው ያሉ' : 'Live on premises'}</span>} icon={<Activity className="h-5 w-5"/>} theme="emerald" onClick={() => handleNavigate(`${ADMIN_ROUTES.VISITORS}?status=INSIDE`)}/>
 
         {/* Card 9: Security Alerts */}
-        <KpiCard title={language === 'am' ? 'የደህንነት ማስጠንቀቂያዎች' : 'Security Alerts'} value={stats.securityAlerts?.value ?? 0} subtitle={<span className="text-amber-400 font-bold">{language === 'am' ? 'የበር ማስጠንቀቂያዎች' : 'Active gate alerts'}</span>} icon={<AlertTriangle className="h-5 w-5"/>} theme="amber" onClick={() => navigate('?view=security_gateways')}/>
+        <KpiCard title={language === 'am' ? 'የደህንነት ማስጠንቀቂያዎች' : 'Security Alerts'} value={stats.securityAlerts?.value ?? 0} subtitle={<span className="text-amber-400 font-bold">{language === 'am' ? 'የበር ማስጠንቀቂያዎች' : 'Active gate alerts'}</span>} icon={<AlertTriangle className="h-5 w-5"/>} theme="amber" onClick={() => handleNavigate('?view=security_gateways')}/>
 
         {/* ROW 3 */}
         {/* Card 10: Pending Approvals */}
-        <KpiCard title={t('dash.pendingApprovals')} value={pendingApprovals} subtitle={<span className="text-amber-400 font-bold">{language === 'am' ? 'ውሳኔ የሚጠብቁ' : 'Awaiting decision'}</span>} icon={<Clock className="h-5 w-5"/>} theme="amber" onClick={() => navigate(`${ADMIN_ROUTES.APPOINTMENTS}?status=PENDING`)}/>
+        <KpiCard title={t('dash.pendingApprovals')} value={pendingApprovals} subtitle={<span className="text-amber-400 font-bold">{language === 'am' ? 'ውሳኔ የሚጠብቁ' : 'Awaiting decision'}</span>} icon={<Clock className="h-5 w-5"/>} theme="amber" onClick={() => handleNavigate(`${ADMIN_ROUTES.APPOINTMENTS}?status=PENDING`)}/>
 
         {/* Card 11: Active Passes */}
-        <KpiCard title={t('dash.activePasses')} value={stats.activePasses?.value ?? 0} subtitle={<span className="text-emerald-400 font-bold">{language === 'am' ? 'የተረጋገጡ የበር ማለፊያዎች' : 'Verified gate passes'}</span>} icon={<CheckCircle className="h-5 w-5"/>} theme="emerald" onClick={() => navigate(`${ADMIN_ROUTES.VISITORS}?status=APPROVED`)}/>
+        <KpiCard title={t('dash.activePasses')} value={stats.activePasses?.value ?? 0} subtitle={<span className="text-emerald-400 font-bold">{language === 'am' ? 'የተረጋገጡ የበር ማለፊያዎች' : 'Verified gate passes'}</span>} icon={<CheckCircle className="h-5 w-5"/>} theme="emerald" onClick={() => handleNavigate(`${ADMIN_ROUTES.VISITORS}?status=APPROVED`)}/>
 
         {/* Card 12: Notifications */}
-        <KpiCard title={language === 'am' ? 'ማሳወቂያዎች' : 'Notifications'} value={stats.notificationsCount?.value ?? 0} subtitle={<span className="text-purple-400 font-bold">{language === 'am' ? 'የስርዓቱ ማሳወቂያዎች' : 'System alerts & logs'}</span>} icon={<Bell className="h-5 w-5"/>} theme="purple" onClick={() => navigate('?view=notification_center')}/>
+        <KpiCard title={language === 'am' ? 'ማሳወቂያዎች' : 'Notifications'} value={stats.notificationsCount?.value ?? 0} subtitle={<span className="text-purple-400 font-bold">{language === 'am' ? 'የስርዓቱ ማሳወቂያዎች' : 'System alerts & logs'}</span>} icon={<Bell className="h-5 w-5"/>} theme="purple" onClick={() => handleNavigate('?view=notification_center')}/>
 
         {/* Card 13: Audit Events */}
-        <KpiCard title={language === 'am' ? 'የኦዲት ኩነቶች' : 'Audit Events'} value={stats.auditEventsCount?.value ?? 0} subtitle={<span className="text-cyan-400 font-bold">{language === 'am' ? 'የተመዘገቡ የስርዓት ኩነቶች' : 'Logged system events'}</span>} icon={<Zap className="h-5 w-5"/>} theme="cyan" onClick={() => navigate('?view=audit_logs')}/>
+        <KpiCard title={language === 'am' ? 'የኦዲት ኩነቶች' : 'Audit Events'} value={stats.auditEventsCount?.value ?? 0} subtitle={<span className="text-cyan-400 font-bold">{language === 'am' ? 'የተመዘገቡ የስርዓት ኩነቶች' : 'Logged system events'}</span>} icon={<Zap className="h-5 w-5"/>} theme="cyan" onClick={() => handleNavigate('?view=audit_logs')}/>
 
         {/* Card 14: Departments */}
-        <KpiCard title={language === 'am' ? 'የስራ ክፍሎች' : 'Departments'} value={departmentsCount} subtitle={<span className="text-indigo-400 font-bold">{language === 'am' ? 'ንቁ የስራ ክፍሎች' : 'Active Org units'}</span>} icon={<Building className="h-5 w-5"/>} theme="indigo" onClick={() => navigate('?view=organization_tree')}/>
+        <KpiCard title={language === 'am' ? 'የስራ ክፍሎች' : 'Departments'} value={departmentsCount} subtitle={<span className="text-indigo-400 font-bold">{language === 'am' ? 'ንቁ የስራ ክፍሎች' : 'Active Org units'}</span>} icon={<Building className="h-5 w-5"/>} theme="indigo" onClick={() => handleNavigate('?view=organization_tree')}/>
       </div>
 
       {/* ───────────────────────────────────────────────────────────────────────
@@ -453,7 +463,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <button
-            onClick={() => navigate('?view=manage_users')}
+            onClick={() => handleNavigate('?view=manage_users')}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-slate-700/60 self-start sm:self-auto cursor-pointer"
           >
             <span>{language === 'am' ? 'ሁሉንም ተጠቃሚዎች ዝርዝር ይመልከቱ' : 'View All Users List'}</span>
@@ -465,7 +475,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* Visitors */}
           <div
-            onClick={() => navigate('?view=manage_users&role=visitor')}
+            onClick={() => handleNavigate('?view=manage_users&role=visitor')}
             className="group cursor-pointer bg-slate-50 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 rounded-xl p-3.5 transition-all duration-200 relative overflow-hidden flex flex-col justify-between shadow-sm"
           >
             <div className="flex items-center justify-between mb-2">
@@ -493,7 +503,7 @@ export default function AdminDashboard() {
 
           {/* Employees */}
           <div
-            onClick={() => navigate('?view=manage_users&role=employee')}
+            onClick={() => handleNavigate('?view=manage_users&role=employee')}
             className="group cursor-pointer bg-slate-50 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 rounded-xl p-3.5 transition-all duration-200 relative overflow-hidden flex flex-col justify-between shadow-sm"
           >
             <div className="flex items-center justify-between mb-2">
@@ -521,7 +531,7 @@ export default function AdminDashboard() {
 
           {/* Security Officers */}
           <div
-            onClick={() => navigate('?view=manage_users&role=security_officer')}
+            onClick={() => handleNavigate('?view=manage_users&role=security_officer')}
             className="group cursor-pointer bg-slate-50 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 rounded-xl p-3.5 transition-all duration-200 relative overflow-hidden flex flex-col justify-between shadow-sm"
           >
             <div className="flex items-center justify-between mb-2">
@@ -549,7 +559,7 @@ export default function AdminDashboard() {
 
           {/* Managers */}
           <div
-            onClick={() => navigate('?view=manage_users&role=manager')}
+            onClick={() => handleNavigate('?view=manage_users&role=manager')}
             className="group cursor-pointer bg-slate-50 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-purple-500/50 rounded-xl p-3.5 transition-all duration-200 relative overflow-hidden flex flex-col justify-between shadow-sm"
           >
             <div className="flex items-center justify-between mb-2">
@@ -577,7 +587,7 @@ export default function AdminDashboard() {
 
           {/* Receptionists */}
           <div
-            onClick={() => navigate('?view=manage_users&role=receptionist')}
+            onClick={() => handleNavigate('?view=manage_users&role=receptionist')}
             className="group cursor-pointer bg-slate-50 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-rose-500/50 rounded-xl p-3.5 transition-all duration-200 relative overflow-hidden flex flex-col justify-between shadow-sm"
           >
             <div className="flex items-center justify-between mb-2">
@@ -605,7 +615,7 @@ export default function AdminDashboard() {
 
           {/* Administrators */}
           <div
-            onClick={() => navigate('?view=manage_users&role=admin')}
+            onClick={() => handleNavigate('?view=manage_users&role=admin')}
             className="group cursor-pointer bg-slate-50 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 rounded-xl p-3.5 transition-all duration-200 relative overflow-hidden flex flex-col justify-between shadow-sm"
           >
             <div className="flex items-center justify-between mb-2">

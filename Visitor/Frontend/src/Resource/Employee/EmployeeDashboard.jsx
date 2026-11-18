@@ -139,7 +139,7 @@ function KpiCard({ title, value, subtitle, badge, icon, theme, onClick }) {
       </div>
     </motion.div>);
 }
-export default function EmployeeDashboard() {
+export default function EmployeeDashboard({ onNavigate }) {
     const navigate = useNavigate();
     const { t, tStatus } = useLanguage();
     const [loading, setLoading] = useState(true);
@@ -212,8 +212,19 @@ export default function EmployeeDashboard() {
         return () => clearInterval(interval);
     }, []);
     const handleActionClick = (viewKey) => {
+        if (typeof onNavigate === 'function') {
+            onNavigate(viewKey);
+            return;
+        }
         const params = new URLSearchParams(window.location.search);
-        params.set('view', viewKey);
+        if (viewKey.includes('?')) {
+            const [base, query] = viewKey.split('?');
+            params.set('view', base);
+            const subParams = new URLSearchParams(query);
+            subParams.forEach((val, key) => params.set(key, val));
+        } else {
+            params.set('view', viewKey);
+        }
         navigate(`?${params.toString()}`);
     };
     if (loading) {

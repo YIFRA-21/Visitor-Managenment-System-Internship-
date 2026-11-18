@@ -50,7 +50,7 @@ import { useResponseNavigation, RESPONSE_TYPES } from '../../modules/response';
 
 const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
 
-export default function EmployeeAppointments() {
+export default function EmployeeAppointments({ autoOpenCreate = false }) {
     const { t, tStatus } = useLanguage();
     const { toSuccess, toError, toConfirmation } = useResponseNavigation();
     const [loading, setLoading] = useState(true);
@@ -62,7 +62,7 @@ export default function EmployeeAppointments() {
     const [sortBy, setSortBy] = useState('scheduled_start');
     const [sortOrder, setSortOrder] = useState('DESC');
     // Modals
-    const [showNewModal, setShowNewModal] = useState(false);
+    const [showNewModal, setShowNewModal] = useState(Boolean(autoOpenCreate));
     const [selectedApt, setSelectedApt] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [rescheduleApt, setRescheduleApt] = useState(null);

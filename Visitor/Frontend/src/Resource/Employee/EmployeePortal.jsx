@@ -63,10 +63,11 @@ export default function EmployeePortal() {
             case 'employee_requests':
             case 'requests':
                 return <EmployeeVisitorRequests />;
+            case 'employee_create':
             case 'employee_appointments':
             case 'appointments':
             case 'my_appointments':
-                return <EmployeeAppointments />;
+                return <EmployeeAppointments autoOpenCreate={currentTab === 'employee_create'} />;
             case 'employee_calendar':
             case 'calendar':
                 return <CalendarView />;
