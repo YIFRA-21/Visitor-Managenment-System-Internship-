@@ -462,12 +462,22 @@ body[data-theme="dark"],
 // ── 9. MASTER GRADIENT TEXT PROTECTION & LIGHT MODE REFINEMENTS ──────────
 [data-theme="light"] .login-left-card {
   .vms-animated-gradient-text-1 {
-    background: linear-gradient(135deg, #0284c7 0%, #2563eb 25%, #4f46e5 50%, #7c3aed 75%, #0284c7 100%) !important;
+    background-image: linear-gradient(135deg, #0284c7 0%, #2563eb 25%, #4f46e5 50%, #7c3aed 75%, #0284c7 100%) !important;
     background-size: 250% 250% !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    display: inline-block !important;
   }
   .vms-animated-gradient-text-2 {
-    background: linear-gradient(135deg, #db2777 0%, #e11d48 28%, #d97706 62%, #9333ea 85%, #db2777 100%) !important;
+    background-image: linear-gradient(135deg, #db2777 0%, #e11d48 28%, #d97706 62%, #9333ea 85%, #db2777 100%) !important;
     background-size: 250% 250% !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    display: inline-block !important;
   }
 }
 
@@ -480,5 +490,6 @@ body[data-theme="dark"],
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   color: transparent !important;
+  display: inline-block !important;
 }
 

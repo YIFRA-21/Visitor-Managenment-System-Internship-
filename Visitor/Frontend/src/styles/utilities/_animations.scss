@@ -202,36 +202,36 @@ body,
 }
 
 .vms-animated-gradient-text-1 {
-  background: linear-gradient(135deg, #38bdf8 0%, #60a5fa 25%, #818cf8 50%, #c084fc 75%, #38bdf8 100%);
-  background-size: 250% 250%;
+  background-image: linear-gradient(135deg, #38bdf8 0%, #60a5fa 25%, #818cf8 50%, #c084fc 75%, #38bdf8 100%) !important;
+  background-size: 250% 250% !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   color: transparent !important;
   animation: vmsTextGradientFlow 6s ease-in-out infinite;
-  display: inline-block;
+  display: inline-block !important;
 }
 
 .vms-animated-gradient-text-2 {
-  background: linear-gradient(135deg, #f472b6 0%, #fb7185 28%, #fbbf24 62%, #a855f7 85%, #f472b6 100%);
-  background-size: 250% 250%;
+  background-image: linear-gradient(135deg, #f472b6 0%, #fb7185 28%, #fbbf24 62%, #a855f7 85%, #f472b6 100%) !important;
+  background-size: 250% 250% !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   color: transparent !important;
   animation: vmsTextGradientFlow 7s ease-in-out infinite reverse;
-  display: inline-block;
+  display: inline-block !important;
 }
 
 .vms-animated-gradient-text-3 {
-  background: linear-gradient(135deg, #34d399 0%, #38bdf8 35%, #818cf8 70%, #34d399 100%);
-  background-size: 250% 250%;
+  background-image: linear-gradient(135deg, #34d399 0%, #38bdf8 35%, #818cf8 70%, #34d399 100%) !important;
+  background-size: 250% 250% !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   color: transparent !important;
   animation: vmsTextGradientFlow 5s ease-in-out infinite;
-  display: inline-block;
+  display: inline-block !important;
 }
 
 .vms-aura-pulse {
