@@ -281,14 +281,24 @@ class CheckinRepository {
         } catch (e) {}
       }
 
-      // 4. Set pass status to CHECKED_OUT / EXPIRED
-      await tx.execute(
-        `UPDATE visitor_passes vp
-         JOIN checkins c ON c.pass_id = vp.id
-         SET vp.status = 'CHECKED_OUT', vp.updated_at = CURRENT_TIMESTAMP
-         WHERE c.id = ?`,
-        [checkinId]
-      );
+      // 4. Set pass status to EXPIRED
+      try {
+        await tx.execute(
+          `UPDATE visitor_passes vp
+           JOIN checkins c ON c.pass_id = vp.id
+           SET vp.status = 'EXPIRED', vp.updated_at = CURRENT_TIMESTAMP
+           WHERE c.id = ?`,
+          [checkinId]
+        );
+        if (appointmentId) {
+          await tx.execute(
+            `UPDATE visitor_passes SET status = 'EXPIRED', updated_at = CURRENT_TIMESTAMP WHERE appointment_id = ? AND status = 'ACTIVE'`,
+            [appointmentId]
+          );
+        }
+      } catch (passErr) {
+        console.warn('[CheckinRepository] visitor_passes status update warning:', passErr.message);
+      }
 
       // 5. Update visitor_checkins legacy status to COMPLETED
       try {
@@ -303,9 +313,7 @@ class CheckinRepository {
       // Auto-trigger creation of permanent Visitor History record
       try {
         const visitorHistoryRepository = require('../../visitor-history/repositories/visitor-history.repository');
-        setImmediate(() => {
-          visitorHistoryRepository.createFromCheckout(checkoutId).catch(err => console.error('Auto history snapshot error:', err));
-        });
+        await visitorHistoryRepository.createFromCheckout(checkoutId).catch(err => console.error('Auto history snapshot error:', err.message));
       } catch (e) {}
 
       return checkoutId;
