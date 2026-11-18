@@ -8,42 +8,9 @@ const controller = require('../controllers/visitor-portal.controller');
 
 const router = Router();
 
-// Middleware: Strict Visitor Verification Gate
+// Middleware: Visitor Verification Middleware (Non-blocking)
 const requireVisitorVerified = async (req, res, next) => {
-  const role = String(req.user?.role || '').toLowerCase();
-  // Only restrict visitor accounts. Staff, security, admins are not blocked.
-  if (role !== 'visitor') {
-    return next();
-  }
-
-  try {
-    const rows = await db.query(
-      `SELECT id, id_verification_status FROM visitors WHERE user_id = ? OR email = ? ORDER BY id DESC LIMIT 1`,
-      [req.user.id || req.user.user_id, req.user.email]
-    );
-
-    const status = rows && rows[0] ? String(rows[0].id_verification_status || '').toUpperCase() : 'UNVERIFIED';
-
-    if (status !== 'VERIFIED') {
-      return res.status(403).json({
-        success: false,
-        code: 'IDENTITY_VERIFICATION_REQUIRED',
-        status,
-        message: 'Identity verification is mandatory for visitor access. Please complete the identity verification process.',
-        redirectTo: '/identity-verification'
-      });
-    }
-
-    next();
-  } catch (err) {
-    console.error('[requireVisitorVerified] Error checking verification status:', err.message);
-    return res.status(403).json({
-      success: false,
-      code: 'IDENTITY_VERIFICATION_REQUIRED',
-      message: 'Identity verification status could not be confirmed.',
-      redirectTo: '/identity-verification'
-    });
-  }
+  return next();
 };
 
 // ─── File Upload Config ───────────────────────────

@@ -110,34 +110,8 @@ export default function ProtectedRoute({ children, requiredPermission, requiredR
             return;
         }
 
-        // 5. Strict visitor boundary enforcement & Mandatory Identity Verification
+        // 5. Strict visitor boundary enforcement
         if (userRole === 'visitor') {
-            const verificationStatus = String(user.idVerificationStatus || user.id_verification_status || '').toUpperCase();
-            const isVerified = verificationStatus === 'VERIFIED';
-
-            // Check if visitor is attempting to access protected visitor features while unverified
-            const unverifiedAllowedPrefixes = [
-                '/identity-verification',
-                '/visitor/identity-verification',
-                '/mobile-verify',
-                '/support',
-                '/feedback',
-                '/help',
-                '/unauthorized',
-                '/change-password'
-            ];
-
-            const isExempt = unverifiedAllowedPrefixes.some(prefix => path.startsWith(prefix));
-
-            // If visitor is unverified (Pending, Rejected, or Unverified) and attempting to access protected pages,
-            // gate access and route directly to the Identity Verification workflow
-            if (!isVerified && !isExempt) {
-                setRedirectTarget('/identity-verification');
-                setAllowed(true);
-                setChecking(false);
-                return;
-            }
-
             const visitorAllowedPrefixes = [
                 '/visitor', '/identity-verification', '/notifications', '/feedback-support', '/support-feedback',
                 '/support', '/feedback', '/help-support', '/book', '/track',

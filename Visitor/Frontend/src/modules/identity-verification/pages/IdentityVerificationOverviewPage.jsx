@@ -57,7 +57,7 @@ export default function IdentityVerificationOverviewPage({ hideBackButton = fals
   };
 
   const status = (data?.overallStatus || 'UNVERIFIED').toUpperCase();
-  const isVerified = status === 'VERIFIED';
+  const isVerified = status === 'VERIFIED' || status === 'APPROVED';
   const isPending = status === 'PENDING' || status === 'PROVIDER_PROCESSING';
   const isReview = status === 'IN_REVIEW';
 
@@ -66,7 +66,7 @@ export default function IdentityVerificationOverviewPage({ hideBackButton = fals
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-800">
         <div className="flex items-center space-x-4">
-          {!hideBackButton && !isEmbedded && <BackButton />}
+          {!hideBackButton && !isEmbedded && <BackButton fallbackUrl="/visitor/dashboard" />}
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
@@ -82,14 +82,23 @@ export default function IdentityVerificationOverviewPage({ hideBackButton = fals
           </div>
         </div>
 
-        <button
-          onClick={fetchStatus}
-          disabled={loading}
-          className="flex items-center space-x-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-800 transition"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
-          <span>Refresh Status</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/visitor/dashboard')}
+            className="flex items-center space-x-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-800 transition cursor-pointer"
+          >
+            <span>Visitor Dashboard</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={fetchStatus}
+            disabled={loading}
+            className="flex items-center space-x-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-800 transition"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
+            <span>Refresh Status</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Status Hero Card */}
@@ -153,9 +162,18 @@ export default function IdentityVerificationOverviewPage({ hideBackButton = fals
             )}
 
             {isVerified && (
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-300 text-xs flex items-center space-x-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                <span>Verified Visitor Pass Entitlement Active</span>
+              <div className="flex flex-col gap-2">
+                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-300 text-xs flex items-center space-x-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <span>Verified & Approved Visitor Status Active</span>
+                </div>
+                <button
+                  onClick={() => navigate('/visitor/dashboard')}
+                  className="px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl text-xs font-bold shadow-xl shadow-emerald-900/30 border border-emerald-500/30 transition transform active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                  <span>Go to Visitor Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             )}
 
