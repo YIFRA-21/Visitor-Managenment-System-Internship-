@@ -254,18 +254,47 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Card Title with Vibrant Text Gradient */}
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-[1.2]">
-                {isDark ? (
-                  <span className="bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent drop-shadow-md">
-                    {t('login.secureVisitorMgmt')}
+              {/* Card Title with Attractive Large Animated Multi-Hue Gradients */}
+              <div className="relative pt-1 sm:pt-2">
+                {/* Ambient Soft Luminous Backdrop Aura */}
+                <div className="absolute -inset-x-3 -inset-y-2 bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-fuchsia-500/20 blur-2xl opacity-60 pointer-events-none rounded-3xl vms-aura-pulse" />
+
+                {/* Subtitle Eyebrow Badge */}
+                <div className="relative flex items-center gap-2 mb-2 sm:mb-2.5">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-gradient-to-r from-cyan-500/15 via-indigo-500/15 to-purple-500/15 border border-cyan-400/30 text-cyan-300 shadow-sm backdrop-blur-md">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-400" />
+                    </span>
+                    Next-Gen Platform
                   </span>
-                ) : (
-                  <span className="text-slate-900 font-black drop-shadow-sm">
-                    {t('login.secureVisitorMgmt')}
-                  </span>
-                )}
-              </h1>
+                </div>
+
+                {/* Large Hero Headline with Multi-Color Shifting Animated Gradients */}
+                <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-black tracking-tight leading-[1.12] select-none">
+                  {/* First Segment: Electric Cyan to Indigo to Purple Gradient */}
+                  <motion.span
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+                    className="block vms-animated-gradient-text-1 drop-shadow-[0_4px_22px_rgba(56,189,248,0.4)]"
+                  >
+                    {language === 'am' ? 'ደህንነቱ የተጠበቀ የጎብኝዎች አስተዳደር' : 'Secure Visitor Management'}
+                  </motion.span>
+
+                  {/* Second Segment: Radiant Fuchsia to Neon Coral to Golden Amber Gradient */}
+                  <motion.span
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.12, ease: "easeOut" }}
+                    style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+                    className="block mt-1 sm:mt-1.5 vms-animated-gradient-text-2 drop-shadow-[0_4px_22px_rgba(244,114,182,0.4)]"
+                  >
+                    {language === 'am' ? '& የማሰብ ችሎታ ያለው የመዳረሻ ቁጥጥር' : '& Intelligent Access Control'}
+                  </motion.span>
+                </h1>
+              </div>
 
               {/* Card Subtitle / Description */}
               <p className={`text-sm leading-relaxed font-normal ${isDark ? 'text-slate-300' : 'text-slate-700 font-medium'}`}>
