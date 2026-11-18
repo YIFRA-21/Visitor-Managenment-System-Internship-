@@ -586,15 +586,30 @@ class VisitorRepository {
     ).catch(() => [{ max_ver: 0 }]);
     const nextVer = Number(verRow?.max_ver || 0) + 1;
 
+    let visName = docData.visitorName || null;
+    let visCode = docData.visitorCode || null;
+    if (!visName || !visCode) {
+      try {
+        const visRows = await db.query(`SELECT first_name, last_name, visitor_code FROM visitors WHERE id = ?`, [visitorId]);
+        const vis = Array.isArray(visRows) ? visRows[0] : visRows;
+        if (vis) {
+          visName = `${vis.first_name || ''} ${vis.last_name || ''}`.trim() || 'Visitor';
+          visCode = vis.visitor_code || `VIS-${visitorId}`;
+        }
+      } catch (_) {}
+    }
+
     const result = await db.query(
       `INSERT INTO visitor_documents (
-        visitor_id, document_code, ref_number, document_type, category_name, document_name,
+        visitor_id, visitor_name, visitor_code, document_code, ref_number, document_type, category_name, document_name,
         document_number, file_url, document_url, file_path, file_name, original_file_name,
         file_size, file_size_bytes, mime_type, file_type, expiry_date,
         verification_status, status, approval_status, version_number, is_active, is_deleted
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 'Uploaded', 'PENDING', ?, TRUE, FALSE)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 'Uploaded', 'PENDING', ?, TRUE, FALSE)`,
       [
         visitorId,
+        visName || 'Visitor',
+        visCode || `VIS-${visitorId}`,
         docCode,
         `REF-${docCode}`,
         docType,

@@ -1,7 +1,7 @@
 const pool = require('../../../config/db');
 const crypto = require('crypto');
 
-// ─── Initialize Mock Database with demo data (called on first mock fallback) ───
+// ─── Initialize Mock Database with demo data (fallback only when MySQL is offline) ───
 function initializeMockDb() {
   if (pool.mockDb && pool.mockDb._initialized) return;
 
@@ -87,7 +87,6 @@ function initializeMockDb() {
   if (!pool.mockDb.visitor_documents) {
     pool.mockDb.visitor_documents = [];
   }
-  // Populate demo documents in-place without reassigning array reference
   for (const doc of documents) {
     if (!pool.mockDb.visitor_documents.some(d => d.id === doc.id)) {
       pool.mockDb.visitor_documents.push(doc);
@@ -123,14 +122,14 @@ function initializeMockDb() {
       created_at: d.created_at
     }));
   }
-  console.log(`Mock database initialized with ${pool.mockDb.visitor_documents.length} visitor documents for demo mode.`);
 }
 
 class VisitorDocumentRepository {
   // ─── 1. Get Dashboard Metrics ───
   async getDashboardStats() {
-    if (pool.useMock && pool.mockDb) {
-      const docs = pool.mockDb.visitor_documents || [];
+    if (pool.getUseMock && pool.getUseMock()) {
+      initializeMockDb();
+      const docs = pool.mockDb?.visitor_documents || [];
       const total = docs.length;
       const verified = docs.filter(d => d.status === 'Verified' || d.verification_status === 'Verified').length;
       const pending = docs.filter(d => d.status === 'Pending Review' || d.verification_status === 'Pending Review').length;
@@ -138,7 +137,6 @@ class VisitorDocumentRepository {
       const expired = docs.filter(d => d.status === 'Expired' || (d.expiry_date && new Date(d.expiry_date) < new Date())).length;
       const archived = docs.filter(d => d.is_archived || d.status === 'Archived').length;
 
-      // Expiring soon (within 30 days)
       const now = new Date();
       const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
       const expiringSoonList = docs.filter(d => {
@@ -150,98 +148,137 @@ class VisitorDocumentRepository {
       const storageBytes = docs.reduce((acc, d) => acc + (d.file_size_bytes || 1024 * 1024), 0);
 
       return {
-        total_documents: total || 1248,
-        verified_count: verified || 892,
-        pending_count: pending || 156,
-        rejected_count: rejected || 42,
-        expired_count: expired || 73,
-        archived_count: archived || 85,
-        expiring_soon_count: expiringSoonList.length || 67,
-        storage_used_bytes: storageBytes || 68.4 * 1024 * 1024 * 1024,
-        storage_total_bytes: 200 * 1024 * 1024 * 1024,
-        categories_breakdown: [
-          { category_name: 'Passport', percentage: 35, count: 436 },
-          { category_name: 'National ID', percentage: 20, count: 249 },
-          { category_name: 'Driving License', percentage: 15, count: 187 },
-          { category_name: 'Employee ID', percentage: 10, count: 125 },
-          { category_name: 'Visa', percentage: 8, count: 100 },
-          { category_name: 'Others', percentage: 12, count: 151 }
-        ],
-        verification_status_breakdown: [
-          { status: 'Verified', percentage: 72, count: 892 },
-          { status: 'Pending Review', percentage: 13, count: 156 },
-          { status: 'Rejected', percentage: 3, count: 42 },
-          { status: 'Expired', percentage: 6, count: 73 },
-          { status: 'Archived', percentage: 6, count: 85 }
-        ],
-        upload_trend: Array.from({ length: 15 }, (_, i) => ({
-          date: `May ${i * 2 + 1}`,
-          uploads: Math.floor(20 + Math.random() * 60)
-        })),
-        expiring_soon_list: expiringSoonList.length ? expiringSoonList : [
-          { visitor_name: 'Sarah Johnson', document_name: 'Passport', days_left: 5, expiry_date: '2026-08-02' },
-          { visitor_name: 'James Anderson', document_name: 'Visa', days_left: 12, expiry_date: '2026-08-09' },
-          { visitor_name: 'Emily Williams', document_name: 'ID Card', days_left: 18, expiry_date: '2026-08-15' }
-        ]
-      };
-    }
-
-    try {
-      const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM visitor_documents WHERE (is_deleted = FALSE OR is_deleted IS NULL)`);
-      const [[{ verified }]] = await pool.query(`SELECT COUNT(*) as verified FROM visitor_documents WHERE (verification_status = 'Verified' OR status = 'Verified') AND (is_deleted = FALSE OR is_deleted IS NULL)`);
-      const [[{ pending }]] = await pool.query(`SELECT COUNT(*) as pending FROM visitor_documents WHERE (verification_status = 'Pending Review' OR status = 'Pending Review' OR status = 'Uploaded') AND (is_deleted = FALSE OR is_deleted IS NULL)`);
-      const [[{ rejected }]] = await pool.query(`SELECT COUNT(*) as rejected FROM visitor_documents WHERE (verification_status = 'Rejected' OR status = 'Rejected') AND (is_deleted = FALSE OR is_deleted IS NULL)`);
-      const [[{ expired }]] = await pool.query(`SELECT COUNT(*) as expired FROM visitor_documents WHERE (status = 'Expired' OR expiry_date < CURRENT_DATE()) AND (is_deleted = FALSE OR is_deleted IS NULL)`);
-      const [[{ archived }]] = await pool.query(`SELECT COUNT(*) as archived FROM visitor_documents WHERE is_archived = TRUE AND (is_deleted = FALSE OR is_deleted IS NULL)`);
-      const [[{ expiringSoon }]] = await pool.query(`SELECT COUNT(*) as expiringSoon FROM visitor_documents WHERE expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY) AND (is_deleted = FALSE OR is_deleted IS NULL)`);
-      const [[{ storageUsed }]] = await pool.query(`SELECT COALESCE(SUM(file_size_bytes), 0) as storageUsed FROM visitor_documents WHERE (is_deleted = FALSE OR is_deleted IS NULL)`);
-
-      const [expiringList] = await pool.query(`
-        SELECT d.id, d.document_code, d.document_name, d.visitor_name, d.expiry_date,
-               DATEDIFF(d.expiry_date, CURRENT_DATE()) as days_left
-        FROM visitor_documents d
-        WHERE d.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY)
-          AND (d.is_deleted = FALSE OR d.is_deleted IS NULL)
-        ORDER BY d.expiry_date ASC
-        LIMIT 5
-      `);
-
-      return {
         total_documents: total || 0,
         verified_count: verified || 0,
         pending_count: pending || 0,
         rejected_count: rejected || 0,
         expired_count: expired || 0,
         archived_count: archived || 0,
-        expiring_soon_count: expiringSoon || 0,
-        storage_used_bytes: parseInt(storageUsed) || 0,
+        expiring_soon_count: expiringSoonList.length || 0,
+        storage_used_bytes: storageBytes || 0,
         storage_total_bytes: 200 * 1024 * 1024 * 1024,
         categories_breakdown: [
-          { category_name: 'Passport', percentage: 35, count: 436 },
-          { category_name: 'National ID', percentage: 20, count: 249 },
-          { category_name: 'Driving License', percentage: 15, count: 187 },
-          { category_name: 'Employee ID', percentage: 10, count: 125 },
-          { category_name: 'Visa', percentage: 8, count: 100 },
-          { category_name: 'Others', percentage: 12, count: 151 }
+          { category_name: 'National ID', percentage: 60, count: Math.ceil(total * 0.6) },
+          { category_name: 'Passport', percentage: 25, count: Math.ceil(total * 0.25) },
+          { category_name: 'Selfie / Verification', percentage: 15, count: Math.floor(total * 0.15) }
         ],
         verification_status_breakdown: [
-          { status: 'Verified', percentage: 72, count: verified || 892 },
-          { status: 'Pending Review', percentage: 13, count: pending || 156 },
-          { status: 'Rejected', percentage: 3, count: rejected || 42 },
-          { status: 'Expired', percentage: 6, count: expired || 73 },
-          { status: 'Archived', percentage: 6, count: archived || 85 }
+          { status: 'Verified', percentage: total > 0 ? Math.round((verified / total) * 100) : 0, count: verified },
+          { status: 'Pending Review', percentage: total > 0 ? Math.round((pending / total) * 100) : 0, count: pending },
+          { status: 'Rejected', percentage: total > 0 ? Math.round((rejected / total) * 100) : 0, count: rejected },
+          { status: 'Expired', percentage: total > 0 ? Math.round((expired / total) * 100) : 0, count: expired },
+          { status: 'Archived', percentage: total > 0 ? Math.round((archived / total) * 100) : 0, count: archived }
         ],
         upload_trend: Array.from({ length: 15 }, (_, i) => ({
-          date: `Jul ${i * 2 + 1}`,
-          uploads: Math.floor(15 + Math.random() * 40)
+          date: `Day ${i + 1}`,
+          uploads: Math.floor(total > 0 ? total : 5)
+        })),
+        expiring_soon_list: expiringSoonList
+      };
+    }
+
+    try {
+      const countTotal = await pool.query(`SELECT COUNT(*) as total FROM visitor_documents WHERE (is_deleted = FALSE OR is_deleted IS NULL)`);
+      const total = Number(countTotal?.[0]?.total || 0);
+
+      const countVerified = await pool.query(`SELECT COUNT(*) as verified FROM visitor_documents WHERE (UPPER(verification_status) = 'VERIFIED' OR UPPER(status) = 'VERIFIED') AND (is_deleted = FALSE OR is_deleted IS NULL)`);
+      const verified = Number(countVerified?.[0]?.verified || 0);
+
+      const countPending = await pool.query(`SELECT COUNT(*) as pending FROM visitor_documents WHERE (UPPER(verification_status) LIKE '%PENDING%' OR UPPER(status) LIKE '%PENDING%' OR UPPER(status) = 'UPLOADED') AND (is_deleted = FALSE OR is_deleted IS NULL)`);
+      const pending = Number(countPending?.[0]?.pending || 0);
+
+      const countRejected = await pool.query(`SELECT COUNT(*) as rejected FROM visitor_documents WHERE (UPPER(verification_status) = 'REJECTED' OR UPPER(status) = 'REJECTED') AND (is_deleted = FALSE OR is_deleted IS NULL)`);
+      const rejected = Number(countRejected?.[0]?.rejected || 0);
+
+      const countExpired = await pool.query(`SELECT COUNT(*) as expired FROM visitor_documents WHERE (UPPER(status) = 'EXPIRED' OR (expiry_date IS NOT NULL AND expiry_date < CURRENT_DATE())) AND (is_deleted = FALSE OR is_deleted IS NULL)`);
+      const expired = Number(countExpired?.[0]?.expired || 0);
+
+      const countArchived = await pool.query(`SELECT COUNT(*) as archived FROM visitor_documents WHERE (is_archived = TRUE OR UPPER(status) = 'ARCHIVED') AND (is_deleted = FALSE OR is_deleted IS NULL)`);
+      const archived = Number(countArchived?.[0]?.archived || 0);
+
+      const countExpSoon = await pool.query(`SELECT COUNT(*) as expiringSoon FROM visitor_documents WHERE expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY) AND (is_deleted = FALSE OR is_deleted IS NULL)`);
+      const expiringSoon = Number(countExpSoon?.[0]?.expiringSoon || 0);
+
+      const sumStorage = await pool.query(`SELECT COALESCE(SUM(file_size_bytes), 0) as storageUsed FROM visitor_documents WHERE (is_deleted = FALSE OR is_deleted IS NULL)`);
+      const storageUsed = parseInt(sumStorage?.[0]?.storageUsed || 0);
+
+      const expiringRows = await pool.query(`
+        SELECT d.id, 
+               COALESCE(d.document_code, CONCAT('DOC-2026-', LPAD(d.id, 5, '0'))) as document_code, 
+               COALESCE(d.document_name, d.document_type, 'Visitor Document') as document_name, 
+               COALESCE(NULLIF(TRIM(d.visitor_name), ''), CONCAT(v.first_name, ' ', v.last_name), 'Unknown Visitor') as visitor_name, 
+               d.expiry_date,
+               DATEDIFF(d.expiry_date, CURRENT_DATE()) as days_left
+        FROM visitor_documents d
+        LEFT JOIN visitors v ON d.visitor_id = v.id
+        WHERE d.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY)
+          AND (d.is_deleted = FALSE OR d.is_deleted IS NULL)
+        ORDER BY d.expiry_date ASC
+        LIMIT 5
+      `);
+      const expiringList = Array.isArray(expiringRows) ? expiringRows : [];
+
+      // Dynamic category breakdown from database
+      const catRows = await pool.query(`
+        SELECT COALESCE(d.category_name, d.document_type, 'Other') as cat_name, COUNT(*) as cnt
+        FROM visitor_documents d
+        WHERE (d.is_deleted = FALSE OR d.is_deleted IS NULL)
+        GROUP BY COALESCE(d.category_name, d.document_type, 'Other')
+      `);
+      const rawCatList = Array.isArray(catRows) ? catRows : [];
+      const categories_breakdown = rawCatList.length > 0
+        ? rawCatList.map(r => ({
+            category_name: r.cat_name,
+            count: Number(r.cnt),
+            percentage: total > 0 ? Math.round((Number(r.cnt) / total) * 100) : 0
+          }))
+        : [
+            { category_name: 'National ID', percentage: 70, count: total },
+            { category_name: 'Passport', percentage: 20, count: 0 },
+            { category_name: 'Other', percentage: 10, count: 0 }
+          ];
+
+      return {
+        total_documents: total,
+        verified_count: verified,
+        pending_count: pending,
+        rejected_count: rejected,
+        expired_count: expired,
+        archived_count: archived,
+        expiring_soon_count: expiringSoon,
+        storage_used_bytes: storageUsed,
+        storage_total_bytes: 200 * 1024 * 1024 * 1024,
+        categories_breakdown,
+        verification_status_breakdown: [
+          { status: 'Verified', percentage: total > 0 ? Math.round((verified / total) * 100) : 0, count: verified },
+          { status: 'Pending Review', percentage: total > 0 ? Math.round((pending / total) * 100) : 0, count: pending },
+          { status: 'Rejected', percentage: total > 0 ? Math.round((rejected / total) * 100) : 0, count: rejected },
+          { status: 'Expired', percentage: total > 0 ? Math.round((expired / total) * 100) : 0, count: expired },
+          { status: 'Archived', percentage: total > 0 ? Math.round((archived / total) * 100) : 0, count: archived }
+        ],
+        upload_trend: Array.from({ length: 7 }, (_, i) => ({
+          date: `Day ${i + 1}`,
+          uploads: total > 0 ? Math.max(1, Math.ceil(total / 7)) : 0
         })),
         expiring_soon_list: expiringList
       };
     } catch (e) {
-      console.warn('Dashboard query fallback:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.getDashboardStats();
+      console.error('getDashboardStats MySQL query error:', e.message);
+      return {
+        total_documents: 0,
+        verified_count: 0,
+        pending_count: 0,
+        rejected_count: 0,
+        expired_count: 0,
+        archived_count: 0,
+        expiring_soon_count: 0,
+        storage_used_bytes: 0,
+        storage_total_bytes: 200 * 1024 * 1024 * 1024,
+        categories_breakdown: [],
+        verification_status_breakdown: [],
+        upload_trend: [],
+        expiring_soon_list: []
+      };
     }
   }
 
@@ -265,9 +302,9 @@ class VisitorDocumentRepository {
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    if (pool.useMock) {
+    if (pool.getUseMock && pool.getUseMock()) {
       initializeMockDb();
-      let list = [...(pool.mockDb.visitor_documents || [])];
+      let list = [...(pool.mockDb?.visitor_documents || [])];
 
       if (includeDeleted !== 'true') {
         list = list.filter(d => !d.is_deleted);
@@ -321,22 +358,22 @@ class VisitorDocumentRepository {
       }
 
       if (isArchived === 'true') {
-        conditions.push('(d.is_archived = TRUE OR d.status = "Archived")');
+        conditions.push('(d.is_archived = TRUE OR UPPER(d.status) = "ARCHIVED")');
       } else if (isArchived === 'false') {
-        conditions.push('(d.is_archived = FALSE OR d.is_archived IS NULL) AND d.status != "Archived"');
+        conditions.push('(d.is_archived = FALSE OR d.is_archived IS NULL) AND UPPER(COALESCE(d.status, "")) != "ARCHIVED"');
       }
 
       if (search) {
         conditions.push(
-          `(d.document_name LIKE ? OR d.document_number LIKE ? OR d.visitor_name LIKE ? OR d.visitor_code LIKE ? OR d.document_code LIKE ? OR d.ref_number LIKE ?)`
+          `(d.document_name LIKE ? OR d.document_number LIKE ? OR d.document_type LIKE ? OR d.visitor_name LIKE ? OR d.visitor_code LIKE ? OR d.document_code LIKE ? OR d.ref_number LIKE ? OR v.first_name LIKE ? OR v.last_name LIKE ? OR v.visitor_code LIKE ?)`
         );
         const s = `%${search}%`;
-        params.push(s, s, s, s, s, s);
+        params.push(s, s, s, s, s, s, s, s, s, s);
       }
 
       if (category) {
-        conditions.push('(d.category_name = ? OR d.category_id = ?)');
-        params.push(category, category);
+        conditions.push('(d.category_name = ? OR d.document_type = ? OR d.category_id = ?)');
+        params.push(category, category, category);
       }
 
       if (status) {
@@ -345,13 +382,13 @@ class VisitorDocumentRepository {
       }
 
       if (verification) {
-        conditions.push('d.verification_status = ?');
-        params.push(verification);
+        conditions.push('(d.verification_status = ? OR d.status = ?)');
+        params.push(verification, verification);
       }
 
       if (visitorId) {
-        conditions.push('(d.visitor_id = ? OR d.visitor_code = ?)');
-        params.push(visitorId, visitorId);
+        conditions.push('(d.visitor_id = ? OR d.visitor_code = ? OR v.visitor_code = ?)');
+        params.push(visitorId, visitorId, visitorId);
       }
 
       if (startDate) {
@@ -370,44 +407,79 @@ class VisitorDocumentRepository {
       const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'd.created_at';
       const safeSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-      const countQuery = `SELECT COUNT(*) as total FROM visitor_documents d ${whereClause}`;
-      const dataQuery = `
-        SELECT d.*, c.category_code
+      const countQuery = `
+        SELECT COUNT(*) as total 
         FROM visitor_documents d
+        LEFT JOIN visitors v ON d.visitor_id = v.id
+        LEFT JOIN document_categories c ON d.category_id = c.id
+        ${whereClause}
+      `;
+      const dataQuery = `
+        SELECT 
+          d.*,
+          COALESCE(d.document_code, CONCAT('DOC-2026-', LPAD(d.id, 5, '0'))) AS document_code,
+          COALESCE(d.ref_number, CONCAT('REF-', d.id, 'X-2026')) AS ref_number,
+          COALESCE(NULLIF(TRIM(d.visitor_name), ''), CONCAT(v.first_name, ' ', v.last_name), 'Unknown Visitor') AS visitor_name,
+          COALESCE(NULLIF(TRIM(d.visitor_code), ''), v.visitor_code, CONCAT('VIS-', d.visitor_id)) AS visitor_code,
+          COALESCE(d.category_name, d.document_type, 'National ID') AS category_name,
+          COALESCE(d.file_type, d.mime_type, 'image/jpeg') AS file_type,
+          COALESCE(d.document_name, d.document_type, d.original_file_name, 'Visitor Document') AS document_name,
+          COALESCE(d.document_url, d.file_path, d.file_url) AS document_url,
+          COALESCE(d.file_path, d.document_url, d.file_url) AS file_path,
+          v.email AS visitor_email,
+          v.phone AS visitor_phone,
+          c.category_code
+        FROM visitor_documents d
+        LEFT JOIN visitors v ON d.visitor_id = v.id
         LEFT JOIN document_categories c ON d.category_id = c.id
         ${whereClause}
         ORDER BY ${safeSortBy} ${safeSortOrder}
         LIMIT ? OFFSET ?
       `;
 
-      const [[{ total }]] = await pool.query(countQuery, params);
-      const [rows] = await pool.query(dataQuery, [...params, parseInt(limit), parseInt(offset)]);
+      const countRows = await pool.query(countQuery, params);
+      const total = Number(countRows?.[0]?.total || 0);
+
+      const rawRows = await pool.query(dataQuery, [...params, parseInt(limit), parseInt(offset)]);
+      const rows = Array.isArray(rawRows) ? rawRows : (rawRows ? [rawRows] : []);
 
       return { documents: rows, total, page: parseInt(page), limit: parseInt(limit) };
     } catch (e) {
-      console.warn('findAll MySQL query error:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.findAll(queryParams);
+      console.error('findAll MySQL query error:', e.message);
+      return { documents: [], total: 0, page: parseInt(page), limit: parseInt(limit) };
     }
   }
 
   // ─── 3. Find Document By ID ───
   async findById(id) {
-    if (pool.useMock && pool.mockDb) {
-      const doc = (pool.mockDb.visitor_documents || []).find(d => String(d.id) === String(id) || d.document_code === id);
+    if (pool.getUseMock && pool.getUseMock()) {
+      const doc = (pool.mockDb?.visitor_documents || []).find(d => String(d.id) === String(id) || d.document_code === id);
       if (!doc) return null;
-      const history = (pool.mockDb.document_version_history || []).filter(v => String(v.document_id) === String(doc.id));
-      const audit = (pool.mockDb.visitor_document_audit_logs || []).filter(a => String(a.document_id) === String(doc.id));
-      const verifications = (pool.mockDb.visitor_document_verifications || []).filter(v => String(v.document_id) === String(doc.id));
-      const approvals = (pool.mockDb.visitor_document_approvals || []).filter(a => String(a.document_id) === String(doc.id));
+      const history = (pool.mockDb?.document_version_history || []).filter(v => String(v.document_id) === String(doc.id));
+      const audit = (pool.mockDb?.visitor_document_audit_logs || []).filter(a => String(a.document_id) === String(doc.id));
+      const verifications = (pool.mockDb?.visitor_document_verifications || []).filter(v => String(v.document_id) === String(doc.id));
+      const approvals = (pool.mockDb?.visitor_document_approvals || []).filter(a => String(a.document_id) === String(doc.id));
       return { ...doc, versions: history, audit_logs: audit, verifications, approvals };
     }
 
     try {
       const query = `
-        SELECT d.*, c.category_code
+        SELECT 
+          d.*,
+          COALESCE(d.document_code, CONCAT('DOC-2026-', LPAD(d.id, 5, '0'))) AS document_code,
+          COALESCE(d.ref_number, CONCAT('REF-', d.id, 'X-2026')) AS ref_number,
+          COALESCE(NULLIF(TRIM(d.visitor_name), ''), CONCAT(v.first_name, ' ', v.last_name), 'Unknown Visitor') AS visitor_name,
+          COALESCE(NULLIF(TRIM(d.visitor_code), ''), v.visitor_code, CONCAT('VIS-', d.visitor_id)) AS visitor_code,
+          COALESCE(d.category_name, d.document_type, 'National ID') AS category_name,
+          COALESCE(d.file_type, d.mime_type, 'image/jpeg') AS file_type,
+          COALESCE(d.document_name, d.document_type, d.original_file_name, 'Visitor Document') AS document_name,
+          COALESCE(d.document_url, d.file_path, d.file_url) AS document_url,
+          COALESCE(d.file_path, d.document_url, d.file_url) AS file_path,
+          v.email AS visitor_email,
+          v.phone AS visitor_phone,
+          c.category_code
         FROM visitor_documents d
+        LEFT JOIN visitors v ON d.visitor_id = v.id
         LEFT JOIN document_categories c ON d.category_id = c.id
         WHERE d.id = ? OR d.document_code = ?
       `;
@@ -442,24 +514,22 @@ class VisitorDocumentRepository {
         approvals: Array.isArray(approvals) ? approvals : []
       };
     } catch (e) {
-      console.warn('findById error:', e.message);
-      if (pool.mockDb) {
-        const mockDoc = (pool.mockDb.visitor_documents || []).find(d => String(d.id) === String(id) || d.document_code === id);
-        return mockDoc || null;
-      }
+      console.error('findById error:', e.message);
       return null;
     }
   }
 
   // ─── 4. Create Document ───
   async create(docData) {
-    const checksum = docData.checksum_sha256 || crypto.createHash('sha256').update(docData.document_name + Date.now()).digest('hex');
+    const checksum = docData.checksum_sha256 || crypto.createHash('sha256').update((docData.document_name || 'doc') + Date.now()).digest('hex');
     const refNum = docData.ref_number || `REF-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const buildMockDoc = (id) => {
-      const docCode = `DOC-2026-${String(id).padStart(5, '0')}`;
-      return {
-        id, document_code: docCode, ref_number: refNum,
+    if (pool.getUseMock && pool.getUseMock()) {
+      initializeMockDb();
+      const newId = (pool.mockDb?.visitor_documents || []).length + 1;
+      const docCode = `DOC-2026-${String(newId).padStart(5, '0')}`;
+      const newDoc = {
+        id: newId, document_code: docCode, ref_number: refNum,
         visitor_id: docData.visitor_id || null,
         visitor_code: docData.visitor_code || null,
         visitor_name: docData.visitor_name || 'Visitor',
@@ -491,42 +561,14 @@ class VisitorDocumentRepository {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-    };
-
-    if (pool.useMock && pool.mockDb) {
-      const newId = (pool.mockDb.visitor_documents || []).length + 1;
-      const newDoc = buildMockDoc(newId);
       if (!pool.mockDb.visitor_documents) pool.mockDb.visitor_documents = [];
-      if (!pool.mockDb.document_version_history) pool.mockDb.document_version_history = [];
-      if (!pool.mockDb.visitor_document_audit_logs) pool.mockDb.visitor_document_audit_logs = [];
-
       pool.mockDb.visitor_documents.unshift(newDoc);
-      pool.mockDb.document_version_history.unshift({
-        id: pool.mockDb.document_version_history.length + 1,
-        document_id: newId, version_number: 1,
-        file_path: docData.file_path, original_file_name: docData.original_file_name,
-        file_type: docData.file_type, file_size_bytes: docData.file_size_bytes || 0,
-        checksum_sha256: checksum,
-        changes_description: 'Initial document upload',
-        uploaded_by: docData.uploaded_by || null,
-        uploaded_by_name: docData.uploaded_by_name || 'Reception Officer',
-        created_at: new Date().toISOString()
-      });
-
-      pool.mockDb.visitor_document_audit_logs.unshift({
-        id: pool.mockDb.visitor_document_audit_logs.length + 1,
-        document_id: newId, action: 'UPLOAD',
-        performed_by: docData.uploaded_by || 1,
-        performed_by_name: docData.uploaded_by_name || 'Reception Officer',
-        role: 'Receptionist', created_at: new Date().toISOString()
-      });
-
       return newDoc;
     }
 
     try {
       const countResult = await pool.query('SELECT COUNT(*) as cnt FROM visitor_documents');
-      const cnt = countResult[0][0].cnt;
+      const cnt = Number(countResult?.[0]?.cnt || 0);
       const docCode = `DOC-2026-${String(cnt + 1).padStart(5, '0')}`;
 
       const query = `
@@ -540,7 +582,7 @@ class VisitorDocumentRepository {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
       `;
 
-      const [result] = await pool.query(query, [
+      const result = await pool.query(query, [
         docCode, refNum,
         docData.visitor_id || null, docData.visitor_code || null,
         docData.visitor_name || 'Visitor', docData.appointment_id || null,
@@ -557,7 +599,7 @@ class VisitorDocumentRepository {
         docData.uploaded_by || null, docData.uploaded_by_name || 'Reception Officer'
       ]);
 
-      const newId = result.insertId;
+      const newId = result?.insertId;
 
       try {
         await pool.query(
@@ -575,17 +617,15 @@ class VisitorDocumentRepository {
 
       return this.findById(newId);
     } catch (e) {
-      console.warn('Create MySQL error, using mock:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.create(docData);
+      console.error('Create MySQL error:', e.message);
+      throw e;
     }
   }
 
   // ─── 5. Update Metadata ───
   async update(id, docData) {
-    if (pool.useMock && pool.mockDb) {
-      const idx = (pool.mockDb.visitor_documents || []).findIndex(d => String(d.id) === String(id));
+    if (pool.getUseMock && pool.getUseMock()) {
+      const idx = (pool.mockDb?.visitor_documents || []).findIndex(d => String(d.id) === String(id));
       if (idx === -1) return null;
       pool.mockDb.visitor_documents[idx] = {
         ...pool.mockDb.visitor_documents[idx],
@@ -620,10 +660,8 @@ class VisitorDocumentRepository {
       await pool.query(query, params);
       return this.findById(id);
     } catch (e) {
-      console.warn('Update MySQL error:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.update(id, docData);
+      console.error('Update MySQL error:', e.message);
+      throw e;
     }
   }
 
@@ -633,9 +671,9 @@ class VisitorDocumentRepository {
     if (!doc) return null;
 
     const nextVersion = (doc.version_number || 1) + 1;
-    const checksum = fileData.checksum_sha256 || crypto.createHash('sha256').update(fileData.original_file_name + Date.now()).digest('hex');
+    const checksum = fileData.checksum_sha256 || crypto.createHash('sha256').update((fileData.original_file_name || 'doc') + Date.now()).digest('hex');
 
-    if (pool.useMock && pool.mockDb) {
+    if (pool.getUseMock && pool.getUseMock()) {
       const idx = pool.mockDb.visitor_documents.findIndex(d => String(d.id) === String(id));
       if (idx !== -1) {
         pool.mockDb.visitor_documents[idx] = {
@@ -650,22 +688,6 @@ class VisitorDocumentRepository {
           updated_at: new Date().toISOString()
         };
       }
-
-      pool.mockDb.document_version_history.unshift({
-        id: (pool.mockDb.document_version_history || []).length + 1,
-        document_id: doc.id,
-        version_number: nextVersion,
-        file_path: fileData.file_path,
-        original_file_name: fileData.original_file_name,
-        file_type: fileData.file_type,
-        file_size_bytes: fileData.file_size_bytes || 0,
-        checksum_sha256: checksum,
-        changes_description: fileData.changes_description || `Replaced document file with version v${nextVersion}`,
-        uploaded_by: fileData.uploaded_by || null,
-        uploaded_by_name: fileData.uploaded_by_name || 'Reception Officer',
-        created_at: new Date().toISOString()
-      });
-
       return this.findById(id);
     }
 
@@ -700,10 +722,8 @@ class VisitorDocumentRepository {
 
       return this.findById(id);
     } catch (e) {
-      console.warn('Replace file MySQL error:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.replaceFile(id, fileData);
+      console.error('Replace file MySQL error:', e.message);
+      throw e;
     }
   }
 
@@ -715,23 +735,7 @@ class VisitorDocumentRepository {
     const status = verData.verification_decision || verData.status || 'VERIFIED';
     const mappedStatus = status === 'VERIFIED' ? 'Verified' : status === 'REJECTED' ? 'Rejected' : 'Pending Review';
 
-    if (pool.useMock && pool.mockDb) {
-      if (!pool.mockDb.visitor_document_verifications) pool.mockDb.visitor_document_verifications = [];
-      const newV = {
-        id: pool.mockDb.visitor_document_verifications.length + 1,
-        document_id: doc.id,
-        visitor_id: doc.visitor_id,
-        verification_status: status,
-        verification_method: verData.method || 'MANUAL',
-        checklist_json: verData.checklist || {},
-        remarks: verData.remarks || '',
-        verified_by: user ? user.id : 1,
-        verified_by_name: user ? (user.full_name || user.username) : 'Security Officer',
-        verified_at: new Date().toISOString()
-      };
-      pool.mockDb.visitor_document_verifications.unshift(newV);
-
-      // Update doc status
+    if (pool.getUseMock && pool.getUseMock()) {
       const idx = pool.mockDb.visitor_documents.findIndex(d => String(d.id) === String(id));
       if (idx !== -1) {
         pool.mockDb.visitor_documents[idx].status = mappedStatus;
@@ -758,10 +762,8 @@ class VisitorDocumentRepository {
 
       return this.findById(id);
     } catch (e) {
-      console.warn('Record verification MySQL error:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.recordVerification(id, verData, user);
+      console.error('Record verification MySQL error:', e.message);
+      throw e;
     }
   }
 
@@ -773,19 +775,7 @@ class VisitorDocumentRepository {
     const approvalStatus = appData.decision === 'APPROVE' ? 'Approved' : 'Rejected';
     const docStatus = appData.decision === 'APPROVE' ? 'Verified' : 'Rejected';
 
-    if (pool.useMock && pool.mockDb) {
-      if (!pool.mockDb.visitor_document_approvals) pool.mockDb.visitor_document_approvals = [];
-      pool.mockDb.visitor_document_approvals.unshift({
-        id: pool.mockDb.visitor_document_approvals.length + 1,
-        document_id: doc.id,
-        stage: appData.stage || 'Final Review',
-        status: appData.decision || 'APPROVED',
-        reviewer_id: user ? user.id : 1,
-        reviewer_name: user ? (user.full_name || user.username) : 'Manager',
-        comments: appData.comments || '',
-        created_at: new Date().toISOString()
-      });
-
+    if (pool.getUseMock && pool.getUseMock()) {
       const idx = pool.mockDb.visitor_documents.findIndex(d => String(d.id) === String(id));
       if (idx !== -1) {
         pool.mockDb.visitor_documents[idx].approval_status = approvalStatus;
@@ -807,17 +797,15 @@ class VisitorDocumentRepository {
 
       return this.findById(id);
     } catch (e) {
-      console.warn('Record approval MySQL error:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.recordApproval(id, appData, user);
+      console.error('Record approval MySQL error:', e.message);
+      throw e;
     }
   }
 
   // ─── 9. Soft Delete ───
   async softDelete(id, userId) {
-    if (pool.useMock && pool.mockDb) {
-      const idx = pool.mockDb.visitor_documents.findIndex(d => String(d.id) === String(id));
+    if (pool.getUseMock && pool.getUseMock()) {
+      const idx = (pool.mockDb?.visitor_documents || []).findIndex(d => String(d.id) === String(id));
       if (idx !== -1) {
         pool.mockDb.visitor_documents[idx].is_deleted = true;
         pool.mockDb.visitor_documents[idx].deleted_at = new Date().toISOString();
@@ -829,19 +817,37 @@ class VisitorDocumentRepository {
 
     try {
       const query = `UPDATE visitor_documents SET is_deleted = TRUE, deleted_at = CURRENT_TIMESTAMP, deleted_by = ? WHERE id = ?`;
-      const [res] = await pool.query(query, [userId || null, id]);
-      return res.affectedRows > 0;
+      const res = await pool.query(query, [userId || null, id]);
+      return (res && res.affectedRows > 0) || false;
     } catch (e) {
-      console.warn('Soft delete error:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.softDelete(id, userId);
+      console.error('Soft delete error:', e.message);
+      return false;
+    }
+  }
+
+  // ─── Hard Delete (Permanent) ───
+  async hardDelete(id) {
+    if (pool.getUseMock && pool.getUseMock()) {
+      const idx = (pool.mockDb?.visitor_documents || []).findIndex(d => String(d.id) === String(id));
+      if (idx !== -1) {
+        pool.mockDb.visitor_documents.splice(idx, 1);
+        return true;
+      }
+      return false;
+    }
+
+    try {
+      const res = await pool.query(`DELETE FROM visitor_documents WHERE id = ?`, [id]);
+      return (res && res.affectedRows > 0) || false;
+    } catch (e) {
+      console.error('Hard delete error:', e.message);
+      return false;
     }
   }
 
   // ─── 10. Archive / Restore ───
   async archive(id) {
-    if (pool.useMock && pool.mockDb) {
+    if (pool.getUseMock && pool.getUseMock()) {
       const idx = pool.mockDb.visitor_documents.findIndex(d => String(d.id) === String(id));
       if (idx !== -1) {
         pool.mockDb.visitor_documents[idx].is_archived = true;
@@ -855,15 +861,13 @@ class VisitorDocumentRepository {
       await pool.query(`UPDATE visitor_documents SET is_archived = TRUE, status = 'Archived', updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [id]);
       return this.findById(id);
     } catch (e) {
-      console.warn('Archive error:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.archive(id);
+      console.error('Archive error:', e.message);
+      throw e;
     }
   }
 
   async restore(id) {
-    if (pool.useMock && pool.mockDb) {
+    if (pool.getUseMock && pool.getUseMock()) {
       const idx = pool.mockDb.visitor_documents.findIndex(d => String(d.id) === String(id));
       if (idx !== -1) {
         pool.mockDb.visitor_documents[idx].is_archived = false;
@@ -878,10 +882,8 @@ class VisitorDocumentRepository {
       await pool.query(`UPDATE visitor_documents SET is_archived = FALSE, is_deleted = FALSE, status = 'Verified', updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [id]);
       return this.findById(id);
     } catch (e) {
-      console.warn('Restore error:', e.message);
-      pool.useMock = true;
-      initializeMockDb();
-      return this.restore(id);
+      console.error('Restore error:', e.message);
+      throw e;
     }
   }
 
@@ -906,8 +908,8 @@ class VisitorDocumentRepository {
 
   // ─── 12. Categories Management ───
   async getCategories() {
-    if (pool.useMock && pool.mockDb) {
-      return pool.mockDb.document_categories || [
+    if (pool.getUseMock && pool.getUseMock()) {
+      return pool.mockDb?.document_categories || [
         { id: 1, category_code: 'PASSPORT', category_name: 'Passport', description: 'International passport document', is_active: true },
         { id: 2, category_code: 'NATIONAL_ID', category_name: 'National ID', description: 'National identification card', is_active: true },
         { id: 3, category_code: 'DRIVING_LICENSE', category_name: 'Driving License', description: 'Driver license document', is_active: true },
@@ -925,16 +927,21 @@ class VisitorDocumentRepository {
       const rows = await pool.query(`SELECT * FROM document_categories WHERE is_active = TRUE ORDER BY category_name ASC`);
       return Array.isArray(rows) ? rows : (rows ? [rows] : []);
     } catch (e) {
-      console.warn('getCategories MySQL error:', e.message);
-      return this.getCategories();
+      console.warn('getCategories MySQL notice:', e.message);
+      return [
+        { id: 1, category_code: 'NATIONAL_ID', category_name: 'National ID', description: 'National identification card', is_active: true },
+        { id: 2, category_code: 'PASSPORT', category_name: 'Passport', description: 'International passport document', is_active: true },
+        { id: 3, category_code: 'DRIVING_LICENSE', category_name: 'Driving License', description: 'Driver license document', is_active: true },
+        { id: 4, category_code: 'OTHER', category_name: 'Other', description: 'Other documents', is_active: true }
+      ];
     }
   }
 
   async createCategory(catData) {
     const code = catData.category_code || (catData.category_name ? catData.category_name.toUpperCase().replace(/\s+/g, '_') : 'GENERAL');
 
-    if (pool.useMock && pool.mockDb) {
-      const newId = (pool.mockDb.document_categories || []).length + 1;
+    if (pool.getUseMock && pool.getUseMock()) {
+      const newId = (pool.mockDb?.document_categories || []).length + 1;
       const cat = {
         id: newId, category_code: code,
         category_name: catData.category_name || 'General Documents',
@@ -955,15 +962,8 @@ class VisitorDocumentRepository {
       const rows = await pool.query(`SELECT * FROM document_categories WHERE id = ?`, [insertId]);
       return Array.isArray(rows) ? rows[0] : (rows || { id: insertId, category_code: code, category_name: catData.category_name });
     } catch (e) {
-      console.warn('createCategory MySQL error:', e.message);
-      const newId = (pool.mockDb?.document_categories || []).length + 1;
-      return {
-        id: newId,
-        category_code: code,
-        category_name: catData.category_name || 'General Documents',
-        description: catData.description || '',
-        is_active: true
-      };
+      console.error('createCategory MySQL error:', e.message);
+      throw e;
     }
   }
 
@@ -981,7 +981,7 @@ class VisitorDocumentRepository {
 
   // ─── 14. Audit Log Helper ───
   async logAudit(documentId, action, user, details = {}) {
-    if (pool.useMock && pool.mockDb) {
+    if (pool.getUseMock && pool.getUseMock()) {
       if (!pool.mockDb.visitor_document_audit_logs) pool.mockDb.visitor_document_audit_logs = [];
       pool.mockDb.visitor_document_audit_logs.unshift({
         id: pool.mockDb.visitor_document_audit_logs.length + 1,

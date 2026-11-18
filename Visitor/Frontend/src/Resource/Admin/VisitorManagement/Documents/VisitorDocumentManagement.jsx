@@ -32,7 +32,7 @@ const getDocVersions = (doc) => {
         original_file_name: doc.original_file_name || doc.file_name || doc.document_name || 'Initial Document',
         file_path: v1Url || doc.file_path || '/uploads/initial.pdf',
         file_url: v1Url,
-        file_type: doc.file_type || 'image/jpeg',
+        file_type: doc.file_type || doc.mime_type || (v1Url.startsWith('data:image') ? 'image/jpeg' : 'application/pdf'),
         file_size_bytes: doc.file_size_bytes || 1024000,
         changes_description: 'Initial Upload (v1)',
         created_at: doc.created_at || '2025-05-20T10:00:00Z'
@@ -217,6 +217,10 @@ function VisitorDocumentManagementInner() {
     const [showReplaceModal, setShowReplaceModal] = useState(false);
     const [showVerificationModal, setShowVerificationModal] = useState(false);
     const [showVersionsModal, setShowVersionsModal] = useState(false);
+    const [showDeleteDocModal, setShowDeleteDocModal] = useState(false);
+    const [documentToDelete, setDocumentToDelete] = useState(null);
+    const [isDeletingDoc, setIsDeletingDoc] = useState(false);
+    const [deleteDocFeedback, setDeleteDocFeedback] = useState(null);
     // ─── Document Category Management State ───
     const [categoryItems, setCategoryItems] = useState([
         { id: 1, name: 'Passport', desc: 'International passport document', isDefault: true, status: 'Active' },
@@ -354,6 +358,37 @@ function VisitorDocumentManagementInner() {
     });
     const [verDecision, setVerDecision] = useState('VERIFIED');
     const [verRemarks, setVerRemarks] = useState('Document is genuine and all details are consistent.');
+
+    // ─── Delete Visitor Document Handlers ───
+    const handleDeleteDocumentClick = (doc) => {
+        setDocumentToDelete(doc);
+        setShowDeleteDocModal(true);
+    };
+
+    const handleConfirmDeleteDocument = async (permanent = false) => {
+        if (!documentToDelete) return;
+        setIsDeletingDoc(true);
+        try {
+            await visitorDocumentApi.deleteDocument(documentToDelete.id);
+            setDeleteDocFeedback({
+                type: 'success',
+                message: `Document "${documentToDelete.document_name || documentToDelete.document_code}" deleted successfully.`
+            });
+            setShowDeleteDocModal(false);
+            setDocumentToDelete(null);
+            await loadDashboardData();
+        } catch (err) {
+            console.error('Failed to delete document:', err);
+            setDeleteDocFeedback({
+                type: 'danger',
+                message: err.response?.data?.message || 'Failed to delete document. Please try again.'
+            });
+        } finally {
+            setIsDeletingDoc(false);
+            setTimeout(() => setDeleteDocFeedback(null), 5000);
+        }
+    };
+
     // ─── Fetch Data ───
     const loadDashboardData = async () => {
         setLoading(true);
@@ -893,6 +928,19 @@ function VisitorDocumentManagementInner() {
             </div>
           </div>
 
+          {/* FEEDBACK NOTIFICATION BANNER */}
+          {deleteDocFeedback && (
+            <div className={`p-3 rounded-xl mb-4 flex items-center justify-between text-xs font-semibold ${deleteDocFeedback.type === 'success' ? 'bg-emerald-950/70 border border-emerald-500/40 text-emerald-300' : 'bg-rose-950/70 border border-rose-500/40 text-rose-300'}`}>
+              <div className="flex items-center gap-2">
+                {deleteDocFeedback.type === 'success' ? <Check className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-rose-400" />}
+                <span>{deleteDocFeedback.message}</span>
+              </div>
+              <button onClick={() => setDeleteDocFeedback(null)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* DOCUMENT DATA TABLE (matches Organization Directory) */}
           <div className="bg-[#0b1220] border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
             {loading ? (<div className="p-20 text-center">
@@ -986,6 +1034,9 @@ function VisitorDocumentManagementInner() {
                               </button>
                               <button onClick={() => { setActiveDocument(doc); setShowVersionsModal(true); }} className="btn btn-sm btn-outline-secondary p-1.5" title="Version Control">
                                 <History className="h-4 w-4"/>
+                              </button>
+                              <button onClick={() => handleDeleteDocumentClick(doc)} className="btn btn-sm btn-outline-danger p-1.5 border-rose-500/30 hover:bg-rose-500/20 text-rose-400" title="Delete Document">
+                                <Trash2 className="h-4 w-4 text-rose-500"/>
                               </button>
                             </div>
                           </td>
@@ -1345,9 +1396,9 @@ function VisitorDocumentManagementInner() {
                 const docUrl = getOrGenerateVersionPdfUrl(activeDocument, selectedViewerVersion);
                 const activeVersList = getDocVersions(activeDocument);
                 const matchingVer = activeVersList.find(v => v.version_number === selectedViewerVersion);
-                const fileTypeLower = (matchingVer?.file_type || activeDocument.file_type || '').toLowerCase();
+                const fileTypeLower = (matchingVer?.file_type || activeDocument.file_type || activeDocument.mime_type || '').toLowerCase();
                 const fileNameLower = (matchingVer?.file_name || matchingVer?.original_file_name || activeDocument.file_name || activeDocument.original_file_name || activeDocument.document_name || '').toLowerCase();
-                const isImg = fileTypeLower.includes('image') || fileTypeLower.includes('png') || fileTypeLower.includes('jpg') || fileTypeLower.includes('jpeg') || fileNameLower.match(/\.(png|jpe?g|webp|gif|svg)$/i);
+                const isImg = fileTypeLower.includes('image') || fileTypeLower.includes('png') || fileTypeLower.includes('jpg') || fileTypeLower.includes('jpeg') || fileNameLower.match(/\.(png|jpe?g|webp|gif|svg)$/i) || (docUrl && (docUrl.startsWith('data:image/') || docUrl.includes('.jpg') || docUrl.includes('.jpeg') || docUrl.includes('.png')));
                 if (isImg && docUrl) {
                     return (<div className="w-full h-full flex items-center justify-center overflow-auto transition-transform duration-200" style={{ transform: `scale(${viewerZoom / 100}) rotate(${viewerRotation}deg)`, transformOrigin: 'center center' }}>
                         <img src={docUrl} alt={activeDocument.document_name} className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"/>
@@ -1975,6 +2026,90 @@ function VisitorDocumentManagementInner() {
             </div>
           </div>
         </div>)}
+
+      {/* ─── MODAL 11: DELETE VISITOR DOCUMENT CONFIRMATION ─── */}
+      {showDeleteDocModal && documentToDelete && ReactDOM.createPortal(
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[999999] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#1e293b] border border-rose-500/40 rounded-2xl w-full max-w-lg mx-auto overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 text-xs">
+            <div className="p-4 border-b border-slate-700/30 bg-rose-950/30 flex items-center justify-between">
+              <h3 className="text-base font-bold text-rose-400 flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-400" />
+                Delete Visitor Document
+              </h3>
+              <button
+                type="button"
+                onClick={() => { setShowDeleteDocModal(false); setDocumentToDelete(null); }}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-slate-300 text-sm">
+                Are you sure you want to delete this document from permanent database records?
+              </p>
+              
+              <div className="bg-[#0f1729] border border-slate-700/50 rounded-xl p-3 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Document Code:</span>
+                  <span className="font-mono font-bold text-blue-400">{documentToDelete.document_code || `DOC-${documentToDelete.id}`}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Document Name:</span>
+                  <span className="font-semibold text-white truncate max-w-[250px]">{documentToDelete.document_name}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Visitor:</span>
+                  <span className="font-semibold text-emerald-400">{documentToDelete.visitor_name} ({documentToDelete.visitor_code || `VIS-${documentToDelete.visitor_id}`})</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Category:</span>
+                  <span className="text-slate-300">{documentToDelete.category_name || documentToDelete.document_type || 'National ID'}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Status:</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400">{documentToDelete.status || 'Uploaded'}</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-xs flex items-center gap-2">
+                <Info className="w-4 h-4 shrink-0 text-amber-400" />
+                <span>This document will be deleted from active visitor records and updated permanently in the database.</span>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-700/30">
+                <button
+                  type="button"
+                  disabled={isDeletingDoc}
+                  onClick={() => { setShowDeleteDocModal(false); setDocumentToDelete(null); }}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingDoc}
+                  onClick={() => handleConfirmDeleteDocument(false)}
+                  className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-lg shadow-rose-600/20 cursor-pointer flex items-center gap-2"
+                >
+                  {isDeletingDoc ? (
+                    <>
+                      <div className="spinner-border spinner-border-sm text-white" role="status" style={{ width: '1rem', height: '1rem' }} />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Confirm Delete</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>);
 }
 export default function VisitorDocumentManagement() {

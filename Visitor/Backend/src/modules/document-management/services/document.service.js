@@ -314,10 +314,16 @@ class VisitorDocumentService {
     return restored;
   }
 
-  // ─── 14. Soft Delete ───
-  async deleteDocument(id, userId, currentUser) {
-    const deleted = await repository.softDelete(id, userId);
-    await repository.logAudit(id, 'SOFT_DELETE', currentUser || { id: userId });
+  // ─── 14. Delete Document (Soft Delete or Permanent) ───
+  async deleteDocument(id, userId, currentUser, permanent = false) {
+    let deleted = false;
+    if (permanent) {
+      deleted = await repository.hardDelete(id);
+      await repository.logAudit(id, 'PERMANENT_DELETE', currentUser || { id: userId });
+    } else {
+      deleted = await repository.softDelete(id, userId);
+      await repository.logAudit(id, 'SOFT_DELETE', currentUser || { id: userId });
+    }
     return deleted;
   }
 

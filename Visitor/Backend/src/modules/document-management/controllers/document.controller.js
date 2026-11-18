@@ -225,8 +225,9 @@ class VisitorDocumentController {
   async deleteDocument(req, res, next) {
     try {
       const userId = req.user ? req.user.id : null;
-      await service.deleteDocument(req.params.id, userId, req.user);
-      res.json({ success: true, message: 'Document deleted successfully (Soft Delete)' });
+      const permanent = req.query.permanent === 'true';
+      await service.deleteDocument(req.params.id, userId, req.user, permanent);
+      res.json({ success: true, message: permanent ? 'Document permanently deleted' : 'Document deleted successfully' });
     } catch (err) {
       next(err);
     }
