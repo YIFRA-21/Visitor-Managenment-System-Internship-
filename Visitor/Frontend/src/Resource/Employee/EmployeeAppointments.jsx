@@ -63,6 +63,12 @@ export default function EmployeeAppointments({ autoOpenCreate = false }) {
     const [sortOrder, setSortOrder] = useState('DESC');
     // Modals
     const [showNewModal, setShowNewModal] = useState(Boolean(autoOpenCreate));
+
+    useEffect(() => {
+        if (autoOpenCreate) {
+            setShowNewModal(true);
+        }
+    }, [autoOpenCreate]);
     const [selectedApt, setSelectedApt] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [rescheduleApt, setRescheduleApt] = useState(null);
