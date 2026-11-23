@@ -16,7 +16,7 @@ const DEFAULT_ORGANIZATION = {
     woreda: '03',
     postalCode: '1000',
     logoUrl: '/logo.png',
-    faviconUrl: '',
+    faviconUrl: '/favicon.ico',
     primaryColor: '#2563eb',
     secondaryColor: '#1e40af',
 };
@@ -34,7 +34,8 @@ export const OrganizationProvider = ({ children }) => {
                     parsed.name.toLowerCase().includes('corporate') ||
                     parsed.name.toLowerCase() === 'corporate hq' ||
                     (parsed.email && parsed.email.toLowerCase().includes('enterprisevms')) ||
-                    (parsed.website && parsed.website.toLowerCase().includes('enterprisevms'))
+                    (parsed.website && parsed.website.toLowerCase().includes('enterprisevms')) ||
+                    !parsed.faviconUrl
                 ) {
                     parsed.name = 'IT park';
                     parsed.shortName = 'IT park';
@@ -42,6 +43,8 @@ export const OrganizationProvider = ({ children }) => {
                     parsed.email = 'info@ethiopianitpark.et';
                     parsed.phone = '+251 921109998';
                     parsed.website = 'https://ethiopianitpark.et';
+                    parsed.logoUrl = '/logo.png';
+                    parsed.faviconUrl = '/favicon.ico';
                     localStorage.setItem(CACHE_KEY, JSON.stringify(parsed));
                 }
                 return { ...DEFAULT_ORGANIZATION, ...parsed };
@@ -138,20 +141,24 @@ export const OrganizationProvider = ({ children }) => {
 
     // Dynamically update browser tab favicon and document title
     useEffect(() => {
-        const iconUrl = organization.faviconUrl || organization.logoUrl || '/logo.png';
+        const iconUrl = organization.faviconUrl || '/favicon.ico';
         if (iconUrl) {
-            let link = document.querySelector("link[rel*='icon']");
-            if (!link) {
-                link = document.createElement('link');
+            const links = document.querySelectorAll("link[rel*='icon']");
+            if (links.length > 0) {
+                links.forEach((l) => {
+                    l.href = `${iconUrl}?v=3`;
+                });
+            } else {
+                const link = document.createElement('link');
                 link.rel = 'icon';
+                link.href = `${iconUrl}?v=3`;
                 document.head.appendChild(link);
             }
-            link.href = iconUrl;
-            link.type = iconUrl.endsWith('.png') ? 'image/png' : (iconUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/x-icon');
         }
-        if (organization.name) {
-            document.title = `${organization.name} - Visitor Management System`;
-        }
+        const siteTitle = (organization.name && !organization.name.toLowerCase().includes('enterprise vms'))
+            ? organization.name
+            : 'IT park';
+        document.title = `${siteTitle} - Visitor Management System`;
     }, [organization.faviconUrl, organization.logoUrl, organization.name]);
     const updateLocalOrganization = useCallback((data) => {
         setOrganization((prev) => {
