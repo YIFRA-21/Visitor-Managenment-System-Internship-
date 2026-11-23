@@ -96,7 +96,7 @@ class UserRepository {
     if (!cleanId) return null;
 
     const candidateCodes = this.getCandidateCodes(cleanId);
-    const empIdMatch = cleanId.match(/^(?:EMP|MGR|SEC|REC|VIS|USR)-?(?:202\d-)?0*(\d+)$/i);
+    const empIdMatch = cleanId.match(/^(?:EMP|MGR|SEC|REC|VIS|USR|ADM)-?(?:202\d-)?0*(\d+)$/i);
     const parsedEmpId = empIdMatch ? parseInt(empIdMatch[1], 10) : null;
 
     // 1. Search users table (joining with employees, visitors, manager_profiles tables for multi-field identifier matching)
@@ -107,6 +107,7 @@ class UserRepository {
        LEFT JOIN manager_profiles m ON u.id = m.user_id
        WHERE (LOWER(u.email) = LOWER(?) 
           OR LOWER(u.username) = LOWER(?) 
+          OR LOWER(u.user_code) = LOWER(?)
           OR LOWER(u.user_code) IN (?)
           OR LOWER(e.employee_number) IN (?)
           OR LOWER(e.employee_code) IN (?)
@@ -122,6 +123,7 @@ class UserRepository {
          u.id DESC
        LIMIT 1`,
       [
+        cleanId,
         cleanId,
         cleanId,
         candidateCodes,

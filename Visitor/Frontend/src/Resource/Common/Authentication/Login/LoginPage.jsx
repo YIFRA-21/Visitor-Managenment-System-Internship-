@@ -20,6 +20,9 @@ export default function LoginPage() {
     const [rememberMe, setRememberMe] = useState(false);
     const location = useLocation();
     const isRedirectedBlocked = location.search.includes('blocked=true');
+    const [errorTitle, setErrorTitle] = useState(() => (
+        isRedirectedBlocked ? 'Account Status Notice' : 'Authentication Notice'
+    ));
     const [error, setError] = useState(() => (
         isRedirectedBlocked ? 'This user is blocked. Please call the administrator.' : ''
     ));
@@ -136,26 +139,39 @@ export default function LoginPage() {
                                          rawMsg.toLowerCase().includes('denied')
                                      ));
 
+                let calculatedTitle = 'Authentication Notice';
                 let errorMsg = '';
                 if (isBlockedErr) {
+                    calculatedTitle = 'Account Status Notice';
                     errorMsg = 'This user is blocked. Please call the administrator.';
                 } else if (err.response?.status === 403) {
+                    calculatedTitle = 'Access Restricted';
                     errorMsg = rawMsg || 'Access Denied: Account is restricted. Please contact administrator.';
                 } else if (err.response?.status === 429 || err.response?.data?.code === 'RATE_LIMIT_EXCEEDED') {
+                    calculatedTitle = 'Rate Limit Notice';
                     errorMsg = t('login.rateLimited') || 'Too many attempts. Please wait a moment.';
                 } else if (err.response?.status === 401) {
+                    calculatedTitle = 'Authentication Notice';
                     errorMsg = rawMsg || t('login.invalidCredentials') || 'Invalid credentials. Please verify your User ID/Email and password.';
                 } else if (err.response?.status === 404) {
+                    calculatedTitle = 'Service Notice';
                     errorMsg = 'Authentication service is reaching the server. Please check your credentials or retry.';
                 } else if (err.code === 'ERR_NETWORK' || !err.response) {
+                    calculatedTitle = 'Service Status Notice';
                     errorMsg = 'Server is currently waking up or unavailable. Please try again shortly.';
+                } else if (/something went wrong on our end|quota|restricted/i.test(rawMsg)) {
+                    calculatedTitle = 'Service Status Notice';
+                    errorMsg = 'The database service is currently reconnecting or undergoing maintenance. Please retry in a moment.';
                 } else if (rawMsg) {
+                    calculatedTitle = 'Authentication Notice';
                     errorMsg = rawMsg;
                 } else {
+                    calculatedTitle = 'Authentication Notice';
                     errorMsg = t('login.invalidCredentials') || 'Invalid credentials. Please check your User ID/Email and password.';
                 }
 
                 const finalError = typeof errorMsg === 'string' ? errorMsg : 'Invalid credentials. Please check your user ID and password.';
+                setErrorTitle(calculatedTitle);
                 setError(finalError);
                 notify.error(finalError);
                 setBackendErrors(err);
@@ -434,7 +450,7 @@ export default function LoginPage() {
                       <AlertTriangle className="w-4 h-4"/>
                     </div>
                     <div className="flex-1">
-                      <div className="text-[11px] font-black uppercase tracking-wider text-rose-400 mb-0.5">Account Status Notice</div>
+                      <div className="text-[11px] font-black uppercase tracking-wider text-rose-400 mb-0.5">{errorTitle || 'Authentication Notice'}</div>
                       <span className="text-white text-xs leading-relaxed font-semibold">{String(error)}</span>
                     </div>
                   </motion.div>)}
