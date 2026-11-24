@@ -15,7 +15,7 @@ const DEFAULT_ORGANIZATION = {
     subCity: 'Bole',
     woreda: '03',
     postalCode: '1000',
-    logoUrl: '/logo.png',
+    logoUrl: '/image20.png',
     faviconUrl: '/favicon.ico',
     primaryColor: '#2563eb',
     secondaryColor: '#1e40af',
@@ -43,7 +43,7 @@ export const OrganizationProvider = ({ children }) => {
                     parsed.email = 'info@ethiopianitpark.et';
                     parsed.phone = '+251 921109998';
                     parsed.website = 'https://ethiopianitpark.et';
-                    parsed.logoUrl = '/logo.png';
+                    parsed.logoUrl = '/image20.png';
                     parsed.faviconUrl = '/favicon.ico';
                     localStorage.setItem(CACHE_KEY, JSON.stringify(parsed));
                 }
@@ -87,8 +87,8 @@ export const OrganizationProvider = ({ children }) => {
                             subCity: org.sub_city || org.subCity || '',
                             woreda: org.woreda || '',
                             postalCode: org.postal_code || org.postalCode || '',
-                            logoUrl: org.logo_url || org.logoUrl || '/logo.png',
-                            faviconUrl: org.favicon_url || org.faviconUrl || '',
+                            logoUrl: org.logo_url || org.logoUrl || '/image20.png',
+                            faviconUrl: org.favicon_url || org.faviconUrl || '/favicon.ico',
                             primaryColor: org.primary_color || org.primaryColor || '#2563eb',
                             secondaryColor: org.secondary_color || org.secondaryColor || '#1e40af',
                         };
@@ -172,7 +172,7 @@ export const OrganizationProvider = ({ children }) => {
             return updated;
         });
     }, []);
-    const logoUrl = organization.logoUrl || '/logo.png';
+    const logoUrl = organization.logoUrl || '/image20.png';
     const orgName = (organization.name && !organization.name.toLowerCase().includes('enterprise vms') && !organization.name.toLowerCase().includes('corporate'))
         ? organization.name
         : 'IT park';

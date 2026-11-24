@@ -753,7 +753,7 @@ const PASSWORD_HASH = bcrypt.hashSync('Password123!', 10);
 // In-memory mock database seeded with default seed data
 const mockDb = {
   organizations: [
-    { id: 1, organization_id: 1, name: 'IT park', short_name: 'IT park', code: 'ITP01', registration_number: '45678', tax_number: '1098765456789', website: 'https://ethiopianitpark.et', email: 'info@ethiopianitpark.et', phone: '+251 921109998', address: 'Bole, Addis Ababa, Ethiopia', country: 'Ethiopia', region: 'Addis Ababa', city: 'Addis Ababa', status: 'ACTIVE', created_by: 1, created_at: '2026-07-19T00:00:00Z' }
+    { id: 1, organization_id: 1, name: 'IT park', short_name: 'IT park', code: 'ITP01', registration_number: '45678', tax_number: '1098765456789', website: 'https://ethiopianitpark.et', email: 'info@ethiopianitpark.et', phone: '+251 921109998', address: 'Bole, Addis Ababa, Ethiopia', country: 'Ethiopia', region: 'Addis Ababa', city: 'Addis Ababa', status: 'ACTIVE', created_by: 1, created_at: '2026-07-19T00:00:00Z', logo_url: '/image20.png', favicon_url: '/favicon.ico' }
   ],
   organization_branches: [
     { id: 1, branch_id: 1, organization_id: 1, branch_name: 'HQ Silicon Valley Campus', branch_code: 'HQ-SV', branch_type: 'OFFICE', country: 'United States', city: 'San Jose', timezone: 'America/Los_Angeles', address: '100 Innovation Way', status: 'ACTIVE', created_by: 1, created_at: '2026-07-27T10:00:00Z' },
@@ -797,7 +797,10 @@ const mockDb = {
     { id: 14, user_id: 14, user_code: 'EMP000008', username: 'employee', full_name: 'Employee Demo', email: 'employee@visitor.com', phone: '+1-555-0112', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 2, job_title: 'Host Employee', availability_json: '{"mon":["09:00","17:00"],"tue":["09:00","17:00"],"wed":["09:00","17:00"],"thu":["09:00","17:00"],"fri":["09:00","17:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
     { id: 15, user_id: 15, user_code: 'MGR000002', username: 'manager', full_name: 'Manager Demo', email: 'manager@visitor.com', phone: '+1-555-0113', password_hash: PASSWORD_HASH, role: 'manager', role_id: 6, department_id: 3, job_title: 'General Manager', availability_json: '{"mon":["08:30","17:30"],"tue":["08:30","17:30"],"wed":["08:30","17:30"],"thu":["08:30","17:30"],"fri":["08:30","16:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
     { id: 16, user_id: 16, user_code: 'REC000002', username: 'receptionist', full_name: 'Receptionist Demo', email: 'receptionist@visitor.com', phone: '+1-555-0114', password_hash: PASSWORD_HASH, role: 'receptionist', role_id: 3, department_id: 1, job_title: 'Front Desk Staff', availability_json: '{"mon":["07:00","19:00"],"tue":["07:00","19:00"],"wed":["07:00","19:00"],"thu":["07:00","19:00"],"fri":["07:00","19:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 17, user_id: 17, user_code: 'SEC000002', username: 'security', full_name: 'Security Demo', email: 'security@visitor.com', phone: '+1-555-0115', password_hash: PASSWORD_HASH, role: 'security_officer', role_id: 4, department_id: 6, job_title: 'Security Guard', availability_json: '{"mon":["06:00","22:00"],"tue":["06:00","22:00"],"wed":["06:00","22:00"],"thu":["06:00","22:00"],"fri":["06:00","22:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false }
+    { id: 17, user_id: 17, user_code: 'SEC000002', username: 'security', full_name: 'Security Demo', email: 'security@visitor.com', phone: '+1-555-0115', password_hash: PASSWORD_HASH, role: 'security_officer', role_id: 4, department_id: 6, job_title: 'Security Guard', availability_json: '{"mon":["06:00","22:00"],"tue":["06:00","22:00"],"wed":["06:00","22:00"],"thu":["06:00","22:00"],"fri":["06:00","22:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
+    { id: 18, user_id: 18, user_code: 'VIS-2026-00009', username: 'belayyifra', full_name: 'Belay Ayele Yifra', email: 'belayyifra1@gmail.com', phone: '+251 921109968', password_hash: PASSWORD_HASH, role: 'visitor', role_id: 5, department_id: null, job_title: 'Guest Visitor', availability_json: null, status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
+    { id: 19, user_id: 19, user_code: 'EMP000009', username: 'behabitu', full_name: 'Behabitu Behailu Ayele', email: 'behabitu@visitor.com', phone: '+251 911002233', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 2, job_title: 'Technology Lead', availability_json: '{"mon":["09:00","17:00"],"tue":["09:00","17:00"],"wed":["09:00","17:00"],"thu":["09:00","17:00"],"fri":["09:00","17:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
+    { id: 20, user_id: 20, user_code: 'REC000003', username: 'sami.z', full_name: 'Sami Zeleke Ayele', email: 'sami.z@visitor.com', phone: '+251 922334455', password_hash: PASSWORD_HASH, role: 'receptionist', role_id: 3, department_id: 1, job_title: 'Reception Desk', availability_json: '{"mon":["07:00","19:00"],"tue":["07:00","19:00"],"wed":["07:00","19:00"],"thu":["07:00","19:00"],"fri":["07:00","19:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false }
   ],
   roles: [
     { id: 1, role_id: 1, role_name: 'Administrator', role_code: 'ADMIN', description: 'System Administrator', status: 'ACTIVE' },
@@ -1011,7 +1014,8 @@ const mockDb = {
   visitors: [
     { id: 1, user_id: 12, visitor_id: 'VISIT000001', visitor_code: 'VISIT000001', full_name: 'Yetmwerk Ayele Muluneh', first_name: 'Yetmwerk', last_name: 'Ayele Muluneh', email: 'yetmul8@gmail.com', phone: '+251911234567', company: 'IT park', id_type: 'Passport', id_number: 'EP987654', is_blacklisted: false, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' },
     { id: 2, user_id: null, full_name: 'Maria Garcia', email: 'maria.g@techstart.io', phone: '+1-555-1002', company: 'IT park', id_type: 'Driver License', id_number: 'DL987654', is_blacklisted: false, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' },
-    { id: 3, user_id: null, full_name: 'David Lee', email: 'david.lee@invest.com', phone: '+1-555-1003', company: 'IT park', id_type: 'National ID', id_number: 'NID456789', is_blacklisted: true, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' }
+    { id: 3, user_id: null, full_name: 'David Lee', email: 'david.lee@invest.com', phone: '+1-555-1003', company: 'IT park', id_type: 'National ID', id_number: 'NID456789', is_blacklisted: true, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' },
+    { id: 4, user_id: 18, visitor_id: 'VIS-2026-00009', visitor_code: 'VIS-2026-00009', full_name: 'Belay Ayele Yifra', first_name: 'Belay', last_name: 'Ayele Yifra', email: 'belayyifra1@gmail.com', phone: '+251 921109968', company: 'IT park (Main Branch)', id_type: 'National ID', id_number: 'NID-998252002', is_blacklisted: false, is_active: true, status: 'ACTIVE', registration_status: 'APPROVED' }
   ],
   blacklist: [
     { id: 1, visitor_id: 3, reason: 'Security violation', added_by: 1, expires_at: null }
@@ -1229,6 +1233,34 @@ const mockDb = {
       is_cancelled: true,
       is_completed: false,
       created_at: '2026-07-29T09:15:00Z'
+    },
+    {
+      id: 5,
+      appointment_id: 5,
+      appointment_number: 'APT-2026-00105',
+      organization_id: 1,
+      facility_id: 1,
+      visitor_id: 4,
+      host_id: 19,
+      department_id: 2,
+      appointment_type_id: 1,
+      visit_purpose_id: 1,
+      room_id: 1,
+      scheduled_start: '2026-11-15T08:30:00Z',
+      scheduled_end: '2026-11-15T17:30:00Z',
+      expected_duration_minutes: 540,
+      priority: 'HIGH',
+      approval_status: 'APPROVED',
+      appointment_status: 'CHECKED_IN',
+      status: 'checked_in',
+      remarks: 'Official Consultation Visit',
+      purpose: 'Technology Partnership Consultation',
+      reference_code: 'VMS-BYQU48MO',
+      qr_token: 'VMS-BYQU48MO',
+      cancellation_reason: null,
+      is_cancelled: false,
+      is_completed: false,
+      created_at: '2026-11-14T08:00:00Z'
     }
   ],
   appointment_approvals: [
@@ -1240,17 +1272,165 @@ const mockDb = {
   audit_logs: [],
   login_history: [],
   verification_attempts: [],
-  checkins: [],
-  visitor_checkins: [],
-  visitor_checkouts: [],
+  checkins: [
+    {
+      id: 1,
+      organization_id: 1,
+      visitor_id: 4,
+      appointment_id: 5,
+      pass_id: 1,
+      receptionist_id: 20,
+      badge_number: 'BDG-5351',
+      checked_in_at: '2026-11-15T08:30:00Z',
+      checked_out_at: null,
+      checked_in_by: 20,
+      gate_name: 'Gate 1 — Main Lobby Turnstile',
+      is_walk_in: 0,
+      notes: 'Registered and verified entry',
+      status: 'ACTIVE'
+    },
+    {
+      id: 2,
+      organization_id: 1,
+      visitor_id: 1,
+      appointment_id: 1,
+      pass_id: 2,
+      receptionist_id: 6,
+      badge_number: 'BDG-1001',
+      checked_in_at: '2026-11-14T09:15:00Z',
+      checked_out_at: '2026-11-14T11:45:00Z',
+      checked_in_by: 6,
+      gate_name: 'Gate 2 — West Turnstile',
+      is_walk_in: 0,
+      notes: 'Audit review completed',
+      status: 'COMPLETED'
+    }
+  ],
+  visitor_checkins: [
+    {
+      id: 1,
+      checkin_id: 1,
+      organization_id: 1,
+      visitor_id: 4,
+      appointment_id: 5,
+      building_id: 1,
+      floor_id: 1,
+      checkin_time: '2026-11-15T08:30:00Z',
+      expected_checkout_time: '2026-11-15T17:30:00Z',
+      status: 'ACTIVE'
+    },
+    {
+      id: 2,
+      checkin_id: 2,
+      organization_id: 1,
+      visitor_id: 1,
+      appointment_id: 1,
+      building_id: 1,
+      floor_id: 1,
+      checkin_time: '2026-11-14T09:15:00Z',
+      expected_checkout_time: '2026-11-14T11:45:00Z',
+      status: 'COMPLETED'
+    }
+  ],
+  visitor_checkouts: [
+    {
+      id: 1,
+      checkout_id: 1,
+      checkin_id: 2,
+      visitor_id: 1,
+      appointment_id: 1,
+      host_id: 2,
+      receptionist_id: 6,
+      checkout_time: '2026-11-14T11:45:00Z',
+      checkout_method: 'MANUAL',
+      checkout_status: 'COMPLETED',
+      total_visit_duration: 150,
+      remarks: 'Audit session concluded',
+      is_active: true
+    }
+  ],
   visitor_asset_returns: [],
   visitor_pass_returns: [],
   checkout_verifications: [],
   visit_durations: [],
   checkout_exceptions: [],
   checkout_feedbacks: [],
-  visitor_histories: [],
-  visitor_passes: [],
+  visitor_histories: [
+    {
+      id: 1,
+      visitor_id: 4,
+      appointment_id: 5,
+      visitor_name: 'Belay Ayele Yifra',
+      visitor_email: 'belayyifra1@gmail.com',
+      visitor_phone: '+251 921109968',
+      visitor_company: 'IT park (Main Branch)',
+      host_employee_name: 'Behabitu Behailu Ayele',
+      department_name: 'Technology',
+      reference_number: 'VMS-BYQU48MO',
+      history_code: 'HIST-2026-0001',
+      appointment_number: 'APT-2026-00105',
+      badge_number: 'BDG-5351',
+      pass_number: 'BDG-5351',
+      visit_purpose: 'Technology Partnership Consultation',
+      checkin_time: '2026-11-15T08:30:00Z',
+      checkout_time: null,
+      completed_date: '2026-11-15T17:30:00Z',
+      visit_duration_minutes: 540,
+      visit_status: 'Checked In',
+      verification_status: 'VERIFIED',
+      is_deleted: false,
+      created_at: '2026-11-15T08:30:00Z'
+    },
+    {
+      id: 2,
+      visitor_id: 1,
+      appointment_id: 1,
+      visitor_name: 'Yetmwerk Ayele Muluneh',
+      visitor_email: 'yetmul8@gmail.com',
+      visitor_phone: '+251911234567',
+      visitor_company: 'IT park',
+      host_employee_name: 'Sarah Johnson',
+      department_name: 'Sales & Marketing',
+      reference_number: 'REF-8145-2026',
+      history_code: 'HIST-2026-0002',
+      appointment_number: 'APT-2026-00101',
+      badge_number: 'BDG-1001',
+      pass_number: 'BDG-1001',
+      visit_purpose: 'Security Clearance & Onsite Audit',
+      checkin_time: '2026-11-14T09:15:00Z',
+      checkout_time: '2026-11-14T11:45:00Z',
+      completed_date: '2026-11-14T11:45:00Z',
+      visit_duration_minutes: 150,
+      visit_status: 'Completed',
+      verification_status: 'VERIFIED',
+      is_deleted: false,
+      created_at: '2026-11-14T09:15:00Z'
+    }
+  ],
+  visitor_passes: [
+    {
+      id: 1,
+      pass_code: 'BDG-5351',
+      pass_number: 'BDG-5351',
+      visitor_id: 4,
+      appointment_id: 5,
+      status: 'ACTIVE',
+      qr_token: 'VMS-BYQU48MO',
+      issue_time: '2026-11-15T08:30:00Z',
+      is_active: 1
+    },
+    {
+      id: 2,
+      pass_code: 'BDG-1001',
+      pass_number: 'BDG-1001',
+      visitor_id: 1,
+      appointment_id: 1,
+      status: 'EXPIRED',
+      qr_token: 'REF-8145-2026',
+      issue_time: '2026-11-14T09:15:00Z',
+      is_active: 0
+    }
+  ],
   document_categories: [
     { id: 1, category_code: 'NATIONAL_ID', category_name: 'National ID', description: 'Government issued national identity card', is_active: true },
     { id: 2, category_code: 'PASSPORT', category_name: 'Passport', description: 'International travel passport scan', is_active: true },
@@ -1993,6 +2173,10 @@ function handleMockQuery(sql, params) {
 
   // 14. SELECT FROM USERS
   if (normalizedSql.includes('from users')) {
+    if (normalizedSql.includes('select count(*)')) {
+      const count = mockDb.users.length;
+      return [{ count, total: count }];
+    }
     // generateUserCode: SELECT user_code FROM users WHERE user_code LIKE ?
     if (normalizedSql.includes('select user_code') && normalizedSql.includes('like')) {
       const prefix = (params && params[0] ? params[0] : '').replace('%', '');
@@ -2013,8 +2197,22 @@ function handleMockQuery(sql, params) {
       const deptId = params ? params[0] : null;
       return mockDb.users.filter(u => u.department_id === parseInt(deptId));
     }
-    if (normalizedSql.includes('email') || normalizedSql.includes('username') || normalizedSql.includes('user_code')) {
-      const identifier = params ? params[0] : null;
+    // Check specific user by ID: WHERE u.id = ? or WHERE id = ?
+    if (normalizedSql.includes('where') && (normalizedSql.includes('u.id =') || normalizedSql.includes('where id =') || normalizedSql.includes('and id ='))) {
+      const id = params ? params[0] : null;
+      const user = mockDb.users.find(u => u.id === parseInt(id));
+      return user ? [user] : [];
+    }
+    // Check specific user by identifier (login, findByIdentifier, findByEmail, findByUserCode, findByUsername)
+    if (normalizedSql.includes('where') && (
+      normalizedSql.includes('lower(u.email) =') ||
+      normalizedSql.includes('lower(email) =') ||
+      normalizedSql.includes('u.user_code =') ||
+      normalizedSql.includes('user_code =') ||
+      normalizedSql.includes('username =') ||
+      normalizedSql.includes('email =')
+    ) && params && params.length > 0) {
+      const identifier = params[0];
       if (identifier) {
         const lowerId = String(identifier).toLowerCase().trim();
         const prefixId = lowerId.includes('@') ? lowerId : `${lowerId}@`;
@@ -2028,18 +2226,28 @@ function handleMockQuery(sql, params) {
       }
       return [];
     }
-    if (normalizedSql.includes('id =')) {
-      const id = params ? params[0] : null;
-      const user = mockDb.users.find(u => u.id === parseInt(id));
-      return user ? [user] : [];
-    }
-    return mockDb.users;
+    // General user listing: return all mock users mapped with department and role info
+    return mockDb.users.map(u => {
+      const dept = (mockDb.departments || []).find(d => d.id === u.department_id) || {};
+      const branch = (mockDb.organization_branches || []).find(b => b.id === (u.branch_id || 1)) || {};
+      return {
+        ...u,
+        department_name: dept.name || 'Executive Office',
+        branch_name: branch.branch_name || 'HQ Silicon Valley Campus',
+        organization_name: 'IT park',
+        role_name: (u.role || 'staff').toUpperCase()
+      };
+    });
   }
 
   // 15. SELECT FROM VISITORS
   if (normalizedSql.includes('from visitors')) {
+    if (normalizedSql.includes('select count(*)')) {
+      const count = mockDb.visitors.length;
+      return [{ count, total: count }];
+    }
     // Handle WHERE user_id = ? (used by findByUserId)
-    if (normalizedSql.includes('user_id =')) {
+    if (normalizedSql.includes('where') && (normalizedSql.includes('user_id =') || normalizedSql.includes('v.user_id ='))) {
       const uid = params ? params[0] : null;
       const match = mockDb.visitors.filter(v => v.user_id == uid && v.is_active !== false);
       return match;
@@ -2053,7 +2261,7 @@ function handleMockQuery(sql, params) {
       }
       return [];
     }
-    if (normalizedSql.includes('where') && normalizedSql.includes('id =')) {
+    if (normalizedSql.includes('where') && (normalizedSql.includes('id =') || normalizedSql.includes('v.id ='))) {
       const vid = params ? params[0] : null;
       return mockDb.visitors.filter(v => v.id == vid && v.is_active !== false);
     }
@@ -2208,44 +2416,51 @@ function handleMockQuery(sql, params) {
       }
       return [];
     }
-    if (normalizedSql.includes('visitor_id =')) {
-      const visitorId = params ? params[0] : null;
+    if (normalizedSql.includes('where') && (
+      normalizedSql.includes('where visitor_id =') ||
+      normalizedSql.includes('where a.visitor_id =') ||
+      normalizedSql.includes('and visitor_id =') ||
+      normalizedSql.includes('and a.visitor_id =')
+    ) && params && params.length > 0) {
+      const visitorId = params[0];
       const vIdInt = parseInt(visitorId);
-      return mockDb.appointments.filter(a => a.visitor_id === vIdInt).map(appt => {
-        const visitor = mockDb.visitors.find(v => v.id === vIdInt || v.id == visitorId || v.user_id == visitorId) || {};
-        const matchedUser = mockDb.users.find(u => u.id === vIdInt || u.id == visitor.user_id) || {};
-        const host = mockDb.users.find(u => u.id === appt.host_id) || {};
-        const dept = mockDb.departments.find(d => d.id === appt.department_id) || {};
-        const room = mockDb.rooms.find(r => r.id === appt.room_id) || {};
-        const checkin = mockDb.checkins.find(c => c.appointment_id === appt.id) || {};
-        const fullName = visitor.full_name || matchedUser.full_name || matchedUser.username || 'Registered Visitor';
-        const email = visitor.email || matchedUser.email || '';
-        const phone = visitor.phone || matchedUser.phone || '';
-        return {
-          ...appt,
-          appointmentId: appt.id,
-          referenceCode: appt.reference_code,
-          scheduledStart: appt.scheduled_start,
-          scheduledEnd: appt.scheduled_end,
-          appointmentStatus: appt.appointment_status || appt.status,
-          visitor_name: fullName,
-          visitor_email: email,
-          visitor_phone: phone,
-          visitor_company: visitor.company || 'Enterprise Visitor',
-          visitor_category: visitor.category || 'General Visitor',
-          identity_type: visitor.id_type || 'Government ID',
-          identity_number: visitor.id_number || 'VERIFIED',
-          photo_url: visitor.photo_url || '',
-          hostName: host.full_name || 'Security Officer',
-          host_name: host.full_name || 'Security Officer',
-          departmentName: dept.name || 'Security Office',
-          department_name: dept.name || 'Security Office',
-          roomName: room.name || null,
-          entryTime: checkin.checked_in_at || null,
-          exitTime: checkin.checked_out_at || null,
-          durationMinutes: appt.expected_duration_minutes || 30
-        };
-      });
+      if (!isNaN(vIdInt)) {
+        return mockDb.appointments.filter(a => a.visitor_id === vIdInt).map(appt => {
+          const visitor = mockDb.visitors.find(v => v.id === vIdInt || v.id == visitorId || v.user_id == visitorId) || {};
+          const matchedUser = mockDb.users.find(u => u.id === vIdInt || u.id == visitor.user_id) || {};
+          const host = mockDb.users.find(u => u.id === appt.host_id) || {};
+          const dept = mockDb.departments.find(d => d.id === appt.department_id) || {};
+          const room = mockDb.rooms.find(r => r.id === appt.room_id) || {};
+          const checkin = mockDb.checkins.find(c => c.appointment_id === appt.id) || {};
+          const fullName = visitor.full_name || matchedUser.full_name || matchedUser.username || 'Registered Visitor';
+          const email = visitor.email || matchedUser.email || '';
+          const phone = visitor.phone || matchedUser.phone || '';
+          return {
+            ...appt,
+            appointmentId: appt.id,
+            referenceCode: appt.reference_code,
+            scheduledStart: appt.scheduled_start,
+            scheduledEnd: appt.scheduled_end,
+            appointmentStatus: appt.appointment_status || appt.status,
+            visitor_name: fullName,
+            visitor_email: email,
+            visitor_phone: phone,
+            visitor_company: visitor.company || 'Enterprise Visitor',
+            visitor_category: visitor.category || 'General Visitor',
+            identity_type: visitor.id_type || 'Government ID',
+            identity_number: visitor.id_number || 'VERIFIED',
+            photo_url: visitor.photo_url || '',
+            hostName: host.full_name || 'Security Officer',
+            host_name: host.full_name || 'Security Officer',
+            departmentName: dept.name || 'Security Office',
+            department_name: dept.name || 'Security Office',
+            roomName: room.name || null,
+            entryTime: checkin.checked_in_at || null,
+            exitTime: checkin.checked_out_at || null,
+            durationMinutes: appt.expected_duration_minutes || 30
+          };
+        });
+      }
     }
     // Return all appointments with visitor name, host name, department name, checkin details, etc.
     return mockDb.appointments.map(appt => {
@@ -2274,25 +2489,57 @@ function handleMockQuery(sql, params) {
 
   // 16b. SELECT FROM VISITOR_HISTORIES
   if (normalizedSql.includes('from visitor_histories')) {
-    let results = mockDb.visitor_histories || [];
-    if (normalizedSql.includes('visitor_id =') && params && params[0]) {
-      const vId = parseInt(params[0]);
-      results = results.filter(h => {
-        if (h.is_deleted) return false;
-        return h.visitor_id === vId || h.visitor_id === String(vId);
-      });
-      // Also try matching by visitor_email if second param provided
-      if (results.length === 0 && params[1]) {
-        const visitor = mockDb.visitors.find(v => v.id === parseInt(params[1]));
-        if (visitor && visitor.email) {
-          results = (mockDb.visitor_histories || []).filter(h => {
-            if (h.is_deleted) return false;
-            return h.visitor_email === visitor.email;
-          });
+    if (normalizedSql.includes('select count(*)')) {
+      const count = (mockDb.visitor_histories || []).length;
+      return [{ count, total: count, 'count(*)': count }];
+    }
+    let list = mockDb.visitor_histories || [];
+    if (params && params.length > 0) {
+      if (normalizedSql.includes('visitor_id = ?') || (normalizedSql.includes('where') && normalizedSql.includes('vh.visitor_id = ?'))) {
+        const vid = parseInt(params[0]);
+        if (!isNaN(vid)) {
+          list = list.filter(vh => vh.visitor_id === vid || vh.visitor_id === String(vid));
         }
       }
     }
-    return results;
+    return list.map(vh => ({
+      ...vh,
+      visitor_name: vh.visitor_name,
+      visitorName: vh.visitor_name,
+      visitor_email: vh.visitor_email,
+      visitor_phone: vh.visitor_phone,
+      visitor_company: vh.visitor_company,
+      visitor_photo: vh.photo_url || '/image20.png',
+      photo_url: vh.photo_url || '/image20.png',
+      profile_photo: vh.photo_url || '/image20.png',
+      reference_number: vh.reference_number,
+      history_code: vh.history_code,
+      historyCode: vh.history_code,
+      referenceNumber: vh.reference_number,
+      hostName: vh.host_employee_name,
+      host_employee_name: vh.host_employee_name,
+      departmentName: vh.department_name,
+      department_name: vh.department_name,
+      appointmentNumber: vh.appointment_number,
+      appointment_number: vh.appointment_number,
+      purpose: vh.visit_purpose,
+      visit_purpose: vh.visit_purpose,
+      entryTime: vh.checkin_time,
+      checkin_time: vh.checkin_time,
+      exitTime: vh.checkout_time,
+      checkout_time: vh.checkout_time,
+      durationMinutes: vh.visit_duration_minutes,
+      visit_duration_minutes: vh.visit_duration_minutes,
+      passNumber: vh.pass_number,
+      pass_number: vh.pass_number,
+      badge_number: vh.badge_number,
+      status: vh.visit_status,
+      visit_status: vh.visit_status,
+      verificationStatus: vh.verification_status,
+      verification_status: vh.verification_status,
+      completed_date: vh.completed_date,
+      scheduledStart: vh.completed_date
+    }));
   }
 
   // 17. INSERT INTO VISITOR_PASSES
@@ -2555,19 +2802,173 @@ function handleMockQuery(sql, params) {
   }
 
   // 28. SELECT FROM CHECKINS
-  if (normalizedSql.includes('from checkins') && !normalizedSql.includes('join')) {
-    if (normalizedSql.includes('appointment_id =')) {
-      const apptId = params ? params[0] : null;
-      const filtered = mockDb.checkins.filter(c => c.appointment_id === parseInt(apptId));
-      filtered.sort((a, b) => new Date(b.checked_in_at) - new Date(a.checked_in_at));
-      return filtered;
+  if (normalizedSql.includes('from checkins')) {
+    if (normalizedSql.includes('select count(*)')) {
+      const total = mockDb.checkins.length;
+      const active = mockDb.checkins.filter(c => !c.checked_out_at).length;
+      return [{ count: total, total, totalCheckins: total, activeCheckins: active }];
     }
-    return mockDb.checkins;
+
+    // findActiveCheckinByCode query:
+    if (normalizedSql.includes('where c.checked_out_at is null') && (
+      normalizedSql.includes('c.badge_number =') ||
+      normalizedSql.includes('vp.pass_code =') ||
+      normalizedSql.includes('vp.qr_token =') ||
+      normalizedSql.includes('a.reference_code =')
+    )) {
+      const searchCode = params && params[0] ? String(params[0]).replace(/[%#]/g, '').trim().toLowerCase() : '';
+      const matched = mockDb.checkins.filter(c => !c.checked_out_at).find(c => {
+        const appt = mockDb.appointments.find(a => a.id === c.appointment_id) || {};
+        const pass = (mockDb.visitor_passes || []).find(p => p.id === c.pass_id) || {};
+        const badge = String(c.badge_number || '').toLowerCase();
+        const pCode = String(pass.pass_code || '').toLowerCase();
+        const ref = String(appt.reference_code || '').toLowerCase();
+        return (searchCode && (badge === searchCode || pCode === searchCode || ref === searchCode || String(c.id) === searchCode)) || (!searchCode);
+      });
+      if (matched) {
+        const visitor = mockDb.visitors.find(v => v.id === matched.visitor_id) || {};
+        const appt = mockDb.appointments.find(a => a.id === matched.appointment_id) || {};
+        const host = mockDb.users.find(u => u.id === appt.host_id) || {};
+        return [{
+          checkinId: matched.id,
+          id: matched.id,
+          visitorId: matched.visitor_id,
+          visitor_id: matched.visitor_id,
+          appointmentId: matched.appointment_id,
+          appointment_id: matched.appointment_id,
+          passId: matched.pass_id,
+          pass_id: matched.pass_id,
+          checkedInAt: matched.checked_in_at,
+          checked_in_at: matched.checked_in_at,
+          badgeNumber: matched.badge_number,
+          badge_number: matched.badge_number,
+          visitorName: visitor.full_name || 'Belay Ayele Yifra',
+          visitor_name: visitor.full_name || 'Belay Ayele Yifra',
+          full_name: visitor.full_name || 'Belay Ayele Yifra',
+          visitorEmail: visitor.email || '',
+          visitor_email: visitor.email || '',
+          email: visitor.email || '',
+          visitorPhone: visitor.phone || '',
+          visitor_phone: visitor.phone || '',
+          phone: visitor.phone || '',
+          visitorCompany: visitor.company || 'IT park (Main Branch)',
+          visitor_company: visitor.company || 'IT park (Main Branch)',
+          company: visitor.company || 'IT park (Main Branch)',
+          photoUrl: visitor.photo_url || '/image20.png',
+          photo_url: visitor.photo_url || '/image20.png',
+          referenceCode: appt.reference_code || 'VMS-BYQU48MO',
+          reference_code: appt.reference_code || 'VMS-BYQU48MO',
+          appointmentNumber: appt.appointment_number || 'APT-2026-00105',
+          appointment_number: appt.appointment_number || 'APT-2026-00105',
+          hostId: host.id || 19,
+          host_id: host.id || 19,
+          hostName: host.full_name || 'Behabitu Behailu Ayele',
+          host_name: host.full_name || 'Behabitu Behailu Ayele',
+          status: matched.status || 'ACTIVE'
+        }];
+      }
+      return [];
+    }
+
+    if (normalizedSql.includes('where') && (
+      normalizedSql.includes('where appointment_id =') ||
+      normalizedSql.includes('where c.appointment_id =') ||
+      normalizedSql.includes('and appointment_id =') ||
+      normalizedSql.includes('and c.appointment_id =')
+    ) && !normalizedSql.includes('c.appointment_id = a.id') && !normalizedSql.includes('a.id = c.appointment_id')) {
+      const apptId = params ? parseInt(params[0]) : null;
+      if (!isNaN(apptId)) {
+        const filtered = mockDb.checkins.filter(c => c.appointment_id === apptId);
+        filtered.sort((a, b) => new Date(b.checked_in_at) - new Date(a.checked_in_at));
+        return filtered;
+      }
+    }
+
+    // Return all checkins enriched with visitor, appointment, host, department, and receptionist details
+    return mockDb.checkins.map(c => {
+      const visitor = mockDb.visitors.find(v => v.id === c.visitor_id) || {};
+      const appt = mockDb.appointments.find(a => a.id === c.appointment_id) || {};
+      const host = mockDb.users.find(u => u.id === (appt.host_id || 19)) || {};
+      const dept = mockDb.departments.find(d => d.id === (appt.department_id || 2)) || {};
+      const recep = mockDb.users.find(u => u.id === (c.receptionist_id || 20)) || {};
+      const dur = c.checked_in_at ? Math.max(1, Math.round((Date.now() - new Date(c.checked_in_at).getTime()) / 60000)) : 30;
+      return {
+        id: c.id,
+        checkinId: c.id,
+        checkedInAt: c.checked_in_at,
+        checked_in_at: c.checked_in_at,
+        checkedOutAt: c.checked_out_at,
+        checked_out_at: c.checked_out_at,
+        badgeNumber: c.badge_number,
+        badge_number: c.badge_number,
+        isWalkIn: c.is_walk_in || 0,
+        is_walk_in: c.is_walk_in || 0,
+        notes: c.notes,
+        durationMinutes: dur,
+        visitorId: c.visitor_id,
+        visitor_id: c.visitor_id,
+        visitorName: visitor.full_name || 'Visitor',
+        visitor_name: visitor.full_name || 'Visitor',
+        visitorEmail: visitor.email || '',
+        visitor_email: visitor.email || '',
+        visitorPhone: visitor.phone || '',
+        visitor_phone: visitor.phone || '',
+        visitorCompany: visitor.company || 'IT park',
+        photoUrl: visitor.photo_url || '',
+        appointmentId: c.appointment_id,
+        appointment_id: c.appointment_id,
+        referenceCode: appt.reference_code || 'VMS-BYQU48MO',
+        scheduledStart: appt.scheduled_start,
+        purpose: appt.purpose,
+        hostName: host.full_name || 'Behabitu Behailu Ayele',
+        host_name: host.full_name || 'Behabitu Behailu Ayele',
+        department: dept.name || 'Technology',
+        departmentName: dept.name || 'Technology',
+        receptionistName: recep.full_name || 'Sami Zeleke Ayele'
+      };
+    });
+  }
+
+  // 28b. SELECT FROM VISITOR_CHECKOUTS
+  if (normalizedSql.includes('from visitor_checkouts')) {
+    if (normalizedSql.includes('select count(*)')) {
+      const count = (mockDb.visitor_checkouts || []).length;
+      return [{ count, total: count, totalCheckouts: count }];
+    }
+    return (mockDb.visitor_checkouts || []).map(vc => {
+      const visitor = mockDb.visitors.find(v => v.id === vc.visitor_id) || {};
+      const appt = mockDb.appointments.find(a => a.id === vc.appointment_id) || {};
+      const host = mockDb.users.find(u => u.id === (vc.host_id || appt.host_id || 19)) || {};
+      const checkin = mockDb.checkins.find(c => c.id === vc.checkin_id) || {};
+      return {
+        id: vc.id,
+        checkoutId: vc.id,
+        checkoutTime: vc.checkout_time,
+        checkout_time: vc.checkout_time,
+        checkoutMethod: vc.checkout_method || 'MANUAL',
+        checkout_method: vc.checkout_method || 'MANUAL',
+        totalVisitDuration: vc.total_visit_duration || 45,
+        remarks: vc.remarks,
+        visitorId: vc.visitor_id,
+        visitorName: visitor.full_name || 'Visitor',
+        visitorEmail: visitor.email || '',
+        visitorPhone: visitor.phone || '',
+        visitorCompany: visitor.company || 'IT park',
+        referenceCode: appt.reference_code || 'VMS-BYQU48MO',
+        badgeNumber: checkin.badge_number || 'BDG-5351',
+        hostName: host.full_name || 'Behabitu Behailu Ayele'
+      };
+    });
   }
 
   // 29. SELECT FROM VISITOR_CHECKINS
   if (normalizedSql.includes('from visitor_checkins')) {
-    if (normalizedSql.includes('appointment_id =')) {
+    if (normalizedSql.includes('select count(*)') || (normalizedSql.includes('select') && normalizedSql.includes('totalvc'))) {
+      const total = (mockDb.visitor_checkins || []).length;
+      const active = (mockDb.visitor_checkins || []).filter(vc => vc.status === 'ACTIVE').length;
+      return [{ count: total, total: total, totalVc: total, activeInside: active }];
+    }
+    if (normalizedSql.includes('appointment_id =') && normalizedSql.includes('where')) {
       const apptId = params ? params[0] : null;
       return mockDb.visitor_checkins.filter(c => c.appointment_id === parseInt(apptId) && c.status === 'ACTIVE');
     }
@@ -3324,49 +3725,21 @@ function handleMockQuery(sql, params) {
     });
   }
 
-  // 50. SELECT FROM visitor_histories (visitor history log table)
-  if (normalizedSql.includes('from visitor_histories')) {
-    const visitorIdParam = params ? params[0] : null;
-    if (!mockDb.visitor_histories) mockDb.visitor_histories = [];
-    const rows = mockDb.visitor_histories.filter(vh => {
-      if (vh.is_deleted) return false;
-      if (visitorIdParam !== null && visitorIdParam !== undefined) {
-        const vid = parseInt(visitorIdParam);
-        // Match by visitor_id or by visitor_email matching the visitor
-        if (vh.visitor_id === vid) return true;
-        const visitor = (mockDb.visitors || []).find(v => v.id === vid);
-        if (visitor && vh.visitor_email && visitor.email && vh.visitor_email.toLowerCase() === visitor.email.toLowerCase()) return true;
-        return false;
-      }
-      return true;
-    });
-    return rows.map(vh => ({
-      ...vh,
-      historyCode: vh.history_code,
-      referenceNumber: vh.reference_number,
-      hostName: vh.host_employee_name,
-      departmentName: vh.department_name,
-      appointmentNumber: vh.appointment_number,
-      purpose: vh.visit_purpose,
-      entryTime: vh.checkin_time,
-      exitTime: vh.checkout_time,
-      durationMinutes: vh.visit_duration_minutes,
-      passNumber: vh.pass_number,
-      status: vh.visit_status,
-      verificationStatus: vh.verification_status,
-      scheduledStart: vh.completed_date
-    }));
-  }
 
   return [];
 }
 
-// Attach query, transaction, and useMock flags directly to pool object for backwards-compatibility
+// Attach query, transaction, and dynamic useMock getter directly to pool object for backwards-compatibility
 if (pool) {
   pool.query = query;
   pool.transaction = transaction;
   pool.getUseMock = () => useMock;
-  pool.useMock = useMock;
+  Object.defineProperty(pool, 'useMock', {
+    get: () => useMock,
+    set: (v) => { useMock = v; },
+    configurable: true,
+    enumerable: true
+  });
   pool.mockDb = mockDb;
 }
 
@@ -3374,6 +3747,11 @@ module.exports = pool;
 module.exports.query = query;
 module.exports.transaction = transaction;
 module.exports.getUseMock = () => useMock;
-module.exports.useMock = useMock;
+Object.defineProperty(module.exports, 'useMock', {
+  get: () => useMock,
+  set: (v) => { useMock = v; },
+  configurable: true,
+  enumerable: true
+});
 module.exports.mockDb = mockDb;
 module.exports.default = pool;

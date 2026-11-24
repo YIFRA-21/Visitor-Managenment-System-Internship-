@@ -54,7 +54,7 @@ export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle
     const location = useLocation();
     const { organization, logoUrl: orgLogoUrl, orgName } = useOrganization();
     const { t } = useLanguage();
-    const displayLogo = orgLogoUrl || organization?.logoUrl || '/logo.jpg';
+    const displayLogo = orgLogoUrl || organization?.logoUrl || '/image20.png';
     const displayName = (orgName && !orgName.toLowerCase().includes('enterprise vms'))
         ? orgName
         : ((organization?.name && !organization.name.toLowerCase().includes('enterprise vms'))
@@ -114,7 +114,7 @@ export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle
         <div className="vms-sidebar__brand">
           <div className="vms-sidebar__logo-full">
             <img src={displayLogo} alt={`${displayName} Logo`} className="vms-sidebar__logo-img" onError={(e) => {
-            e.target.src = '/logo.jpg';
+            e.target.src = '/image20.png';
         }}/>
             <div className="vms-sidebar__brand-text-wrapper">
               <span className="vms-sidebar__brand-name">
@@ -127,7 +127,7 @@ export default function Sidebar({ collapsed, onCollapseToggle: _onCollapseToggle
           </div>
           <div className="vms-sidebar__logo-icon">
             <img src={displayLogo} alt={`${displayName} Logo`} className="vms-sidebar__logo-img" onError={(e) => {
-            e.target.src = '/logo.jpg';
+            e.target.src = '/image20.png';
         }}/>
           </div>
         </div>

@@ -204,8 +204,8 @@ export default function LoginPage() {
         <div className="relative z-10 p-12">
           <div className="flex items-center gap-3">
             <div className="p-1 bg-white rounded-xl shadow-md border border-slate-200">
-              <img src={logoUrl || '/logo.png'} alt={`${orgName} Logo`} className="w-9 h-9 object-contain rounded-lg" onError={(e) => {
-            e.target.src = '/logo.png';
+              <img src={logoUrl || '/image20.png'} alt={`${orgName} Logo`} className="w-9 h-9 object-contain rounded-lg" onError={(e) => {
+            e.target.src = '/image20.png';
         }}/>
             </div>
             <span className="text-xl font-bold tracking-tight text-white drop-shadow-md">
