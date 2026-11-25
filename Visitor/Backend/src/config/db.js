@@ -2174,8 +2174,37 @@ function handleMockQuery(sql, params) {
   // 14. SELECT FROM USERS
   if (normalizedSql.includes('from users')) {
     if (normalizedSql.includes('select count(*)')) {
-      const count = mockDb.users.length;
-      return [{ count, total: count }];
+      let filtered = [...mockDb.users];
+      if (normalizedSql.includes("in ('employee', 'staff', 'host')")) {
+        filtered = filtered.filter(u => ['employee', 'staff', 'host'].includes(String(u.role || '').toLowerCase()) || String(u.user_code || '').startsWith('EMP'));
+      } else if (normalizedSql.includes("'visitor'")) {
+        filtered = filtered.filter(u => String(u.role || '').toLowerCase() === 'visitor' || String(u.user_code || '').startsWith('VIS'));
+      } else if (normalizedSql.includes("'manager'")) {
+        filtered = filtered.filter(u => String(u.role || '').toLowerCase().includes('manager') || String(u.user_code || '').startsWith('MGR'));
+      } else if (normalizedSql.includes("'security'") || normalizedSql.includes("'security_officer'")) {
+        filtered = filtered.filter(u => String(u.role || '').toLowerCase().includes('security') || String(u.user_code || '').startsWith('SEC'));
+      } else if (normalizedSql.includes("'receptionist'") || normalizedSql.includes("'reception'")) {
+        filtered = filtered.filter(u => String(u.role || '').toLowerCase().includes('reception') || String(u.user_code || '').startsWith('REC'));
+      }
+      const count = filtered.length;
+      const activeCount = filtered.filter(u => String(u.status || '').toLowerCase() === 'active' || String(u.account_status || '').toLowerCase() === 'active').length;
+      return [{
+        count,
+        total: count,
+        total_users: count,
+        totalUsers: count,
+        active_users: activeCount,
+        activeUsers: activeCount,
+        pending_users: 0,
+        inactive_users: count - activeCount,
+        suspended_users: 0,
+        locked_users: 0,
+        expired_users: 0,
+        unverified_users: 0,
+        online_users: Math.min(count, 3),
+        recently_registered: count,
+        'count(*)': count
+      }];
     }
     // generateUserCode: SELECT user_code FROM users WHERE user_code LIKE ?
     if (normalizedSql.includes('select user_code') && normalizedSql.includes('like')) {
@@ -2184,35 +2213,39 @@ function handleMockQuery(sql, params) {
         .filter(u => u.user_code && u.user_code.startsWith(prefix))
         .map(u => ({ user_code: u.user_code }));
     }
-    if (normalizedSql.includes('department_id =') && normalizedSql.includes('role =')) {
+    // Department staff lookup (WHERE u.department_id = ? AND u.role = 'staff')
+    if (normalizedSql.includes('where') && (normalizedSql.includes('department_id = ?') || normalizedSql.includes('u.department_id = ?')) && normalizedSql.includes('role =')) {
       const deptId = params ? params[0] : null;
-      // The role value is hardcoded in the SQL string (e.g. role = 'staff'), not a parameter
       const roleMatch = normalizedSql.match(/role\s*=\s*'([^']+)'/);
       const role = roleMatch ? roleMatch[1] : (params && params[1] ? params[1] : 'staff');
       return mockDb.users
         .filter(u => u.department_id === parseInt(deptId) && u.role === role && u.status === 'active')
         .map(u => ({ id: u.id, full_name: u.full_name, email: u.email, job_title: u.job_title, status: u.status }));
     }
-    if (normalizedSql.includes('department_id =')) {
-      const deptId = params ? params[0] : null;
-      return mockDb.users.filter(u => u.department_id === parseInt(deptId));
-    }
     // Check specific user by ID: WHERE u.id = ? or WHERE id = ?
-    if (normalizedSql.includes('where') && (normalizedSql.includes('u.id =') || normalizedSql.includes('where id =') || normalizedSql.includes('and id ='))) {
+    if (normalizedSql.includes('where') && (
+      normalizedSql.includes('u.id = ?') ||
+      normalizedSql.includes('where id = ?') ||
+      normalizedSql.includes('and id = ?') ||
+      normalizedSql.includes('and u.id = ?') ||
+      (normalizedSql.includes('where u.id =') && !normalizedSql.includes('order by'))
+    ) && !normalizedSql.includes('limit ? offset ?')) {
       const id = params ? params[0] : null;
       const user = mockDb.users.find(u => u.id === parseInt(id));
       return user ? [user] : [];
     }
     // Check specific user by identifier (login, findByIdentifier, findByEmail, findByUserCode, findByUsername)
     if (normalizedSql.includes('where') && (
-      normalizedSql.includes('lower(u.email) =') ||
-      normalizedSql.includes('lower(email) =') ||
-      normalizedSql.includes('u.user_code =') ||
-      normalizedSql.includes('user_code =') ||
-      normalizedSql.includes('username =') ||
-      normalizedSql.includes('email =')
-    ) && params && params.length > 0) {
-      const identifier = params[0];
+      normalizedSql.includes('lower(u.email) = ?') ||
+      normalizedSql.includes('lower(u.email) = lower(?)') ||
+      normalizedSql.includes('lower(email) = lower(?)') ||
+      normalizedSql.includes('lower(email) = ?') ||
+      normalizedSql.includes('u.user_code = ?') ||
+      normalizedSql.includes('user_code = ?') ||
+      normalizedSql.includes('username = ?') ||
+      normalizedSql.includes('email = ?')
+    ) && !normalizedSql.includes('limit ? offset ?')) {
+      const identifier = params ? params[0] : null;
       if (identifier) {
         const lowerId = String(identifier).toLowerCase().trim();
         const prefixId = lowerId.includes('@') ? lowerId : `${lowerId}@`;
@@ -2227,15 +2260,50 @@ function handleMockQuery(sql, params) {
       return [];
     }
     // General user listing: return all mock users mapped with department and role info
-    return mockDb.users.map(u => {
+    let list = [...mockDb.users];
+    if (normalizedSql.includes("in ('employee', 'staff', 'host')")) {
+      list = list.filter(u => ['employee', 'staff', 'host'].includes(String(u.role || '').toLowerCase()) || String(u.user_code || '').startsWith('EMP'));
+    } else if (normalizedSql.includes("'visitor'")) {
+      list = list.filter(u => String(u.role || '').toLowerCase() === 'visitor' || String(u.user_code || '').startsWith('VIS'));
+    } else if (normalizedSql.includes("'manager'")) {
+      list = list.filter(u => String(u.role || '').toLowerCase().includes('manager') || String(u.user_code || '').startsWith('MGR'));
+    } else if (normalizedSql.includes("'security'") || normalizedSql.includes("'security_officer'")) {
+      list = list.filter(u => String(u.role || '').toLowerCase().includes('security') || String(u.user_code || '').startsWith('SEC'));
+    } else if (normalizedSql.includes("'receptionist'") || normalizedSql.includes("'reception'")) {
+      list = list.filter(u => String(u.role || '').toLowerCase().includes('reception') || String(u.user_code || '').startsWith('REC'));
+    }
+
+    if (params && params.length > 0 && normalizedSql.includes('like ?') && !normalizedSql.includes('select user_code')) {
+      const term = String(params[0] || '').replace(/%/g, '').toLowerCase().trim();
+      if (term) {
+        list = list.filter(u =>
+          String(u.user_code || '').toLowerCase().includes(term) ||
+          String(u.username || '').toLowerCase().includes(term) ||
+          String(u.full_name || '').toLowerCase().includes(term) ||
+          String(u.email || '').toLowerCase().includes(term) ||
+          String(u.phone || '').toLowerCase().includes(term)
+        );
+      }
+    }
+
+    return list.map(u => {
       const dept = (mockDb.departments || []).find(d => d.id === u.department_id) || {};
       const branch = (mockDb.organization_branches || []).find(b => b.id === (u.branch_id || 1)) || {};
       return {
         ...u,
+        userId: u.user_code || `USR-${u.id}`,
+        userCode: u.user_code || `USR-${u.id}`,
+        fullName: u.full_name,
+        phoneNumber: u.phone,
+        accountStatus: u.account_status || 'ACTIVE',
         department_name: dept.name || 'Executive Office',
+        departmentName: dept.name || 'Executive Office',
         branch_name: branch.branch_name || 'HQ Silicon Valley Campus',
+        branchName: branch.branch_name || 'HQ Silicon Valley Campus',
         organization_name: 'IT park',
-        role_name: (u.role || 'staff').toUpperCase()
+        organizationName: 'IT park',
+        role_name: (u.role || 'staff').toUpperCase(),
+        roleName: (u.role || 'staff').toUpperCase()
       };
     });
   }
