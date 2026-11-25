@@ -14,61 +14,15 @@ const PASSWORD_HASH = bcrypt.hashSync('Belay2123@#', 10);
 
 const DEMO_USERS = [
   // id, user_code, username, email, first_name, middle_name, last_name, full_name, phone, role, department_id, job_title
-  [1, 'ADM000001', 'admin', 'admin@visitor.com', 'System', null, 'Admin', 'System Admin', '+1-555-0100', 'admin', 1, 'System Administrator'],
-  [2, 'EMP000001', 'sarah.j', 'sarah.j@visitor.com', 'Sarah', 'M.', 'Johnson', 'Sarah Johnson', '+1-555-0101', 'staff', 2, 'Sales Director'],
-  [3, 'EMP000002', 'michael.c', 'michael.c@visitor.com', 'Michael', 'K.', 'Chen', 'Michael Chen', '+1-555-0102', 'staff', 2, 'Account Manager'],
-  [4, 'MGR000001', 'emily.d', 'emily.d@visitor.com', 'Emily', 'A.', 'Davis', 'Emily Davis', '+1-555-0103', 'manager', 3, 'Finance Manager'],
-  [5, 'EMP000003', 'james.w', 'james.w@visitor.com', 'James', 'R.', 'Wilson', 'James Wilson', '+1-555-0104', 'staff', 4, 'Operations Lead'],
-  [6, 'REC000001', 'lisa.t', 'lisa.t@visitor.com', 'Lisa', '', 'Thompson', 'Lisa Thompson', '+1-555-0105', 'receptionist', 1, 'Front Desk Manager'],
-  [7, 'SEC000001', 'robert.g', 'robert.g@visitor.com', 'Robert', '', 'Garcia', 'Robert Garcia', '+1-555-0106', 'security_officer', 6, 'Security Officer'],
-  [8, 'EMP000004', 'amanda.f', 'amanda.f@visitor.com', 'Amanda', '', 'Foster', 'Amanda Foster', '+1-555-0107', 'staff', 5, 'HR Director'],
-  [9, 'EMP000005', 'kevin.p', 'kevin.p@visitor.com', 'Kevin', '', 'Park', 'Kevin Park', '+1-555-0108', 'staff', 5, 'Talent Acquisition Lead'],
-  [10, 'EMP000006', 'diana.r', 'diana.r@visitor.com', 'Diana', '', 'Ruiz', 'Diana Ruiz', '+1-555-0109', 'staff', 6, 'IT Support Manager'],
-  [11, 'EMP000007', 'thomas.w', 'thomas.w@visitor.com', 'Thomas', '', 'Wright', 'Thomas Wright', '+1-555-0110', 'staff', 1, 'Executive Assistant'],
-  [12, 'VIS000001', 'visitor', 'visitor@visitor.com', 'David', '', 'Visitor', 'David Visitor', '+1-555-0111', 'visitor', null, 'Visiting Client'],
-  [13, 'VIS000002', 'yetmul8@gmail.com', 'yetmul8@gmail.com', 'Yetmwerk', 'Ayele', 'Muluneh', 'Yetmwerk Ayele Muluneh', '+251911234567', 'visitor', null, 'Guest Visitor'],
-  [14, 'EMP000008', 'employee', 'employee@visitor.com', 'Employee', '', 'Demo', 'Employee Demo', '+1-555-0112', 'staff', 2, 'Host Employee'],
-  [15, 'MGR000002', 'manager', 'manager@visitor.com', 'Manager', '', 'Demo', 'Manager Demo', '+1-555-0113', 'manager', 3, 'General Manager'],
-  [16, 'REC000002', 'receptionist', 'receptionist@visitor.com', 'Receptionist', '', 'Demo', 'Receptionist Demo', '+1-555-0114', 'receptionist', 1, 'Front Desk Staff'],
-  [17, 'SEC000002', 'security', 'security@visitor.com', 'Security', '', 'Demo', 'Security Demo', '+1-555-0115', 'security_officer', 6, 'Security Guard']
+  [1, 'ADM000001', 'admin', 'admin@visitor.com', 'System', null, 'Admin', 'System Admin', '+1-555-0100', 'admin', 1, 'System Administrator']
 ];
 
 const USER_ROLE_MAPPINGS = [
-  [1, 1],   // admin → Administrator
-  [2, 2],   // sarah.j → Employee/Host
-  [3, 2],   // michael.c → Employee/Host
-  [4, 6],   // emily.d → Department Manager
-  [5, 2],   // james.w → Employee/Host
-  [6, 3],   // lisa.t → Receptionist
-  [7, 4],   // robert.g → Security Officer
-  [8, 2],   // amanda.f → Employee/Host
-  [9, 2],   // kevin.p → Employee/Host
-  [10, 2],  // diana.r → Employee/Host
-  [11, 2],  // thomas.w → Employee/Host
-  [12, 5],  // visitor → Visitor
-  [13, 5],  // yetmul8 → Visitor
-  [14, 2],  // employee → Employee/Host
-  [15, 6],  // manager → Department Manager
-  [16, 3],  // receptionist → Receptionist
-  [17, 4]   // security → Security Officer
+  [1, 1]   // admin → Administrator
 ];
 
 const EMPLOYEES = [
-  [1, 1, 1, 'EMP-2026-0001', 'System', '', 'Admin', 'System Admin', 'Male', 'admin@visitor.com', '+1-555-0100', 'System Administrator', 'Lead Admin', 1, 1, 1, 1, null],
-  [2, 2, 2, 'EMP-2026-0002', 'Sarah', 'M.', 'Johnson', 'Sarah Johnson', 'Female', 'sarah.j@visitor.com', '+1-555-0101', 'Sales Director', 'Director', 1, 1, 2, 1, 1],
-  [3, 3, 3, 'EMP-2026-0003', 'Michael', 'K.', 'Chen', 'Michael Chen', 'Male', 'michael.c@visitor.com', '+1-555-0102', 'Account Manager', 'Senior Lead', 1, 1, 2, 1, 2],
-  [4, 4, 4, 'EMP-2026-0004', 'Emily', 'A.', 'Davis', 'Emily Davis', 'Female', 'emily.d@visitor.com', '+1-555-0103', 'Finance Manager', 'Department Head', 1, 1, 3, 1, 1],
-  [5, 5, 5, 'EMP-2026-0005', 'James', 'R.', 'Wilson', 'James Wilson', 'Male', 'james.w@visitor.com', '+1-555-0104', 'Operations Lead', 'Lead', 1, 1, 4, 1, 1],
-  [6, 6, 6, 'EMP-2026-0006', 'Lisa', '', 'Thompson', 'Lisa Thompson', 'Female', 'lisa.t@visitor.com', '+1-555-0105', 'Front Desk Manager', 'Manager', 1, 1, 1, 1, 1],
-  [7, 7, 7, 'EMP-2026-0007', 'Robert', '', 'Garcia', 'Robert Garcia', 'Male', 'robert.g@visitor.com', '+1-555-0106', 'Security Officer', 'Officer', 1, 1, 6, 1, 1],
-  [8, 8, 8, 'EMP-2026-0008', 'Amanda', '', 'Foster', 'Amanda Foster', 'Female', 'amanda.f@visitor.com', '+1-555-0107', 'HR Director', 'Director', 1, 1, 5, 1, 1],
-  [9, 9, 9, 'EMP-2026-0009', 'Kevin', '', 'Park', 'Kevin Park', 'Male', 'kevin.p@visitor.com', '+1-555-0108', 'Talent Acquisition Lead', 'Lead', 1, 1, 5, 1, 8],
-  [10, 10, 10, 'EMP-2026-0010', 'Diana', '', 'Ruiz', 'Diana Ruiz', 'Female', 'diana.r@visitor.com', '+1-555-0109', 'IT Support Manager', 'Manager', 1, 1, 6, 1, 1],
-  [11, 11, 11, 'EMP-2026-0011', 'Thomas', '', 'Wright', 'Thomas Wright', 'Male', 'thomas.w@visitor.com', '+1-555-0110', 'Executive Assistant', 'Assistant', 1, 1, 1, 1, 1],
-  [14, 14, 14, 'EMP-2026-0014', 'Employee', '', 'Demo', 'Employee Demo', 'Other', 'employee@visitor.com', '+1-555-0112', 'Host Employee', 'Staff', 1, 1, 2, 1, 2],
-  [15, 15, 15, 'EMP-2026-0015', 'Manager', '', 'Demo', 'Manager Demo', 'Other', 'manager@visitor.com', '+1-555-0113', 'General Manager', 'Manager', 1, 1, 3, 1, 1],
-  [16, 16, 16, 'EMP-2026-0016', 'Receptionist', '', 'Demo', 'Receptionist Demo', 'Female', 'receptionist@visitor.com', '+1-555-0114', 'Front Desk Staff', 'Staff', 1, 1, 1, 1, 1],
-  [17, 17, 17, 'EMP-2026-0017', 'Security', '', 'Demo', 'Security Demo', 'Male', 'security@visitor.com', '+1-555-0115', 'Security Guard', 'Officer', 1, 1, 6, 1, 1]
+  [1, 1, 1, 'EMP-2026-0001', 'System', '', 'Admin', 'System Admin', 'Male', 'admin@visitor.com', '+1-555-0100', 'System Administrator', 'Lead Admin', 1, 1, 1, 1, null]
 ];
 
 const ALL_RESOURCES = [
@@ -376,11 +330,7 @@ async function seedDemoUsers(queryFn, options = {}) {
       const totalCount = empCountRows && empCountRows[0] ? Number(empCountRows[0].count) : 0;
       if (totalCount === 0) {
         const initialEmployees = [
-          [1, 'EMP-2026-0001', 1, 'System', '', 'Admin', 'System Admin', 'Male', 'admin@visitor.com', '+251911000111', 'System Administrator', 1, 1, 'Available'],
-          [2, 'EMP-2026-0002', 3, 'Sarah', 'M.', 'Johnson', 'Sarah Johnson', 'Female', 'sarah.j@visitor.com', '+1-555-0101', 'Sales Director', 2, 1, 'Available'],
-          [3, 'EMP-2026-0003', 4, 'Michael', 'K.', 'Chen', 'Michael Chen', 'Male', 'michael.c@visitor.com', '+1-555-0102', 'Account Manager', 2, 1, 'In Meeting'],
-          [4, 'EMP-2026-0004', 5, 'Emily', 'A.', 'Davis', 'Emily Davis', 'Female', 'emily.d@visitor.com', '+1-555-0103', 'Finance Manager', 3, 1, 'On Leave'],
-          [5, 'EMP-2026-0005', 6, 'James', 'R.', 'Wilson', 'James Wilson', 'Male', 'james.w@visitor.com', '+1-555-0104', 'Operations Lead', 4, 1, 'Available']
+          [1, 'EMP-2026-0001', 1, 'System', '', 'Admin', 'System Admin', 'Male', 'admin@visitor.com', '+251911000111', 'System Administrator', 1, 1, 'Available']
         ];
         for (const u of initialEmployees) {
           await queryFn(`

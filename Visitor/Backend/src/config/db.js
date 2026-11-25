@@ -781,26 +781,7 @@ const mockDb = {
     { id: 5, name: 'Executive Suite', capacity: 6, location: 'Floor 5 - Private', is_active: true }
   ],
   users: [
-    { id: 1, user_id: 1, user_code: 'ADM000001', username: 'admin', full_name: 'System Admin', email: 'admin@visitor.com', phone: '+1-555-0100', password_hash: PASSWORD_HASH, role: 'admin', role_id: 1, department_id: 1, job_title: 'System Administrator', availability_json: '{"mon":["09:00","17:00"],"tue":["09:00","17:00"],"wed":["09:00","17:00"],"thu":["09:00","17:00"],"fri":["09:00","17:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 2, user_id: 2, user_code: 'EMP000001', username: 'sarah.j', full_name: 'Sarah Johnson', email: 'sarah.j@visitor.com', phone: '+1-555-0101', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 2, job_title: 'Sales Director', availability_json: '{"mon":["09:00","18:00"],"tue":["09:00","18:00"],"wed":["09:00","18:00"],"thu":["09:00","18:00"],"fri":["09:00","17:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 3, user_id: 3, user_code: 'EMP000002', username: 'michael.c', full_name: 'Michael Chen', email: 'michael.c@visitor.com', phone: '+1-555-0102', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 2, job_title: 'Account Manager', availability_json: '{"mon":["10:00","18:00"],"tue":["10:00","18:00"],"wed":["10:00","18:00"],"thu":["10:00","18:00"],"fri":["10:00","16:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 4, user_id: 4, user_code: 'MGR000001', username: 'emily.d', full_name: 'Emily Davis', email: 'emily.d@visitor.com', phone: '+1-555-0103', password_hash: PASSWORD_HASH, role: 'manager', role_id: 6, department_id: 3, job_title: 'Finance Manager', availability_json: '{"mon":["08:30","17:30"],"tue":["08:30","17:30"],"wed":["08:30","17:30"],"thu":["08:30","17:30"],"fri":["08:30","16:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 5, user_id: 5, user_code: 'EMP000003', username: 'james.w', full_name: 'James Wilson', email: 'james.w@visitor.com', phone: '+1-555-0104', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 4, job_title: 'Operations Lead', availability_json: '{"mon":["09:00","17:00"],"tue":["09:00","17:00"],"wed":["09:00","17:00"],"thu":["09:00","17:00"],"fri":["09:00","17:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 6, user_id: 6, user_code: 'REC000001', username: 'lisa.t', full_name: 'Lisa Thompson', email: 'lisa.t@visitor.com', phone: '+1-555-0105', password_hash: PASSWORD_HASH, role: 'receptionist', role_id: 3, department_id: 1, job_title: 'Front Desk Manager', availability_json: '{"mon":["07:00","19:00"],"tue":["07:00","19:00"],"wed":["07:00","19:00"],"thu":["07:00","19:00"],"fri":["07:00","19:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 7, user_id: 7, user_code: 'SEC000001', username: 'robert.g', full_name: 'Robert Garcia', email: 'robert.g@visitor.com', phone: '+1-555-0106', password_hash: PASSWORD_HASH, role: 'security_officer', role_id: 4, department_id: 6, job_title: 'Security Officer', availability_json: '{"mon":["06:00","22:00"],"tue":["06:00","22:00"],"wed":["06:00","22:00"],"thu":["06:00","22:00"],"fri":["06:00","22:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 8, user_id: 8, user_code: 'EMP000004', username: 'amanda.f', full_name: 'Amanda Foster', email: 'amanda.f@visitor.com', phone: '+1-555-0107', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 5, job_title: 'HR Director', availability_json: '{"mon":["08:00","17:00"],"tue":["08:00","17:00"],"wed":["08:00","17:00"],"thu":["08:00","17:00"],"fri":["08:00","16:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 9, user_id: 9, user_code: 'EMP000005', username: 'kevin.p', full_name: 'Kevin Park', email: 'kevin.p@visitor.com', phone: '+1-555-0108', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 5, job_title: 'Talent Acquisition Lead', availability_json: '{"mon":["09:00","18:00"],"tue":["09:00","18:00"],"wed":["09:00","18:00"],"thu":["09:00","18:00"],"fri":["09:00","17:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 10, user_id: 10, user_code: 'EMP000006', username: 'diana.r', full_name: 'Diana Ruiz', email: 'diana.r@visitor.com', phone: '+1-555-0109', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 6, job_title: 'IT Support Manager', availability_json: '{"mon":["08:00","17:00"],"tue":["08:00","17:00"],"wed":["08:00","17:00"],"thu":["08:00","17:00"],"fri":["08:00","16:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 11, user_id: 11, user_code: 'EMP000007', username: 'thomas.w', full_name: 'Thomas Wright', email: 'thomas.w@visitor.com', phone: '+1-555-0110', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 1, job_title: 'Executive Assistant', availability_json: '{"mon":["08:30","17:30"],"tue":["08:30","17:30"],"wed":["08:30","17:30"],"thu":["08:30","17:30"],"fri":["08:30","16:30"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 12, user_id: 12, user_code: 'VIS000001', username: 'visitor', full_name: 'David Visitor', email: 'visitor@visitor.com', phone: '+1-555-0111', password_hash: PASSWORD_HASH, role: 'visitor', role_id: 5, department_id: null, job_title: 'Visiting Client', availability_json: null, status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 13, user_id: 13, user_code: 'VIS000002', username: 'yetmul8@gmail.com', full_name: 'Yetmwerk Ayele Muluneh', email: 'yetmul8@gmail.com', phone: '+251911234567', password_hash: PASSWORD_HASH, role: 'visitor', role_id: 5, department_id: null, job_title: 'Guest Visitor', availability_json: null, status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 14, user_id: 14, user_code: 'EMP000008', username: 'employee', full_name: 'Employee Demo', email: 'employee@visitor.com', phone: '+1-555-0112', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 2, job_title: 'Host Employee', availability_json: '{"mon":["09:00","17:00"],"tue":["09:00","17:00"],"wed":["09:00","17:00"],"thu":["09:00","17:00"],"fri":["09:00","17:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 15, user_id: 15, user_code: 'MGR000002', username: 'manager', full_name: 'Manager Demo', email: 'manager@visitor.com', phone: '+1-555-0113', password_hash: PASSWORD_HASH, role: 'manager', role_id: 6, department_id: 3, job_title: 'General Manager', availability_json: '{"mon":["08:30","17:30"],"tue":["08:30","17:30"],"wed":["08:30","17:30"],"thu":["08:30","17:30"],"fri":["08:30","16:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 16, user_id: 16, user_code: 'REC000002', username: 'receptionist', full_name: 'Receptionist Demo', email: 'receptionist@visitor.com', phone: '+1-555-0114', password_hash: PASSWORD_HASH, role: 'receptionist', role_id: 3, department_id: 1, job_title: 'Front Desk Staff', availability_json: '{"mon":["07:00","19:00"],"tue":["07:00","19:00"],"wed":["07:00","19:00"],"thu":["07:00","19:00"],"fri":["07:00","19:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 17, user_id: 17, user_code: 'SEC000002', username: 'security', full_name: 'Security Demo', email: 'security@visitor.com', phone: '+1-555-0115', password_hash: PASSWORD_HASH, role: 'security_officer', role_id: 4, department_id: 6, job_title: 'Security Guard', availability_json: '{"mon":["06:00","22:00"],"tue":["06:00","22:00"],"wed":["06:00","22:00"],"thu":["06:00","22:00"],"fri":["06:00","22:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 18, user_id: 18, user_code: 'VIS-2026-00009', username: 'belayyifra', full_name: 'Belay Ayele Yifra', email: 'belayyifra1@gmail.com', phone: '+251 921109968', password_hash: PASSWORD_HASH, role: 'visitor', role_id: 5, department_id: null, job_title: 'Guest Visitor', availability_json: null, status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 19, user_id: 19, user_code: 'EMP000009', username: 'behabitu', full_name: 'Behabitu Behailu Ayele', email: 'behabitu@visitor.com', phone: '+251 911002233', password_hash: PASSWORD_HASH, role: 'staff', role_id: 2, department_id: 2, job_title: 'Technology Lead', availability_json: '{"mon":["09:00","17:00"],"tue":["09:00","17:00"],"wed":["09:00","17:00"],"thu":["09:00","17:00"],"fri":["09:00","17:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false },
-    { id: 20, user_id: 20, user_code: 'REC000003', username: 'sami.z', full_name: 'Sami Zeleke Ayele', email: 'sami.z@visitor.com', phone: '+251 922334455', password_hash: PASSWORD_HASH, role: 'receptionist', role_id: 3, department_id: 1, job_title: 'Reception Desk', availability_json: '{"mon":["07:00","19:00"],"tue":["07:00","19:00"],"wed":["07:00","19:00"],"thu":["07:00","19:00"],"fri":["07:00","19:00"]}', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false }
+    { id: 1, user_id: 1, user_code: 'ADM000001', username: 'admin', full_name: 'System Admin', email: 'admin@visitor.com', phone: '+1-555-0100', password_hash: PASSWORD_HASH, role: 'admin', role_id: 1, department_id: 1, job_title: 'System Administrator', availability_json: '{"mon":["09:00","17:00"],"tue":["09:00","17:00"],"wed":["09:00","17:00"],"thu":["09:00","17:00"],"fri":["09:00","17:00"]}', avatar_url: 'https://randomuser.me/api/portraits/men/32.jpg', profile_photo: 'https://randomuser.me/api/portraits/men/32.jpg', status: 'active', account_status: 'ACTIVE', verification_status: 'VERIFIED', first_login_required: false }
   ],
   roles: [
     { id: 1, role_id: 1, role_name: 'Administrator', role_code: 'ADMIN', description: 'System Administrator', status: 'ACTIVE' },
@@ -811,23 +792,7 @@ const mockDb = {
     { id: 6, role_id: 6, role_name: 'Department Manager', role_code: 'MANAGER', description: 'Department Manager with approval authority', status: 'ACTIVE' }
   ],
   user_roles: [
-    { id: 1, user_id: 1, role_id: 1 },
-    { id: 2, user_id: 2, role_id: 2 },
-    { id: 3, user_id: 3, role_id: 2 },
-    { id: 4, user_id: 4, role_id: 6 },
-    { id: 5, user_id: 5, role_id: 2 },
-    { id: 6, user_id: 6, role_id: 3 },
-    { id: 7, user_id: 7, role_id: 4 },
-    { id: 8, user_id: 8, role_id: 2 },
-    { id: 9, user_id: 9, role_id: 2 },
-    { id: 10, user_id: 10, role_id: 2 },
-    { id: 11, user_id: 11, role_id: 2 },
-    { id: 12, user_id: 12, role_id: 5 },
-    { id: 13, user_id: 13, role_id: 5 },
-    { id: 14, user_id: 14, role_id: 2 },
-    { id: 15, user_id: 15, role_id: 6 },
-    { id: 16, user_id: 16, role_id: 3 },
-    { id: 17, user_id: 17, role_id: 4 }
+    { id: 1, user_id: 1, role_id: 1 }
   ],
   responsibilities: [
     { id: 1, responsibility_id: 1, responsibility_code: 'MANAGE_USERS', responsibility_name: 'Manage Users', description: 'Manage system users and access' },
@@ -1025,56 +990,12 @@ const mockDb = {
       id: 1, employee_id: 1, user_id: 1, employee_number: 'EMP-2026-0001',
       first_name: 'System', middle_name: '', last_name: 'Admin', full_name: 'System Admin',
       gender: 'Male', dob: '1985-05-12', nationality: 'Ethiopian', marital_status: 'Married',
-      photo_url: '', email: 'admin@visitor.com', mobile_number: '+251911000111', office_phone: '+251111000111', extension: '101',
+      photo_url: 'https://randomuser.me/api/portraits/men/32.jpg', email: 'admin@visitor.com', mobile_number: '+251911000111', office_phone: '+251111000111', extension: '101',
       employment_type: 'Full-Time', job_title: 'System Administrator', position: 'Lead Admin', hire_date: '2020-01-15', employment_status: 'Active',
       organization_id: 1, branch_id: 1, department_id: 1, building_id: 1, floor_number: '5', office_number: '501', manager_id: null,
       emergency_contact_name: 'Helen Admin', emergency_contact_relation: 'Spouse', emergency_contact_phone: '+251911999888',
       is_host_enabled: true, max_visitors_per_day: 20, max_concurrent_visitors: 5, default_room_id: 1, default_approval_role: 'Admin',
       availability_status: 'Available', created_at: '2026-07-01T00:00:00Z', updated_at: '2026-07-01T00:00:00Z'
-    },
-    {
-      id: 2, employee_id: 2, user_id: 2, employee_number: 'EMP-2026-0002',
-      first_name: 'Sarah', middle_name: 'M.', last_name: 'Johnson', full_name: 'Sarah Johnson',
-      gender: 'Female', dob: '1990-08-22', nationality: 'American', marital_status: 'Single',
-      photo_url: '', email: 'sarah.j@visitor.com', mobile_number: '+1-555-0101', office_phone: '+1-555-0201', extension: '201',
-      employment_type: 'Full-Time', job_title: 'Sales Director', position: 'Director', hire_date: '2021-03-01', employment_status: 'Active',
-      organization_id: 1, branch_id: 1, department_id: 2, building_id: 1, floor_number: '3', office_number: '304', manager_id: 1,
-      emergency_contact_name: 'Mark Johnson', emergency_contact_relation: 'Brother', emergency_contact_phone: '+1-555-9999',
-      is_host_enabled: true, max_visitors_per_day: 15, max_concurrent_visitors: 4, default_room_id: 2, default_approval_role: 'Host',
-      availability_status: 'Available', created_at: '2026-07-02T00:00:00Z', updated_at: '2026-07-02T00:00:00Z'
-    },
-    {
-      id: 3, employee_id: 3, user_id: 3, employee_number: 'EMP-2026-0003',
-      first_name: 'Michael', middle_name: 'K.', last_name: 'Chen', full_name: 'Michael Chen',
-      gender: 'Male', dob: '1992-11-10', nationality: 'Canadian', marital_status: 'Married',
-      photo_url: '', email: 'michael.c@visitor.com', mobile_number: '+1-555-0102', office_phone: '+1-555-0202', extension: '202',
-      employment_type: 'Full-Time', job_title: 'Account Manager', position: 'Senior Lead', hire_date: '2022-06-15', employment_status: 'Active',
-      organization_id: 1, branch_id: 1, department_id: 2, building_id: 1, floor_number: '3', office_number: '308', manager_id: 2,
-      emergency_contact_name: 'Grace Chen', emergency_contact_relation: 'Spouse', emergency_contact_phone: '+1-555-8888',
-      is_host_enabled: true, max_visitors_per_day: 10, max_concurrent_visitors: 3, default_room_id: 3, default_approval_role: 'Host',
-      availability_status: 'In Meeting', created_at: '2026-07-03T00:00:00Z', updated_at: '2026-07-03T00:00:00Z'
-    },
-    {
-      id: 4, employee_id: 4, user_id: 4, employee_number: 'EMP-2026-0004',
-      first_name: 'Emily', middle_name: 'A.', last_name: 'Davis', full_name: 'Emily Davis',
-      gender: 'Female', dob: '1988-04-18', nationality: 'British', marital_status: 'Married',
-      photo_url: '', email: 'emily.d@visitor.com', mobile_number: '+1-555-0103', office_phone: '+1-555-0203', extension: '301',
-      employment_type: 'Full-Time', job_title: 'Finance Manager', position: 'Department Head', hire_date: '2019-11-01', employment_status: 'Active',
-      organization_id: 1, branch_id: 1, department_id: 3, building_id: 1, floor_number: '4', office_number: '402', manager_id: 1,
-      emergency_contact_name: 'Oliver Davis', emergency_contact_relation: 'Spouse', emergency_contact_phone: '+1-555-7777',
-      is_host_enabled: true, max_visitors_per_day: 8, max_concurrent_visitors: 2, default_room_id: 1, default_approval_role: 'Department Manager',
-      availability_status: 'On Leave', created_at: '2026-07-04T00:00:00Z', updated_at: '2026-07-04T00:00:00Z'
-    },
-    {
-      id: 5, employee_id: 5, user_id: 5, employee_number: 'EMP-2026-0005',
-      first_name: 'James', middle_name: 'R.', last_name: 'Wilson', full_name: 'James Wilson',
-      gender: 'Male', dob: '1991-09-05', nationality: 'Ethiopian', marital_status: 'Single',
-      photo_url: '', email: 'james.w@visitor.com', mobile_number: '+1-555-0104', office_phone: '+1-555-0204', extension: '401',
-      employment_type: 'Full-Time', job_title: 'Operations Lead', position: 'Lead', hire_date: '2021-08-20', employment_status: 'Active',
-      organization_id: 1, branch_id: 1, department_id: 4, building_id: 1, floor_number: '2', office_number: '210', manager_id: 1,
-      emergency_contact_name: 'Robert Wilson', emergency_contact_relation: 'Father', emergency_contact_phone: '+1-555-6666',
-      is_host_enabled: true, max_visitors_per_day: 12, max_concurrent_visitors: 3, default_room_id: 4, default_approval_role: 'Host',
-      availability_status: 'Available', created_at: '2026-07-05T00:00:00Z', updated_at: '2026-07-05T00:00:00Z'
     }
   ],
   approval_workflows: [
@@ -2295,6 +2216,9 @@ function handleMockQuery(sql, params) {
         userCode: u.user_code || `USR-${u.id}`,
         fullName: u.full_name,
         phoneNumber: u.phone,
+        avatar_url: u.avatar_url || u.profile_photo || null,
+        profile_photo: u.profile_photo || u.avatar_url || null,
+        photo_url: u.avatar_url || u.profile_photo || null,
         accountStatus: u.account_status || 'ACTIVE',
         department_name: dept.name || 'Executive Office',
         departmentName: dept.name || 'Executive Office',
